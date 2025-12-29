@@ -5,6 +5,9 @@ import com.college.ui.faculty.FacultyManagementPanel;
 import com.college.ui.courses.CourseManagementPanel;
 import com.college.ui.library.LibraryManagementPanel;
 import com.college.ui.fees.FeeManagementPanel;
+import com.college.ui.attendance.AttendanceManagementPanel;
+import com.college.ui.grades.GradeManagementPanel;
+import com.college.ui.timetable.TimetablePanel;
 import com.college.utils.UIHelper;
 import com.college.utils.DatabaseConnection;
 
@@ -58,10 +61,12 @@ public class DashboardFrame extends JFrame {
         JPanel homePanel = createHomePanel();
         contentPanel.add(homePanel, "HOME");
 
-        // Add Module Panels
         contentPanel.add(new StudentManagementPanel(), "STUDENTS");
         contentPanel.add(new FacultyManagementPanel(), "FACULTY");
         contentPanel.add(new CourseManagementPanel(role), "COURSES");
+        contentPanel.add(new AttendanceManagementPanel(), "ATTENDANCE");
+        contentPanel.add(new GradeManagementPanel(), "GRADES");
+        contentPanel.add(new TimetablePanel(role), "TIMETABLE");
         contentPanel.add(new LibraryManagementPanel(role), "LIBRARY");
         contentPanel.add(new FeeManagementPanel(), "FEES");
 
@@ -129,6 +134,9 @@ public class DashboardFrame extends JFrame {
                 addMenuItem(sidebar, "Staff Management", "FACULTY");
             }
             addMenuItem(sidebar, "Course Management", "COURSES");
+            addMenuItem(sidebar, "Attendance", "ATTENDANCE");
+            addMenuItem(sidebar, "Grades", "GRADES");
+            addMenuItem(sidebar, "Timetable", "TIMETABLE");
             addMenuItem(sidebar, "Library Management", "LIBRARY");
             addMenuItem(sidebar, "Fee Management", "FEES");
         }
@@ -201,10 +209,10 @@ public class DashboardFrame extends JFrame {
         welcomePanel.add(Box.createHorizontalStrut(20));
         welcomePanel.add(roleLabel);
 
-        // Statistics Cards Panel - 4 cards in a row
-        JPanel statsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
+        // Statistics Cards Panel - 2x2 grid
+        JPanel statsPanel = new JPanel(new GridLayout(2, 2, 20, 20));
         statsPanel.setBackground(Color.WHITE);
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        statsPanel.setBorder(BorderFactory.createEmptyBorder(30, 100, 30, 100));
 
         // Load statistics from database
         String studentCount = getCountFromDB("students");
