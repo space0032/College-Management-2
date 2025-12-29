@@ -20,6 +20,7 @@ public class LibraryManagementPanel extends JPanel {
     private LibraryDAO libraryDAO;
     private String userRole;
     private int userId;
+    private JTabbedPane tabbedPane;
 
     public LibraryManagementPanel(String role, int userId) {
         this.userRole = role;
@@ -32,6 +33,22 @@ public class LibraryManagementPanel extends JPanel {
     private void initComponents() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
+
+        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
+            // Use tabbed pane for faculty/admin
+            tabbedPane = new JTabbedPane();
+            tabbedPane.addTab("Books", createBooksPanel());
+            tabbedPane.addTab("Book Requests", new BookRequestsPanel(userId));
+            add(tabbedPane, BorderLayout.CENTER);
+        } else {
+            // Student view - simple panel
+            add(createBooksPanel(), BorderLayout.CENTER);
+        }
+    }
+
+    private JPanel createBooksPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
 
         // Top Panel
         JPanel topPanel = new JPanel(new BorderLayout());
@@ -87,9 +104,10 @@ public class LibraryManagementPanel extends JPanel {
         }
 
         // Add panels
-        add(topPanel, BorderLayout.NORTH);
-        add(tablePanel, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(tablePanel, BorderLayout.CENTER);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+        return panel;
     }
 
     private JPanel createTablePanel() {
@@ -178,6 +196,9 @@ public class LibraryManagementPanel extends JPanel {
      * Request a book (for students)
      */
     private void requestBook() {
+        RequestBookDialog dialog = new RequestBookDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this), userId);
+        dialog.setVisible(true);
         // Get selected book
         int selectedRow = bookTable.getSelectedRow();
 
@@ -219,17 +240,17 @@ public class LibraryManagementPanel extends JPanel {
                             bookTitle, bookAuthor));
         }
     }
-    
+
     private void issueBook() {
         IssueBookDialog dialog = new IssueBookDialog(
-            (Frame) SwingUtilities.getWindowAncestor(this), userId);
+                (Frame) SwingUtilities.getWindowAncestor(this), userId);
         dialog.setVisible(true);
         loadBooks();
     }
-    
+
     private void returnBook() {
         ReturnBookDialog dialog = new ReturnBookDialog(
-            (Frame) SwingUtilities.getWindowAncestor(this), userId);
+                (Frame) SwingUtilities.getWindowAncestor(this), userId);
         dialog.setVisible(true);
         loadBooks();
     }
