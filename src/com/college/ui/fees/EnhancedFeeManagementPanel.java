@@ -211,7 +211,13 @@ public class EnhancedFeeManagementPanel extends JPanel {
             return;
         }
 
-        int feeId = (Integer) tableModel.getValueAt(selectedRow, 0);
+        Object idObj = tableModel.getValueAt(selectedRow, 0);
+        if (!(idObj instanceof Integer)) {
+            UIHelper.showErrorMessage(this, "Invalid fee selected!");
+            return;
+        }
+
+        int feeId = (Integer) idObj;
 
         // Get the full StudentFee object
         List<StudentFee> fees = feeDAO.getPendingFees();
