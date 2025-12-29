@@ -1,6 +1,7 @@
 package com.college.ui;
 
 import com.college.ui.student.StudentManagementPanel;
+import com.college.ui.faculty.FacultyManagementPanel;
 import com.college.ui.courses.CourseManagementPanel;
 import com.college.ui.library.LibraryManagementPanel;
 import com.college.ui.fees.FeeManagementPanel;
@@ -59,6 +60,7 @@ public class DashboardFrame extends JFrame {
 
         // Add Module Panels
         contentPanel.add(new StudentManagementPanel(), "STUDENTS");
+        contentPanel.add(new FacultyManagementPanel(), "FACULTY");
         contentPanel.add(new CourseManagementPanel(role), "COURSES");
         contentPanel.add(new LibraryManagementPanel(role), "LIBRARY");
         contentPanel.add(new FeeManagementPanel(), "FEES");
@@ -123,6 +125,9 @@ public class DashboardFrame extends JFrame {
 
         if (role.equals("ADMIN") || role.equals("FACULTY")) {
             addMenuItem(sidebar, "Student Management", "STUDENTS");
+            if (role.equals("ADMIN")) {
+                addMenuItem(sidebar, "Staff Management", "FACULTY");
+            }
             addMenuItem(sidebar, "Course Management", "COURSES");
             addMenuItem(sidebar, "Library Management", "LIBRARY");
             addMenuItem(sidebar, "Fee Management", "FEES");
