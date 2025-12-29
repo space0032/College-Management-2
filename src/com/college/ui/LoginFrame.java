@@ -136,14 +136,15 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        // Authenticate user
-        if (authenticateUser(username, password, role)) {
+        // Authenticate user and get userId
+        int userId = authenticateUser(username, password, role);
+        if (userId > 0) {
             currentRole = role;
             UIHelper.showSuccessMessage(this, "Login successful!");
 
-            // Open Dashboard
+            // Open Dashboard with userId
             SwingUtilities.invokeLater(() -> {
-                DashboardFrame dashboard = new DashboardFrame(username, role);
+                DashboardFrame dashboard = new DashboardFrame(username, role, userId);
                 dashboard.setVisible(true);
             });
 
@@ -161,10 +162,10 @@ public class LoginFrame extends JFrame {
      * @param username Username
      * @param password Password
      * @param role     User role
-     * @return true if authentication successful
+     * @return userId if authentication successful, 0 otherwise
      */
-    private boolean authenticateUser(String username, String password, String role) {
-        String sql = "SELECT * FROM users WHERE username=? AND password=? AND role=?";
+    private int authenticateUser(String username, String password, String role) {
+        String sql = "SELECT id FROM users WHERE username=? AND password=? AND role=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -174,11 +175,14 @@ public class LoginFrame extends JFrame {
             pstmt.setString(3, role);
 
             ResultSet rs = pstmt.executeQuery();
-            return rs.next();
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+            return 0;
 
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return 0;
         }
     }
 

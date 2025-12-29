@@ -6,10 +6,12 @@ import com.college.ui.courses.CourseManagementPanel;
 import com.college.ui.library.LibraryManagementPanel;
 import com.college.ui.fees.FeeManagementPanel;
 import com.college.ui.attendance.AttendanceManagementPanel;
+import com.college.ui.attendance.StudentAttendancePanel;
 import com.college.ui.grades.GradeManagementPanel;
 import com.college.ui.timetable.TimetablePanel;
 import com.college.utils.UIHelper;
 import com.college.utils.DatabaseConnection;
+import com.college.dao.StudentDAO;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,12 +27,14 @@ public class DashboardFrame extends JFrame {
 
     private String username;
     private String role;
+    private int userId;
     private JPanel contentPanel;
     private CardLayout cardLayout;
 
-    public DashboardFrame(String username, String role) {
+    public DashboardFrame(String username, String role, int userId) {
         this.username = username;
         this.role = role;
+        this.userId = userId;
         initComponents();
     }
 
@@ -65,6 +69,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new FacultyManagementPanel(), "FACULTY");
         contentPanel.add(new CourseManagementPanel(role), "COURSES");
         contentPanel.add(new AttendanceManagementPanel(), "ATTENDANCE");
+        contentPanel.add(new StudentAttendancePanel(userId), "MY_ATTENDANCE");
         contentPanel.add(new GradeManagementPanel(), "GRADES");
         contentPanel.add(new TimetablePanel(role), "TIMETABLE");
         contentPanel.add(new LibraryManagementPanel(role), "LIBRARY");
@@ -142,7 +147,9 @@ public class DashboardFrame extends JFrame {
         }
 
         if (role.equals("STUDENT")) {
+            addMenuItem(sidebar, "My Attendance", "MY_ATTENDANCE");
             addMenuItem(sidebar, "My Courses", "COURSES");
+            addMenuItem(sidebar, "Timetable", "TIMETABLE");
             addMenuItem(sidebar, "Library", "LIBRARY");
             addMenuItem(sidebar, "My Fees", "FEES");
         }
