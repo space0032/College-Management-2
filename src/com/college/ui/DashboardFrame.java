@@ -72,7 +72,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new StudentAttendancePanel(userId), "MY_ATTENDANCE");
         contentPanel.add(new GradeManagementPanel(), "GRADES");
         contentPanel.add(new TimetablePanel(role), "TIMETABLE");
-        contentPanel.add(new LibraryManagementPanel(role), "LIBRARY");
+        contentPanel.add(new LibraryManagementPanel(role, userId), "LIBRARY");
         contentPanel.add(new FeeManagementPanel(), "FEES");
 
         add(contentPanel, BorderLayout.CENTER);

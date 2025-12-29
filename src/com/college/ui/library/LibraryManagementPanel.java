@@ -19,9 +19,11 @@ public class LibraryManagementPanel extends JPanel {
     private DefaultTableModel tableModel;
     private LibraryDAO libraryDAO;
     private String userRole;
+    private int userId;
 
-    public LibraryManagementPanel(String role) {
+    public LibraryManagementPanel(String role, int userId) {
         this.userRole = role;
+        this.userId = userId;
         libraryDAO = new LibraryDAO();
         initComponents();
         loadBooks();
@@ -61,7 +63,11 @@ public class LibraryManagementPanel extends JPanel {
 
             JButton issueButton = UIHelper.createPrimaryButton("Issue Book");
             issueButton.setPreferredSize(new Dimension(150, 40));
-            issueButton.addActionListener(e -> UIHelper.showSuccessMessage(this, "Issue book feature coming soon!"));
+            issueButton.addActionListener(e -> issueBook());
+
+            JButton returnButton = UIHelper.createPrimaryButton("Return Book");
+            returnButton.setPreferredSize(new Dimension(150, 40));
+            returnButton.addActionListener(e -> returnBook());
 
             JButton exportButton = UIHelper.createPrimaryButton("Export");
             exportButton.setPreferredSize(new Dimension(120, 40));
@@ -70,6 +76,7 @@ public class LibraryManagementPanel extends JPanel {
 
             buttonPanel.add(addButton);
             buttonPanel.add(issueButton);
+            buttonPanel.add(returnButton);
             buttonPanel.add(exportButton);
         } else if (userRole.equals("STUDENT")) {
             // Student button - Request Book
@@ -211,5 +218,19 @@ public class LibraryManagementPanel extends JPanel {
                                     "Please contact the librarian to collect your book.",
                             bookTitle, bookAuthor));
         }
+    }
+    
+    private void issueBook() {
+        IssueBookDialog dialog = new IssueBookDialog(
+            (Frame) SwingUtilities.getWindowAncestor(this), userId);
+        dialog.setVisible(true);
+        loadBooks();
+    }
+    
+    private void returnBook() {
+        ReturnBookDialog dialog = new ReturnBookDialog(
+            (Frame) SwingUtilities.getWindowAncestor(this), userId);
+        dialog.setVisible(true);
+        loadBooks();
     }
 }

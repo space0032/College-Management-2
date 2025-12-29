@@ -52,15 +52,17 @@ public class BookIssueDAO {
         String sql = "UPDATE book_issues SET return_date = CURDATE(), returned_to = ?, " +
                 "fine_amount = ?, status = 'RETURNED' WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            // Get issue details to calculate fine
-            BookIssue issue = getIssueById(issueId);
-            if (issue == null)
-                return false;
+        // Get issue details to calculate fine BEFORE opening connection
+        BookIssue issue = getIssueById(issueId);
+        if (issue == null) {
+            return false;
+        }
 
-            double fine = issue.calculateFine(FINE_PER_DAY);
+        double fine = issue.calculateFine(FINE_PER_DAY);
 
-            PreparedStatement pstmt = conn.prepareStatement(sql);
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
             pstmt.setInt(1, returnedTo);
             pstmt.setDouble(2, fine);
             pstmt.setInt(3, issueId);
@@ -162,7 +164,7 @@ public class BookIssueDAO {
      * Update book availability count
      */
     private void updateBookAvailability(int bookId, int change) {
-        String sql = "UPDATE books SET available_copies = available_copies + ? WHERE id = ?";
+        String sql = "UPDATE books SET available = available + ? WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -180,7 +182,7 @@ public class BookIssueDAO {
      * Check if book is available
      */
     public boolean isBookAvailable(int bookId) {
-        String sql = "SELECT available_copies FROM books WHERE id = ?";
+        String sql = "SELECT available FROM books WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -189,7 +191,7 @@ public class BookIssueDAO {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getInt("available_copies") > 0;
+                return rs.getInt("available") > 0;
             }
 
         } catch (SQLException e) {
