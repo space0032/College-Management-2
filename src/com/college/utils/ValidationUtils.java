@@ -118,4 +118,38 @@ public class ValidationUtils {
         else
             return "F";
     }
+
+    /**
+     * Hash password using SHA-256
+     * 
+     * @param password Plain text password
+     * @return Hashed password
+     */
+    public static String hashPassword(String password) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(password.getBytes("UTF-8"));
+            StringBuilder hexString = new StringBuilder();
+
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1)
+                    hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Generate random 4-digit number
+     * 
+     * @return Random 4-digit string
+     */
+    public static String generateRandom4Digits() {
+        return String.format("%04d", (int) (Math.random() * 10000));
+    }
 }

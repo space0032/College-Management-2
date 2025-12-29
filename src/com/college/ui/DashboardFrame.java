@@ -59,8 +59,8 @@ public class DashboardFrame extends JFrame {
 
         // Add Module Panels
         contentPanel.add(new StudentManagementPanel(), "STUDENTS");
-        contentPanel.add(new CourseManagementPanel(), "COURSES");
-        contentPanel.add(new LibraryManagementPanel(), "LIBRARY");
+        contentPanel.add(new CourseManagementPanel(role), "COURSES");
+        contentPanel.add(new LibraryManagementPanel(role), "LIBRARY");
         contentPanel.add(new FeeManagementPanel(), "FEES");
 
         add(contentPanel, BorderLayout.CENTER);

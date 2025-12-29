@@ -17,14 +17,14 @@ public class StudentDAO {
      * Add a new student to the database
      * 
      * @param student Student object to add
-     * @return true if successful, false otherwise
+     * @return generated student ID if successful, -1 otherwise
      */
-    public boolean addStudent(Student student) {
+    public int addStudent(Student student) {
         String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, student.getName());
             pstmt.setString(2, student.getEmail());
@@ -35,12 +35,19 @@ public class StudentDAO {
             pstmt.setString(7, student.getAddress());
 
             int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
+
+            if (rowsAffected > 0) {
+                // Get the generated student ID
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                }
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
         }
+        return -1;
     }
 
     /**

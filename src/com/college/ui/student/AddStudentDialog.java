@@ -167,6 +167,7 @@ public class AddStudentDialog extends JDialog {
 
         try {
             // Create or update student object
+            boolean isNewStudent = (student == null);
             if (student == null) {
                 student = new Student();
             }
@@ -182,25 +183,140 @@ public class AddStudentDialog extends JDialog {
             student.setAddress(addressArea.getText().trim());
 
             // Save to database
-            boolean result;
-            if (student.getId() == 0) {
-                result = studentDAO.addStudent(student);
-            } else {
-                result = studentDAO.updateStudent(student);
-            }
+            if (isNewStudent) {
+                // Add new student and get generated ID
+                int studentId = studentDAO.addStudent(student);
 
-            if (result) {
-                UIHelper.showSuccessMessage(this, "Student saved successfully!");
-                success = true;
-                dispose();
+                if (studentId > 0) {
+                    // Create login credentials
+                    String[] credentials = createLoginCredentials(studentId);
+
+                    if (credentials != null) {
+                        // Show success and credentials dialog
+                        showCredentialsDialog(credentials[0], credentials[1]);
+                        success = true;
+                        dispose();
+                    } else {
+                        UIHelper.showErrorMessage(this, "Student created but failed to create login credentials!");
+                    }
+                } else {
+                    UIHelper.showErrorMessage(this, "Failed to save student!");
+                }
             } else {
-                UIHelper.showErrorMessage(this, "Failed to save student!");
+                // Update existing student
+                boolean result = studentDAO.updateStudent(student);
+                if (result) {
+                    UIHelper.showSuccessMessage(this, "Student updated successfully!");
+                    success = true;
+                    dispose();
+                } else {
+                    UIHelper.showErrorMessage(this, "Failed to update student!");
+                }
             }
 
         } catch (Exception e) {
             UIHelper.showErrorMessage(this, "Invalid data: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Create login credentials for student
+     * 
+     * @param studentId Generated student ID
+     * @return Array with [username, password] or null if failed
+     */
+    private String[] createLoginCredentials(int studentId) {
+        try {
+            // Generate username and password
+            String username = "student" + studentId;
+            String plainPassword = "Student@" + studentId + ValidationUtils.generateRandom4Digits();
+            String hashedPassword = ValidationUtils.hashPassword(plainPassword);
+
+            // Insert into users table
+            String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, 'STUDENT')";
+
+            try (java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+                    java.sql.PreparedStatement pstmt = conn.prepareStatement(sql,
+                            java.sql.Statement.RETURN_GENERATED_KEYS)) {
+
+                pstmt.setString(1, username);
+                pstmt.setString(2, hashedPassword);
+
+                int rowsAffected = pstmt.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    // Get generated user ID
+                    java.sql.ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                    if (generatedKeys.next()) {
+                        int userId = generatedKeys.getInt(1);
+
+                        // Update student record with user_id
+                        String updateSql = "UPDATE students SET user_id=? WHERE id=?";
+                        try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                            updateStmt.setInt(1, userId);
+                            updateStmt.setInt(2, studentId);
+                            updateStmt.executeUpdate();
+                        }
+
+                        return new String[] { username, plainPassword };
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Show credentials dialog to admin
+     */
+    private void showCredentialsDialog(String username, String password) {
+        JDialog credDialog = new JDialog((Frame) getParent(), "Student Login Credentials", true);
+        credDialog.setSize(450, 250);
+        credDialog.setLocationRelativeTo(this);
+        credDialog.setLayout(new BorderLayout());
+
+        JPanel contentPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        contentPanel.setBackground(Color.WHITE);
+
+        JLabel titleLabel = new JLabel("Login credentials created!");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLabel.setForeground(UIHelper.SUCCESS_COLOR);
+
+        contentPanel.add(new JLabel(""));
+        contentPanel.add(titleLabel);
+
+        contentPanel.add(UIHelper.createLabel("Username:"));
+        JTextField usernameField = new JTextField(username);
+        usernameField.setEditable(false);
+        usernameField.setFont(new Font("Arial", Font.BOLD, 14));
+        contentPanel.add(usernameField);
+
+        contentPanel.add(UIHelper.createLabel("Password:"));
+        JTextField passwordField = new JTextField(password);
+        passwordField.setEditable(false);
+        passwordField.setFont(new Font("Arial", Font.BOLD, 14));
+        passwordField.setForeground(UIHelper.DANGER_COLOR);
+        contentPanel.add(passwordField);
+
+        JLabel noteLabel = new JLabel("<html><i>Note: Save these credentials. Student can login now.</i></html>");
+        noteLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        contentPanel.add(new JLabel(""));
+        contentPanel.add(noteLabel);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton okButton = UIHelper.createPrimaryButton("OK");
+        okButton.setPreferredSize(new Dimension(100, 35));
+        okButton.addActionListener(e -> credDialog.dispose());
+        buttonPanel.add(okButton);
+
+        credDialog.add(contentPanel, BorderLayout.CENTER);
+        credDialog.add(buttonPanel, BorderLayout.SOUTH);
+        credDialog.setVisible(true);
     }
 
     /**

@@ -18,8 +18,10 @@ public class CourseManagementPanel extends JPanel {
     private JTable courseTable;
     private DefaultTableModel tableModel;
     private CourseDAO courseDAO;
+    private String userRole;
 
-    public CourseManagementPanel() {
+    public CourseManagementPanel(String role) {
+        this.userRole = role;
         courseDAO = new CourseDAO();
         initComponents();
         loadCourses();
@@ -34,7 +36,7 @@ public class CourseManagementPanel extends JPanel {
         topPanel.setBackground(Color.WHITE);
         topPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
 
-        JLabel titleLabel = new JLabel("Course Management");
+        JLabel titleLabel = new JLabel(userRole.equals("STUDENT") ? "My Courses" : "Course Management");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(UIHelper.PRIMARY_COLOR);
 
@@ -47,15 +49,16 @@ public class CourseManagementPanel extends JPanel {
         // Table Panel
         JPanel tablePanel = createTablePanel();
 
-        // Button Panel
+        // Button Panel - Only show for Admin/Faculty
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
 
-        JButton addButton = UIHelper.createSuccessButton("Add Course");
-        addButton.setPreferredSize(new Dimension(150, 40));
-        addButton.addActionListener(e -> addCourse());
-
-        buttonPanel.add(addButton);
+        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
+            JButton addButton = UIHelper.createSuccessButton("Add Course");
+            addButton.setPreferredSize(new Dimension(150, 40));
+            addButton.addActionListener(e -> addCourse());
+            buttonPanel.add(addButton);
+        }
 
         // Add panels
         add(topPanel, BorderLayout.NORTH);

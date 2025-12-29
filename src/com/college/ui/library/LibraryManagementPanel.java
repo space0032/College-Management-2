@@ -18,8 +18,10 @@ public class LibraryManagementPanel extends JPanel {
     private JTable bookTable;
     private DefaultTableModel tableModel;
     private LibraryDAO libraryDAO;
+    private String userRole;
 
-    public LibraryManagementPanel() {
+    public LibraryManagementPanel(String role) {
+        this.userRole = role;
         libraryDAO = new LibraryDAO();
         initComponents();
         loadBooks();
@@ -34,7 +36,7 @@ public class LibraryManagementPanel extends JPanel {
         topPanel.setBackground(Color.WHITE);
         topPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
 
-        JLabel titleLabel = new JLabel("Library Management");
+        JLabel titleLabel = new JLabel(userRole.equals("STUDENT") ? "Library" : "Library Management");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(UIHelper.PRIMARY_COLOR);
 
@@ -47,20 +49,29 @@ public class LibraryManagementPanel extends JPanel {
         // Table Panel
         JPanel tablePanel = createTablePanel();
 
-        // Button Panel
+        // Button Panel - Different buttons for different roles
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
 
-        JButton addButton = UIHelper.createSuccessButton("Add Book");
-        addButton.setPreferredSize(new Dimension(150, 40));
-        addButton.addActionListener(e -> addBook());
+        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
+            // Admin/Faculty buttons
+            JButton addButton = UIHelper.createSuccessButton("Add Book");
+            addButton.setPreferredSize(new Dimension(150, 40));
+            addButton.addActionListener(e -> addBook());
 
-        JButton issueButton = UIHelper.createPrimaryButton("Issue Book");
-        issueButton.setPreferredSize(new Dimension(150, 40));
-        issueButton.addActionListener(e -> UIHelper.showSuccessMessage(this, "Issue book feature coming soon!"));
+            JButton issueButton = UIHelper.createPrimaryButton("Issue Book");
+            issueButton.setPreferredSize(new Dimension(150, 40));
+            issueButton.addActionListener(e -> UIHelper.showSuccessMessage(this, "Issue book feature coming soon!"));
 
-        buttonPanel.add(addButton);
-        buttonPanel.add(issueButton);
+            buttonPanel.add(addButton);
+            buttonPanel.add(issueButton);
+        } else if (userRole.equals("STUDENT")) {
+            // Student button - Request Book
+            JButton requestButton = UIHelper.createPrimaryButton("Request Book");
+            requestButton.setPreferredSize(new Dimension(150, 40));
+            requestButton.addActionListener(e -> requestBook());
+            buttonPanel.add(requestButton);
+        }
 
         // Add panels
         add(topPanel, BorderLayout.NORTH);
@@ -147,6 +158,52 @@ public class LibraryManagementPanel extends JPanel {
             } catch (Exception e) {
                 UIHelper.showErrorMessage(this, "Invalid data!");
             }
+        }
+    }
+
+    /**
+     * Request a book (for students)
+     */
+    private void requestBook() {
+        // Get selected book
+        int selectedRow = bookTable.getSelectedRow();
+
+        if (selectedRow < 0) {
+            UIHelper.showErrorMessage(this, "Please select a book to request!");
+            return;
+        }
+
+        String bookTitle = (String) tableModel.getValueAt(selectedRow, 1);
+        String bookAuthor = (String) tableModel.getValueAt(selectedRow, 2);
+        int available = (Integer) tableModel.getValueAt(selectedRow, 5);
+
+        if (available <= 0) {
+            UIHelper.showErrorMessage(this, "This book is currently not available!");
+            return;
+        }
+
+        // Show confirmation
+        String message = String.format(
+                "Do you want to request this book?\n\nTitle: %s\nAuthor: %s\nAvailable: %d copies",
+                bookTitle, bookAuthor, available);
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                message,
+                "Request Book",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // In a real system, this would create a book request in the database
+            // For now, just show a success message
+            UIHelper.showSuccessMessage(
+                    this,
+                    String.format(
+                            "Book request submitted successfully!\n\n" +
+                                    "Book: %s\n" +
+                                    "Author: %s\n\n" +
+                                    "Please contact the librarian to collect your book.",
+                            bookTitle, bookAuthor));
         }
     }
 }
