@@ -133,6 +133,16 @@ public class EnhancedFeeManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
 
         if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
+            JButton assignFeesButton = UIHelper.createPrimaryButton("Assign Fees");
+            assignFeesButton.setPreferredSize(new Dimension(140, 40));
+            assignFeesButton.addActionListener(e -> assignFees());
+            panel.add(assignFeesButton);
+
+            JButton viewPaymentsButton = UIHelper.createPrimaryButton("View Payments");
+            viewPaymentsButton.setPreferredSize(new Dimension(160, 40));
+            viewPaymentsButton.addActionListener(e -> viewPayments());
+            panel.add(viewPaymentsButton);
+
             JButton recordPaymentButton = UIHelper.createSuccessButton("Record Payment");
             recordPaymentButton.setPreferredSize(new Dimension(160, 40));
             recordPaymentButton.addActionListener(e -> recordPayment());
@@ -140,6 +150,13 @@ public class EnhancedFeeManagementPanel extends JPanel {
         }
 
         return panel;
+    }
+
+    private void assignFees() {
+        AssignFeesDialog dialog = new AssignFeesDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this));
+        dialog.setVisible(true);
+        refreshData();
     }
 
     private void loadStudentFees(int studentId) {
@@ -236,6 +253,40 @@ public class EnhancedFeeManagementPanel extends JPanel {
                     userId);
             dialog.setVisible(true);
             refreshData();
+        }
+    }
+
+    private void viewPayments() {
+        int selectedRow = feeTable.getSelectedRow();
+        if (selectedRow == -1) {
+            UIHelper.showErrorMessage(this, "Please select a fee to view payments!");
+            return;
+        }
+
+        Object idObj = tableModel.getValueAt(selectedRow, 0);
+        if (!(idObj instanceof Integer)) {
+            UIHelper.showErrorMessage(this, "Invalid fee selected!");
+            return;
+        }
+
+        int feeId = (Integer) idObj;
+
+        // Get the StudentFee object
+        List<StudentFee> fees = userRole.equals("STUDENT") ? feeDAO.getStudentFees(userId) : feeDAO.getPendingFees();
+
+        StudentFee selectedFee = null;
+        for (StudentFee fee : fees) {
+            if (fee.getId() == feeId) {
+                selectedFee = fee;
+                break;
+            }
+        }
+
+        if (selectedFee != null) {
+            PaymentHistoryDialog dialog = new PaymentHistoryDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    selectedFee);
+            dialog.setVisible(true);
         }
     }
 

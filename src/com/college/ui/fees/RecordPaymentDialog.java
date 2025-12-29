@@ -7,7 +7,6 @@ import com.college.utils.UIHelper;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 
 /**
  * Record Payment Dialog

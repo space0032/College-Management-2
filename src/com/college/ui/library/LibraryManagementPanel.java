@@ -27,7 +27,9 @@ public class LibraryManagementPanel extends JPanel {
         this.userId = userId;
         libraryDAO = new LibraryDAO();
         initComponents();
-        loadBooks();
+        if (!role.equals("STUDENT")) {
+            loadBooks();
+        }
     }
 
     private void initComponents() {
@@ -41,8 +43,12 @@ public class LibraryManagementPanel extends JPanel {
             tabbedPane.addTab("Book Requests", new BookRequestsPanel(userId));
             add(tabbedPane, BorderLayout.CENTER);
         } else {
-            // Student view - simple panel
-            add(createBooksPanel(), BorderLayout.CENTER);
+            // Student view - tabbed with books and requests
+            tabbedPane = new JTabbedPane();
+            tabbedPane.addTab("Available Books", createBooksPanel());
+            tabbedPane.addTab("My Requests", new StudentBookRequestsPanel(userId));
+            add(tabbedPane, BorderLayout.CENTER);
+            loadBooks(); // Load books for the first tab
         }
     }
 

@@ -74,6 +74,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new TimetablePanel(role), "TIMETABLE");
         contentPanel.add(new LibraryManagementPanel(role, userId), "LIBRARY");
         contentPanel.add(new com.college.ui.hostel.HostelManagementPanel(role, userId), "HOSTEL");
+        contentPanel.add(new com.college.ui.hostel.StudentHostelInfoPanel(userId), "MY_HOSTEL");
         contentPanel.add(new com.college.ui.fees.EnhancedFeeManagementPanel(role, userId), "FEES");
 
         add(contentPanel, BorderLayout.CENTER);
@@ -153,6 +154,7 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "My Courses", "COURSES");
             addMenuItem(sidebar, "Timetable", "TIMETABLE");
             addMenuItem(sidebar, "Library", "LIBRARY");
+            addMenuItem(sidebar, "My Hostel", "MY_HOSTEL");
             addMenuItem(sidebar, "My Fees", "FEES");
         }
 
