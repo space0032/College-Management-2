@@ -187,13 +187,19 @@ public class DashboardFrame extends JFrame {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        JLabel welcomeLabel = new JLabel("Welcome to College Management System");
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        JLabel welcomeLabel = new JLabel("Dashboard - College Management System");
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
         welcomeLabel.setForeground(UIHelper.PRIMARY_COLOR);
+
+        JLabel roleLabel = new JLabel("Logged in as: " + role);
+        roleLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+        roleLabel.setForeground(new Color(127, 140, 141));
 
         JPanel welcomePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         welcomePanel.setBackground(Color.WHITE);
         welcomePanel.add(welcomeLabel);
+        welcomePanel.add(Box.createHorizontalStrut(20));
+        welcomePanel.add(roleLabel);
 
         // Statistics Cards Panel - 4 cards in a row
         JPanel statsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
