@@ -58,6 +58,12 @@ public class CourseManagementPanel extends JPanel {
             addButton.setPreferredSize(new Dimension(150, 40));
             addButton.addActionListener(e -> addCourse());
             buttonPanel.add(addButton);
+
+            JButton exportButton = UIHelper.createPrimaryButton("Export");
+            exportButton.setPreferredSize(new Dimension(120, 40));
+            exportButton.addActionListener(
+                    e -> com.college.utils.TableExporter.showExportDialog(this, courseTable, "courses"));
+            buttonPanel.add(exportButton);
         }
 
         // Add panels

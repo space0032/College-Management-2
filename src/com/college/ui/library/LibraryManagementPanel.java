@@ -63,8 +63,14 @@ public class LibraryManagementPanel extends JPanel {
             issueButton.setPreferredSize(new Dimension(150, 40));
             issueButton.addActionListener(e -> UIHelper.showSuccessMessage(this, "Issue book feature coming soon!"));
 
+            JButton exportButton = UIHelper.createPrimaryButton("Export");
+            exportButton.setPreferredSize(new Dimension(120, 40));
+            exportButton
+                    .addActionListener(e -> com.college.utils.TableExporter.showExportDialog(this, bookTable, "books"));
+
             buttonPanel.add(addButton);
             buttonPanel.add(issueButton);
+            buttonPanel.add(exportButton);
         } else if (userRole.equals("STUDENT")) {
             // Student button - Request Book
             JButton requestButton = UIHelper.createPrimaryButton("Request Book");

@@ -79,9 +79,15 @@ public class FacultyManagementPanel extends JPanel {
         deleteButton.setPreferredSize(new Dimension(150, 40));
         deleteButton.addActionListener(e -> deleteFaculty());
 
+        JButton exportButton = UIHelper.createPrimaryButton("Export");
+        exportButton.setPreferredSize(new Dimension(120, 40));
+        exportButton.addActionListener(
+                e -> com.college.utils.TableExporter.showExportDialog(this, facultyTable, "faculty"));
+
         buttonPanel.add(addButton);
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
+        buttonPanel.add(exportButton);
 
         // Add panels
         add(topPanel, BorderLayout.NORTH);

@@ -121,9 +121,15 @@ public class StudentManagementPanel extends JPanel {
         deleteButton.setPreferredSize(new Dimension(150, 40));
         deleteButton.addActionListener(e -> deleteStudent());
 
+        JButton exportButton = UIHelper.createPrimaryButton("Export");
+        exportButton.setPreferredSize(new Dimension(120, 40));
+        exportButton.addActionListener(
+                e -> com.college.utils.TableExporter.showExportDialog(this, studentTable, "students"));
+
         panel.add(addButton);
         panel.add(editButton);
         panel.add(deleteButton);
+        panel.add(exportButton);
 
         return panel;
     }

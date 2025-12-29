@@ -195,22 +195,22 @@ public class DashboardFrame extends JFrame {
         welcomePanel.setBackground(Color.WHITE);
         welcomePanel.add(welcomeLabel);
 
-        // Statistics Cards Panel
-        JPanel statsPanel = new JPanel(new GridLayout(2, 2, 20, 20));
+        // Statistics Cards Panel - 4 cards in a row
+        JPanel statsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
         statsPanel.setBackground(Color.WHITE);
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(50, 100, 50, 100));
+        statsPanel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
 
         // Load statistics from database
         String studentCount = getCountFromDB("students");
         String courseCount = getCountFromDB("courses");
         String bookCount = getCountFromDB("books");
-        String pendingFees = "₹0"; // Can be enhanced to calculate actual pending fees
+        String facultyCount = getCountFromDB("faculty");
 
-        // Add stat cards
-        statsPanel.add(createStatCard("Total Students", studentCount, UIHelper.PRIMARY_COLOR));
-        statsPanel.add(createStatCard("Total Courses", courseCount, UIHelper.SUCCESS_COLOR));
-        statsPanel.add(createStatCard("Library Books", bookCount, UIHelper.WARNING_COLOR));
-        statsPanel.add(createStatCard("Pending Fees", pendingFees, UIHelper.DANGER_COLOR));
+        // Add stat cards with better colors
+        statsPanel.add(createStatCard("Total Students", studentCount, new Color(52, 152, 219)));
+        statsPanel.add(createStatCard("Total Faculty", facultyCount, new Color(46, 204, 113)));
+        statsPanel.add(createStatCard("Total Courses", courseCount, new Color(155, 89, 182)));
+        statsPanel.add(createStatCard("Library Books", bookCount, new Color(230, 126, 34)));
 
         panel.add(welcomePanel, BorderLayout.NORTH);
         panel.add(statsPanel, BorderLayout.CENTER);
