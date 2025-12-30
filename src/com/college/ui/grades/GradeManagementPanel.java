@@ -150,18 +150,48 @@ public class GradeManagementPanel extends JPanel {
             return;
         }
 
+        String examType = (String) examTypeCombo.getSelectedItem();
+
         tableModel.setRowCount(0);
         List<Student> students = studentDAO.getAllStudents();
 
+        // Get existing grades for this course and exam type
+        int courseId = selected.course.getId();
+        List<Grade> existingGrades = gradeDAO.getGradesByCourse(courseId);
+
+        // Create a map for quick lookup of existing grades
+        java.util.Map<Integer, Grade> gradeMap = new java.util.HashMap<>();
+        for (Grade g : existingGrades) {
+            if (g.getExamType().equals(examType)) {
+                gradeMap.put(g.getStudentId(), g);
+            }
+        }
+
         for (Student student : students) {
-            Object[] row = {
-                    student.getId(),
-                    student.getName(),
-                    "", // Marks obtained
-                    "100", // Max marks (default)
-                    "", // Percentage (calculated)
-                    "" // Grade (calculated)
-            };
+            Grade existingGrade = gradeMap.get(student.getId());
+
+            Object[] row;
+            if (existingGrade != null) {
+                // Load existing grade data
+                row = new Object[] {
+                        student.getId(),
+                        student.getName(),
+                        String.valueOf(existingGrade.getMarksObtained()),
+                        String.valueOf(existingGrade.getMaxMarks()),
+                        String.format("%.1f%%", existingGrade.getPercentage()),
+                        existingGrade.getGrade()
+                };
+            } else {
+                // No existing grade, use empty values
+                row = new Object[] {
+                        student.getId(),
+                        student.getName(),
+                        "", // Marks obtained
+                        "100", // Max marks (default)
+                        "", // Percentage (calculated)
+                        "" // Grade (calculated)
+                };
+            }
             tableModel.addRow(row);
         }
     }
