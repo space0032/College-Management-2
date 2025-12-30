@@ -47,6 +47,7 @@ public class UnifiedManagementPanel extends JPanel {
         tabbedPane.addTab("Grades", new GradeManagementPanel());
         tabbedPane.addTab("Library", new LibraryManagementPanel(role, userId));
         tabbedPane.addTab("Fees", new EnhancedFeeManagementPanel(role, userId));
+        tabbedPane.addTab("Roles & Permissions", new RoleManagementPanel());
 
         add(tabbedPane, BorderLayout.CENTER);
     }
