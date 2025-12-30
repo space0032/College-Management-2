@@ -80,6 +80,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.gatepass.GatePassRequestPanel(userId), "GATE_PASS");
         contentPanel.add(new com.college.ui.gatepass.GatePassApprovalPanel(), "GATE_PASS_APPROVAL");
         contentPanel.add(new com.college.ui.security.AuditLogViewerPanel(), "AUDIT_LOGS");
+        contentPanel.add(new com.college.ui.reports.ReportsPanel(), "REPORTS");
 
         add(contentPanel, BorderLayout.CENTER);
 
@@ -152,6 +153,7 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "Hostel Management", "HOSTEL");
             addMenuItem(sidebar, "Fee Management", "FEES");
             addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+            addMenuItem(sidebar, "Reports", "REPORTS");
             if (role.equals("ADMIN")) {
                 addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
             }
@@ -165,6 +167,7 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "My Hostel", "MY_HOSTEL");
             addMenuItem(sidebar, "My Fees", "FEES");
             addMenuItem(sidebar, "Gate Pass", "GATE_PASS");
+            addMenuItem(sidebar, "Reports", "REPORTS");
         }
 
         // Add glue to push items to top
