@@ -81,6 +81,11 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.reports.ReportsPanel(role, userId), "REPORTS");
         contentPanel.add(new com.college.ui.department.DepartmentManagementPanel(), "DEPARTMENTS");
 
+        // Unified Admin Panel
+        if (role.equals("ADMIN")) {
+            contentPanel.add(new com.college.ui.admin.UnifiedManagementPanel(role, userId), "INSTITUTE_MANAGEMENT");
+        }
+
         // Add Assignments Panels
         if (role.equals("FACULTY") || role.equals("ADMIN")) {
             contentPanel.add(new AssignmentManagementPanel(userId), "ASSIGNMENTS");
@@ -172,28 +177,46 @@ public class DashboardFrame extends JFrame {
         addMenuItem(sidebar, "Home", "HOME");
 
         if (role.equals("ADMIN") || role.equals("FACULTY")) {
-            addMenuItem(sidebar, "Student Management", "STUDENTS");
             if (role.equals("ADMIN")) {
-                addMenuItem(sidebar, "Staff Management", "FACULTY");
-                // addMenuItem(sidebar, "Warden Management", "WARDENS"); // Moved to Hostel
-                // Management
+                addMenuItem(sidebar, "Institute Management", "INSTITUTE_MANAGEMENT");
+            } else {
+                // Faculty View
+                addMenuItem(sidebar, "Student Management", "STUDENTS");
+                addMenuItem(sidebar, "Course Management", "COURSES");
+                addMenuItem(sidebar, "Attendance", "ATTENDANCE");
+                addMenuItem(sidebar, "Grades", "GRADES");
+                addMenuItem(sidebar, "Timetable", "TIMETABLE");
             }
-            addMenuItem(sidebar, "Course Management", "COURSES");
-            if (role.equals("ADMIN")) {
-                addMenuItem(sidebar, "Department Management", "DEPARTMENTS");
+
+            // Common items or Admin extras outside the unified panel
+            // Let's look at what ADMIN had:
+            // Students, Faculty, Courses, Departments, Attendance, Grades, Timetable,
+            // Library, Hostel, Fees, Gate Pass, Reports, Audit Logs, Assignments
+
+            // Unified Panel has: Students, Faculty, Departments, Courses, Library, Fees.
+            // So ADMIN Sidebar should have:
+            // Institute Management (covers the above)
+            // Hostel Management
+            // Reports
+            // Audit Logs
+            // Assignments
+
+            if (role.equals("FACULTY")) {
+                addMenuItem(sidebar, "Library Management", "LIBRARY");
+                addMenuItem(sidebar, "Hostel Management", "HOSTEL"); // Faculty can manage hostel? Original allowed it.
+                addMenuItem(sidebar, "Fee Management", "FEES"); // Faculty can manage fees? Original allowed it.
+                addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+            } else {
+                // ADMIN
+                addMenuItem(sidebar, "Hostel Management", "HOSTEL");
+                // Gate Pass moved to Unified
             }
-            addMenuItem(sidebar, "Attendance", "ATTENDANCE");
-            addMenuItem(sidebar, "Grades", "GRADES");
-            addMenuItem(sidebar, "Timetable", "TIMETABLE");
-            addMenuItem(sidebar, "Library Management", "LIBRARY");
-            addMenuItem(sidebar, "Hostel Management", "HOSTEL");
-            addMenuItem(sidebar, "Fee Management", "FEES");
-            addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+
             addMenuItem(sidebar, "Reports", "REPORTS");
             if (role.equals("ADMIN")) {
                 addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
             }
-            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS"); // Add for Faculty/Admin
+            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS");
         }
 
         if (role.equals("WARDEN")) {
