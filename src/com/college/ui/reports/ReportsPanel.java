@@ -12,8 +12,12 @@ import java.awt.*;
 public class ReportsPanel extends JPanel {
 
     private JTabbedPane tabbedPane;
+    private String role;
+    private int userId;
 
-    public ReportsPanel() {
+    public ReportsPanel(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
         initComponents();
     }
 
@@ -46,11 +50,11 @@ public class ReportsPanel extends JPanel {
         tabbedPane.setFont(new Font("Arial", Font.PLAIN, 14));
 
         // Add report panels
-        tabbedPane.addTab("Attendance", new AttendanceReportPanel());
-        tabbedPane.addTab("Grades", new GradeReportPanel());
-        tabbedPane.addTab("Fees", new FeeReportPanel());
-        tabbedPane.addTab("Library", new LibraryReportPanel());
-        tabbedPane.addTab("Gate Pass", new GatePassReportPanel());
+        tabbedPane.addTab("Attendance", new AttendanceReportPanel(role, userId));
+        tabbedPane.addTab("Grades", new GradeReportPanel(role, userId));
+        tabbedPane.addTab("Fees", new FeeReportPanel(role, userId));
+        tabbedPane.addTab("Library", new LibraryReportPanel(role, userId));
+        tabbedPane.addTab("Gate Pass", new GatePassReportPanel(role, userId));
 
         add(headerPanel, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);

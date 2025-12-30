@@ -24,8 +24,12 @@ public class LibraryReportPanel extends JPanel {
     private JTable reportTable;
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
+    private String role;
+    private int userId;
 
-    public LibraryReportPanel() {
+    public LibraryReportPanel(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
         initComponents();
     }
 

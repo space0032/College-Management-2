@@ -132,14 +132,14 @@ public class EnhancedHomePanel extends JPanel {
         JList<String> activityList = new JList<>(listModel);
         activityList.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        // Get recent audit logs
-        List<AuditLog> recentLogs = AuditLogDAO.getRecentLogs(10);
+        // Get recent audit logs FOR THIS USER ONLY
+        String currentUsername = SessionManager.getInstance().getUsername();
+        List<AuditLog> recentLogs = AuditLogDAO.getLogsByUser(currentUsername, 10);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd HH:mm");
 
         for (AuditLog log : recentLogs) {
-            String entry = String.format("%s - %s: %s",
+            String entry = String.format("%s - %s",
                     log.getTimestamp().format(formatter),
-                    log.getUsername(),
                     log.getAction().replace("_", " "));
             listModel.addElement(entry);
         }

@@ -7,6 +7,7 @@ import com.college.utils.UIHelper;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,8 +20,12 @@ public class GatePassReportPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
     private GatePassDAO gatePassDAO;
+    private String role;
+    private int userId;
 
-    public GatePassReportPanel() {
+    public GatePassReportPanel(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
         gatePassDAO = new GatePassDAO();
         initComponents();
         generateReport();
@@ -91,7 +96,19 @@ public class GatePassReportPanel extends JPanel {
     private void generateReport() {
         tableModel.setRowCount(0);
 
-        List<GatePass> allPasses = GatePassDAO.getAllPasses();
+        List<GatePass> allPasses;
+
+        // Filter by role - students only see their own gate passes
+        if ("STUDENT".equals(role)) {
+            int studentId = getStudentIdFromUserId();
+            if (studentId > 0) {
+                allPasses = GatePassDAO.getStudentPasses(studentId);
+            } else {
+                allPasses = new ArrayList<>();
+            }
+        } else {
+            allPasses = GatePassDAO.getAllPasses();
+        }
 
         int total = allPasses.size();
         int pending = 0;
@@ -147,5 +164,21 @@ public class GatePassReportPanel extends JPanel {
 
     private void exportReport() {
         com.college.utils.TableExporter.showExportDialog(this, reportTable, "gate_pass_report");
+    }
+
+    private int getStudentIdFromUserId() {
+        try {
+            java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(
+                    "SELECT id FROM students WHERE user_id = ?");
+            pstmt.setInt(1, userId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

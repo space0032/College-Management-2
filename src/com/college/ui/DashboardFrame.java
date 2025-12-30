@@ -80,7 +80,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.gatepass.GatePassRequestPanel(userId), "GATE_PASS");
         contentPanel.add(new com.college.ui.gatepass.GatePassApprovalPanel(), "GATE_PASS_APPROVAL");
         contentPanel.add(new com.college.ui.security.AuditLogViewerPanel(), "AUDIT_LOGS");
-        contentPanel.add(new com.college.ui.reports.ReportsPanel(), "REPORTS");
+        contentPanel.add(new com.college.ui.reports.ReportsPanel(role, userId), "REPORTS");
 
         add(contentPanel, BorderLayout.CENTER);
 

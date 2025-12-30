@@ -7,6 +7,7 @@ import com.college.utils.UIHelper;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,8 +20,12 @@ public class FeeReportPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
     private EnhancedFeeDAO feeDAO;
+    private String role;
+    private int userId;
 
-    public FeeReportPanel() {
+    public FeeReportPanel(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
         feeDAO = new EnhancedFeeDAO();
         initComponents();
         generateReport();
@@ -91,7 +96,19 @@ public class FeeReportPanel extends JPanel {
     private void generateReport() {
         tableModel.setRowCount(0);
 
-        List<StudentFee> allFees = feeDAO.getPendingFees();
+        List<StudentFee> allFees;
+
+        // Filter by role - students only see their own fees
+        if ("STUDENT".equals(role)) {
+            int studentId = getStudentIdFromUserId();
+            if (studentId > 0) {
+                allFees = feeDAO.getStudentFees(studentId);
+            } else {
+                allFees = new ArrayList<>();
+            }
+        } else {
+            allFees = feeDAO.getPendingFees();
+        }
 
         double totalAmount = 0;
         double totalPaid = 0;
@@ -155,5 +172,21 @@ public class FeeReportPanel extends JPanel {
 
     private void exportReport() {
         com.college.utils.TableExporter.showExportDialog(this, reportTable, "fee_report");
+    }
+
+    private int getStudentIdFromUserId() {
+        try {
+            java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(
+                    "SELECT id FROM students WHERE user_id = ?");
+            pstmt.setInt(1, userId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

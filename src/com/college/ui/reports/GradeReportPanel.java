@@ -25,8 +25,12 @@ public class GradeReportPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
     private GradeDAO gradeDAO;
+    private String role;
+    private int userId;
 
-    public GradeReportPanel() {
+    public GradeReportPanel(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
         gradeDAO = new GradeDAO();
         initComponents();
     }
@@ -115,7 +119,26 @@ public class GradeReportPanel extends JPanel {
         if (selected == null)
             return;
 
-        List<Grade> grades = gradeDAO.getGradesByCourse(selected.course.getId());
+        List<Grade> grades;
+
+        // Filter by role - students only see their own grades
+        if ("STUDENT".equals(role)) {
+            int studentId = getStudentIdFromUserId();
+            if (studentId > 0) {
+                grades = gradeDAO.getGradesByStudent(studentId);
+                // Further filter by course if specific course selected
+                if (selected.course != null) {
+                    final int courseId = selected.course.getId();
+                    grades = grades.stream()
+                            .filter(g -> g.getCourseId() == courseId)
+                            .collect(java.util.stream.Collectors.toList());
+                }
+            } else {
+                grades = new ArrayList<>();
+            }
+        } else {
+            grades = gradeDAO.getGradesByCourse(selected.course.getId());
+        }
         List<String> gradeLetters = new ArrayList<>();
 
         for (Grade grade : grades) {
@@ -164,5 +187,21 @@ public class GradeReportPanel extends JPanel {
         public String toString() {
             return course.getName() + " (" + course.getCode() + ")";
         }
+    }
+
+    private int getStudentIdFromUserId() {
+        try {
+            java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(
+                    "SELECT id FROM students WHERE user_id = ?");
+            pstmt.setInt(1, userId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

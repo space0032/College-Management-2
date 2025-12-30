@@ -91,6 +91,31 @@ public class AuditLogDAO {
     }
 
     /**
+     * Get logs by username
+     */
+    public static List<AuditLog> getLogsByUser(String username, int limit) {
+        List<AuditLog> logs = new ArrayList<>();
+        String sql = "SELECT * FROM audit_logs WHERE username = ? ORDER BY timestamp DESC LIMIT ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, username);
+            pstmt.setInt(2, limit);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                logs.add(mapResultSetToAuditLog(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return logs;
+    }
+
+    /**
      * Get logs by date range
      */
     public static List<AuditLog> getLogsByDateRange(LocalDate startDate, LocalDate endDate) {

@@ -26,8 +26,12 @@ public class AttendanceReportPanel extends JPanel {
     private JTable reportTable;
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
+    private String role;
+    private int userId;
 
-    public AttendanceReportPanel() {
+    public AttendanceReportPanel(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
         initComponents();
     }
 
@@ -153,7 +157,20 @@ public class AttendanceReportPanel extends JPanel {
         StudentDAO studentDAO = new StudentDAO();
         AttendanceDAO attendanceDAO = new AttendanceDAO();
 
-        List<Student> students = studentDAO.getAllStudents();
+        List<Student> students;
+
+        // Filter by role - students only see their own data
+        if ("STUDENT".equals(role)) {
+            int studentId = getStudentIdFromUserId();
+            if (studentId > 0) {
+                Student student = studentDAO.getStudentById(studentId);
+                students = student != null ? java.util.Collections.singletonList(student) : new ArrayList<>();
+            } else {
+                students = new ArrayList<>();
+            }
+        } else {
+            students = studentDAO.getAllStudents();
+        }
         int totalStudents = 0;
         int lowAttendanceCount = 0;
 
@@ -269,5 +286,21 @@ public class AttendanceReportPanel extends JPanel {
         public String toString() {
             return course == null ? "All Courses" : course.getName();
         }
+    }
+
+    private int getStudentIdFromUserId() {
+        try {
+            java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(
+                    "SELECT id FROM students WHERE user_id = ?");
+            pstmt.setInt(1, userId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }
