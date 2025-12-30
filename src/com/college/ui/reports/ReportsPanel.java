@@ -46,11 +46,11 @@ public class ReportsPanel extends JPanel {
         tabbedPane.setFont(new Font("Arial", Font.PLAIN, 14));
 
         // Add report panels
-        tabbedPane.addTab("📊 Attendance", new AttendanceReportPanel());
-        tabbedPane.addTab("🎓 Grades", new GradeReportPanel());
-        tabbedPane.addTab("💰 Fees", new FeeReportPanel());
-        tabbedPane.addTab("📚 Library", new LibraryReportPanel());
-        tabbedPane.addTab("🎫 Gate Pass", new GatePassReportPanel());
+        tabbedPane.addTab("Attendance", new AttendanceReportPanel());
+        tabbedPane.addTab("Grades", new GradeReportPanel());
+        tabbedPane.addTab("Fees", new FeeReportPanel());
+        tabbedPane.addTab("Library", new LibraryReportPanel());
+        tabbedPane.addTab("Gate Pass", new GatePassReportPanel());
 
         add(headerPanel, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);

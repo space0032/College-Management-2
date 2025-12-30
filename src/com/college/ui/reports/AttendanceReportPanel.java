@@ -206,10 +206,10 @@ public class AttendanceReportPanel extends JPanel {
 
     private String getAttendanceStatus(double percentage) {
         if (percentage >= 85)
-            return "✅ Excellent";
+            return "Excellent";
         if (percentage >= 75)
-            return "⚠️ Good";
-        return "❌ Low";
+            return "Good";
+        return "Low";
     }
 
     private void updateSummary(int total, int lowCount) {

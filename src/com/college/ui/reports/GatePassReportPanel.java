@@ -129,11 +129,11 @@ public class GatePassReportPanel extends JPanel {
     private String getStatusIcon(String status) {
         switch (status) {
             case "APPROVED":
-                return "✅ APPROVED";
+                return "APPROVED";
             case "REJECTED":
-                return "❌ REJECTED";
+                return "REJECTED";
             case "PENDING":
-                return "⏳ PENDING";
+                return "PENDING";
             default:
                 return status;
         }

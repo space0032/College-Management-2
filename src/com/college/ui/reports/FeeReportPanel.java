@@ -137,11 +137,11 @@ public class FeeReportPanel extends JPanel {
     private String getStatusIcon(String status) {
         switch (status) {
             case "PAID":
-                return "✅ PAID";
+                return "PAID";
             case "PARTIAL":
-                return "⚠️ PARTIAL";
+                return "PARTIAL";
             case "PENDING":
-                return "❌ PENDING";
+                return "PENDING";
             default:
                 return status;
         }

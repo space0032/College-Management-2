@@ -129,7 +129,7 @@ public class LibraryReportPanel extends JPanel {
                     "#" + (i + 1),
                     book.getTitle(),
                     "Available: " + book.getAvailable() + "/" + book.getQuantity(),
-                    book.getAvailable() > 0 ? "✅ Available" : "❌ Out of Stock"
+                    book.getAvailable() > 0 ? "Available" : "Out of Stock"
             };
             tableModel.addRow(row);
         }
@@ -172,7 +172,7 @@ public class LibraryReportPanel extends JPanel {
                     issue.getStudentName(),
                     issue.getBookTitle(),
                     "Issued: " + issue.getIssueDate(),
-                    "✅ Active"
+                    "Active"
             };
             tableModel.addRow(row);
         }

@@ -214,48 +214,10 @@ public class DashboardFrame extends JFrame {
     }
 
     /**
-     * Create home panel with statistics
+     * Create enhanced home panel with stats and activity feed
      */
     private JPanel createHomePanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-
-        JLabel welcomeLabel = new JLabel("Dashboard - College Management System");
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        welcomeLabel.setForeground(UIHelper.PRIMARY_COLOR);
-
-        JLabel roleLabel = new JLabel("Logged in as: " + role);
-        roleLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-        roleLabel.setForeground(new Color(127, 140, 141));
-
-        JPanel welcomePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        welcomePanel.setBackground(Color.WHITE);
-        welcomePanel.add(welcomeLabel);
-        welcomePanel.add(Box.createHorizontalStrut(20));
-        welcomePanel.add(roleLabel);
-
-        // Statistics Cards Panel - 2x2 grid
-        JPanel statsPanel = new JPanel(new GridLayout(2, 2, 20, 20));
-        statsPanel.setBackground(Color.WHITE);
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(30, 100, 30, 100));
-
-        // Load statistics from database
-        String studentCount = getCountFromDB("students");
-        String courseCount = getCountFromDB("courses");
-        String bookCount = getCountFromDB("books");
-        String facultyCount = getCountFromDB("faculty");
-
-        // Add stat cards with better colors
-        statsPanel.add(createStatCard("Total Students", studentCount, new Color(52, 152, 219)));
-        statsPanel.add(createStatCard("Total Faculty", facultyCount, new Color(46, 204, 113)));
-        statsPanel.add(createStatCard("Total Courses", courseCount, new Color(155, 89, 182)));
-        statsPanel.add(createStatCard("Library Books", bookCount, new Color(230, 126, 34)));
-
-        panel.add(welcomePanel, BorderLayout.NORTH);
-        panel.add(statsPanel, BorderLayout.CENTER);
-
-        return panel;
+        return new com.college.ui.dashboard.EnhancedHomePanel(username, role, userId);
     }
 
     /**
