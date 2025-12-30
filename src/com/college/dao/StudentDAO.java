@@ -20,8 +20,9 @@ public class StudentDAO {
      * @return generated student ID if successful, -1 otherwise
      */
     public int addStudent(Student student) {
-        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester) "
+                +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -33,6 +34,8 @@ public class StudentDAO {
             pstmt.setString(5, student.getBatch());
             pstmt.setDate(6, new java.sql.Date(student.getEnrollmentDate().getTime()));
             pstmt.setString(7, student.getAddress());
+            pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
+            pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
 
             int rowsAffected = pstmt.executeUpdate();
 
@@ -58,7 +61,7 @@ public class StudentDAO {
      */
     public boolean updateStudent(Student student) {
         String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
-                "enrollment_date=?, address=? WHERE id=?";
+                "enrollment_date=?, address=?, department=?, semester=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -70,7 +73,9 @@ public class StudentDAO {
             pstmt.setString(5, student.getBatch());
             pstmt.setDate(6, new java.sql.Date(student.getEnrollmentDate().getTime()));
             pstmt.setString(7, student.getAddress());
-            pstmt.setInt(8, student.getId());
+            pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
+            pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
+            pstmt.setInt(10, student.getId());
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -195,6 +200,17 @@ public class StudentDAO {
         student.setBatch(rs.getString("batch"));
         student.setEnrollmentDate(rs.getDate("enrollment_date"));
         student.setAddress(rs.getString("address"));
+
+        // Handle new fields with defaults
+        try {
+            student.setDepartment(rs.getString("department"));
+            student.setSemester(rs.getInt("semester"));
+        } catch (SQLException e) {
+            // Fields might not exist in older schemas
+            student.setDepartment("General");
+            student.setSemester(1);
+        }
+
         return student;
     }
 }

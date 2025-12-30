@@ -16,6 +16,8 @@ public class Student {
     private Date enrollmentDate;
     private String address;
     private int userId;
+    private String department;
+    private int semester;
 
     // Constructors
     public Student() {
@@ -104,6 +106,22 @@ public class Student {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public int getSemester() {
+        return semester;
+    }
+
+    public void setSemester(int semester) {
+        this.semester = semester;
     }
 
     @Override
