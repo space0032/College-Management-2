@@ -79,6 +79,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(createChangePasswordPanel(), "CHANGE_PASSWORD");
         contentPanel.add(new com.college.ui.gatepass.GatePassRequestPanel(userId), "GATE_PASS");
         contentPanel.add(new com.college.ui.gatepass.GatePassApprovalPanel(), "GATE_PASS_APPROVAL");
+        contentPanel.add(new com.college.ui.security.AuditLogViewerPanel(), "AUDIT_LOGS");
 
         add(contentPanel, BorderLayout.CENTER);
 
@@ -151,6 +152,9 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "Hostel Management", "HOSTEL");
             addMenuItem(sidebar, "Fee Management", "FEES");
             addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+            if (role.equals("ADMIN")) {
+                addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
+            }
         }
 
         if (role.equals("STUDENT")) {
