@@ -9,7 +9,6 @@ import com.college.ui.fees.EnhancedFeeManagementPanel;
 import com.college.ui.attendance.AttendanceManagementPanel;
 import com.college.ui.grades.GradeManagementPanel;
 import com.college.ui.timetable.TimetablePanel;
-import com.college.ui.gatepass.GatePassApprovalPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -48,7 +47,6 @@ public class UnifiedManagementPanel extends JPanel {
         tabbedPane.addTab("Grades", new GradeManagementPanel());
         tabbedPane.addTab("Library", new LibraryManagementPanel(role, userId));
         tabbedPane.addTab("Fees", new EnhancedFeeManagementPanel(role, userId));
-        tabbedPane.addTab("Gate Pass Requests", new GatePassApprovalPanel());
 
         add(tabbedPane, BorderLayout.CENTER);
     }

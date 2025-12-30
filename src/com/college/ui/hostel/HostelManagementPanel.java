@@ -58,7 +58,10 @@ public class HostelManagementPanel extends JPanel {
         // Tab 3: Allocations
         tabbedPane.addTab("Allocations", createAllocationsPanel());
 
-        // Tab 4: Wardens (Admin only)
+        // Tab 4: Gate Pass Requests
+        tabbedPane.addTab("Gate Pass Requests", new com.college.ui.gatepass.GatePassApprovalPanel());
+
+        // Tab 5: Wardens (Admin only)
         if (userRole.equals("ADMIN")) {
             tabbedPane.addTab("Wardens", new com.college.ui.admin.WardenManagementPanel());
         }
