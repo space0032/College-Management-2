@@ -1,7 +1,9 @@
 package com.college.ui.faculty;
 
 import com.college.dao.FacultyDAO;
+import com.college.dao.DepartmentDAO;
 import com.college.models.Faculty;
+import com.college.models.Department;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.UIHelper;
 import com.college.utils.ValidationUtils;
@@ -10,6 +12,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Add/Edit Faculty Dialog
@@ -24,7 +27,7 @@ public class AddFacultyDialog extends JDialog {
     private JTextField nameField;
     private JTextField emailField;
     private JTextField phoneField;
-    private JTextField departmentField;
+    private JComboBox<DepartmentItem> departmentCombo;
     private JTextField qualificationField;
     private JTextField joinDateField;
 
@@ -82,8 +85,16 @@ public class AddFacultyDialog extends JDialog {
         gbc.gridy = 3;
         formPanel.add(UIHelper.createLabel("Department:"), gbc);
         gbc.gridx = 1;
-        departmentField = UIHelper.createTextField(20);
-        formPanel.add(departmentField, gbc);
+
+        // Load departments
+        DepartmentDAO departmentDAO = new DepartmentDAO();
+        List<Department> departments = departmentDAO.getAllDepartments();
+        departmentCombo = new JComboBox<>();
+        departmentCombo.addItem(new DepartmentItem(null));
+        for (Department dept : departments) {
+            departmentCombo.addItem(new DepartmentItem(dept));
+        }
+        formPanel.add(departmentCombo, gbc);
 
         // Qualification
         gbc.gridx = 0;
@@ -132,7 +143,19 @@ public class AddFacultyDialog extends JDialog {
         nameField.setText(faculty.getName());
         emailField.setText(faculty.getEmail());
         phoneField.setText(faculty.getPhone());
-        departmentField.setText(faculty.getDepartment());
+
+        // Set department dropdown
+        if (faculty.getDepartment() != null && !faculty.getDepartment().isEmpty()) {
+            for (int i = 0; i < departmentCombo.getItemCount(); i++) {
+                DepartmentItem item = departmentCombo.getItemAt(i);
+                if (item.getDepartment() != null &&
+                        item.getDepartment().getName().equals(faculty.getDepartment())) {
+                    departmentCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+
         qualificationField.setText(faculty.getQualification());
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -158,7 +181,15 @@ public class AddFacultyDialog extends JDialog {
             faculty.setName(nameField.getText().trim());
             faculty.setEmail(emailField.getText().trim());
             faculty.setPhone(phoneField.getText().trim());
-            faculty.setDepartment(departmentField.getText().trim());
+
+            // Set department from dropdown
+            DepartmentItem selectedDept = (DepartmentItem) departmentCombo.getSelectedItem();
+            if (selectedDept != null && selectedDept.getDepartment() != null) {
+                faculty.setDepartment(selectedDept.getDepartment().getName());
+            } else {
+                faculty.setDepartment("");
+            }
+
             faculty.setQualification(qualificationField.getText().trim());
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -324,11 +355,8 @@ public class AddFacultyDialog extends JDialog {
             return false;
         }
 
-        if (!ValidationUtils.isNotEmpty(departmentField.getText())) {
-            UIHelper.showErrorMessage(this, "Department is required!");
-            departmentField.requestFocus();
-            return false;
-        }
+        // Department is optional now
+        // No validation needed
 
         if (!ValidationUtils.isNotEmpty(qualificationField.getText())) {
             UIHelper.showErrorMessage(this, "Qualification is required!");
@@ -352,5 +380,23 @@ public class AddFacultyDialog extends JDialog {
 
     public boolean isSuccess() {
         return success;
+    }
+
+    // Helper class for department dropdown
+    private static class DepartmentItem {
+        private Department department;
+
+        public DepartmentItem(Department department) {
+            this.department = department;
+        }
+
+        public Department getDepartment() {
+            return department;
+        }
+
+        @Override
+        public String toString() {
+            return department == null ? "-- None --" : department.getName() + " (" + department.getCode() + ")";
+        }
     }
 }

@@ -2,8 +2,10 @@ package com.college.ui.courses;
 
 import com.college.dao.CourseDAO;
 import com.college.dao.DepartmentDAO;
+import com.college.dao.StudentDAO;
 import com.college.models.Course;
 import com.college.models.Department;
+import com.college.models.Student;
 import com.college.utils.UIHelper;
 
 import javax.swing.*;
@@ -21,9 +23,15 @@ public class CourseManagementPanel extends JPanel {
     private DefaultTableModel tableModel;
     private CourseDAO courseDAO;
     private String userRole;
+    private int userId;
 
     public CourseManagementPanel(String role) {
+        this(role, 0);
+    }
+
+    public CourseManagementPanel(String role, int userId) {
         this.userRole = role;
+        this.userId = userId;
         courseDAO = new CourseDAO();
         initComponents();
         loadCourses();
@@ -109,7 +117,14 @@ public class CourseManagementPanel extends JPanel {
 
     private void loadCourses() {
         tableModel.setRowCount(0);
-        List<Course> courses = courseDAO.getAllCourses();
+        List<Course> courses;
+
+        // Filter courses for students - show only their department and semester courses
+        if (userRole.equals("STUDENT") && userId > 0) {
+            courses = getStudentCourses();
+        } else {
+            courses = courseDAO.getAllCourses();
+        }
 
         for (Course course : courses) {
             Object[] row = {
@@ -306,5 +321,37 @@ public class CourseManagementPanel extends JPanel {
                 UIHelper.showErrorMessage(this, "Failed to delete course!");
             }
         }
+    }
+
+    /**
+     * Get courses for a specific student based on their department and semester
+     */
+    private List<Course> getStudentCourses() {
+        List<Course> allCourses = courseDAO.getAllCourses();
+        List<Course> studentCourses = new java.util.ArrayList<>();
+
+        try {
+            // Get student's department and semester
+            StudentDAO studentDAO = new StudentDAO();
+            Student student = studentDAO.getStudentByUserId(userId);
+
+            if (student != null) {
+                String studentDept = student.getDepartment();
+                int studentSemester = student.getSemester();
+
+                // Filter courses that match student's department
+                // Note: In a real system, courses should have semester info too
+                for (Course course : allCourses) {
+                    if (course.getDepartmentName() != null &&
+                            course.getDepartmentName().equals(studentDept)) {
+                        studentCourses.add(course);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return studentCourses;
     }
 }

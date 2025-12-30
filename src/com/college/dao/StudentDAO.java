@@ -213,4 +213,25 @@ public class StudentDAO {
 
         return student;
     }
+
+    /**
+     * Get student by user ID
+     */
+    public Student getStudentByUserId(int userId) {
+        String sql = "SELECT * FROM students WHERE user_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return extractStudentFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
