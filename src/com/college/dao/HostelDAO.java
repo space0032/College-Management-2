@@ -344,6 +344,7 @@ public class HostelDAO {
             e.printStackTrace();
         }
         return false;
+    }
 
     /**
      * Update existing room

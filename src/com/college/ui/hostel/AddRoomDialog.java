@@ -23,15 +23,43 @@ public class AddRoomDialog extends JDialog {
     private JSpinner capacitySpinner;
     private JComboBox<String> typeCombo;
 
+    private Room roomToEdit;
+
     public AddRoomDialog(Frame parent) {
-        super(parent, "Add New Room", true);
+        this(parent, null);
+    }
+
+    public AddRoomDialog(Frame parent, Room roomToEdit) {
+        super(parent, roomToEdit == null ? "Add New Room" : "Edit Room", true);
+        this.roomToEdit = roomToEdit;
         this.hostelDAO = new HostelDAO();
         initComponents();
         loadHostels();
+
+        if (roomToEdit != null) {
+            fillData();
+        }
+    }
+
+    private void fillData() {
+        // Find and select hostel
+        for (int i = 0; i < hostelCombo.getItemCount(); i++) {
+            HostelItem item = hostelCombo.getItemAt(i);
+            if (item.hostel.getName().equals(roomToEdit.getHostelName())) {
+                hostelCombo.setSelectedIndex(i);
+                break;
+            }
+        }
+        hostelCombo.setEnabled(false); // Make hostel read-only on edit
+
+        roomNumberField.setText(roomToEdit.getRoomNumber());
+        floorSpinner.setValue(roomToEdit.getFloor());
+        capacitySpinner.setValue(roomToEdit.getCapacity());
+        typeCombo.setSelectedItem(roomToEdit.getRoomType());
     }
 
     private void initComponents() {
-        setSize(400, 400);
+        setSize(400, 450);
         setLocationRelativeTo(getParent());
         setLayout(new BorderLayout());
 
@@ -116,19 +144,36 @@ public class AddRoomDialog extends JDialog {
             return;
         }
 
-        Room room = new Room();
-        room.setHostelId(selectedHostel.hostel.getId());
-        room.setRoomNumber(roomNumber);
-        room.setFloor((Integer) floorSpinner.getValue());
-        room.setCapacity((Integer) capacitySpinner.getValue());
-        room.setRoomType((String) typeCombo.getSelectedItem());
+        if (roomToEdit != null) {
+            // Update
+            roomToEdit.setRoomNumber(roomNumber);
+            roomToEdit.setFloor((Integer) floorSpinner.getValue());
+            roomToEdit.setCapacity((Integer) capacitySpinner.getValue());
+            roomToEdit.setRoomType((String) typeCombo.getSelectedItem());
 
-        if (hostelDAO.addRoom(room)) {
-            success = true;
-            UIHelper.showSuccessMessage(this, "Room added successfully!");
-            dispose();
+            if (hostelDAO.updateRoom(roomToEdit)) {
+                success = true;
+                UIHelper.showSuccessMessage(this, "Room updated successfully!");
+                dispose();
+            } else {
+                UIHelper.showErrorMessage(this, "Failed to update room!");
+            }
         } else {
-            UIHelper.showErrorMessage(this, "Failed to add room!");
+            // New
+            Room room = new Room();
+            room.setHostelId(selectedHostel.hostel.getId());
+            room.setRoomNumber(roomNumber);
+            room.setFloor((Integer) floorSpinner.getValue());
+            room.setCapacity((Integer) capacitySpinner.getValue());
+            room.setRoomType((String) typeCombo.getSelectedItem());
+
+            if (hostelDAO.addRoom(room)) {
+                success = true;
+                UIHelper.showSuccessMessage(this, "Room added successfully!");
+                dispose();
+            } else {
+                UIHelper.showErrorMessage(this, "Failed to add room!");
+            }
         }
     }
 
