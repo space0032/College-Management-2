@@ -1,7 +1,9 @@
 package com.college.ui.student;
 
 import com.college.dao.StudentDAO;
+import com.college.dao.DepartmentDAO;
 import com.college.models.Student;
+import com.college.models.Department;
 import com.college.utils.UIHelper;
 import com.college.utils.ValidationUtils;
 
@@ -9,6 +11,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Add/Edit Student Dialog
@@ -18,12 +21,13 @@ public class AddStudentDialog extends JDialog {
 
     private Student student;
     private StudentDAO studentDAO;
+    private DepartmentDAO departmentDAO;
     private boolean success = false;
 
     private JTextField nameField;
     private JTextField emailField;
     private JTextField phoneField;
-    private JTextField courseField;
+    private JComboBox<DepartmentItem> departmentCombo;
     private JTextField batchField;
     private JTextField enrollmentDateField;
     private JTextArea addressArea;
@@ -32,6 +36,7 @@ public class AddStudentDialog extends JDialog {
         super(parent, student == null ? "Add Student" : "Edit Student", true);
         this.student = student;
         this.studentDAO = new StudentDAO();
+        this.departmentDAO = new DepartmentDAO();
         initComponents();
 
         if (student != null) {
@@ -77,13 +82,20 @@ public class AddStudentDialog extends JDialog {
         phoneField = UIHelper.createTextField(20);
         formPanel.add(phoneField, gbc);
 
-        // Course
+        // Department
         gbc.gridx = 0;
         gbc.gridy = 3;
-        formPanel.add(UIHelper.createLabel("Course:"), gbc);
+        formPanel.add(UIHelper.createLabel("Department:"), gbc);
         gbc.gridx = 1;
-        courseField = UIHelper.createTextField(20);
-        formPanel.add(courseField, gbc);
+
+        // Load departments into dropdown
+        departmentCombo = new JComboBox<>();
+        List<Department> departments = departmentDAO.getAllDepartments();
+        departmentCombo.addItem(new DepartmentItem(null)); // "None" option
+        for (Department dept : departments) {
+            departmentCombo.addItem(new DepartmentItem(dept));
+        }
+        formPanel.add(departmentCombo, gbc);
 
         // Batch
         gbc.gridx = 0;
@@ -148,7 +160,19 @@ public class AddStudentDialog extends JDialog {
         nameField.setText(student.getName());
         emailField.setText(student.getEmail());
         phoneField.setText(student.getPhone());
-        courseField.setText(student.getCourse());
+
+        // Set department dropdown selection
+        if (student.getDepartment() != null && !student.getDepartment().isEmpty()) {
+            for (int i = 0; i < departmentCombo.getItemCount(); i++) {
+                DepartmentItem item = departmentCombo.getItemAt(i);
+                if (item.getDepartment() != null &&
+                        item.getDepartment().getName().equals(student.getDepartment())) {
+                    departmentCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+
         batchField.setText(student.getBatch());
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -175,7 +199,15 @@ public class AddStudentDialog extends JDialog {
             student.setName(nameField.getText().trim());
             student.setEmail(emailField.getText().trim());
             student.setPhone(phoneField.getText().trim());
-            student.setCourse(courseField.getText().trim());
+
+            // Set department from dropdown
+            DepartmentItem selectedDept = (DepartmentItem) departmentCombo.getSelectedItem();
+            if (selectedDept != null && selectedDept.getDepartment() != null) {
+                student.setDepartment(selectedDept.getDepartment().getName());
+            } else {
+                student.setDepartment("");
+            }
+
             student.setBatch(batchField.getText().trim());
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -342,11 +374,8 @@ public class AddStudentDialog extends JDialog {
             return false;
         }
 
-        if (!ValidationUtils.isNotEmpty(courseField.getText())) {
-            UIHelper.showErrorMessage(this, "Course is required!");
-            courseField.requestFocus();
-            return false;
-        }
+        // Department is optional now (can select "None")
+        // No validation needed
 
         if (!ValidationUtils.isNotEmpty(batchField.getText())) {
             UIHelper.showErrorMessage(this, "Batch is required!");
@@ -370,5 +399,23 @@ public class AddStudentDialog extends JDialog {
 
     public boolean isSuccess() {
         return success;
+    }
+
+    // Helper class for department dropdown
+    private static class DepartmentItem {
+        private Department department;
+
+        public DepartmentItem(Department department) {
+            this.department = department;
+        }
+
+        public Department getDepartment() {
+            return department;
+        }
+
+        @Override
+        public String toString() {
+            return department == null ? "-- None --" : department.getName() + " (" + department.getCode() + ")";
+        }
     }
 }

@@ -15,12 +15,14 @@ import java.awt.*;
 public class DepartmentManagementPanel extends JPanel {
 
     private DepartmentDAO departmentDAO;
+    private com.college.dao.CourseDAO courseDAO;
     private JTable departmentTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
 
     public DepartmentManagementPanel() {
         departmentDAO = new DepartmentDAO();
+        courseDAO = new com.college.dao.CourseDAO();
         initComponents();
         loadDepartments();
     }
@@ -75,7 +77,7 @@ public class DepartmentManagementPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
-        String[] columns = { "ID", "Code", "Name", "Head of Department", "Description" };
+        String[] columns = { "ID", "Code", "Name", "Head of Department", "Courses", "Description" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -110,6 +112,10 @@ public class DepartmentManagementPanel extends JPanel {
         panel.add(editButton);
         panel.add(deleteButton);
 
+        JButton exportButton = new JButton("Export");
+        exportButton.addActionListener(e -> exportDepartments());
+        panel.add(exportButton);
+
         return panel;
     }
 
@@ -117,11 +123,15 @@ public class DepartmentManagementPanel extends JPanel {
         tableModel.setRowCount(0);
 
         for (Department dept : departmentDAO.getAllDepartments()) {
+            // Count courses for this department
+            int courseCount = courseDAO.getCoursesByDepartment(dept.getId()).size();
+
             Object[] row = {
                     dept.getId(),
                     dept.getCode(),
                     dept.getName(),
                     dept.getHeadOfDepartment(),
+                    courseCount + " course(s)",
                     dept.getDescription()
             };
             tableModel.addRow(row);
@@ -137,11 +147,14 @@ public class DepartmentManagementPanel extends JPanel {
 
         tableModel.setRowCount(0);
         for (Department dept : departmentDAO.searchDepartments(query)) {
+            int courseCount = courseDAO.getCoursesByDepartment(dept.getId()).size();
+
             Object[] row = {
                     dept.getId(),
                     dept.getCode(),
                     dept.getName(),
                     dept.getHeadOfDepartment(),
+                    courseCount + " course(s)",
                     dept.getDescription()
             };
             tableModel.addRow(row);
@@ -211,5 +224,12 @@ public class DepartmentManagementPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Failed to delete department", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    /**
+     * Export departments to file
+     */
+    private void exportDepartments() {
+        com.college.utils.TableExporter.showExportDialog(this, departmentTable, "departments");
     }
 }

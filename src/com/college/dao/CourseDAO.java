@@ -13,7 +13,7 @@ import java.util.List;
 public class CourseDAO {
 
     public boolean addCourse(Course course) {
-        String sql = "INSERT INTO courses (name, code, credits, department, semester, department_id) VALUES (?, ?, ?, ?, ?, ?)?";
+        String sql = "INSERT INTO courses (name, code, credits, department, department_id) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -22,8 +22,11 @@ public class CourseDAO {
             pstmt.setString(2, course.getCode());
             pstmt.setInt(3, course.getCredits());
             pstmt.setString(4, course.getDepartment());
-            pstmt.setInt(5, course.getSemester());
-            pstmt.setInt(6, course.getDepartmentId());
+            if (course.getDepartmentId() > 0) {
+                pstmt.setInt(5, course.getDepartmentId());
+            } else {
+                pstmt.setNull(5, java.sql.Types.INTEGER);
+            }
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -124,5 +127,23 @@ public class CourseDAO {
             e.printStackTrace();
         }
         return courses;
+    }
+
+    /**
+     * Delete a course by ID
+     */
+    public boolean deleteCourse(int courseId) {
+        String sql = "DELETE FROM courses WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, courseId);
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }
