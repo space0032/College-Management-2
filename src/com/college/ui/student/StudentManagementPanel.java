@@ -1,7 +1,9 @@
 package com.college.ui.student;
 
 import com.college.dao.StudentDAO;
+import com.college.dao.DepartmentDAO;
 import com.college.models.Student;
+import com.college.models.Department;
 import com.college.utils.UIHelper;
 
 import javax.swing.*;
@@ -19,10 +21,13 @@ public class StudentManagementPanel extends JPanel {
     private JTable studentTable;
     private DefaultTableModel tableModel;
     private StudentDAO studentDAO;
+    private DepartmentDAO departmentDAO;
     private JTextField searchField;
+    private JComboBox<DepartmentFilterItem> departmentFilter;
 
     public StudentManagementPanel() {
         studentDAO = new StudentDAO();
+        departmentDAO = new DepartmentDAO();
         initComponents();
         loadStudents();
     }
@@ -52,6 +57,17 @@ public class StudentManagementPanel extends JPanel {
         JButton refreshButton = UIHelper.createSuccessButton("Refresh");
         refreshButton.addActionListener(e -> loadStudents());
 
+        // Department filter
+        searchPanel.add(Box.createHorizontalStrut(20));
+        searchPanel.add(new JLabel("Department:"));
+        departmentFilter = new JComboBox<>();
+        departmentFilter.addItem(new DepartmentFilterItem(null)); // "All Departments"
+        for (Department dept : departmentDAO.getAllDepartments()) {
+            departmentFilter.addItem(new DepartmentFilterItem(dept));
+        }
+        departmentFilter.addActionListener(e -> filterByDepartment());
+        searchPanel.add(departmentFilter);
+
         searchPanel.add(searchLabel);
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
@@ -80,8 +96,8 @@ public class StudentManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        // Table columns
-        String[] columns = { "ID", "Name", "Email", "Phone", "Course", "Batch", "Enrollment Date" };
+        // Table columns - Changed "Course" to "Department"
+        String[] columns = { "ID", "Name", "Email", "Phone", "Department", "Semester", "Batch", "Enrollment Date" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -148,7 +164,9 @@ public class StudentManagementPanel extends JPanel {
                     student.getName(),
                     student.getEmail(),
                     student.getPhone(),
-                    student.getCourse(),
+                    student.getDepartment() != null && !student.getDepartment().isEmpty() ? student.getDepartment()
+                            : "-",
+                    student.getSemester() > 0 ? String.valueOf(student.getSemester()) : "-",
                     student.getBatch(),
                     sdf.format(student.getEnrollmentDate())
             };
@@ -176,7 +194,9 @@ public class StudentManagementPanel extends JPanel {
                     student.getName(),
                     student.getEmail(),
                     student.getPhone(),
-                    student.getCourse(),
+                    student.getDepartment() != null && !student.getDepartment().isEmpty() ? student.getDepartment()
+                            : "-",
+                    student.getSemester() > 0 ? String.valueOf(student.getSemester()) : "-",
                     student.getBatch(),
                     sdf.format(student.getEnrollmentDate())
             };
@@ -240,6 +260,58 @@ public class StudentManagementPanel extends JPanel {
             } else {
                 UIHelper.showErrorMessage(this, "Failed to delete student!");
             }
+        }
+    }
+
+    /**
+     * Filter students by selected department
+     */
+    private void filterByDepartment() {
+        DepartmentFilterItem selected = (DepartmentFilterItem) departmentFilter.getSelectedItem();
+        if (selected == null || selected.getDepartment() == null) {
+            loadStudents(); // Show all if no filter
+            return;
+        }
+
+        tableModel.setRowCount(0);
+        List<Student> allStudents = studentDAO.getAllStudents();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String filterDept = selected.getDepartment().getName();
+
+        for (Student student : allStudents) {
+            // Filter by department name
+            if (student.getDepartment() != null && student.getDepartment().equals(filterDept)) {
+                Object[] row = {
+                        student.getId(),
+                        student.getName(),
+                        student.getEmail(),
+                        student.getPhone(),
+                        student.getDepartment() != null && !student.getDepartment().isEmpty() ? student.getDepartment()
+                                : "-",
+                        student.getSemester() > 0 ? String.valueOf(student.getSemester()) : "-",
+                        student.getBatch(),
+                        sdf.format(student.getEnrollmentDate())
+                };
+                tableModel.addRow(row);
+            }
+        }
+    }
+
+    // Helper class for department filter dropdown
+    private static class DepartmentFilterItem {
+        private Department department;
+
+        public DepartmentFilterItem(Department department) {
+            this.department = department;
+        }
+
+        public Department getDepartment() {
+            return department;
+        }
+
+        @Override
+        public String toString() {
+            return department == null ? "All Departments" : department.getName();
         }
     }
 }
