@@ -9,6 +9,8 @@ import com.college.ui.attendance.AttendanceManagementPanel;
 import com.college.ui.attendance.StudentAttendancePanel;
 import com.college.ui.grades.GradeManagementPanel;
 import com.college.ui.timetable.TimetablePanel;
+import com.college.ui.assignments.AssignmentManagementPanel;
+import com.college.ui.assignments.StudentAssignmentPanel;
 import com.college.utils.UIHelper;
 import com.college.utils.DatabaseConnection;
 
@@ -78,6 +80,13 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.security.AuditLogViewerPanel(), "AUDIT_LOGS");
         contentPanel.add(new com.college.ui.reports.ReportsPanel(role, userId), "REPORTS");
         contentPanel.add(new com.college.ui.department.DepartmentManagementPanel(), "DEPARTMENTS");
+
+        // Add Assignments Panels
+        if (role.equals("FACULTY") || role.equals("ADMIN")) {
+            contentPanel.add(new AssignmentManagementPanel(userId), "ASSIGNMENTS");
+        } else if (role.equals("STUDENT")) {
+            contentPanel.add(new StudentAssignmentPanel(userId), "ASSIGNMENTS");
+        }
 
         // Admin - Warden Management
         // if (role.equals("ADMIN")) {
@@ -184,6 +193,7 @@ public class DashboardFrame extends JFrame {
             if (role.equals("ADMIN")) {
                 addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
             }
+            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS"); // Add for Faculty/Admin
         }
 
         if (role.equals("WARDEN")) {
@@ -203,6 +213,7 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "My Fees", "FEES");
             addMenuItem(sidebar, "Gate Pass", "GATE_PASS");
             addMenuItem(sidebar, "Reports", "REPORTS");
+            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS"); // Add for Student
         }
 
         // Add glue to push items to top

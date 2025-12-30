@@ -1,0 +1,1 @@
+ALTER TABLE assignments ADD COLUMN semester INT DEFAULT 1;

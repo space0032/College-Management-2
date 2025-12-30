@@ -1,2 +1,11 @@
 user name: 2025556425
 password: Student@123
+
+user name: admin
+password: Admin@123
+
+user name: faculty
+password: 123
+
+user name: warden
+password: Warden@123
