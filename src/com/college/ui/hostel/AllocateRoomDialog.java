@@ -189,20 +189,11 @@ public class AllocateRoomDialog extends JDialog {
         allocation.setRemarks(remarksArea.getText().trim());
 
         if (hostelDAO.allocateRoom(allocation)) {
-            statusLabel.setText("Successfully allocated " + selectedStudent.student.getName() + " to Room "
-                    + selectedRoom.room.getRoomNumber());
-            statusLabel.setForeground(UIHelper.SUCCESS_COLOR);
-
-            // Refresh rooms to update capacity/availability
-            reloadRooms();
-
-            // Check if same room is still selected (means it's still available)
-            RoomItem currentSelected = (RoomItem) roomCombo.getSelectedItem();
-            if (currentSelected == null || currentSelected.room.getId() != selectedRoom.room.getId()) {
-                // Room became full and was removed from list or deselected
-                JOptionPane.showMessageDialog(this, "Room " + selectedRoom.room.getRoomNumber() + " is now full.");
-            }
-
+            UIHelper.showSuccessMessage(this,
+                    "Room allocated successfully!\n\n" +
+                            "Student: " + selectedStudent.student.getName() + "\n" +
+                            "Room: " + selectedRoom.room.getRoomNumber() + " - " + selectedRoom.room.getHostelName());
+            dispose();
         } else {
             statusLabel.setText("Failed to allocate room!");
             statusLabel.setForeground(UIHelper.DANGER_COLOR);
