@@ -1,7 +1,9 @@
 package com.college.ui.courses;
 
 import com.college.dao.CourseDAO;
+import com.college.dao.DepartmentDAO;
 import com.college.models.Course;
+import com.college.models.Department;
 import com.college.utils.UIHelper;
 
 import javax.swing.*;
@@ -105,7 +107,7 @@ public class CourseManagementPanel extends JPanel {
                     course.getCode(),
                     course.getName(),
                     course.getCredits(),
-                    course.getDepartment(),
+                    course.getDepartmentName() != null ? course.getDepartmentName() : course.getDepartment(),
                     course.getSemester()
             };
             tableModel.addRow(row);
@@ -113,13 +115,24 @@ public class CourseManagementPanel extends JPanel {
     }
 
     private void addCourse() {
-        // Simple add dialog
-        JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
+        // Load departments for dropdown
+        DepartmentDAO departmentDAO = new DepartmentDAO();
+        List<Department> departments = departmentDAO.getAllDepartments();
+
+        // Create form panel
+        JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
 
         JTextField codeField = new JTextField();
         JTextField nameField = new JTextField();
         JTextField creditsField = new JTextField();
-        JTextField deptField = new JTextField();
+
+        // Department dropdown instead of text field
+        JComboBox<DepartmentItem> deptCombo = new JComboBox<>();
+        deptCombo.addItem(new DepartmentItem(null)); // "No Department" option
+        for (Department dept : departments) {
+            deptCombo.addItem(new DepartmentItem(dept));
+        }
+
         JTextField semesterField = new JTextField();
 
         panel.add(new JLabel("Course Code:"));
@@ -129,7 +142,7 @@ public class CourseManagementPanel extends JPanel {
         panel.add(new JLabel("Credits:"));
         panel.add(creditsField);
         panel.add(new JLabel("Department:"));
-        panel.add(deptField);
+        panel.add(deptCombo);
         panel.add(new JLabel("Semester:"));
         panel.add(semesterField);
 
@@ -142,8 +155,17 @@ public class CourseManagementPanel extends JPanel {
                 course.setCode(codeField.getText().trim());
                 course.setName(nameField.getText().trim());
                 course.setCredits(Integer.parseInt(creditsField.getText().trim()));
-                course.setDepartment(deptField.getText().trim());
                 course.setSemester(Integer.parseInt(semesterField.getText().trim()));
+
+                // Set department from dropdown
+                DepartmentItem selectedDept = (DepartmentItem) deptCombo.getSelectedItem();
+                if (selectedDept != null && selectedDept.getDepartment() != null) {
+                    course.setDepartmentId(selectedDept.getDepartment().getId());
+                    course.setDepartment(selectedDept.getDepartment().getName());
+                } else {
+                    course.setDepartmentId(0);
+                    course.setDepartment("");
+                }
 
                 if (courseDAO.addCourse(course)) {
                     UIHelper.showSuccessMessage(this, "Course added successfully!");
@@ -152,8 +174,27 @@ public class CourseManagementPanel extends JPanel {
                     UIHelper.showErrorMessage(this, "Failed to add course!");
                 }
             } catch (Exception e) {
-                UIHelper.showErrorMessage(this, "Invalid data!");
+                UIHelper.showErrorMessage(this, "Invalid data: " + e.getMessage());
             }
+        }
+    }
+
+    // Helper class for department dropdown
+    private static class DepartmentItem {
+        private Department department;
+
+        public DepartmentItem(Department department) {
+            this.department = department;
+        }
+
+        public Department getDepartment() {
+            return department;
+        }
+
+        @Override
+        public String toString() {
+            return department == null ? "-- No Department --"
+                    : department.getName() + " (" + department.getCode() + ")";
         }
     }
 }

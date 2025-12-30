@@ -81,6 +81,7 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.gatepass.GatePassApprovalPanel(), "GATE_PASS_APPROVAL");
         contentPanel.add(new com.college.ui.security.AuditLogViewerPanel(), "AUDIT_LOGS");
         contentPanel.add(new com.college.ui.reports.ReportsPanel(role, userId), "REPORTS");
+        contentPanel.add(new com.college.ui.department.DepartmentManagementPanel(), "DEPARTMENTS");
 
         add(contentPanel, BorderLayout.CENTER);
 
@@ -146,6 +147,9 @@ public class DashboardFrame extends JFrame {
                 addMenuItem(sidebar, "Staff Management", "FACULTY");
             }
             addMenuItem(sidebar, "Course Management", "COURSES");
+            if (role.equals("ADMIN")) {
+                addMenuItem(sidebar, "Department Management", "DEPARTMENTS");
+            }
             addMenuItem(sidebar, "Attendance", "ATTENDANCE");
             addMenuItem(sidebar, "Grades", "GRADES");
             addMenuItem(sidebar, "Timetable", "TIMETABLE");
