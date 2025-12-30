@@ -209,7 +209,8 @@ public class AllocateRoomDialog extends JDialog {
 
         @Override
         public String toString() {
-            return student.getName() + " (" + student.getEmail() + ")";
+            String idDisplay = student.getUsername() != null ? student.getUsername() : String.valueOf(student.getId());
+            return student.getName() + " (" + idDisplay + ")";
         }
     }
 

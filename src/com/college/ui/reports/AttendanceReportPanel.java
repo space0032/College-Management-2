@@ -87,7 +87,7 @@ public class AttendanceReportPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
-        String[] columns = { "Student ID", "Student Name", "Course", "Present", "Absent", "Total", "Percentage",
+        String[] columns = { "Enrollment ID", "Student Name", "Course", "Present", "Absent", "Total", "Percentage",
                 "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -98,6 +98,7 @@ public class AttendanceReportPanel extends JPanel {
 
         reportTable = new JTable(tableModel);
         reportTable.setRowHeight(25);
+        reportTable.getColumnModel().getColumn(0).setPreferredWidth(120); // Width for Enrollment ID
         reportTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JScrollPane scrollPane = new JScrollPane(reportTable);
@@ -175,6 +176,9 @@ public class AttendanceReportPanel extends JPanel {
         int lowAttendanceCount = 0;
 
         for (Student student : students) {
+            String studentIdDisplay = student.getUsername() != null ? student.getUsername()
+                    : String.valueOf(student.getId());
+
             if (selectedCourse != null && selectedCourse.course != null) {
                 // Get attendance for specific course
                 int courseId = selectedCourse.course.getId();
@@ -186,7 +190,7 @@ public class AttendanceReportPanel extends JPanel {
                         lowAttendanceCount++;
 
                     Object[] row = {
-                            student.getId(),
+                            studentIdDisplay,
                             student.getName(),
                             selectedCourse.course.getName(),
                             "-",
@@ -203,7 +207,7 @@ public class AttendanceReportPanel extends JPanel {
                 String status = "N/A";
 
                 Object[] row = {
-                        student.getId(),
+                        studentIdDisplay,
                         student.getName(),
                         "All Courses",
                         "-",

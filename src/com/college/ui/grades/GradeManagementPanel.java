@@ -93,16 +93,26 @@ public class GradeManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        String[] columns = { "Student ID", "Student Name", "Marks Obtained", "Max Marks", "Percentage", "Grade" };
+        // Added Enrollment ID (col 1), kept ID (col 0, hidden)
+        String[] columns = { "ID", "Enrollment ID", "Student Name", "Marks Obtained", "Max Marks", "Percentage",
+                "Grade" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 2 || column == 3; // Only marks columns editable
+                return column == 3 || column == 4; // Marks columns (indices 3 and 4)
             }
         };
 
         gradeTable = new JTable(tableModel);
         UIHelper.styleTable(gradeTable);
+
+        // Hide ID column
+        gradeTable.getColumnModel().getColumn(0).setMinWidth(0);
+        gradeTable.getColumnModel().getColumn(0).setMaxWidth(0);
+        gradeTable.getColumnModel().getColumn(0).setWidth(0);
+
+        // Width for Enrollment ID
+        gradeTable.getColumnModel().getColumn(1).setPreferredWidth(120);
 
         JScrollPane scrollPane = new JScrollPane(gradeTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(189, 195, 199)));
@@ -169,12 +179,15 @@ public class GradeManagementPanel extends JPanel {
 
         for (Student student : students) {
             Grade existingGrade = gradeMap.get(student.getId());
+            String enrollmentId = student.getUsername() != null ? student.getUsername()
+                    : String.valueOf(student.getId());
 
             Object[] row;
             if (existingGrade != null) {
                 // Load existing grade data
                 row = new Object[] {
-                        student.getId(),
+                        student.getId(), // Hidden ID
+                        enrollmentId,
                         student.getName(),
                         String.valueOf(existingGrade.getMarksObtained()),
                         String.valueOf(existingGrade.getMaxMarks()),
@@ -184,7 +197,8 @@ public class GradeManagementPanel extends JPanel {
             } else {
                 // No existing grade, use empty values
                 row = new Object[] {
-                        student.getId(),
+                        student.getId(), // Hidden ID
+                        enrollmentId,
                         student.getName(),
                         "", // Marks obtained
                         "100", // Max marks (default)
@@ -208,9 +222,13 @@ public class GradeManagementPanel extends JPanel {
 
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             try {
-                int studentId = (Integer) tableModel.getValueAt(i, 0);
-                String marksStr = tableModel.getValueAt(i, 2).toString();
-                String maxMarksStr = tableModel.getValueAt(i, 3).toString();
+                int studentId = (Integer) tableModel.getValueAt(i, 0); // Hidden ID at index 0
+                // Marks are now at index 3 and 4
+                Object marksObj = tableModel.getValueAt(i, 3);
+                Object maxMarksObj = tableModel.getValueAt(i, 4);
+
+                String marksStr = marksObj != null ? marksObj.toString() : "";
+                String maxMarksStr = maxMarksObj != null ? maxMarksObj.toString() : "";
 
                 if (marksStr.isEmpty())
                     continue;
@@ -222,9 +240,9 @@ public class GradeManagementPanel extends JPanel {
                         examType, marksObtained, maxMarks);
 
                 if (gradeDAO.saveGrade(grade)) {
-                    // Update table with calculated values
-                    tableModel.setValueAt(String.format("%.1f%%", grade.getPercentage()), i, 4);
-                    tableModel.setValueAt(grade.getGrade(), i, 5);
+                    // Update table with calculated values (indices 5 and 6)
+                    tableModel.setValueAt(String.format("%.1f%%", grade.getPercentage()), i, 5);
+                    tableModel.setValueAt(grade.getGrade(), i, 6);
                     saved++;
                 }
             } catch (Exception e) {

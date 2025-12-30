@@ -115,9 +115,10 @@ public class EnhancedFeeDAO {
      */
     public List<StudentFee> getStudentFees(int studentId) {
         List<StudentFee> fees = new ArrayList<>();
-        String sql = "SELECT sf.*, s.name as student_name, fc.category_name " +
+        String sql = "SELECT sf.*, s.name as student_name, u.username as student_username, fc.category_name " +
                 "FROM student_fees sf " +
                 "JOIN students s ON sf.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "JOIN fee_categories fc ON sf.category_id = fc.id " +
                 "WHERE sf.student_id = ? ORDER BY sf.academic_year DESC, fc.category_name";
 
@@ -143,9 +144,10 @@ public class EnhancedFeeDAO {
      */
     public List<StudentFee> getPendingFees() {
         List<StudentFee> fees = new ArrayList<>();
-        String sql = "SELECT sf.*, s.name as student_name, fc.category_name " +
+        String sql = "SELECT sf.*, s.name as student_name, u.username as student_username, fc.category_name " +
                 "FROM student_fees sf " +
                 "JOIN students s ON sf.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "JOIN fee_categories fc ON sf.category_id = fc.id " +
                 "WHERE sf.status != 'PAID' ORDER BY sf.due_date";
 
@@ -268,6 +270,12 @@ public class EnhancedFeeDAO {
         fee.setDueDate(rs.getDate("due_date"));
         fee.setStudentName(rs.getString("student_name"));
         fee.setCategoryName(rs.getString("category_name"));
+
+        try {
+            fee.setStudentUsername(rs.getString("student_username"));
+        } catch (SQLException e) {
+            // Field might not exist in all queries
+        }
         return fee;
     }
 }

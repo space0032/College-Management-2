@@ -116,4 +116,14 @@ public class StudentFee {
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
     }
+
+    private String studentUsername;
+
+    public String getStudentUsername() {
+        return studentUsername;
+    }
+
+    public void setStudentUsername(String studentUsername) {
+        this.studentUsername = studentUsername;
+    }
 }

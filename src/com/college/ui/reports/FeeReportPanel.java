@@ -64,7 +64,7 @@ public class FeeReportPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
-        String[] columns = { "Student ID", "Student Name", "Category", "Amount", "Paid", "Balance", "Status" };
+        String[] columns = { "Enrollment ID", "Student Name", "Category", "Amount", "Paid", "Balance", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -74,6 +74,7 @@ public class FeeReportPanel extends JPanel {
 
         reportTable = new JTable(tableModel);
         reportTable.setRowHeight(25);
+        reportTable.getColumnModel().getColumn(0).setPreferredWidth(120); // Width for Enrollment ID
 
         JScrollPane scrollPane = new JScrollPane(reportTable);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -119,9 +120,11 @@ public class FeeReportPanel extends JPanel {
 
         for (StudentFee fee : allFees) {
             double balance = fee.getTotalAmount() - fee.getPaidAmount();
+            String studentIdDisplay = fee.getStudentUsername() != null ? fee.getStudentUsername()
+                    : String.valueOf(fee.getStudentId());
 
             Object[] row = {
-                    fee.getStudentId(),
+                    studentIdDisplay,
                     fee.getStudentName(),
                     fee.getCategoryName(),
                     String.format("Rs. %.2f", fee.getTotalAmount()),

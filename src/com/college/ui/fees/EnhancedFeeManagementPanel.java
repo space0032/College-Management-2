@@ -15,6 +15,7 @@ import java.util.List;
 public class EnhancedFeeManagementPanel extends JPanel {
 
     private EnhancedFeeDAO feeDAO;
+    private com.college.dao.StudentDAO studentDAO; // Added StudentDAO
     private int userId;
     private String userRole;
 
@@ -26,10 +27,17 @@ public class EnhancedFeeManagementPanel extends JPanel {
         this.userRole = role;
         this.userId = userId;
         this.feeDAO = new EnhancedFeeDAO();
+        this.studentDAO = new com.college.dao.StudentDAO(); // Initialize StudentDAO
 
         initComponents();
         if (role.equals("STUDENT")) {
-            loadStudentFees(userId);
+            // FIX: Resolve Student ID from User ID
+            com.college.models.Student student = studentDAO.getStudentByUserId(userId);
+            if (student != null) {
+                loadStudentFees(student.getId()); // Use resolved Student ID
+            } else {
+                UIHelper.showErrorMessage(this, "Student record not found associated with this user!");
+            }
         } else {
             loadAllPendingFees();
         }
@@ -110,7 +118,9 @@ public class EnhancedFeeManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
 
-        String[] columns = { "ID", "Student", "Category", "Academic Year", "Total", "Paid", "Balance", "Status" };
+        // Updated Columns: Added "Enrollment ID"
+        String[] columns = { "Ref #", "Enrollment ID", "Student Name", "Category", "Academic Year", "Total", "Paid",
+                "Balance", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -120,6 +130,11 @@ public class EnhancedFeeManagementPanel extends JPanel {
 
         feeTable = new JTable(tableModel);
         UIHelper.styleTable(feeTable);
+
+        // Adjust widths
+        feeTable.getColumnModel().getColumn(0).setPreferredWidth(60); // Ref #
+        feeTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Enrollment ID
+        feeTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Name
 
         JScrollPane scrollPane = new JScrollPane(feeTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(189, 195, 199)));
@@ -147,6 +162,12 @@ public class EnhancedFeeManagementPanel extends JPanel {
             recordPaymentButton.setPreferredSize(new Dimension(160, 40));
             recordPaymentButton.addActionListener(e -> recordPayment());
             panel.add(recordPaymentButton);
+        } else if (userRole.equals("STUDENT")) {
+            // Students can also view their payment history
+            JButton viewPaymentsButton = UIHelper.createPrimaryButton("View Payments");
+            viewPaymentsButton.setPreferredSize(new Dimension(160, 40));
+            viewPaymentsButton.addActionListener(e -> viewPayments());
+            panel.add(viewPaymentsButton);
         }
 
         return panel;
@@ -168,6 +189,7 @@ public class EnhancedFeeManagementPanel extends JPanel {
         for (StudentFee fee : fees) {
             Object[] row = {
                     fee.getId(),
+                    fee.getStudentUsername() != null ? fee.getStudentUsername() : "-", // Enrollment ID
                     fee.getStudentName(),
                     fee.getCategoryName(),
                     fee.getAcademicYear(),
@@ -194,6 +216,7 @@ public class EnhancedFeeManagementPanel extends JPanel {
         for (StudentFee fee : fees) {
             Object[] row = {
                     fee.getId(),
+                    fee.getStudentUsername() != null ? fee.getStudentUsername() : "-", // Enrollment ID
                     fee.getStudentName(),
                     fee.getCategoryName(),
                     fee.getAcademicYear(),
@@ -211,7 +234,7 @@ public class EnhancedFeeManagementPanel extends JPanel {
         updateSummary(total, paid);
 
         if (fees.isEmpty()) {
-            tableModel.addRow(new Object[] { "", "No pending fees", "", "", "", "", "", "" });
+            // Empty row placeholder
         }
     }
 
@@ -272,7 +295,14 @@ public class EnhancedFeeManagementPanel extends JPanel {
         int feeId = (Integer) idObj;
 
         // Get the StudentFee object
-        List<StudentFee> fees = userRole.equals("STUDENT") ? feeDAO.getStudentFees(userId) : feeDAO.getPendingFees();
+        // Resolve studentId again for efficiency or just load all relevant fees
+        List<StudentFee> fees;
+        if (userRole.equals("STUDENT")) {
+            com.college.models.Student student = studentDAO.getStudentByUserId(userId);
+            fees = (student != null) ? feeDAO.getStudentFees(student.getId()) : new java.util.ArrayList<>();
+        } else {
+            fees = feeDAO.getPendingFees();
+        }
 
         StudentFee selectedFee = null;
         for (StudentFee fee : fees) {
@@ -292,7 +322,10 @@ public class EnhancedFeeManagementPanel extends JPanel {
 
     private void refreshData() {
         if (userRole.equals("STUDENT")) {
-            loadStudentFees(userId);
+            com.college.models.Student student = studentDAO.getStudentByUserId(userId);
+            if (student != null) {
+                loadStudentFees(student.getId());
+            }
         } else {
             loadAllPendingFees();
         }

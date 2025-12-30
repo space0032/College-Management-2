@@ -106,20 +106,29 @@ public class AttendanceManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        String[] columns = { "Student ID", "Student Name", "Status", "" };
+        // Added "Enrollment ID" and kept "ID" for internal use (will hide it)
+        String[] columns = { "ID", "Enrollment ID", "Student Name", "Status", "" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 2; // Only status column editable
+                return column == 3; // Only status column editable (index 3)
             }
         };
 
         attendanceTable = new JTable(tableModel);
         UIHelper.styleTable(attendanceTable);
 
+        // Hide the ID column
+        attendanceTable.getColumnModel().getColumn(0).setMinWidth(0);
+        attendanceTable.getColumnModel().getColumn(0).setMaxWidth(0);
+        attendanceTable.getColumnModel().getColumn(0).setWidth(0);
+
+        // Set width for Enrollment ID
+        attendanceTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+
         // Status column with combo box
         JComboBox<String> statusCombo = new JComboBox<>(new String[] { "PRESENT", "ABSENT", "LATE" });
-        attendanceTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(statusCombo));
+        attendanceTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(statusCombo));
 
         JScrollPane scrollPane = new JScrollPane(attendanceTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(189, 195, 199)));
@@ -170,7 +179,8 @@ public class AttendanceManagementPanel extends JPanel {
 
             for (Student student : currentStudents) {
                 Object[] row = {
-                        student.getId(),
+                        student.getId(), // Hidden ID
+                        student.getUsername() != null ? student.getUsername() : "-", // Enrollment ID
                         student.getName(),
                         "PRESENT", // Default status
                         ""
@@ -199,7 +209,7 @@ public class AttendanceManagementPanel extends JPanel {
                 for (int i = 0; i < tableModel.getRowCount(); i++) {
                     int studentId = (Integer) tableModel.getValueAt(i, 0);
                     if (studentId == record.getStudentId()) {
-                        tableModel.setValueAt(record.getStatus(), i, 2);
+                        tableModel.setValueAt(record.getStatus(), i, 3); // Update Status column (index 3)
                         break;
                     }
                 }
@@ -212,7 +222,7 @@ public class AttendanceManagementPanel extends JPanel {
 
     private void markAllPresent() {
         for (int i = 0; i < tableModel.getRowCount(); i++) {
-            tableModel.setValueAt("PRESENT", i, 2);
+            tableModel.setValueAt("PRESENT", i, 3); // Update Status column (index 3)
         }
     }
 
@@ -231,7 +241,7 @@ public class AttendanceManagementPanel extends JPanel {
 
             for (int i = 0; i < tableModel.getRowCount(); i++) {
                 int studentId = (Integer) tableModel.getValueAt(i, 0);
-                String status = (String) tableModel.getValueAt(i, 2);
+                String status = (String) tableModel.getValueAt(i, 3); // Get Status from index 3
 
                 Attendance attendance = new Attendance();
                 attendance.setStudentId(studentId);
