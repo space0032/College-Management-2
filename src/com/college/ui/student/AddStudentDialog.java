@@ -298,44 +298,57 @@ public class AddStudentDialog extends JDialog {
      * @return Array with [username, password] or null if failed
      */
     private String[] createLoginCredentials(int studentId) {
-        try {
-            // Generate username and password
-            String username = "student" + studentId;
-            String plainPassword = "Student@" + studentId + ValidationUtils.generateRandom4Digits();
-            String hashedPassword = ValidationUtils.hashPassword(plainPassword);
+        int maxRetries = 5;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                // Generate 10-digit username
+                // Format: YYYY + 6 random digits
+                String year = new SimpleDateFormat("yyyy").format(new Date());
+                String randomDigits = String.format("%06d", (int) (Math.random() * 1000000));
+                String username = year + randomDigits;
 
-            // Insert into users table
-            String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, 'STUDENT')";
+                // Password: Student@ + last 4 digits of username + random 2 digits
+                String plainPassword = "Student@" + username.substring(6)
+                        + ValidationUtils.generateRandom4Digits().substring(0, 2);
+                String hashedPassword = ValidationUtils.hashPassword(plainPassword);
 
-            try (java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
-                    java.sql.PreparedStatement pstmt = conn.prepareStatement(sql,
-                            java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                // Insert into users table
+                String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, 'STUDENT')";
 
-                pstmt.setString(1, username);
-                pstmt.setString(2, hashedPassword);
+                try (java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+                        java.sql.PreparedStatement pstmt = conn.prepareStatement(sql,
+                                java.sql.Statement.RETURN_GENERATED_KEYS)) {
 
-                int rowsAffected = pstmt.executeUpdate();
+                    pstmt.setString(1, username);
+                    pstmt.setString(2, hashedPassword);
 
-                if (rowsAffected > 0) {
-                    // Get generated user ID
-                    java.sql.ResultSet generatedKeys = pstmt.getGeneratedKeys();
-                    if (generatedKeys.next()) {
-                        int userId = generatedKeys.getInt(1);
+                    int rowsAffected = pstmt.executeUpdate();
 
-                        // Update student record with user_id
-                        String updateSql = "UPDATE students SET user_id=? WHERE id=?";
-                        try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
-                            updateStmt.setInt(1, userId);
-                            updateStmt.setInt(2, studentId);
-                            updateStmt.executeUpdate();
+                    if (rowsAffected > 0) {
+                        // Get generated user ID
+                        java.sql.ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                        if (generatedKeys.next()) {
+                            int userId = generatedKeys.getInt(1);
+
+                            // Update student record with user_id
+                            String updateSql = "UPDATE students SET user_id=? WHERE id=?";
+                            try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                                updateStmt.setInt(1, userId);
+                                updateStmt.setInt(2, studentId);
+                                updateStmt.executeUpdate();
+                            }
+
+                            return new String[] { username, plainPassword };
                         }
-
-                        return new String[] { username, plainPassword };
                     }
                 }
+            } catch (java.sql.SQLIntegrityConstraintViolationException e) {
+                // Duplicate username, retry
+                continue;
+            } catch (Exception e) {
+                e.printStackTrace();
+                break;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         return null;
     }

@@ -102,8 +102,9 @@ public class StudentManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        // Table columns - Changed "Course" to "Department"
-        String[] columns = { "ID", "Name", "Email", "Phone", "Department", "Semester", "Batch", "Enrollment Date" };
+        // Table columns - Changed "ID" to "Enrollment ID"
+        String[] columns = { "Enrollment ID", "Name", "Email", "Phone", "Department", "Semester", "Batch",
+                "Enrollment Date" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -113,7 +114,7 @@ public class StudentManagementPanel extends JPanel {
 
         studentTable = new JTable(tableModel);
         UIHelper.styleTable(studentTable);
-        studentTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        studentTable.getColumnModel().getColumn(0).setPreferredWidth(120); // Width for Enrollment ID
         studentTable.getColumnModel().getColumn(1).setPreferredWidth(150);
         studentTable.getColumnModel().getColumn(2).setPreferredWidth(200);
 
@@ -173,7 +174,8 @@ public class StudentManagementPanel extends JPanel {
 
         for (Student student : students) {
             Object[] row = {
-                    student.getId(),
+                    student.getUsername() != null ? student.getUsername() : student.getId(), // Show username
+                                                                                             // (Enrollment ID)
                     student.getName(),
                     student.getEmail(),
                     student.getPhone(),
@@ -208,7 +210,8 @@ public class StudentManagementPanel extends JPanel {
 
         for (Student student : students) {
             Object[] row = {
-                    student.getId(),
+                    student.getUsername() != null ? student.getUsername() : student.getId(), // Show username
+                                                                                             // (Enrollment ID)
                     student.getName(),
                     student.getEmail(),
                     student.getPhone(),
