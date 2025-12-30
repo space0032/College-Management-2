@@ -83,6 +83,15 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.reports.ReportsPanel(role, userId), "REPORTS");
         contentPanel.add(new com.college.ui.department.DepartmentManagementPanel(), "DEPARTMENTS");
 
+        // My Profile - create a simple wrapper panel that shows the dialog
+        JPanel profilePanel = new JPanel(new BorderLayout());
+        profilePanel.setBackground(Color.WHITE);
+        profilePanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
+        JLabel profileLabel = new JLabel("Loading Profile...", SwingConstants.CENTER);
+        profileLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        profilePanel.add(profileLabel, BorderLayout.CENTER);
+        contentPanel.add(profilePanel, "MY_PROFILE");
+
         add(contentPanel, BorderLayout.CENTER);
 
         // Show home by default
@@ -177,10 +186,83 @@ public class DashboardFrame extends JFrame {
         // Add glue to push items to top
         sidebar.add(Box.createVerticalGlue());
 
-        // Add Change Password at bottom for all users
-        addMenuItem(sidebar, "Change Password", "CHANGE_PASSWORD");
+        // Add Settings section at bottom
+        sidebar.add(createSettingsSection());
 
         return sidebar;
+    }
+
+    /**
+     * Create Settings section for sidebar
+     */
+    private JPanel createSettingsSection() {
+        JPanel settingsPanel = new JPanel();
+        settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
+        settingsPanel.setBackground(new Color(44, 62, 80));
+        settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        settingsPanel.setMaximumSize(new Dimension(230, 180));
+        settingsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(127, 140, 141)),
+                BorderFactory.createEmptyBorder(10, 0, 10, 0)));
+
+        // Settings label
+        JLabel settingsLabel = new JLabel("  ⚙ SETTINGS");
+        settingsLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        settingsLabel.setForeground(new Color(189, 195, 199));
+        settingsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        settingsLabel.setMaximumSize(new Dimension(230, 30));
+        settingsPanel.add(settingsLabel);
+
+        settingsPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+
+        // My Profile button
+        JButton profileButton = createSettingsButton("My Profile", "MY_PROFILE");
+        settingsPanel.add(profileButton);
+
+        settingsPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+
+        // Change Password button
+        JButton passwordButton = createSettingsButton("Change Password", "CHANGE_PASSWORD");
+        settingsPanel.add(passwordButton);
+
+        return settingsPanel;
+    }
+
+    /**
+     * Create settings button
+     */
+    private JButton createSettingsButton(String text, String cardName) {
+        JButton button = new JButton(text);
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setMaximumSize(new Dimension(220, 40));
+        button.setFont(new Font("Arial", Font.PLAIN, 14));
+        button.setBackground(new Color(52, 73, 94));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Hover effect
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(UIHelper.PRIMARY_COLOR);
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(52, 73, 94));
+            }
+        });
+
+        button.addActionListener(e -> {
+            if (cardName.equals("MY_PROFILE")) {
+                showProfileDialog();
+            } else {
+                cardLayout.show(contentPanel, cardName);
+            }
+        });
+
+        return button;
     }
 
     /**
@@ -210,7 +292,11 @@ public class DashboardFrame extends JFrame {
         });
 
         button.addActionListener(e -> {
-            cardLayout.show(contentPanel, cardName);
+            if (cardName.equals("MY_PROFILE")) {
+                showProfileDialog();
+            } else {
+                cardLayout.show(contentPanel, cardName);
+            }
         });
 
         sidebar.add(button);
@@ -256,9 +342,6 @@ public class DashboardFrame extends JFrame {
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
 
-            if (rs.next()) {
-                return String.valueOf(rs.getInt(1));
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -266,16 +349,27 @@ public class DashboardFrame extends JFrame {
     }
 
     /**
+     * Show user profile dialog
+     */
+    private void showProfileDialog() {
+        com.college.ui.profile.ProfileDialog dialog = new com.college.ui.profile.ProfileDialog(this);
+        dialog.setVisible(true);
+    }
+
+    /**
      * Create Change Password Panel
      */
     private JPanel createChangePasswordPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        JPanel contentPanel = new JPanel(new GridBagLayout());
-        contentPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(10, 10, 20, 10);
+        gbc.anchor = GridBagConstraints.CENTER;
 
+        // Change Password Button
         JButton changePasswordButton = new JButton("Change My Password");
         changePasswordButton.setFont(new Font("Arial", Font.BOLD, 16));
         changePasswordButton.setBackground(UIHelper.PRIMARY_COLOR);
@@ -288,17 +382,17 @@ public class DashboardFrame extends JFrame {
                     this);
             dialog.setVisible(true);
         });
+        panel.add(changePasswordButton, gbc);
 
-        contentPanel.add(changePasswordButton);
-
+        // Instruction Label
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 10, 10, 10);
         JLabel instructionLabel = new JLabel("<html><center>Click the button to change your password.<br>" +
                 "Ensure your new password is strong and secure.</center></html>");
         instructionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         instructionLabel.setForeground(new Color(127, 140, 141));
         instructionLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        panel.add(contentPanel, BorderLayout.CENTER);
-        panel.add(instructionLabel, BorderLayout.SOUTH);
+        panel.add(instructionLabel, gbc);
 
         return panel;
     }

@@ -29,110 +29,113 @@ public class ChangePasswordDialog extends JDialog {
     }
 
     private void initComponents() {
-        setSize(450, 400);
+        setSize(500, 480);
         setLocationRelativeTo(getParent());
         setResizable(false);
+        setLayout(new BorderLayout());
 
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        mainPanel.setBackground(Color.WHITE);
-
-        // Title Panel
-        JPanel titlePanel = new JPanel();
-        titlePanel.setBackground(UIHelper.PRIMARY_COLOR);
-        titlePanel.setPreferredSize(new Dimension(0, 60));
+        // Header
+        JPanel headerPanel = new JPanel();
+        headerPanel.setBackground(UIHelper.PRIMARY_COLOR);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JLabel titleLabel = new JLabel("Change Password");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 22));
         titleLabel.setForeground(Color.WHITE);
-        titlePanel.add(titleLabel);
+        headerPanel.add(titleLabel);
 
-        // Form Panel
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(Color.WHITE);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 10, 10, 10);
+        // Form Content
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
 
         // Current Password
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        formPanel.add(UIHelper.createLabel("Current Password:"), gbc);
-
-        gbc.gridx = 1;
-        currentPasswordField = createPasswordField();
-        formPanel.add(currentPasswordField, gbc);
+        contentPanel.add(createLabel("Current Password"));
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        currentPasswordField = createStyledPasswordField();
+        contentPanel.add(currentPasswordField);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // New Password
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        formPanel.add(UIHelper.createLabel("New Password:"), gbc);
-
-        gbc.gridx = 1;
-        newPasswordField = createPasswordField();
+        contentPanel.add(createLabel("New Password"));
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        newPasswordField = createStyledPasswordField();
         newPasswordField.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 updatePasswordStrength();
             }
         });
-        formPanel.add(newPasswordField, gbc);
+        contentPanel.add(newPasswordField);
 
-        // Password Strength Label
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        strengthLabel = new JLabel("");
-        strengthLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-        formPanel.add(strengthLabel, gbc);
+        // Strength Indicator
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        strengthLabel = new JLabel(" ");
+        strengthLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        contentPanel.add(strengthLabel);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Confirm Password
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        formPanel.add(UIHelper.createLabel("Confirm Password:"), gbc);
+        contentPanel.add(createLabel("Confirm New Password"));
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        confirmPasswordField = createStyledPasswordField();
+        contentPanel.add(confirmPasswordField);
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 25)));
 
-        gbc.gridx = 1;
-        confirmPasswordField = createPasswordField();
-        formPanel.add(confirmPasswordField, gbc);
+        // Requirements Note
+        JLabel noteLabel = new JLabel("<html><body style='width: 350px; color: #7f8c8d; font-size: 10px;'>" +
+                "Password must be at least 8 chars with uppercase, lowercase & number</body></html>");
+        contentPanel.add(noteLabel);
 
-        // Password Requirements
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 2;
-        JLabel requirementsLabel = new JLabel("<html><small>Requirements: Min 8 characters, " +
-                "1 uppercase, 1 lowercase, 1 number</small></html>");
-        requirementsLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        requirementsLabel.setForeground(new Color(127, 140, 141));
-        formPanel.add(requirementsLabel, gbc);
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 20));
+        buttonPanel.setBackground(new Color(245, 245, 245));
+        buttonPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 230, 230)));
 
-        // Button Panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        buttonPanel.setBackground(Color.WHITE);
-
-        JButton changeButton = UIHelper.createPrimaryButton("Change Password");
-        changeButton.setPreferredSize(new Dimension(150, 35));
-        changeButton.addActionListener(e -> handleChangePassword());
-
-        JButton cancelButton = UIHelper.createDangerButton("Cancel");
-        cancelButton.setPreferredSize(new Dimension(100, 35));
+        JButton cancelButton = new JButton("Cancel");
+        cancelButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        cancelButton.setPreferredSize(new Dimension(100, 38));
+        cancelButton.setBackground(Color.WHITE);
+        cancelButton.setFocusPainted(false);
         cancelButton.addActionListener(e -> dispose());
 
-        buttonPanel.add(changeButton);
+        JButton saveButton = new JButton("Update Password");
+        saveButton.setFont(new Font("Arial", Font.BOLD, 14));
+        saveButton.setPreferredSize(new Dimension(160, 38));
+        saveButton.setBackground(UIHelper.PRIMARY_COLOR);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFocusPainted(false);
+        saveButton.setBorderPainted(false);
+        saveButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        saveButton.addActionListener(e -> handleChangePassword());
+
         buttonPanel.add(cancelButton);
+        buttonPanel.add(saveButton);
 
-        // Add panels
-        mainPanel.add(titlePanel, BorderLayout.NORTH);
-        mainPanel.add(formPanel, BorderLayout.CENTER);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        add(headerPanel, BorderLayout.NORTH);
+        add(contentPanel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-        add(mainPanel);
-        getRootPane().setDefaultButton(changeButton);
+        getRootPane().setDefaultButton(saveButton);
     }
 
-    private JPasswordField createPasswordField() {
-        JPasswordField field = new JPasswordField(20);
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Arial", Font.BOLD, 13));
+        label.setForeground(new Color(50, 50, 50));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField field = new JPasswordField();
+        field.setPreferredSize(new Dimension(400, 40));
+        field.setMaximumSize(new Dimension(400, 40));
         field.setFont(new Font("Arial", Font.PLAIN, 14));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(189, 195, 199)),
-                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)));
         return field;
     }
 
@@ -141,7 +144,7 @@ public class ChangePasswordDialog extends JDialog {
         int strength = calculatePasswordStrength(password);
 
         if (password.isEmpty()) {
-            strengthLabel.setText("");
+            strengthLabel.setText(" ");
             return;
         }
 
