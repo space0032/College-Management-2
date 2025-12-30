@@ -167,6 +167,33 @@ public class EnhancedFeeDAO {
     }
 
     /**
+     * Get ALL fees (Paid + Pending)
+     */
+    public List<StudentFee> getAllFees() {
+        List<StudentFee> fees = new ArrayList<>();
+        String sql = "SELECT sf.*, s.name as student_name, u.username as student_username, fc.category_name " +
+                "FROM student_fees sf " +
+                "JOIN students s ON sf.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "JOIN fee_categories fc ON sf.category_id = fc.id " +
+                "ORDER BY sf.due_date DESC"; // Ordered by date descending
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                fees.add(extractStudentFeeFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return fees;
+    }
+
+    /**
      * Get payment history for a student fee
      */
     public List<FeePayment> getPaymentHistory(int studentFeeId) {

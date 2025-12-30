@@ -18,14 +18,26 @@ public class LibraryManagementPanel extends JPanel {
     private JTable bookTable;
     private DefaultTableModel tableModel;
     private LibraryDAO libraryDAO;
+    private com.college.dao.StudentDAO studentDAO; // Added StudentDAO
     private String userRole;
     private int userId;
+    private int studentId; // Added studentId
     private JTabbedPane tabbedPane;
 
     public LibraryManagementPanel(String role, int userId) {
         this.userRole = role;
         this.userId = userId;
         libraryDAO = new LibraryDAO();
+        studentDAO = new com.college.dao.StudentDAO(); // Initialize StudentDAO
+
+        // Resolve studentId if role is STUDENT
+        if ("STUDENT".equals(role)) {
+            com.college.models.Student student = studentDAO.getStudentByUserId(userId);
+            if (student != null) {
+                this.studentId = student.getId();
+            }
+        }
+
         initComponents();
         if (!role.equals("STUDENT")) {
             loadBooks();
@@ -46,7 +58,8 @@ public class LibraryManagementPanel extends JPanel {
             // Student view - tabbed with books and requests
             tabbedPane = new JTabbedPane();
             tabbedPane.addTab("Available Books", createBooksPanel());
-            tabbedPane.addTab("My Requests", new StudentBookRequestsPanel(userId));
+            // FIX: Use studentId instead of userId
+            tabbedPane.addTab("My Requests", new StudentBookRequestsPanel(studentId));
             add(tabbedPane, BorderLayout.CENTER);
             loadBooks(); // Load books for the first tab
         }
@@ -202,8 +215,14 @@ public class LibraryManagementPanel extends JPanel {
      * Request a book (for students)
      */
     private void requestBook() {
+        // FIX: Use studentId instead of userId
+        if (studentId <= 0) {
+            UIHelper.showErrorMessage(this, "Student record not found or not mapped to user!");
+            return;
+        }
+
         RequestBookDialog dialog = new RequestBookDialog(
-                (Frame) SwingUtilities.getWindowAncestor(this), userId);
+                (Frame) SwingUtilities.getWindowAncestor(this), studentId);
         dialog.setVisible(true);
         // Get selected book
         int selectedRow = bookTable.getSelectedRow();

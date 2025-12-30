@@ -108,7 +108,7 @@ public class FeeReportPanel extends JPanel {
                 allFees = new ArrayList<>();
             }
         } else {
-            allFees = feeDAO.getPendingFees();
+            allFees = feeDAO.getAllFees();
         }
 
         double totalAmount = 0;
