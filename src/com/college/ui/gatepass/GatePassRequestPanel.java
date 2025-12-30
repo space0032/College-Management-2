@@ -94,6 +94,11 @@ public class GatePassRequestPanel extends JPanel {
     }
 
     private void showNewRequestDialog() {
+        if (!isHostelite) {
+            UIHelper.showErrorMessage(this, "Only hostel students can request gate passes!");
+            return;
+        }
+
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
                 "New Gate Pass Request", true);
         dialog.setSize(500, 450);
@@ -327,15 +332,18 @@ public class GatePassRequestPanel extends JPanel {
         }
     }
 
+    private boolean isHostelite = false;
+
     private int getUserStudentId() {
         try {
             java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
             java.sql.PreparedStatement pstmt = conn.prepareStatement(
-                    "SELECT id FROM students WHERE user_id = ?");
+                    "SELECT id, is_hostelite FROM students WHERE user_id = ?");
             pstmt.setInt(1, userId);
             java.sql.ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
+                this.isHostelite = rs.getBoolean("is_hostelite");
                 return rs.getInt("id");
             }
         } catch (Exception e) {

@@ -18,9 +18,16 @@ public class StudentHostelInfoPanel extends JPanel {
     private HostelDAO hostelDAO;
     private int studentId;
 
-    public StudentHostelInfoPanel(int studentId) {
-        this.studentId = studentId;
+    public StudentHostelInfoPanel(int userId) {
         this.hostelDAO = new HostelDAO();
+        com.college.dao.StudentDAO studentDAO = new com.college.dao.StudentDAO();
+        com.college.models.Student student = studentDAO.getStudentByUserId(userId);
+
+        if (student != null) {
+            this.studentId = student.getId();
+        } else {
+            this.studentId = -1;
+        }
 
         initComponents();
     }

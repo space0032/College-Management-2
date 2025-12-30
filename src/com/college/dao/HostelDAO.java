@@ -344,6 +344,31 @@ public class HostelDAO {
             e.printStackTrace();
         }
         return false;
+
+    /**
+     * Update existing room
+     * 
+     * @param room Room object with updated details
+     * @return true if successful
+     */
+    public boolean updateRoom(Room room) {
+        String sql = "UPDATE rooms SET room_number = ?, floor = ?, capacity = ?, room_type = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, room.getRoomNumber());
+            pstmt.setInt(2, room.getFloor());
+            pstmt.setInt(3, room.getCapacity());
+            pstmt.setString(4, room.getRoomType());
+            pstmt.setInt(5, room.getId());
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     /**

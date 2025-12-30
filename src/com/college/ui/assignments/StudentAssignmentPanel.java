@@ -42,6 +42,7 @@ public class StudentAssignmentPanel extends JPanel {
 
         initComponents();
         loadCourses();
+        loadAssignments(); // Ensure assignments are loaded on startup
     }
 
     private void initComponents() {
@@ -144,6 +145,10 @@ public class StudentAssignmentPanel extends JPanel {
             return;
         }
 
+        System.out.println("[DEBUG] Loading assignments for Student: " + student.getName() +
+                ", Semester: " + student.getSemester() +
+                ", Course: " + (selectedCourse.course != null ? selectedCourse.course.getName() : "All"));
+
         List<Assignment> assignments;
         if (selectedCourse.course == null) {
             // "All Courses" - fetch all assignments for the student's semester
@@ -155,8 +160,7 @@ public class StudentAssignmentPanel extends JPanel {
                     student.getSemester());
         }
 
-        if (selectedCourse.course == null)
-            return; // Skip for "All" for now to save complexity
+        System.out.println("[DEBUG] Found " + assignments.size() + " assignments.");
 
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm");
 
