@@ -2,7 +2,7 @@ package com.college.ui.dashboard;
 
 import com.college.dao.*;
 import com.college.models.AuditLog;
-import com.college.utils.UIHelper;
+
 import com.college.utils.SessionManager;
 
 import javax.swing.*;
@@ -86,6 +86,12 @@ public class EnhancedHomePanel extends JPanel {
             panel.add(createStatCard("💰 Pending Fees", getPendingFeesCount(), new Color(231, 76, 60)));
             panel.add(createStatCard("📕 Issued Books", getIssuedBooksCount(), new Color(26, 188, 156)));
             panel.add(createStatCard("🏠 Hostel Rooms", getHostelRoomsCount(), new Color(149, 165, 166)));
+        } else if (role.equals("WARDEN")) {
+            // Warden View
+            panel.add(createStatCard("🏠 Hostel Students", getHostelStudentCount(), new Color(52, 152, 219)));
+            panel.add(createStatCard("🛏️ Available Beds", getAvailableBedsCount(), new Color(46, 204, 113)));
+            panel.add(createStatCard("🎫 Pending Passes", getPendingGatePasses(), new Color(241, 196, 15)));
+            panel.add(createStatCard("⚠️ Alerts", "View", new Color(231, 76, 60)));
         } else {
             // Student view
             panel.add(createStatCard("📚 My Courses", getStudentCourses(), new Color(52, 152, 219)));
@@ -275,8 +281,26 @@ public class EnhancedHomePanel extends JPanel {
 
     private String getHostelRoomsCount() {
         try {
-            // Simplified count
-            return "Available";
+            HostelDAO dao = new HostelDAO();
+            return String.valueOf(dao.getTotalAvailableCapacity());
+        } catch (Exception e) {
+            return "N/A";
+        }
+    }
+
+    private String getHostelStudentCount() {
+        try {
+            HostelDAO dao = new HostelDAO();
+            return String.valueOf(dao.getTotalHostelStudents());
+        } catch (Exception e) {
+            return "N/A";
+        }
+    }
+
+    private String getAvailableBedsCount() {
+        try {
+            HostelDAO dao = new HostelDAO();
+            return String.valueOf(dao.getTotalAvailableCapacity());
         } catch (Exception e) {
             return "N/A";
         }

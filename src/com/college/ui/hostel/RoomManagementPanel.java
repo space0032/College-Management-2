@@ -54,13 +54,18 @@ public class RoomManagementPanel extends JPanel {
             JButton addRoomButton = UIHelper.createSuccessButton("Add New Room");
             addRoomButton.addActionListener(e -> showAddRoomDialog());
             actionPanel.add(addRoomButton);
+
+            JButton deleteRoomButton = UIHelper.createDangerButton("Delete Room");
+            deleteRoomButton.addActionListener(e -> deleteRoom());
+            actionPanel.add(Box.createHorizontalStrut(10));
+            actionPanel.add(deleteRoomButton);
         }
 
         topPanel.add(titlePanel, BorderLayout.WEST);
         topPanel.add(actionPanel, BorderLayout.EAST);
 
         // Table
-        String[] columns = { "Hostel", "Room No", "Floor", "Type", "Capacity", "Occupied", "Status" };
+        String[] columns = { "ID", "Hostel", "Room No", "Floor", "Type", "Capacity", "Occupied", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -70,6 +75,10 @@ public class RoomManagementPanel extends JPanel {
 
         roomsTable = new JTable(tableModel);
         UIHelper.styleTable(roomsTable);
+
+        // Hide ID column
+        roomsTable.getColumnModel().removeColumn(roomsTable.getColumnModel().getColumn(0));
+
         JScrollPane scrollPane = new JScrollPane(roomsTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 20, 10, 20));
 
@@ -83,6 +92,7 @@ public class RoomManagementPanel extends JPanel {
 
         for (Room room : rooms) {
             Object[] row = {
+                    room.getId(),
                     room.getHostelName(),
                     room.getRoomNumber(),
                     room.getFloor(),
@@ -100,6 +110,41 @@ public class RoomManagementPanel extends JPanel {
         dialog.setVisible(true);
         if (dialog.isSuccess()) {
             loadRooms();
+        }
+    }
+
+    private void deleteRoom() {
+        int selectedRow = roomsTable.getSelectedRow();
+        if (selectedRow == -1) {
+            UIHelper.showErrorMessage(this, "Please select a room to delete.");
+            return;
+        }
+
+        // Get ID from model (column 0) - need to convert view index to model index if
+        // sorted,
+        // but currently not sorting. However, standard JTable usage:
+        int modelRow = roomsTable.convertRowIndexToModel(selectedRow);
+        int roomId = (int) tableModel.getValueAt(modelRow, 0);
+        String hostelName = (String) tableModel.getValueAt(modelRow, 1);
+        String roomNumber = (String) tableModel.getValueAt(modelRow, 2);
+        int occupied = (int) tableModel.getValueAt(modelRow, 6);
+
+        if (occupied > 0) {
+            UIHelper.showErrorMessage(this, "Cannot delete an occupied room!");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to delete Room " + roomNumber + " in " + hostelName + "?",
+                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (hostelDAO.deleteRoom(roomId)) {
+                UIHelper.showSuccessMessage(this, "Room deleted successfully!");
+                loadRooms();
+            } else {
+                UIHelper.showErrorMessage(this, "Failed to delete room. It might be occupied.");
+            }
         }
     }
 }

@@ -1,15 +1,12 @@
 package com.college.ui.warden;
 
-import com.college.dao.HostelDAO;
 import com.college.dao.WardenDAO;
 import com.college.models.Warden;
-import com.college.models.HostelAllocation;
 import com.college.utils.UIHelper;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.List;
 
 /**
  * Warden's view of Hostel Attendance

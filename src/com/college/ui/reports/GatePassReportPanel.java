@@ -19,14 +19,13 @@ public class GatePassReportPanel extends JPanel {
     private JTable reportTable;
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
-    private GatePassDAO gatePassDAO;
+
     private String role;
     private int userId;
 
     public GatePassReportPanel(String role, int userId) {
         this.role = role;
         this.userId = userId;
-        gatePassDAO = new GatePassDAO();
         initComponents();
         generateReport();
     }

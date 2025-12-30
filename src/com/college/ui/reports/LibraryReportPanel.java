@@ -9,9 +9,7 @@ import com.college.utils.UIHelper;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
+
 import java.util.List;
 
 /**
@@ -24,13 +22,10 @@ public class LibraryReportPanel extends JPanel {
     private JTable reportTable;
     private DefaultTableModel tableModel;
     private JLabel summaryLabel;
-    private String role;
-    private int userId;
 
     public LibraryReportPanel(String role, int userId) {
-        this.role = role;
-        this.userId = userId;
         initComponents();
+        generateReport();
     }
 
     private void initComponents() {

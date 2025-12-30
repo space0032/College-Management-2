@@ -4,20 +4,16 @@ import com.college.ui.student.StudentManagementPanel;
 import com.college.ui.faculty.FacultyManagementPanel;
 import com.college.ui.courses.CourseManagementPanel;
 import com.college.ui.library.LibraryManagementPanel;
-import com.college.ui.fees.FeeManagementPanel;
+
 import com.college.ui.attendance.AttendanceManagementPanel;
 import com.college.ui.attendance.StudentAttendancePanel;
 import com.college.ui.grades.GradeManagementPanel;
 import com.college.ui.timetable.TimetablePanel;
 import com.college.utils.UIHelper;
 import com.college.utils.DatabaseConnection;
-import com.college.dao.StudentDAO;
 
 import javax.swing.*;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 
 /**
  * Main Dashboard Frame
@@ -334,44 +330,6 @@ public class DashboardFrame extends JFrame {
      */
     private JPanel createHomePanel() {
         return new com.college.ui.dashboard.EnhancedHomePanel(username, role, userId);
-    }
-
-    /**
-     * Create a statistic card
-     */
-    private JPanel createStatCard(String title, String value, Color color) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(color);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(color.darker(), 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)));
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        titleLabel.setForeground(Color.WHITE);
-
-        JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 36));
-        valueLabel.setForeground(Color.WHITE);
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(valueLabel, BorderLayout.CENTER);
-
-        return card;
-    }
-
-    /**
-     * Get count from database table
-     */
-    private String getCountFromDB(String tableName) {
-        try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "0";
     }
 
     /**

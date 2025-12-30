@@ -346,6 +346,72 @@ public class HostelDAO {
         return false;
     }
 
+    /**
+     * Delete room (only if empty)
+     */
+    public boolean deleteRoom(int roomId) {
+        // First check if room is empty
+        String checkSql = "SELECT occupied_count FROM rooms WHERE id = ?";
+        String deleteSql = "DELETE FROM rooms WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement checkStmt = conn.prepareStatement(checkSql);
+                PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+
+            checkStmt.setInt(1, roomId);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (rs.next()) {
+                if (rs.getInt("occupied_count") > 0) {
+                    return false; // Cannot delete occupied room
+                }
+            } else {
+                return false; // Room not found
+            }
+
+            deleteStmt.setInt(1, roomId);
+            return deleteStmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Get total number of students in hostels
+     */
+    public int getTotalHostelStudents() {
+        String sql = "SELECT COUNT(*) FROM students WHERE is_hostelite = TRUE";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Get total available capacity across all hostels
+     */
+    public int getTotalAvailableCapacity() {
+        String sql = "SELECT SUM(capacity - occupied_count) FROM rooms";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     // Extract methods
     private Hostel extractHostelFromResultSet(ResultSet rs) throws SQLException {
         Hostel hostel = new Hostel();
