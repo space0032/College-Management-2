@@ -97,12 +97,6 @@ public class HostelManagementPanel extends JPanel {
         actionPanel.setBackground(Color.WHITE);
         actionPanel.add(refreshButton);
 
-        if (userRole.equals("ADMIN") || userRole.equals("WARDEN")) {
-            JButton addRoomButton = UIHelper.createPrimaryButton("Add Room");
-            addRoomButton.addActionListener(e -> showAddRoomDialog());
-            actionPanel.add(addRoomButton);
-        }
-
         if (userRole.equals("ADMIN")) {
             JButton addButton = UIHelper.createSuccessButton("Add Hostel");
             addButton.addActionListener(e -> showAddHostelDialog());
@@ -149,14 +143,6 @@ public class HostelManagementPanel extends JPanel {
                     h.getAddress()
             };
             hostelsModel.addRow(row);
-        }
-    }
-
-    private void showAddRoomDialog() {
-        AddRoomDialog dialog = new AddRoomDialog((Frame) SwingUtilities.getWindowAncestor(this));
-        dialog.setVisible(true);
-        if (dialog.isSuccess()) {
-            loadHostels();
         }
     }
 

@@ -236,15 +236,14 @@ public class HostelDAO {
      */
     private void updateRoomOccupancy(int roomId, int change) {
         String sql = "UPDATE rooms SET occupied_count = occupied_count + ?, " +
-                "status = CASE WHEN occupied_count + ? >= capacity THEN 'FULL' ELSE 'AVAILABLE' END " +
+                "status = CASE WHEN occupied_count >= capacity THEN 'FULL' ELSE 'AVAILABLE' END " +
                 "WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, change);
-            pstmt.setInt(2, change);
-            pstmt.setInt(3, roomId);
+            pstmt.setInt(2, roomId);
             pstmt.executeUpdate();
 
         } catch (SQLException e) {

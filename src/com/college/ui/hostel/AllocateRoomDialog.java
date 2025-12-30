@@ -24,6 +24,8 @@ public class AllocateRoomDialog extends JDialog {
     private JComboBox<RoomItem> roomCombo;
     private JTextArea remarksArea;
 
+    private JLabel statusLabel;
+
     public AllocateRoomDialog(Frame parent, int userId) {
         super(parent, "Allocate Room", true);
         this.userId = userId;
@@ -35,7 +37,7 @@ public class AllocateRoomDialog extends JDialog {
     }
 
     private void initComponents() {
-        setSize(500, 350);
+        setSize(550, 450);
         setLocationRelativeTo(getParent());
         setLayout(new BorderLayout());
 
@@ -101,6 +103,16 @@ public class AllocateRoomDialog extends JDialog {
         JScrollPane scrollPane = new JScrollPane(remarksArea);
         formPanel.add(scrollPane, gbc);
 
+        // Status Label
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.weighty = 0;
+        statusLabel = new JLabel(" ");
+        statusLabel.setForeground(UIHelper.SUCCESS_COLOR);
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        formPanel.add(statusLabel, gbc);
+
         // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
@@ -109,12 +121,12 @@ public class AllocateRoomDialog extends JDialog {
         allocateButton.setPreferredSize(new Dimension(140, 35));
         allocateButton.addActionListener(e -> allocateRoom());
 
-        JButton cancelButton = UIHelper.createDangerButton("Cancel");
-        cancelButton.setPreferredSize(new Dimension(120, 35));
-        cancelButton.addActionListener(e -> dispose());
+        JButton closeButton = UIHelper.createDangerButton("Close");
+        closeButton.setPreferredSize(new Dimension(120, 35));
+        closeButton.addActionListener(e -> dispose());
 
         buttonPanel.add(allocateButton);
-        buttonPanel.add(cancelButton);
+        buttonPanel.add(closeButton);
 
         add(formPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
@@ -123,13 +135,24 @@ public class AllocateRoomDialog extends JDialog {
     private void loadData() {
         // Load all students initially
         reloadStudents(studentDAO.getAllStudents());
+        reloadRooms();
+    }
 
+    private void reloadRooms() {
+        RoomItem selected = (RoomItem) roomCombo.getSelectedItem();
+        int selectedId = (selected != null) ? selected.room.getId() : -1;
+
+        roomCombo.removeAllItems();
         // Load available rooms from all hostels
         List<com.college.models.Hostel> hostels = hostelDAO.getAllHostels();
         for (com.college.models.Hostel hostel : hostels) {
             List<Room> rooms = hostelDAO.getAvailableRooms(hostel.getId());
             for (Room room : rooms) {
-                roomCombo.addItem(new RoomItem(room));
+                RoomItem item = new RoomItem(room);
+                roomCombo.addItem(item);
+                if (room.getId() == selectedId) {
+                    roomCombo.setSelectedItem(item);
+                }
             }
         }
     }
@@ -154,7 +177,8 @@ public class AllocateRoomDialog extends JDialog {
         RoomItem selectedRoom = (RoomItem) roomCombo.getSelectedItem();
 
         if (selectedStudent == null || selectedRoom == null) {
-            UIHelper.showErrorMessage(this, "Please select both student and room!");
+            statusLabel.setText("Please select both student and room!");
+            statusLabel.setForeground(UIHelper.DANGER_COLOR);
             return;
         }
 
@@ -165,13 +189,23 @@ public class AllocateRoomDialog extends JDialog {
         allocation.setRemarks(remarksArea.getText().trim());
 
         if (hostelDAO.allocateRoom(allocation)) {
-            UIHelper.showSuccessMessage(this,
-                    "Room allocated successfully!\n\n" +
-                            "Student: " + selectedStudent.student.getName() + "\n" +
-                            "Room: " + selectedRoom.room.getRoomNumber() + " - " + selectedRoom.room.getHostelName());
-            dispose();
+            statusLabel.setText("Successfully allocated " + selectedStudent.student.getName() + " to Room "
+                    + selectedRoom.room.getRoomNumber());
+            statusLabel.setForeground(UIHelper.SUCCESS_COLOR);
+
+            // Refresh rooms to update capacity/availability
+            reloadRooms();
+
+            // Check if same room is still selected (means it's still available)
+            RoomItem currentSelected = (RoomItem) roomCombo.getSelectedItem();
+            if (currentSelected == null || currentSelected.room.getId() != selectedRoom.room.getId()) {
+                // Room became full and was removed from list or deselected
+                JOptionPane.showMessageDialog(this, "Room " + selectedRoom.room.getRoomNumber() + " is now full.");
+            }
+
         } else {
-            UIHelper.showErrorMessage(this, "Failed to allocate room!");
+            statusLabel.setText("Failed to allocate room!");
+            statusLabel.setForeground(UIHelper.DANGER_COLOR);
         }
     }
 
@@ -194,6 +228,9 @@ public class AllocateRoomDialog extends JDialog {
         RoomItem(Room r) {
             this.room = r;
         }
+
+        // Needed for selection logic? ComboBox loops equals?
+        // Default equals is reference, so we need to rely on ID check in loop
 
         @Override
         public String toString() {
