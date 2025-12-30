@@ -18,8 +18,6 @@ public class AddHostelDialog extends JDialog {
 
     private JTextField nameField;
     private JComboBox<String> typeCombo;
-    private JTextField wardenNameField;
-    private JTextField wardenContactField;
     private JTextField addressField;
     private JTextField capacityField;
     private JTextField roomsField;
@@ -69,25 +67,9 @@ public class AddHostelDialog extends JDialog {
         typeCombo = new JComboBox<>(new String[] { "BOYS", "GIRLS", "COED" });
         formPanel.add(typeCombo, gbc);
 
-        // Warden Name
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        formPanel.add(UIHelper.createLabel("Warden Name:"), gbc);
-        gbc.gridx = 1;
-        wardenNameField = UIHelper.createTextField(20);
-        formPanel.add(wardenNameField, gbc);
-
-        // Warden Contact
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        formPanel.add(UIHelper.createLabel("Warden Contact:"), gbc);
-        gbc.gridx = 1;
-        wardenContactField = UIHelper.createTextField(20);
-        formPanel.add(wardenContactField, gbc);
-
         // Total Rooms
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 2;
         formPanel.add(UIHelper.createLabel("Total Rooms:"), gbc);
         gbc.gridx = 1;
         roomsField = UIHelper.createTextField(20);
@@ -95,7 +77,7 @@ public class AddHostelDialog extends JDialog {
 
         // Capacity
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 3;
         formPanel.add(UIHelper.createLabel("Total Capacity:"), gbc);
         gbc.gridx = 1;
         capacityField = UIHelper.createTextField(20);
@@ -103,7 +85,7 @@ public class AddHostelDialog extends JDialog {
 
         // Address
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 4;
         formPanel.add(UIHelper.createLabel("Address:"), gbc);
         gbc.gridx = 1;
         addressField = UIHelper.createTextField(20);
@@ -134,8 +116,6 @@ public class AddHostelDialog extends JDialog {
         Hostel hostel = new Hostel();
         hostel.setName(nameField.getText().trim());
         hostel.setType((String) typeCombo.getSelectedItem());
-        hostel.setWardenName(wardenNameField.getText().trim());
-        hostel.setWardenContact(wardenContactField.getText().trim());
         hostel.setAddress(addressField.getText().trim());
 
         try {
