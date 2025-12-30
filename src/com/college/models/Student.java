@@ -124,6 +124,16 @@ public class Student {
         this.semester = semester;
     }
 
+    private boolean isHostelite;
+
+    public boolean isHostelite() {
+        return isHostelite;
+    }
+
+    public void setHostelite(boolean hostelite) {
+        isHostelite = hostelite;
+    }
+
     @Override
     public String toString() {
         return name + " (" + email + ")";

@@ -24,8 +24,14 @@ public class StudentManagementPanel extends JPanel {
     private DepartmentDAO departmentDAO;
     private JTextField searchField;
     private JComboBox<DepartmentFilterItem> departmentFilter;
+    private String userRole;
 
     public StudentManagementPanel() {
+        this("ADMIN"); // Default to ADMIN if no role provided (backward compatibility)
+    }
+
+    public StudentManagementPanel(String role) {
+        this.userRole = role;
         studentDAO = new StudentDAO();
         departmentDAO = new DepartmentDAO();
         initComponents();
@@ -142,9 +148,11 @@ public class StudentManagementPanel extends JPanel {
         exportButton.addActionListener(
                 e -> com.college.utils.TableExporter.showExportDialog(this, studentTable, "students"));
 
-        panel.add(addButton);
-        panel.add(editButton);
-        panel.add(deleteButton);
+        if (!"WARDEN".equals(userRole)) {
+            panel.add(addButton);
+            panel.add(editButton);
+            panel.add(deleteButton);
+        }
         panel.add(exportButton);
 
         return panel;
@@ -155,7 +163,12 @@ public class StudentManagementPanel extends JPanel {
      */
     private void loadStudents() {
         tableModel.setRowCount(0); // Clear existing rows
-        List<Student> students = studentDAO.getAllStudents();
+        List<Student> students;
+        if ("WARDEN".equals(userRole)) {
+            students = studentDAO.getHostelStudents();
+        } else {
+            students = studentDAO.getAllStudents();
+        }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         for (Student student : students) {
@@ -185,7 +198,12 @@ public class StudentManagementPanel extends JPanel {
         }
 
         tableModel.setRowCount(0);
-        List<Student> students = studentDAO.searchStudents(keyword);
+        List<Student> students;
+        if ("WARDEN".equals(userRole)) {
+            students = studentDAO.searchHostelStudents(keyword);
+        } else {
+            students = studentDAO.searchStudents(keyword);
+        }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         for (Student student : students) {

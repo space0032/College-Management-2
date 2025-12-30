@@ -96,6 +96,15 @@ public class UIHelper {
     }
 
     /**
+     * Create a styled text field with default columns (15)
+     * 
+     * @return Styled JTextField
+     */
+    public static JTextField createTextField() {
+        return createTextField(15);
+    }
+
+    /**
      * Style a table
      * 
      * @param table JTable to style

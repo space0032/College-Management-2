@@ -65,7 +65,7 @@ public class DashboardFrame extends JFrame {
         JPanel homePanel = createHomePanel();
         contentPanel.add(homePanel, "HOME");
 
-        contentPanel.add(new StudentManagementPanel(), "STUDENTS");
+        contentPanel.add(new StudentManagementPanel(role), "STUDENTS");
         contentPanel.add(new FacultyManagementPanel(), "FACULTY");
         contentPanel.add(new CourseManagementPanel(role, userId), "COURSES");
         contentPanel.add(new AttendanceManagementPanel(), "ATTENDANCE");
@@ -82,6 +82,22 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.security.AuditLogViewerPanel(), "AUDIT_LOGS");
         contentPanel.add(new com.college.ui.reports.ReportsPanel(role, userId), "REPORTS");
         contentPanel.add(new com.college.ui.department.DepartmentManagementPanel(), "DEPARTMENTS");
+
+        // Admin - Warden Management
+        // if (role.equals("ADMIN")) {
+        // contentPanel.add(new com.college.ui.admin.WardenManagementPanel(),
+        // "WARDENS");
+        // }
+
+        // Warden Specific Panels
+        if (role.equals("WARDEN")) {
+            contentPanel.add(new com.college.ui.warden.HostelAttendancePanel(userId), "HOSTEL_ATTENDANCE");
+            // Reusing panels for Warden
+            // "HOSTEL" is already added (HostelManagementPanel)
+            // "STUDENTS" is already added (StudentManagementPanel)
+            // "GATE_PASS_APPROVAL" is already added
+            // "REPORTS" is already added
+        }
 
         // My Profile - create a simple wrapper panel that shows the dialog
         JPanel profilePanel = new JPanel(new BorderLayout());
@@ -154,6 +170,8 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "Student Management", "STUDENTS");
             if (role.equals("ADMIN")) {
                 addMenuItem(sidebar, "Staff Management", "FACULTY");
+                // addMenuItem(sidebar, "Warden Management", "WARDENS"); // Moved to Hostel
+                // Management
             }
             addMenuItem(sidebar, "Course Management", "COURSES");
             if (role.equals("ADMIN")) {
@@ -170,6 +188,14 @@ public class DashboardFrame extends JFrame {
             if (role.equals("ADMIN")) {
                 addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
             }
+        }
+
+        if (role.equals("WARDEN")) {
+            addMenuItem(sidebar, "Hostel Management", "HOSTEL");
+            addMenuItem(sidebar, "Hostel Attendance", "HOSTEL_ATTENDANCE");
+            addMenuItem(sidebar, "Student Details", "STUDENTS");
+            addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+            addMenuItem(sidebar, "Reports", "REPORTS");
         }
 
         if (role.equals("STUDENT")) {

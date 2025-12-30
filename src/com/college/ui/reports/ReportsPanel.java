@@ -50,11 +50,17 @@ public class ReportsPanel extends JPanel {
         tabbedPane.setFont(new Font("Arial", Font.PLAIN, 14));
 
         // Add report panels
-        tabbedPane.addTab("Attendance", new AttendanceReportPanel(role, userId));
-        tabbedPane.addTab("Grades", new GradeReportPanel(role, userId));
-        tabbedPane.addTab("Fees", new FeeReportPanel(role, userId));
-        tabbedPane.addTab("Library", new LibraryReportPanel(role, userId));
-        tabbedPane.addTab("Gate Pass", new GatePassReportPanel(role, userId));
+        if (role.equals("WARDEN")) {
+            // Warden only sees Gate Pass Report
+            tabbedPane.addTab("Gate Pass", new GatePassReportPanel(role, userId));
+        } else {
+            // Add report panels for others
+            tabbedPane.addTab("Attendance", new AttendanceReportPanel(role, userId));
+            tabbedPane.addTab("Grades", new GradeReportPanel(role, userId));
+            tabbedPane.addTab("Fees", new FeeReportPanel(role, userId));
+            tabbedPane.addTab("Library", new LibraryReportPanel(role, userId));
+            tabbedPane.addTab("Gate Pass", new GatePassReportPanel(role, userId));
+        }
 
         add(headerPanel, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);

@@ -53,9 +53,26 @@ public class AllocateRoomDialog extends JDialog {
         formPanel.add(UIHelper.createLabel("Select Student:"), gbc);
 
         gbc.gridx = 1;
+        JPanel studentPanel = new JPanel(new BorderLayout(5, 0));
+        studentPanel.setBackground(Color.WHITE);
+
         studentCombo = new JComboBox<>();
-        studentCombo.setPreferredSize(new Dimension(300, 30));
-        formPanel.add(studentCombo, gbc);
+        studentCombo.setPreferredSize(new Dimension(220, 30));
+
+        JButton searchButton = new JButton("Search");
+        searchButton.setToolTipText("Search by name");
+        searchButton.addActionListener(e -> {
+            String keyword = JOptionPane.showInputDialog(this, "Enter student name/email:", "Search Student",
+                    JOptionPane.QUESTION_MESSAGE);
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                filterStudents(keyword.trim());
+            }
+        });
+
+        studentPanel.add(studentCombo, BorderLayout.CENTER);
+        studentPanel.add(searchButton, BorderLayout.EAST);
+
+        formPanel.add(studentPanel, gbc);
 
         // Room selection
         gbc.gridx = 0;
@@ -104,11 +121,8 @@ public class AllocateRoomDialog extends JDialog {
     }
 
     private void loadData() {
-        // Load students
-        List<Student> students = studentDAO.getAllStudents();
-        for (Student student : students) {
-            studentCombo.addItem(new StudentItem(student));
-        }
+        // Load all students initially
+        reloadStudents(studentDAO.getAllStudents());
 
         // Load available rooms from all hostels
         List<com.college.models.Hostel> hostels = hostelDAO.getAllHostels();
@@ -117,6 +131,21 @@ public class AllocateRoomDialog extends JDialog {
             for (Room room : rooms) {
                 roomCombo.addItem(new RoomItem(room));
             }
+        }
+    }
+
+    private void filterStudents(String keyword) {
+        List<Student> students = studentDAO.searchStudents(keyword);
+        reloadStudents(students);
+        if (students.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No students found matching '" + keyword + "'");
+        }
+    }
+
+    private void reloadStudents(List<Student> students) {
+        studentCombo.removeAllItems();
+        for (Student student : students) {
+            studentCombo.addItem(new StudentItem(student));
         }
     }
 

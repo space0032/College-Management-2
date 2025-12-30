@@ -87,7 +87,7 @@ public class LoginFrame extends JFrame {
         formPanel.add(roleLabel, gbc);
 
         gbc.gridx = 1;
-        String[] roles = { "ADMIN", "FACULTY", "STUDENT" };
+        String[] roles = { "ADMIN", "FACULTY", "STUDENT", "WARDEN" };
         roleComboBox = new JComboBox<>(roles);
         roleComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
         formPanel.add(roleComboBox, gbc);

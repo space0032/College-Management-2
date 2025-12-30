@@ -37,6 +37,30 @@ public class HostelDAO {
     }
 
     /**
+     * Get all rooms with hostel information
+     */
+    public List<Room> getAllRooms() {
+        List<Room> rooms = new ArrayList<>();
+        String sql = "SELECT r.*, h.name as hostel_name FROM rooms r " +
+                "JOIN hostels h ON r.hostel_id = h.id " +
+                "ORDER BY h.name, r.floor, r.room_number";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                rooms.add(extractRoomFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return rooms;
+    }
+
+    /**
      * Get rooms by hostel
      */
     public List<Room> getRoomsByHostel(int hostelId) {
@@ -254,6 +278,73 @@ public class HostelDAO {
         }
 
         return null;
+    }
+
+    /**
+     * Add new hostel
+     */
+    public boolean addHostel(Hostel hostel) {
+        String sql = "INSERT INTO hostels (name, type, warden_name, warden_contact, total_rooms, total_capacity, address) "
+                +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, hostel.getName());
+            pstmt.setString(2, hostel.getType());
+            pstmt.setString(3, hostel.getWardenName());
+            pstmt.setString(4, hostel.getWardenContact());
+            pstmt.setInt(5, hostel.getTotalRooms());
+            pstmt.setInt(6, hostel.getTotalCapacity());
+            pstmt.setString(7, hostel.getAddress());
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    /**
+     * Delete hostel
+     */
+    public boolean deleteHostel(int id) {
+        String sql = "DELETE FROM hostels WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Add new room
+     */
+    public boolean addRoom(Room room) {
+        String sql = "INSERT INTO rooms (hostel_id, room_number, floor, capacity, occupied_count, room_type, status) " +
+                "VALUES (?, ?, ?, ?, 0, ?, 'AVAILABLE')";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, room.getHostelId());
+            pstmt.setString(2, room.getRoomNumber());
+            pstmt.setInt(3, room.getFloor());
+            pstmt.setInt(4, room.getCapacity());
+            pstmt.setString(5, room.getRoomType());
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     // Extract methods

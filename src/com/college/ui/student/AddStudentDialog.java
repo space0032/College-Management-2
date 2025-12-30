@@ -31,6 +31,7 @@ public class AddStudentDialog extends JDialog {
     private JTextField batchField;
     private JTextField enrollmentDateField;
     private JTextArea addressArea;
+    private JCheckBox hostelCheckBox;
 
     public AddStudentDialog(Frame parent, Student student) {
         super(parent, student == null ? "Add Student" : "Edit Student", true);
@@ -117,9 +118,19 @@ public class AddStudentDialog extends JDialog {
         enrollmentDateField.setText(sdf.format(new Date()));
         formPanel.add(enrollmentDateField, gbc);
 
-        // Address
+        // Hostel Required Checkbox
         gbc.gridx = 0;
         gbc.gridy = 6;
+        formPanel.add(UIHelper.createLabel("Hostel Required:"), gbc);
+        gbc.gridx = 1;
+        JCheckBox hostelCheckBox = new JCheckBox("Yes");
+        hostelCheckBox.setBackground(Color.WHITE);
+        hostelCheckBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        formPanel.add(hostelCheckBox, gbc);
+
+        // Address
+        gbc.gridx = 0;
+        gbc.gridy = 7;
         formPanel.add(UIHelper.createLabel("Address:"), gbc);
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.BOTH;
@@ -178,6 +189,9 @@ public class AddStudentDialog extends JDialog {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         enrollmentDateField.setText(sdf.format(student.getEnrollmentDate()));
         addressArea.setText(student.getAddress());
+        if (hostelCheckBox != null) {
+            hostelCheckBox.setSelected(student.isHostelite());
+        }
     }
 
     /**
@@ -212,7 +226,9 @@ public class AddStudentDialog extends JDialog {
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             student.setEnrollmentDate(sdf.parse(enrollmentDateField.getText().trim()));
+            student.setEnrollmentDate(sdf.parse(enrollmentDateField.getText().trim()));
             student.setAddress(addressArea.getText().trim());
+            student.setHostelite(hostelCheckBox.isSelected());
 
             // Save to database
             if (isNewStudent) {

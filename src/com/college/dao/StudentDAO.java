@@ -20,9 +20,9 @@ public class StudentDAO {
      * @return generated student ID if successful, -1 otherwise
      */
     public int addStudent(Student student) {
-        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester) "
+        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite) "
                 +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -36,6 +36,7 @@ public class StudentDAO {
             pstmt.setString(7, student.getAddress());
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
+            pstmt.setBoolean(10, student.isHostelite());
 
             int rowsAffected = pstmt.executeUpdate();
 
@@ -61,7 +62,7 @@ public class StudentDAO {
      */
     public boolean updateStudent(Student student) {
         String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
-                "enrollment_date=?, address=?, department=?, semester=? WHERE id=?";
+                "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -75,7 +76,8 @@ public class StudentDAO {
             pstmt.setString(7, student.getAddress());
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
-            pstmt.setInt(10, student.getId());
+            pstmt.setBoolean(10, student.isHostelite());
+            pstmt.setInt(11, student.getId());
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -157,6 +159,27 @@ public class StudentDAO {
     }
 
     /**
+     * Get only students who are in hostel (is_hostelite = true)
+     */
+    public List<Student> getHostelStudents() {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE is_hostelite = true ORDER BY name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return students;
+    }
+
+    /**
      * Search students by name or email
      * 
      * @param keyword Search keyword
@@ -165,6 +188,31 @@ public class StudentDAO {
     public List<Student> searchStudents(String keyword) {
         List<Student> students = new ArrayList<>();
         String sql = "SELECT * FROM students WHERE name LIKE ? OR email LIKE ? ORDER BY name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            String searchPattern = "%" + keyword + "%";
+            pstmt.setString(1, searchPattern);
+            pstmt.setString(2, searchPattern);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return students;
+    }
+
+    /**
+     * Search hostel students only
+     */
+    public List<Student> searchHostelStudents(String keyword) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE is_hostelite = true AND (name LIKE ? OR email LIKE ?) ORDER BY name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -205,10 +253,12 @@ public class StudentDAO {
         try {
             student.setDepartment(rs.getString("department"));
             student.setSemester(rs.getInt("semester"));
+            student.setHostelite(rs.getBoolean("is_hostelite"));
         } catch (SQLException e) {
             // Fields might not exist in older schemas
             student.setDepartment("General");
             student.setSemester(1);
+            student.setHostelite(false);
         }
 
         return student;
