@@ -28,6 +28,8 @@ public class AddStudentDialog extends JDialog {
     private JTextField emailField;
     private JTextField phoneField;
     private JComboBox<DepartmentItem> departmentCombo;
+    private JTextField courseField; // Added Course Field
+    private JComboBox<Integer> semesterCombo; // Added Semester Field
     private JTextField batchField;
     private JTextField enrollmentDateField;
     private JTextArea addressArea;
@@ -46,7 +48,7 @@ public class AddStudentDialog extends JDialog {
     }
 
     private void initComponents() {
-        setSize(500, 600);
+        setSize(500, 700); // Increased height to accommodate new fields
         setLocationRelativeTo(getParent());
         setLayout(new BorderLayout());
 
@@ -98,9 +100,25 @@ public class AddStudentDialog extends JDialog {
         }
         formPanel.add(departmentCombo, gbc);
 
-        // Batch
+        // Course - NEW FIELD
         gbc.gridx = 0;
         gbc.gridy = 4;
+        formPanel.add(UIHelper.createLabel("Course:"), gbc);
+        gbc.gridx = 1;
+        courseField = UIHelper.createTextField(20);
+        formPanel.add(courseField, gbc);
+
+        // Semester - NEW FIELD
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        formPanel.add(UIHelper.createLabel("Semester:"), gbc);
+        gbc.gridx = 1;
+        semesterCombo = new JComboBox<>(new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        formPanel.add(semesterCombo, gbc);
+
+        // Batch
+        gbc.gridx = 0;
+        gbc.gridy = 6;
         formPanel.add(UIHelper.createLabel("Batch:"), gbc);
         gbc.gridx = 1;
         batchField = UIHelper.createTextField(20);
@@ -108,7 +126,7 @@ public class AddStudentDialog extends JDialog {
 
         // Enrollment Date
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 7;
         formPanel.add(UIHelper.createLabel("Enrollment Date:"), gbc);
         gbc.gridx = 1;
         enrollmentDateField = UIHelper.createTextField(20);
@@ -120,17 +138,17 @@ public class AddStudentDialog extends JDialog {
 
         // Hostel Required Checkbox
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 8;
         formPanel.add(UIHelper.createLabel("Hostel Required:"), gbc);
         gbc.gridx = 1;
-        JCheckBox hostelCheckBox = new JCheckBox("Yes");
+        hostelCheckBox = new JCheckBox("Yes");
         hostelCheckBox.setBackground(Color.WHITE);
         hostelCheckBox.setFont(new Font("Arial", Font.PLAIN, 14));
         formPanel.add(hostelCheckBox, gbc);
 
         // Address
         gbc.gridx = 0;
-        gbc.gridy = 7;
+        gbc.gridy = 9;
         formPanel.add(UIHelper.createLabel("Address:"), gbc);
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.BOTH;
@@ -184,6 +202,9 @@ public class AddStudentDialog extends JDialog {
             }
         }
 
+        courseField.setText(student.getCourse());
+        semesterCombo.setSelectedItem(student.getSemester() > 0 ? student.getSemester() : 1);
+
         batchField.setText(student.getBatch());
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -222,10 +243,12 @@ public class AddStudentDialog extends JDialog {
                 student.setDepartment("");
             }
 
+            student.setCourse(courseField.getText().trim());
+            student.setSemester((Integer) semesterCombo.getSelectedItem());
+
             student.setBatch(batchField.getText().trim());
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            student.setEnrollmentDate(sdf.parse(enrollmentDateField.getText().trim()));
             student.setEnrollmentDate(sdf.parse(enrollmentDateField.getText().trim()));
             student.setAddress(addressArea.getText().trim());
             student.setHostelite(hostelCheckBox.isSelected());
@@ -392,6 +415,12 @@ public class AddStudentDialog extends JDialog {
 
         // Department is optional now (can select "None")
         // No validation needed
+
+        if (!ValidationUtils.isNotEmpty(courseField.getText())) {
+            UIHelper.showErrorMessage(this, "Course is required!");
+            courseField.requestFocus();
+            return false;
+        }
 
         if (!ValidationUtils.isNotEmpty(batchField.getText())) {
             UIHelper.showErrorMessage(this, "Batch is required!");
