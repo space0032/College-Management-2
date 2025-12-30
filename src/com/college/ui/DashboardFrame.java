@@ -76,6 +76,9 @@ public class DashboardFrame extends JFrame {
         contentPanel.add(new com.college.ui.hostel.HostelManagementPanel(role, userId), "HOSTEL");
         contentPanel.add(new com.college.ui.hostel.StudentHostelInfoPanel(userId), "MY_HOSTEL");
         contentPanel.add(new com.college.ui.fees.EnhancedFeeManagementPanel(role, userId), "FEES");
+        contentPanel.add(createChangePasswordPanel(), "CHANGE_PASSWORD");
+        contentPanel.add(new com.college.ui.gatepass.GatePassRequestPanel(userId), "GATE_PASS");
+        contentPanel.add(new com.college.ui.gatepass.GatePassApprovalPanel(), "GATE_PASS_APPROVAL");
 
         add(contentPanel, BorderLayout.CENTER);
 
@@ -147,6 +150,7 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "Library Management", "LIBRARY");
             addMenuItem(sidebar, "Hostel Management", "HOSTEL");
             addMenuItem(sidebar, "Fee Management", "FEES");
+            addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
         }
 
         if (role.equals("STUDENT")) {
@@ -156,10 +160,14 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "Library", "LIBRARY");
             addMenuItem(sidebar, "My Hostel", "MY_HOSTEL");
             addMenuItem(sidebar, "My Fees", "FEES");
+            addMenuItem(sidebar, "Gate Pass", "GATE_PASS");
         }
 
         // Add glue to push items to top
         sidebar.add(Box.createVerticalGlue());
+
+        // Add Change Password at bottom for all users
+        addMenuItem(sidebar, "Change Password", "CHANGE_PASSWORD");
 
         return sidebar;
     }
@@ -285,6 +293,44 @@ public class DashboardFrame extends JFrame {
     }
 
     /**
+     * Create Change Password Panel
+     */
+    private JPanel createChangePasswordPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+
+        JPanel contentPanel = new JPanel(new GridBagLayout());
+        contentPanel.setBackground(Color.WHITE);
+
+        JButton changePasswordButton = new JButton("Change My Password");
+        changePasswordButton.setFont(new Font("Arial", Font.BOLD, 16));
+        changePasswordButton.setBackground(UIHelper.PRIMARY_COLOR);
+        changePasswordButton.setForeground(Color.WHITE);
+        changePasswordButton.setPreferredSize(new Dimension(250, 50));
+        changePasswordButton.setFocusPainted(false);
+        changePasswordButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        changePasswordButton.addActionListener(e -> {
+            com.college.ui.security.ChangePasswordDialog dialog = new com.college.ui.security.ChangePasswordDialog(
+                    this);
+            dialog.setVisible(true);
+        });
+
+        contentPanel.add(changePasswordButton);
+
+        JLabel instructionLabel = new JLabel("<html><center>Click the button to change your password.<br>" +
+                "Ensure your new password is strong and secure.</center></html>");
+        instructionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        instructionLabel.setForeground(new Color(127, 140, 141));
+        instructionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+        panel.add(instructionLabel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    /**
      * Handle logout
      */
     private void logout() {
@@ -294,6 +340,14 @@ public class DashboardFrame extends JFrame {
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
+            // Log logout action
+            com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
+            com.college.dao.AuditLogDAO.logAction(session.getUserId(), session.getUsername(),
+                    "LOGOUT", "USER", session.getUserId(), "User logged out");
+
+            // Clear session
+            session.clearSession();
+
             // Close dashboard
             dispose();
 

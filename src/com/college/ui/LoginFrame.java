@@ -140,6 +140,14 @@ public class LoginFrame extends JFrame {
         int userId = authenticateUser(username, password, role);
         if (userId > 0) {
             currentRole = role;
+
+            // Initialize session
+            com.college.utils.SessionManager.getInstance().initSession(userId, username, role);
+
+            // Log successful login
+            com.college.dao.AuditLogDAO.logAction(userId, username, "LOGIN", "USER", userId,
+                    "User logged in as " + role);
+
             UIHelper.showSuccessMessage(this, "Login successful!");
 
             // Open Dashboard with userId
@@ -151,6 +159,10 @@ public class LoginFrame extends JFrame {
             // Close login window
             dispose();
         } else {
+            // Log failed login attempt
+            com.college.dao.AuditLogDAO.logAction(0, username, "LOGIN_FAILED", "USER", null,
+                    "Failed login attempt for username: " + username + " with role: " + role);
+
             UIHelper.showErrorMessage(this, "Invalid credentials or role!");
             clearFields();
         }
