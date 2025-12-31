@@ -15,6 +15,8 @@ public class Faculty {
     private String qualification;
     private Date joinDate;
     private int userId;
+    private String username;
+    private String roleName;
 
     // Constructors
     public Faculty() {
@@ -94,6 +96,22 @@ public class Faculty {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
     }
 
     @Override

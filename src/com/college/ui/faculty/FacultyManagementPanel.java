@@ -105,7 +105,8 @@ public class FacultyManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        String[] columns = { "ID", "Name", "Email", "Phone", "Department", "Qualification", "Join Date" };
+        String[] columns = { "ID", "User ID", "Name", "Role", "Email", "Phone", "Department", "Qualification",
+                "Join Date" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -115,9 +116,16 @@ public class FacultyManagementPanel extends JPanel {
 
         facultyTable = new JTable(tableModel);
         UIHelper.styleTable(facultyTable);
-        facultyTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-        facultyTable.getColumnModel().getColumn(1).setPreferredWidth(150);
-        facultyTable.getColumnModel().getColumn(2).setPreferredWidth(180);
+
+        // Hide Database ID column (Index 0)
+        facultyTable.getColumnModel().getColumn(0).setMinWidth(0);
+        facultyTable.getColumnModel().getColumn(0).setMaxWidth(0);
+        facultyTable.getColumnModel().getColumn(0).setWidth(0);
+
+        facultyTable.getColumnModel().getColumn(1).setPreferredWidth(100); // User ID
+        facultyTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Name
+        facultyTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Role
+        facultyTable.getColumnModel().getColumn(4).setPreferredWidth(180); // Email
 
         JScrollPane scrollPane = new JScrollPane(facultyTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(189, 195, 199)));
@@ -134,7 +142,9 @@ public class FacultyManagementPanel extends JPanel {
         for (Faculty faculty : facultyList) {
             Object[] row = {
                     faculty.getId(),
+                    faculty.getUsername(),
                     faculty.getName(),
+                    faculty.getRoleName(),
                     faculty.getEmail(),
                     faculty.getPhone(),
                     faculty.getDepartment(),
@@ -158,7 +168,9 @@ public class FacultyManagementPanel extends JPanel {
         for (Faculty faculty : facultyList) {
             Object[] row = {
                     faculty.getId(),
+                    faculty.getUsername(),
                     faculty.getName(),
+                    faculty.getRoleName(),
                     faculty.getEmail(),
                     faculty.getPhone(),
                     faculty.getDepartment(),
@@ -209,7 +221,7 @@ public class FacultyManagementPanel extends JPanel {
             return;
         }
 
-        String name = (String) tableModel.getValueAt(selectedRow, 1);
+        String name = (String) tableModel.getValueAt(selectedRow, 2); // Index is now 2 due to added UserID
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "Are you sure you want to delete faculty: " + name + "?",
@@ -236,7 +248,7 @@ public class FacultyManagementPanel extends JPanel {
         }
 
         int facultyId = (int) tableModel.getValueAt(selectedRow, 0);
-        String facultyName = (String) tableModel.getValueAt(selectedRow, 1);
+        String facultyName = (String) tableModel.getValueAt(selectedRow, 2); // Index is now 2 due to added UserID
 
         // Get user_id for this faculty
         Faculty faculty = facultyDAO.getFacultyById(facultyId);

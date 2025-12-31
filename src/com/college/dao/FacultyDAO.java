@@ -108,7 +108,11 @@ public class FacultyDAO {
      * @return Faculty object or null if not found
      */
     public Faculty getFacultyById(int facultyId) {
-        String sql = "SELECT * FROM faculty WHERE id=?";
+        String sql = "SELECT f.*, u.username, r.name as role_name " +
+                "FROM faculty f " +
+                "LEFT JOIN users u ON f.user_id = u.id " +
+                "LEFT JOIN roles r ON u.role_id = r.id " +
+                "WHERE f.id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -133,7 +137,12 @@ public class FacultyDAO {
      */
     public List<Faculty> getAllFaculty() {
         List<Faculty> facultyList = new ArrayList<>();
-        String sql = "SELECT * FROM faculty ORDER BY name";
+        // Query to join users and roles tables to get username and official role name
+        String sql = "SELECT f.*, u.username, r.name as role_name " +
+                "FROM faculty f " +
+                "LEFT JOIN users u ON f.user_id = u.id " +
+                "LEFT JOIN roles r ON u.role_id = r.id " +
+                "ORDER BY f.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
@@ -157,7 +166,11 @@ public class FacultyDAO {
      */
     public List<Faculty> searchFaculty(String keyword) {
         List<Faculty> facultyList = new ArrayList<>();
-        String sql = "SELECT * FROM faculty WHERE name LIKE ? OR email LIKE ? ORDER BY name";
+        String sql = "SELECT f.*, u.username, r.name as role_name " +
+                "FROM faculty f " +
+                "LEFT JOIN users u ON f.user_id = u.id " +
+                "LEFT JOIN roles r ON u.role_id = r.id " +
+                "WHERE f.name LIKE ? OR f.email LIKE ? ORDER BY f.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -193,6 +206,15 @@ public class FacultyDAO {
         faculty.setQualification(rs.getString("qualification"));
         faculty.setJoinDate(rs.getDate("join_date"));
         faculty.setUserId(rs.getInt("user_id"));
+
+        try {
+            faculty.setUsername(rs.getString("username"));
+            faculty.setRoleName(rs.getString("role_name"));
+        } catch (SQLException e) {
+            // Column might not exist in all queries if not joined
+            faculty.setUsername(null);
+            faculty.setRoleName(null);
+        }
         return faculty;
     }
 }
