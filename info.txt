@@ -10,15 +10,8 @@ password: 123
 user name: 2025367980
 password: Student@798043
 
-user name: faculty
-password: 123
-
 user name: warden
 password: Warden@123
 
-user name: faculty3
-password: Faculty@123
 
-user name: F202521604
-password: Faculty@160407
 

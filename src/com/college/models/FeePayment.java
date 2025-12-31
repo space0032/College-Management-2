@@ -18,7 +18,9 @@ public class FeePayment {
 
     // Display fields
     private String studentName;
+    private String studentEnrollmentId;
     private String categoryName;
+    private String academicYear;
 
     public FeePayment() {
         this.paymentDate = new Date();
@@ -112,11 +114,27 @@ public class FeePayment {
         this.studentName = studentName;
     }
 
+    public String getStudentEnrollmentId() {
+        return studentEnrollmentId;
+    }
+
+    public void setStudentEnrollmentId(String studentEnrollmentId) {
+        this.studentEnrollmentId = studentEnrollmentId;
+    }
+
     public String getCategoryName() {
         return categoryName;
     }
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public String getAcademicYear() {
+        return academicYear;
+    }
+
+    public void setAcademicYear(String academicYear) {
+        this.academicYear = academicYear;
     }
 }
