@@ -132,18 +132,53 @@ public class CourseDAO {
     /**
      * Delete a course by ID
      */
+    /**
+     * Delete a course by ID
+     */
     public boolean deleteCourse(int courseId) {
-        String sql = "DELETE FROM courses WHERE id = ?";
+        String deleteAssignmentsSql = "DELETE FROM assignments WHERE course_id = ?";
+        String deleteCourseSql = "DELETE FROM courses WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false); // Start transaction
 
-            pstmt.setInt(1, courseId);
-            return pstmt.executeUpdate() > 0;
+            // 1. Delete assignments linked to this course
+            try (PreparedStatement pstmt1 = conn.prepareStatement(deleteAssignmentsSql)) {
+                pstmt1.setInt(1, courseId);
+                pstmt1.executeUpdate();
+            }
+
+            // 2. Delete the course itself
+            int rowsAffected = 0;
+            try (PreparedStatement pstmt2 = conn.prepareStatement(deleteCourseSql)) {
+                pstmt2.setInt(1, courseId);
+                rowsAffected = pstmt2.executeUpdate();
+            }
+
+            conn.commit(); // Commit transaction
+            return rowsAffected > 0;
 
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

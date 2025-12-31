@@ -102,8 +102,8 @@ public class StudentManagementPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        // Table columns - Changed "ID" to "Enrollment ID"
-        String[] columns = { "Enrollment ID", "Name", "Email", "Phone", "Department", "Semester", "Batch",
+        // Table columns - Added "ID" as first hidden column
+        String[] columns = { "ID", "Enrollment ID", "Name", "Email", "Phone", "Department", "Semester", "Batch",
                 "Enrollment Date" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -114,9 +114,14 @@ public class StudentManagementPanel extends JPanel {
 
         studentTable = new JTable(tableModel);
         UIHelper.styleTable(studentTable);
+
+        // Hide ID column (index 0)
+        studentTable.getColumnModel().removeColumn(studentTable.getColumnModel().getColumn(0));
+
+        // Set widths (View indices, so 0 is now Enrollment ID)
         studentTable.getColumnModel().getColumn(0).setPreferredWidth(120); // Width for Enrollment ID
-        studentTable.getColumnModel().getColumn(1).setPreferredWidth(150);
-        studentTable.getColumnModel().getColumn(2).setPreferredWidth(200);
+        studentTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Name
+        studentTable.getColumnModel().getColumn(2).setPreferredWidth(200); // Email
 
         JScrollPane scrollPane = new JScrollPane(studentTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(189, 195, 199)));
@@ -174,6 +179,7 @@ public class StudentManagementPanel extends JPanel {
 
         for (Student student : students) {
             Object[] row = {
+                    student.getId(), // Hidden ID column
                     student.getUsername() != null ? student.getUsername() : student.getId(), // Show username
                                                                                              // (Enrollment ID)
                     student.getName(),
@@ -183,7 +189,7 @@ public class StudentManagementPanel extends JPanel {
                             : "-",
                     student.getSemester() > 0 ? String.valueOf(student.getSemester()) : "-",
                     student.getBatch(),
-                    sdf.format(student.getEnrollmentDate())
+                    student.getEnrollmentDate() != null ? sdf.format(student.getEnrollmentDate()) : "-"
             };
             tableModel.addRow(row);
         }
@@ -210,8 +216,8 @@ public class StudentManagementPanel extends JPanel {
 
         for (Student student : students) {
             Object[] row = {
-                    student.getUsername() != null ? student.getUsername() : student.getId(), // Show username
-                                                                                             // (Enrollment ID)
+                    student.getId(), // Hidden ID
+                    student.getUsername() != null ? student.getUsername() : student.getId(),
                     student.getName(),
                     student.getEmail(),
                     student.getPhone(),
@@ -219,11 +225,13 @@ public class StudentManagementPanel extends JPanel {
                             : "-",
                     student.getSemester() > 0 ? String.valueOf(student.getSemester()) : "-",
                     student.getBatch(),
-                    sdf.format(student.getEnrollmentDate())
+                    student.getEnrollmentDate() != null ? sdf.format(student.getEnrollmentDate()) : "-"
             };
             tableModel.addRow(row);
         }
     }
+
+    // ... (addStudent skipped) ...
 
     /**
      * Add new student
@@ -247,6 +255,7 @@ public class StudentManagementPanel extends JPanel {
             return;
         }
 
+        // Get ID from model (always index 0)
         int studentId = (int) tableModel.getValueAt(selectedRow, 0);
         Student student = studentDAO.getStudentById(studentId);
 
@@ -268,8 +277,8 @@ public class StudentManagementPanel extends JPanel {
             return;
         }
 
-        int studentId = (int) tableModel.getValueAt(selectedRow, 0);
-        String studentName = (String) tableModel.getValueAt(selectedRow, 1);
+        int studentId = (int) tableModel.getValueAt(selectedRow, 0); // ID is at 0
+        String studentName = (String) tableModel.getValueAt(selectedRow, 2); // Name is now at 2
 
         boolean confirmed = UIHelper.showConfirmDialog(this,
                 "Are you sure you want to delete student: " + studentName + "?");
@@ -303,7 +312,8 @@ public class StudentManagementPanel extends JPanel {
             // Filter by department name
             if (student.getDepartment() != null && student.getDepartment().equals(filterDept)) {
                 Object[] row = {
-                        student.getId(),
+                        student.getId(), // Hidden ID
+                        student.getUsername() != null ? student.getUsername() : student.getId(),
                         student.getName(),
                         student.getEmail(),
                         student.getPhone(),
@@ -311,7 +321,7 @@ public class StudentManagementPanel extends JPanel {
                                 : "-",
                         student.getSemester() > 0 ? String.valueOf(student.getSemester()) : "-",
                         student.getBatch(),
-                        sdf.format(student.getEnrollmentDate())
+                        student.getEnrollmentDate() != null ? sdf.format(student.getEnrollmentDate()) : "-"
                 };
                 tableModel.addRow(row);
             }
