@@ -79,6 +79,10 @@ public class FacultyManagementPanel extends JPanel {
         deleteButton.setPreferredSize(new Dimension(150, 40));
         deleteButton.addActionListener(e -> deleteFaculty());
 
+        JButton assignRoleButton = UIHelper.createPrimaryButton("Assign Role");
+        assignRoleButton.setPreferredSize(new Dimension(150, 40));
+        assignRoleButton.addActionListener(e -> assignRole());
+
         JButton exportButton = UIHelper.createPrimaryButton("Export");
         exportButton.setPreferredSize(new Dimension(120, 40));
         exportButton.addActionListener(
@@ -87,6 +91,7 @@ public class FacultyManagementPanel extends JPanel {
         buttonPanel.add(addButton);
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
+        buttonPanel.add(assignRoleButton);
         buttonPanel.add(exportButton);
 
         // Add panels
@@ -219,6 +224,52 @@ public class FacultyManagementPanel extends JPanel {
                 loadFaculty();
             } else {
                 UIHelper.showErrorMessage(this, "Failed to delete faculty!");
+            }
+        }
+    }
+
+    private void assignRole() {
+        int selectedRow = facultyTable.getSelectedRow();
+        if (selectedRow < 0) {
+            UIHelper.showErrorMessage(this, "Please select a faculty member to assign a role!");
+            return;
+        }
+
+        int facultyId = (int) tableModel.getValueAt(selectedRow, 0);
+        String facultyName = (String) tableModel.getValueAt(selectedRow, 1);
+
+        // Get user_id for this faculty
+        Faculty faculty = facultyDAO.getFacultyById(facultyId);
+        if (faculty == null || faculty.getUserId() == 0) {
+            UIHelper.showErrorMessage(this, "Could not find user account for this faculty.");
+            return;
+        }
+
+        // Load available roles
+        com.college.dao.RoleDAO roleDAO = new com.college.dao.RoleDAO();
+        java.util.List<com.college.models.Role> roles = roleDAO.getAllRoles();
+
+        if (roles.isEmpty()) {
+            UIHelper.showErrorMessage(this, "No roles available. Please set up RBAC first.");
+            return;
+        }
+
+        // Create dropdown
+        com.college.models.Role[] roleArray = roles.toArray(new com.college.models.Role[0]);
+        com.college.models.Role selectedRole = (com.college.models.Role) JOptionPane.showInputDialog(
+                this,
+                "Select role for: " + facultyName,
+                "Assign Role",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                roleArray,
+                roleArray[0]);
+
+        if (selectedRole != null) {
+            if (roleDAO.assignRoleToUser(faculty.getUserId(), selectedRole.getId())) {
+                UIHelper.showSuccessMessage(this, "Role '" + selectedRole.getName() + "' assigned to " + facultyName);
+            } else {
+                UIHelper.showErrorMessage(this, "Failed to assign role.");
             }
         }
     }

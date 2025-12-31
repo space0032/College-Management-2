@@ -100,7 +100,7 @@ public class HostelManagementPanel extends JPanel {
         actionPanel.setBackground(Color.WHITE);
         actionPanel.add(refreshButton);
 
-        if (userRole.equals("ADMIN")) {
+        if (com.college.utils.SessionManager.getInstance().hasPermission("MANAGE_HOSTEL")) {
             JButton addButton = UIHelper.createSuccessButton("Add Hostel");
             addButton.addActionListener(e -> showAddHostelDialog());
             actionPanel.add(addButton);
@@ -229,7 +229,7 @@ public class HostelManagementPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
 
-        if (userRole.equals("ADMIN") || userRole.equals("WARDEN")) {
+        if (com.college.utils.SessionManager.getInstance().hasPermission("MANAGE_ALLOCATIONS")) {
             JButton allocateButton = UIHelper.createSuccessButton("Allocate Room");
             allocateButton.setPreferredSize(new Dimension(150, 40));
             allocateButton.addActionListener(e -> allocateRoom());

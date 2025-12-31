@@ -173,70 +173,124 @@ public class DashboardFrame extends JFrame {
         sidebar.setPreferredSize(new Dimension(250, 0));
         sidebar.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
+        com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
+
         // Add menu items
         addMenuItem(sidebar, "Home", "HOME");
 
-        if (role.equals("ADMIN") || role.equals("FACULTY")) {
-            if (role.equals("ADMIN")) {
-                addMenuItem(sidebar, "Institute Management", "INSTITUTE_MANAGEMENT");
-            } else {
-                // Faculty View
+        // 1. Institute Management (Admin Unified Panel)
+        if (session.hasPermission("MANAGE_SYSTEM") || session.hasPermission("VIEW_AUDIT_LOGS")) {
+            addMenuItem(sidebar, "Institute Management", "INSTITUTE_MANAGEMENT");
+        }
+
+        // 2. Student Management
+        if (session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS")) {
+            // If not covered by Unified Panel (which is only for Admins/System Managers)
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
                 addMenuItem(sidebar, "Student Management", "STUDENTS");
+            }
+        }
+
+        // 3. Faculty Management
+        if (session.hasPermission("VIEW_FACULTY") || session.hasPermission("MANAGE_FACULTY")) {
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
+                addMenuItem(sidebar, "Faculty Management", "FACULTY");
+            }
+        }
+
+        // 4. Course Management
+        if (session.hasPermission("VIEW_COURSES") || session.hasPermission("MANAGE_ALL_COURSES")
+                || session.hasPermission("MANAGE_OWN_COURSES")) {
+            if (!session.hasPermission("MANAGE_SYSTEM") && !session.isStudent()) {
                 addMenuItem(sidebar, "Course Management", "COURSES");
+            } else {
+                // Even admins might want direct access sometimes, but usually it's in Unified.
+                // Let's hide it for Admin to reduce clutter as per consolidation goal.
+            }
+            // Students see "My Courses"
+            if (session.isStudent()) {
+                addMenuItem(sidebar, "My Courses", "COURSES");
+            }
+        }
+
+        // 5. Attendance
+        if (session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("MANAGE_ATTENDANCE")) {
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
                 addMenuItem(sidebar, "Attendance", "ATTENDANCE");
+            }
+        }
+        if (session.hasPermission("VIEW_OWN_ATTENDANCE")) {
+            addMenuItem(sidebar, "My Attendance", "MY_ATTENDANCE");
+        }
+
+        // 6. Grades
+        if (session.hasPermission("VIEW_GRADES") || session.hasPermission("MANAGE_GRADES")) {
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
                 addMenuItem(sidebar, "Grades", "GRADES");
+            }
+        }
+        // Students usually view grades in Reports or specific panel
+
+        // 7. Timetable
+        if (session.hasPermission("VIEW_TIMETABLE") || session.hasPermission("MANAGE_TIMETABLE")) {
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
                 addMenuItem(sidebar, "Timetable", "TIMETABLE");
             }
-
-            // Common items or Admin extras outside the unified panel
-            // Let's look at what ADMIN had:
-            // Students, Faculty, Courses, Departments, Attendance, Grades, Timetable,
-            // Library, Hostel, Fees, Gate Pass, Reports, Audit Logs, Assignments
-
-            // Unified Panel has: Students, Faculty, Departments, Courses, Library, Fees.
-            // So ADMIN Sidebar should have:
-            // Institute Management (covers the above)
-            // Hostel Management
-            // Reports
-            // Audit Logs
-            // Assignments
-
-            if (role.equals("FACULTY")) {
-                addMenuItem(sidebar, "Library Management", "LIBRARY");
-                addMenuItem(sidebar, "Hostel Management", "HOSTEL"); // Faculty can manage hostel? Original allowed it.
-                addMenuItem(sidebar, "Fee Management", "FEES"); // Faculty can manage fees? Original allowed it.
-                addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
-            } else {
-                // ADMIN
-                addMenuItem(sidebar, "Hostel Management", "HOSTEL");
-                // Gate Pass moved to Unified
-            }
-
-            addMenuItem(sidebar, "Reports", "REPORTS");
-            if (role.equals("ADMIN")) {
-                addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
-            }
-            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS");
         }
 
-        if (role.equals("WARDEN")) {
+        // 8. Library
+        if (session.hasPermission("VIEW_LIBRARY") || session.hasPermission("MANAGE_LIBRARY")) {
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
+                addMenuItem(sidebar, "Library", "LIBRARY");
+            }
+        }
+
+        // 9. Hostel
+        // Hostel Management (For Warden/Admin)
+        if (session.hasPermission("MANAGE_HOSTEL") || session.hasPermission("MANAGE_ALLOCATIONS")) {
             addMenuItem(sidebar, "Hostel Management", "HOSTEL");
+            if (session.hasPermission("APPROVE_GATE_PASS")) {
+                addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+            }
+        }
+        // My Hostel (For Students)
+        if (session.hasPermission("VIEW_HOSTEL") && session.isStudent()) {
+            addMenuItem(sidebar, "My Hostel", "MY_HOSTEL");
+            addMenuItem(sidebar, "Gate Pass", "GATE_PASS");
+        }
+
+        // Warden Specific
+        if (session.hasPermission("MANAGE_HOSTEL") && role.equals("WARDEN")) {
             addMenuItem(sidebar, "Hostel Attendance", "HOSTEL_ATTENDANCE");
-            addMenuItem(sidebar, "Student Details", "STUDENTS");
-            addMenuItem(sidebar, "Gate Pass Approvals", "GATE_PASS_APPROVAL");
+        }
+
+        // 10. Fees
+        if (session.hasPermission("MANAGE_FEES") || session.hasPermission("VIEW_ALL_FEES")) {
+            // Usually in Unified for Admin, but Faculty might need access if permitted
+            if (!session.hasPermission("MANAGE_SYSTEM")) {
+                addMenuItem(sidebar, "Fee Management", "FEES");
+            }
+        }
+        if (session.hasPermission("VIEW_OWN_FEES")) {
+            addMenuItem(sidebar, "My Fees", "FEES");
+        }
+
+        // 11. Reports
+        if (session.hasPermission("VIEW_REPORTS")) {
             addMenuItem(sidebar, "Reports", "REPORTS");
         }
 
-        if (role.equals("STUDENT")) {
-            addMenuItem(sidebar, "My Attendance", "MY_ATTENDANCE");
-            addMenuItem(sidebar, "My Courses", "COURSES");
-            addMenuItem(sidebar, "Timetable", "TIMETABLE");
-            addMenuItem(sidebar, "Library", "LIBRARY");
-            addMenuItem(sidebar, "My Hostel", "MY_HOSTEL");
-            addMenuItem(sidebar, "My Fees", "FEES");
-            addMenuItem(sidebar, "Gate Pass", "GATE_PASS");
-            addMenuItem(sidebar, "Reports", "REPORTS");
-            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS"); // Add for Student
+        // 12. Audit Logs (Explicit permission check)
+        if (session.hasPermission("VIEW_AUDIT_LOGS") && !session.hasPermission("MANAGE_SYSTEM")) {
+            // If they have Unified Panel, Audit Logs is inside it.
+            // If they have Audit permission but NO Unified Panel (e.g. Auditor role), show
+            // it here.
+            addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
+        }
+
+        // 13. Assignments
+        if (session.hasPermission("VIEW_ASSIGNMENTS") || session.hasPermission("MANAGE_ASSIGNMENTS")) {
+            addMenuItem(sidebar, "Assignments", "ASSIGNMENTS");
         }
 
         // Add glue to push items to top

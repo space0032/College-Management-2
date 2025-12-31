@@ -50,7 +50,7 @@ public class RoomManagementPanel extends JPanel {
         actionPanel.setBackground(Color.WHITE);
         actionPanel.add(refreshButton);
 
-        if ("ADMIN".equals(userRole) || "WARDEN".equals(userRole)) {
+        if (com.college.utils.SessionManager.getInstance().hasPermission("MANAGE_HOSTEL")) {
             JButton addRoomButton = UIHelper.createSuccessButton("Add New Room");
             addRoomButton.addActionListener(e -> showAddRoomDialog());
             actionPanel.add(addRoomButton);

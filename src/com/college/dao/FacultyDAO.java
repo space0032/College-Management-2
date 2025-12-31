@@ -192,6 +192,7 @@ public class FacultyDAO {
         faculty.setDepartment(rs.getString("department"));
         faculty.setQualification(rs.getString("qualification"));
         faculty.setJoinDate(rs.getDate("join_date"));
+        faculty.setUserId(rs.getInt("user_id"));
         return faculty;
     }
 }
