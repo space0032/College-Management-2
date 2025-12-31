@@ -2,14 +2,18 @@ package com.college.ui.student;
 
 import com.college.dao.StudentDAO;
 import com.college.dao.DepartmentDAO;
+import com.college.dao.EnhancedFeeDAO;
 import com.college.models.Student;
 import com.college.models.Department;
+import com.college.models.FeeCategory;
+import com.college.models.StudentFee;
 import com.college.utils.UIHelper;
 import com.college.utils.ValidationUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -263,6 +267,9 @@ public class AddStudentDialog extends JDialog {
                     String[] credentials = createLoginCredentials(studentId);
 
                     if (credentials != null) {
+                        // Assign default fees
+                        assignDefaultFees(studentId);
+
                         // Show success and credentials dialog
                         showCredentialsDialog(credentials[0], credentials[1]);
                         success = true;
@@ -401,6 +408,61 @@ public class AddStudentDialog extends JDialog {
         credDialog.add(contentPanel, BorderLayout.CENTER);
         credDialog.add(buttonPanel, BorderLayout.SOUTH);
         credDialog.setVisible(true);
+    }
+
+    /**
+     * Assign default fees to the new student
+     * 
+     * @param studentId The ID of the newly created student
+     */
+    private void assignDefaultFees(int studentId) {
+        try {
+            EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
+            List<FeeCategory> categories = feeDAO.getAllCategories();
+
+            // Calculate academic year (e.g., "2024-2025")
+            Calendar cal = Calendar.getInstance();
+            int year = cal.get(Calendar.YEAR);
+            int month = cal.get(Calendar.MONTH);
+            // If month is Jan-May, current academic year started prev year. If June-Dec,
+            // starts this year.
+            // Simplified: Just use current year as start
+            String academicYear = year + "-" + (year + 1);
+
+            // Calculate due date (30 days from now)
+            cal.add(Calendar.DAY_OF_YEAR, 30);
+            Date dueDate = cal.getTime();
+
+            for (FeeCategory category : categories) {
+                String name = category.getCategoryName().toLowerCase();
+
+                // Tuition Fee: 75000
+                if (name.contains("tuition") || name.contains("semester")) {
+                    StudentFee fee = new StudentFee();
+                    fee.setStudentId(studentId);
+                    fee.setCategoryId(category.getId());
+                    fee.setAcademicYear(academicYear);
+                    fee.setTotalAmount(75000.00); // Fixed amount as requested
+                    fee.setDueDate(dueDate);
+                    feeDAO.assignFeeToStudent(fee);
+                }
+
+                // Hostel Fee: 75000 (if hostel selected)
+                if (hostelCheckBox.isSelected() && (name.contains("hostel") || name.contains("mess"))) {
+                    StudentFee fee = new StudentFee();
+                    fee.setStudentId(studentId);
+                    fee.setCategoryId(category.getId());
+                    fee.setAcademicYear(academicYear);
+                    fee.setTotalAmount(75000.00); // Fixed amount as requested
+                    fee.setDueDate(dueDate);
+                    feeDAO.assignFeeToStudent(fee);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to assign default fees: " + e.getMessage());
+            e.printStackTrace();
+            // Don't block the UI for this background task, but log it
+        }
     }
 
     /**
