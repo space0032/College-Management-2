@@ -340,12 +340,8 @@ public class EnhancedFeeManagementPanel extends JPanel {
 
             // Note: Total/Paid/Balance on receipt might be inaccurate if we don't fetch the
             // parent fee.
-            // For now, let's just show what we have or fetch the parent fee.
-            // Let's try to fetch parent fee for accuracy.
-            StudentFee parentFee = null;
-            for (StudentFee fee : feeDAO.getStudentFees(0)) { // cant fetch by ID easily without method
-                // Skip complex logic for now, just use what we have
-            }
+            // For now, let's just show what we have.
+
             // Actually, we have payment.studentFeeId
             dummyFee.setTotalAmount(0); // Unknown
             dummyFee.setPaidAmount(0); // Unknown

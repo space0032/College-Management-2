@@ -423,7 +423,6 @@ public class AddStudentDialog extends JDialog {
             // Calculate academic year (e.g., "2024-2025")
             Calendar cal = Calendar.getInstance();
             int year = cal.get(Calendar.YEAR);
-            int month = cal.get(Calendar.MONTH);
             // If month is Jan-May, current academic year started prev year. If June-Dec,
             // starts this year.
             // Simplified: Just use current year as start

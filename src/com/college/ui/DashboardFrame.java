@@ -12,7 +12,6 @@ import com.college.ui.timetable.TimetablePanel;
 import com.college.ui.assignments.AssignmentManagementPanel;
 import com.college.ui.assignments.StudentAssignmentPanel;
 import com.college.utils.UIHelper;
-import com.college.utils.DatabaseConnection;
 
 import javax.swing.*;
 import java.awt.*;

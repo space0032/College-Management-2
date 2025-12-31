@@ -17,10 +17,8 @@ public class RoomManagementPanel extends JPanel {
     private HostelDAO hostelDAO;
     private JTable roomsTable;
     private DefaultTableModel tableModel;
-    private String userRole;
 
     public RoomManagementPanel(String userRole) {
-        this.userRole = userRole;
         this.hostelDAO = new HostelDAO();
         initComponents();
         loadRooms();

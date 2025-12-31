@@ -112,7 +112,7 @@ public class SubmissionReviewDialog extends JDialog {
         }
 
         int submissionId = (Integer) tableModel.getValueAt(selectedRow, 0);
-        int studentId = 0; // Ideally we fetch the full object, but for now we can refetch or store in map.
+        // Ideally we fetch the full object, but for now we can refetch or store in map.
         // Actually, we can get list and find by ID.
 
         List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(assignment.getId());

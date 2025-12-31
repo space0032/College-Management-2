@@ -19,7 +19,6 @@ public class LoginFrame extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JComboBox<String> roleComboBox;
-    private String currentRole;
 
     public LoginFrame() {
         initComponents();
@@ -139,7 +138,6 @@ public class LoginFrame extends JFrame {
         // Authenticate user and get userId
         int userId = authenticateUser(username, password, role);
         if (userId > 0) {
-            currentRole = role;
 
             // Initialize session
             com.college.utils.SessionManager.getInstance().initSession(userId, username, role);
