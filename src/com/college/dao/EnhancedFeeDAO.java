@@ -312,14 +312,16 @@ public class EnhancedFeeDAO {
     public List<FeePayment> searchPaymentHistory(String keyword) {
         List<FeePayment> payments = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT fp.*, s.name as student_name, fc.category_name, sf.academic_year " +
+                "SELECT fp.*, s.name as student_name, u.username as enrollment_id, fc.category_name, sf.academic_year "
+                        +
                         "FROM fee_payments fp " +
                         "JOIN student_fees sf ON fp.student_fee_id = sf.id " +
                         "JOIN students s ON sf.student_id = s.id " +
+                        "LEFT JOIN users u ON s.user_id = u.id " +
                         "JOIN fee_categories fc ON sf.category_id = fc.id ");
 
         if (keyword != null && !keyword.isEmpty()) {
-            sql.append("WHERE s.name LIKE ? OR fp.receipt_number LIKE ? ");
+            sql.append("WHERE s.name LIKE ? OR fp.receipt_number LIKE ? OR u.username LIKE ? ");
         }
 
         sql.append("ORDER BY fp.payment_date DESC");
@@ -331,6 +333,7 @@ public class EnhancedFeeDAO {
                 String searchPattern = "%" + keyword + "%";
                 pstmt.setString(1, searchPattern);
                 pstmt.setString(2, searchPattern);
+                pstmt.setString(3, searchPattern);
             }
 
             ResultSet rs = pstmt.executeQuery();
@@ -347,6 +350,7 @@ public class EnhancedFeeDAO {
 
                 // Set display fields
                 payment.setStudentName(rs.getString("student_name"));
+                payment.setStudentEnrollmentId(rs.getString("enrollment_id"));
                 payment.setCategoryName(rs.getString("category_name"));
                 payment.setAcademicYear(rs.getString("academic_year"));
 

@@ -181,7 +181,8 @@ public class EnhancedFeeManagementPanel extends JPanel {
         tablePanel.setBackground(Color.WHITE);
         tablePanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        String[] columns = { "Receipt #", "Date", "Student Name", "Category", "Academic Year", "Amount", "Mode",
+        String[] columns = { "Receipt #", "Enrollment ID", "Date", "Student Name", "Category", "Academic Year",
+                "Amount", "Mode",
                 "Remarks" };
         historyTableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -263,6 +264,7 @@ public class EnhancedFeeManagementPanel extends JPanel {
         for (FeePayment fp : payments) {
             Object[] row = {
                     fp.getReceiptNumber(),
+                    fp.getStudentEnrollmentId() != null ? fp.getStudentEnrollmentId() : "-",
                     sdf.format(fp.getPaymentDate()),
                     fp.getStudentName(),
                     fp.getCategoryName(),
