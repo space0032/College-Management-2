@@ -1,7 +1,9 @@
 package com.college.fx.views;
 
 import com.college.dao.CourseDAO;
+import com.college.dao.StudentDAO;
 import com.college.models.Course;
+import com.college.models.Student;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -30,12 +32,16 @@ public class CourseManagementView {
     private TableView<Course> tableView;
     private ObservableList<Course> courseData;
     private CourseDAO courseDAO;
+    private StudentDAO studentDAO;
     private String role;
+    private int userId;
     private TextField searchField;
 
     public CourseManagementView(String role, int userId) {
         this.role = role;
+        this.userId = userId;
         this.courseDAO = new CourseDAO();
+        this.studentDAO = new StudentDAO();
         this.courseData = FXCollections.observableArrayList();
         createView();
         loadCourses();
@@ -171,6 +177,22 @@ public class CourseManagementView {
     private void loadCourses() {
         courseData.clear();
         List<Course> courses = courseDAO.getAllCourses();
+
+        // Filter for students
+        if ("STUDENT".equals(role)) {
+            Student student = studentDAO.getStudentByUserId(userId);
+            if (student != null) {
+                String dept = student.getDepartment();
+                int sem = student.getSemester();
+                for (Course c : courses) {
+                    if (dept.equals(c.getDepartment()) && sem == c.getSemester()) {
+                        courseData.add(c);
+                    }
+                }
+                return;
+            }
+        }
+
         courseData.addAll(courses);
     }
 

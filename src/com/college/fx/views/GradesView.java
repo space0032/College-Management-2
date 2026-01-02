@@ -141,7 +141,17 @@ public class GradesView {
             tableView.getColumns().add(0, studentCol);
         }
 
-        tableView.getColumns().addAll(courseCol, examCol, marksCol, gradeCol);
+        TableColumn<Grade, String> studentCol = new TableColumn<>("Student");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getStudentName() != null ? data.getValue().getStudentName()
+                        : String.valueOf(data.getValue().getStudentId())));
+        studentCol.setPrefWidth(150);
+
+        if (role.equals("STUDENT")) {
+            tableView.getColumns().addAll(courseCol, examCol, marksCol, gradeCol);
+        } else {
+            tableView.getColumns().addAll(studentCol, courseCol, examCol, marksCol, gradeCol);
+        }
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;

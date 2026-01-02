@@ -2,8 +2,10 @@ package com.college.fx.views;
 
 import com.college.dao.AttendanceDAO;
 import com.college.dao.StudentDAO;
+import com.college.dao.CourseDAO;
 import com.college.models.Attendance;
 import com.college.models.Student;
+import com.college.models.Course;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;

@@ -3,6 +3,7 @@
 bin/
 out/
 build/
+lib/
 
 # JAR files
 *.jar
