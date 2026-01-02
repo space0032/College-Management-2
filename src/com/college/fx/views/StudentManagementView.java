@@ -415,7 +415,11 @@ public class StudentManagementView {
     }
 
     private void exportData() {
-        showAlert("Export", "Export functionality would be implemented here.");
+        if (tableView.getItems().isEmpty()) {
+            showAlert("Export", "No data to export.");
+            return;
+        }
+        com.college.utils.FxTableExporter.exportWithDialog(tableView, root.getScene().getWindow());
     }
 
     private void showAlert(String title, String message) {

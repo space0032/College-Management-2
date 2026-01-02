@@ -152,7 +152,7 @@ public class CourseManagementView {
         }
 
         Button exportBtn = createButton("Export", "#64748b");
-        exportBtn.setOnAction(e -> showAlert("Export", "Export functionality."));
+        exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
         return section;
@@ -297,6 +297,14 @@ public class CourseManagementView {
             loadCourses();
             showAlert("Success", "Course added successfully!");
         });
+    }
+
+    private void exportData() {
+        if (tableView.getItems().isEmpty()) {
+            showAlert("Export", "No data to export.");
+            return;
+        }
+        com.college.utils.FxTableExporter.exportWithDialog(tableView, root.getScene().getWindow());
     }
 
     private void showAlert(String title, String message) {

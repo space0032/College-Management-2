@@ -13,7 +13,10 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.util.StringConverter;
 
+import com.college.dao.RoleDAO;
+import com.college.models.Role;
 import com.college.dao.UserDAO;
 import com.college.dao.DepartmentDAO;
 import com.college.models.Department;
@@ -35,11 +38,13 @@ public class FacultyManagementView {
     private ObservableList<Faculty> facultyData;
     private FacultyDAO facultyDAO;
     private UserDAO userDAO;
+    private RoleDAO roleDAO;
     private TextField searchField;
 
     public FacultyManagementView(String role, int userId) {
         this.facultyDAO = new FacultyDAO();
         this.userDAO = new UserDAO();
+        this.roleDAO = new RoleDAO();
         this.facultyData = FXCollections.observableArrayList();
         createView();
         loadFaculty();
@@ -161,6 +166,7 @@ public class FacultyManagementView {
         }
 
         Button exportBtn = createButton("Export", "#64748b");
+        exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
         return section;
@@ -218,7 +224,7 @@ public class FacultyManagementView {
             return;
         }
 
-        Dialog<String> dialog = new Dialog<>();
+        Dialog<Role> dialog = new Dialog<>();
         dialog.setTitle("Assign Role");
         dialog.setHeaderText("Assign Role to: " + selected.getName());
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -227,11 +233,27 @@ public class FacultyManagementView {
         VBox content = new VBox(10);
         content.setPadding(new Insets(20));
         
-        ComboBox<String> roleCombo = new ComboBox<>();
-        roleCombo.getItems().addAll("FACULTY", "ADMIN", "HOD", "WARDEN", "LIBRARIAN");
-        roleCombo.setValue("FACULTY"); // Default or current if fetched
+        ComboBox<Role> roleCombo = new ComboBox<>();
+        roleCombo.setPrefWidth(250);
+        List<Role> roles = roleDAO.getAllRoles();
+        roleCombo.getItems().addAll(roles);
         
-        content.getChildren().addAll(new Label("Select Role:"), roleCombo);
+        roleCombo.setConverter(new StringConverter<Role>() {
+            @Override
+            public String toString(Role r) {
+                return r != null ? r.getName() : "";
+            }
+            @Override
+            public Role fromString(String string) {
+                return null;
+            }
+        });
+        
+        // Try to select existing role if possible (requires fetching user's current role via RoleDAO)
+        // For simplicity, select first or nothing.
+        if (!roles.isEmpty()) roleCombo.getSelectionModel().selectFirst();
+        
+        content.getChildren().addAll(new Label("Select Role (RBAC):"), roleCombo);
         dialog.getDialogPane().setContent(content);
 
         dialog.setResultConverter(btn -> {
@@ -242,10 +264,14 @@ public class FacultyManagementView {
         });
 
         dialog.showAndWait().ifPresent(role -> {
-            boolean success = userDAO.updateUserRole(selected.getUserId(), role);
-            if (success) {
-                showAlert("Success", "Role updated successfully!");
-                loadFaculty(); // Refresh to update role column if visible (it's not, but good practice)
+            // Update RBAC role (role_id)
+            boolean rbacSuccess = roleDAO.assignRoleToUser(selected.getUserId(), role.getId());
+            // Update Legacy role (string) for fallback/display
+            boolean legacySuccess = userDAO.updateUserRole(selected.getUserId(), role.getName());
+            
+            if (rbacSuccess || legacySuccess) { // At least one succeeded
+                showAlert("Success", "Role assigned successfully (RBAC + Legacy)!");
+                loadFaculty();
             } else {
                 showAlert("Error", "Failed to update role.");
             }
@@ -393,6 +419,14 @@ public class FacultyManagementView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void exportData() {
+        if (tableView.getItems().isEmpty()) {
+            showAlert("Export", "No data to export.");
+            return;
+        }
+        com.college.utils.FxTableExporter.exportWithDialog(tableView, root.getScene().getWindow());
     }
 
     public VBox getView() {

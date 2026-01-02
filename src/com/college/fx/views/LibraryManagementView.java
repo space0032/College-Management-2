@@ -169,6 +169,7 @@ public class LibraryManagementView {
         }
 
         Button exportBtn = createButton("Export", "#64748b");
+        exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
         return section;
@@ -455,6 +456,14 @@ public class LibraryManagementView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void exportData() {
+        if (tableView.getItems().isEmpty()) {
+            showAlert("Export", "No data to export.");
+            return;
+        }
+        com.college.utils.FxTableExporter.exportWithDialog(tableView, root.getScene().getWindow());
     }
 
     public VBox getView() {
