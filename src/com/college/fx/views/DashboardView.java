@@ -130,6 +130,11 @@ public class DashboardView {
             addMenuItem(sidebar, "Faculty", "faculty", false);
         }
 
+        // Course Management - Students only (Admin/Faculty use Institute Management)
+        if (session.hasPermission("VIEW_COURSES") && session.isStudent()) {
+            addMenuItem(sidebar, "My Courses", "courses", false);
+        }
+
         // Attendance
         if ((session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("VIEW_OWN_ATTENDANCE"))
                 && !session.hasPermission("MANAGE_SYSTEM")) {

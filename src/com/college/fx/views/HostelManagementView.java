@@ -214,7 +214,7 @@ public class HostelManagementView {
 
         HBox toolbar = new HBox(15);
         Button addHostelBtn = createButton("Add Hostel", "#22c55e");
-        addHostelBtn.setOnAction(e -> showAlert("Add Hostel", "Add hostel functionality coming soon."));
+        addHostelBtn.setOnAction(e -> showAddHostelDialog());
 
         Button deleteHostelBtn = createButton("Delete Hostel", "#ef4444");
         deleteHostelBtn.setOnAction(e -> deleteHostel());
@@ -250,7 +250,7 @@ public class HostelManagementView {
 
         HBox toolbar = new HBox(15);
         Button addRoomBtn = createButton("Add Room", "#22c55e");
-        addRoomBtn.setOnAction(e -> showAlert("Add Room", "Add room functionality coming soon."));
+        addRoomBtn.setOnAction(e -> showAddRoomDialog());
 
         Button deleteRoomBtn = createButton("Delete Room", "#ef4444");
         deleteRoomBtn.setOnAction(e -> deleteRoom());
@@ -425,6 +425,106 @@ public class HostelManagementView {
             // hostelDAO.deleteRoom(selected.getId());
             // loadData();
         }
+    }
+
+    private void showAddHostelDialog() {
+        Dialog<Hostel> dialog = new Dialog<>();
+        dialog.setTitle("Add Hostel");
+        dialog.setHeaderText("Create New Hostel");
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Hostel Name");
+        ComboBox<String> typeCombo = new ComboBox<>();
+        typeCombo.getItems().addAll("BOYS", "GIRLS");
+        typeCombo.setValue("BOYS");
+        TextField wardenField = new TextField();
+        wardenField.setPromptText("Warden Name");
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Type:"), 0, 1);
+        grid.add(typeCombo, 1, 1);
+        grid.add(new Label("Warden:"), 0, 2);
+        grid.add(wardenField, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && !nameField.getText().trim().isEmpty()) {
+                Hostel h = new Hostel();
+                h.setName(nameField.getText());
+                h.setType(typeCombo.getValue());
+                h.setWardenName(wardenField.getText());
+                if (hostelDAO.addHostel(h)) {
+                    return h;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(h -> {
+            loadData();
+            showAlert("Success", "Hostel added successfully!");
+        });
+    }
+
+    private void showAddRoomDialog() {
+        Dialog<Room> dialog = new Dialog<>();
+        dialog.setTitle("Add Room");
+        dialog.setHeaderText("Create New Room");
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField roomNumField = new TextField();
+        roomNumField.setPromptText("Room Number");
+        ComboBox<Hostel> hostelCombo = new ComboBox<>();
+        hostelCombo.getItems().addAll(hostelDAO.getAllHostels());
+        TextField capacityField = new TextField();
+        capacityField.setPromptText("Capacity");
+
+        grid.add(new Label("Room Number:"), 0, 0);
+        grid.add(roomNumField, 1, 0);
+        grid.add(new Label("Hostel:"), 0, 1);
+        grid.add(hostelCombo, 1, 1);
+        grid.add(new Label("Capacity:"), 0, 2);
+        grid.add(capacityField, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && hostelCombo.getValue() != null) {
+                try {
+                    Room r = new Room();
+                    r.setRoomNumber(roomNumField.getText());
+                    r.setHostelId(hostelCombo.getValue().getId());
+                    r.setCapacity(Integer.parseInt(capacityField.getText()));
+                    r.setOccupiedCount(0);
+                    if (hostelDAO.addRoom(r)) {
+                        return r;
+                    }
+                } catch (NumberFormatException e) {
+                    // Invalid number
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(r -> {
+            loadData();
+            showAlert("Success", "Room added successfully!");
+        });
     }
 
     private Button createButton(String text, String color) {

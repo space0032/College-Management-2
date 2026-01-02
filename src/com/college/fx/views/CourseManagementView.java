@@ -59,11 +59,10 @@ public class CourseManagementView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "My Courses" : "Course Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -91,11 +90,10 @@ public class CourseManagementView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -111,14 +109,13 @@ public class CourseManagementView {
 
         TableColumn<Course, String> deptCol = new TableColumn<>("Department");
         deptCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getDepartmentName() != null ? data.getValue().getDepartmentName() : data.getValue().getDepartment()
-        ));
+                data.getValue().getDepartmentName() != null ? data.getValue().getDepartmentName()
+                        : data.getValue().getDepartment()));
         deptCol.setPrefWidth(150);
 
         TableColumn<Course, String> semCol = new TableColumn<>("Semester");
         semCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getSemester() > 0 ? String.valueOf(data.getValue().getSemester()) : "-"
-        ));
+                data.getValue().getSemester() > 0 ? String.valueOf(data.getValue().getSemester()) : "-"));
         semCol.setPrefWidth(80);
 
         TableColumn<Course, String> creditsCol = new TableColumn<>("Credits");
@@ -163,12 +160,11 @@ public class CourseManagementView {
         btn.setPrefWidth(140);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
@@ -199,7 +195,56 @@ public class CourseManagementView {
             showAlert("Error", "Please select a course to edit.");
             return;
         }
-        showAlert("Edit Course", "Edit dialog for: " + selected.getName());
+
+        Dialog<Course> dialog = new Dialog<>();
+        dialog.setTitle("Edit Course");
+        dialog.setHeaderText("Edit: " + selected.getName());
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField(selected.getName());
+        TextField codeField = new TextField(selected.getCode());
+        TextField creditsField = new TextField(String.valueOf(selected.getCredits()));
+        TextField semesterField = new TextField(String.valueOf(selected.getSemester()));
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Code:"), 0, 1);
+        grid.add(codeField, 1, 1);
+        grid.add(new Label("Credits:"), 0, 2);
+        grid.add(creditsField, 1, 2);
+        grid.add(new Label("Semester:"), 0, 3);
+        grid.add(semesterField, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                try {
+                    selected.setName(nameField.getText());
+                    selected.setCode(codeField.getText());
+                    selected.setCredits(Integer.parseInt(creditsField.getText()));
+                    selected.setSemester(Integer.parseInt(semesterField.getText()));
+
+                    if (courseDAO.updateCourse(selected)) {
+                        return selected;
+                    }
+                } catch (NumberFormatException e) {
+                    // Invalid number
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(c -> {
+            loadCourses();
+            showAlert("Success", "Course updated successfully!");
+        });
     }
 
     private void deleteCourse() {
@@ -208,12 +253,12 @@ public class CourseManagementView {
             showAlert("Error", "Please select a course to delete.");
             return;
         }
-        
+
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Course");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete course: " + selected.getName() + "?");
-        
+
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (courseDAO.deleteCourse(selected.getId())) {
@@ -243,14 +288,16 @@ public class CourseManagementView {
         nameField.setPromptText("Course Name");
         TextField codeField = new TextField();
         codeField.setPromptText("Course Code (e.g. CS101)");
-        
+
         ComboBox<String> deptCombo = new ComboBox<>();
         try {
-             DepartmentDAO deptDAO = new DepartmentDAO();
-             deptCombo.getItems().addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
-             if(!deptCombo.getItems().isEmpty()) deptCombo.getSelectionModel().select(0);
-        } catch(Exception e) {
-             deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
+            DepartmentDAO deptDAO = new DepartmentDAO();
+            deptCombo.getItems()
+                    .addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
+            if (!deptCombo.getItems().isEmpty())
+                deptCombo.getSelectionModel().select(0);
+        } catch (Exception e) {
+            deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
         }
 
         Spinner<Integer> semSpinner = new Spinner<>(1, 8, 1);
@@ -271,10 +318,10 @@ public class CourseManagementView {
 
         javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.setDisable(true);
-        nameField.textProperty().addListener((o, old, newValue) -> 
-            saveButton.setDisable(newValue.trim().isEmpty() || codeField.getText().trim().isEmpty()));
-        codeField.textProperty().addListener((o, old, newValue) -> 
-            saveButton.setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
+        nameField.textProperty().addListener((o, old, newValue) -> saveButton
+                .setDisable(newValue.trim().isEmpty() || codeField.getText().trim().isEmpty()));
+        codeField.textProperty().addListener((o, old, newValue) -> saveButton
+                .setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
@@ -284,7 +331,7 @@ public class CourseManagementView {
                 c.setDepartment(deptCombo.getValue());
                 c.setSemester(semSpinner.getValue());
                 c.setCredits(creditsSpinner.getValue());
-                
+
                 courseDAO.addCourse(c); // assuming returns int or boolean, we ignore result for now or strict check?
                 // CourseDAO typically returns ID.
                 return c;

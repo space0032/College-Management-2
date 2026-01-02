@@ -1,6 +1,7 @@
 package com.college.fx.views;
 
 import com.college.dao.StudentDAO;
+import com.college.dao.DepartmentDAO;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
@@ -37,6 +38,7 @@ public class StudentManagementView {
     private TableView<Student> tableView;
     private ObservableList<Student> studentData;
     private StudentDAO studentDAO;
+    private DepartmentDAO departmentDAO;
     private String role;
     @SuppressWarnings("unused")
     private int userId;
@@ -46,6 +48,7 @@ public class StudentManagementView {
         this.role = role;
         this.userId = userId;
         this.studentDAO = new StudentDAO();
+        this.departmentDAO = new DepartmentDAO();
         this.studentData = FXCollections.observableArrayList();
         createView();
         loadStudents();
@@ -383,7 +386,59 @@ public class StudentManagementView {
             showAlert("Error", "Please select a student to edit.");
             return;
         }
-        showAlert("Edit Student", "Edit dialog for: " + selected.getName());
+
+        Dialog<Student> dialog = new Dialog<>();
+        dialog.setTitle("Edit Student");
+        dialog.setHeaderText("Edit: " + selected.getName());
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField(selected.getName());
+        TextField emailField = new TextField(selected.getEmail());
+        TextField phoneField = new TextField(selected.getPhone());
+        TextField addressField = new TextField(selected.getAddress());
+        ComboBox<String> deptCombo = new ComboBox<>();
+        List<Department> depts = departmentDAO.getAllDepartments();
+        deptCombo.getItems().addAll(depts.stream().map(Department::getName).collect(Collectors.toList()));
+        deptCombo.setValue(selected.getDepartment());
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Email:"), 0, 1);
+        grid.add(emailField, 1, 1);
+        grid.add(new Label("Phone:"), 0, 2);
+        grid.add(phoneField, 1, 2);
+        grid.add(new Label("Address:"), 0, 3);
+        grid.add(addressField, 1, 3);
+        grid.add(new Label("Department:"), 0, 4);
+        grid.add(deptCombo, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                selected.setName(nameField.getText());
+                selected.setEmail(emailField.getText());
+                selected.setPhone(phoneField.getText());
+                selected.setAddress(addressField.getText());
+                selected.setDepartment(deptCombo.getValue());
+
+                if (studentDAO.updateStudent(selected)) {
+                    return selected;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(s -> {
+            loadStudents();
+            showAlert("Success", "Student updated successfully!");
+        });
     }
 
     private void deleteStudent() {

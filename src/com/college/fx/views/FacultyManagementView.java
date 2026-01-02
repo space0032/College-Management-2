@@ -214,7 +214,56 @@ public class FacultyManagementView {
             showAlert("Error", "Please select a faculty member to edit.");
             return;
         }
-        showAlert("Edit Faculty", "Edit functionality coming soon.");
+
+        Dialog<Faculty> dialog = new Dialog<>();
+        dialog.setTitle("Edit Faculty");
+        dialog.setHeaderText("Edit: " + selected.getName());
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField(selected.getName());
+        TextField emailField = new TextField(selected.getEmail());
+        TextField phoneField = new TextField(selected.getPhone());
+        TextField deptField = new TextField(selected.getDepartment());
+        TextField qualField = new TextField(selected.getQualification());
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Email:"), 0, 1);
+        grid.add(emailField, 1, 1);
+        grid.add(new Label("Phone:"), 0, 2);
+        grid.add(phoneField, 1, 2);
+        grid.add(new Label("Department:"), 0, 3);
+        grid.add(deptField, 1, 3);
+        grid.add(new Label("Qualification:"), 0, 4);
+        grid.add(qualField, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                selected.setName(nameField.getText());
+                selected.setEmail(emailField.getText());
+                selected.setPhone(phoneField.getText());
+                selected.setDepartment(deptField.getText());
+                selected.setQualification(qualField.getText());
+
+                if (facultyDAO.updateFaculty(selected)) {
+                    return selected;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(f -> {
+            loadFaculty();
+            showAlert("Success", "Faculty updated successfully!");
+        });
     }
 
     private void assignRole() {
