@@ -26,9 +26,9 @@ public class EnhancedHomePanel extends JPanel {
     }
 
     private void initComponents(String username) {
-        setLayout(new BorderLayout(15, 15));
-        setBackground(Color.WHITE);
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setLayout(new BorderLayout(20, 20));
+        setBackground(com.college.utils.ModernTheme.BG_MAIN);
+        setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
 
         // Welcome Panel
         JPanel welcomePanel = createWelcomePanel(username);
@@ -37,8 +37,8 @@ public class EnhancedHomePanel extends JPanel {
         JPanel statsPanel = createStatsPanel();
 
         // Bottom Panel (Activity Feed + Alerts)
-        JPanel bottomPanel = new JPanel(new GridLayout(1, 2, 15, 0));
-        bottomPanel.setBackground(Color.WHITE);
+        JPanel bottomPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        bottomPanel.setOpaque(false);
         bottomPanel.add(createActivityFeedPanel());
         bottomPanel.add(createAlertsPanel());
 
@@ -48,20 +48,35 @@ public class EnhancedHomePanel extends JPanel {
     }
 
     private JPanel createWelcomePanel(String username) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(41, 128, 185));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradient background
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, com.college.utils.ModernTheme.PRIMARY,
+                    getWidth(), 0, com.college.utils.ModernTheme.PRIMARY_DARK
+                );
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.dispose();
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        JLabel welcomeLabel = new JLabel("Welcome, " + username + "!");
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        JLabel welcomeLabel = new JLabel("Welcome back, " + username + "!");
+        welcomeLabel.setFont(com.college.utils.ModernTheme.FONT_TITLE);
         welcomeLabel.setForeground(Color.WHITE);
 
-        JLabel roleLabel = new JLabel("Role: " + role);
-        roleLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        roleLabel.setForeground(new Color(236, 240, 241));
+        JLabel roleLabel = new JLabel(role + " Dashboard");
+        roleLabel.setFont(com.college.utils.ModernTheme.FONT_BODY);
+        roleLabel.setForeground(new Color(199, 210, 254));
 
-        JPanel textPanel = new JPanel(new BorderLayout(0, 5));
-        textPanel.setBackground(new Color(41, 128, 185));
+        JPanel textPanel = new JPanel(new BorderLayout(0, 8));
+        textPanel.setOpaque(false);
         textPanel.add(welcomeLabel, BorderLayout.NORTH);
         textPanel.add(roleLabel, BorderLayout.CENTER);
 
@@ -71,57 +86,92 @@ public class EnhancedHomePanel extends JPanel {
     }
 
     private JPanel createStatsPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 4, 15, 15));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder("Quick Statistics"));
+        JPanel panel = new JPanel(new GridLayout(2, 4, 20, 20));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        // Modern color palette for stats
+        Color[] colors = {
+            com.college.utils.ModernTheme.PRIMARY,
+            com.college.utils.ModernTheme.SUCCESS,
+            com.college.utils.ModernTheme.CHART_5,
+            com.college.utils.ModernTheme.WARNING,
+            com.college.utils.ModernTheme.INFO,
+            com.college.utils.ModernTheme.DANGER,
+            new Color(20, 184, 166),
+            com.college.utils.ModernTheme.TEXT_SECONDARY
+        };
 
         // Get stats based on role
         if (role.equals("ADMIN") || role.equals("FACULTY")) {
-            panel.add(createStatCard("👥 Students", getStudentCount(), new Color(52, 152, 219)));
-            panel.add(createStatCard("👨‍🏫 Faculty", getFacultyCount(), new Color(46, 204, 113)));
-            panel.add(createStatCard("📚 Courses", getCourseCount(), new Color(155, 89, 182)));
-            panel.add(createStatCard("📖 Books", getBookCount(), new Color(230, 126, 34)));
+            panel.add(createStatCard("Students", getStudentCount(), colors[0]));
+            panel.add(createStatCard("Faculty", getFacultyCount(), colors[1]));
+            panel.add(createStatCard("Courses", getCourseCount(), colors[2]));
+            panel.add(createStatCard("Books", getBookCount(), colors[3]));
 
-            panel.add(createStatCard("🎫 Pending Passes", getPendingGatePasses(), new Color(241, 196, 15)));
-            panel.add(createStatCard("💰 Pending Fees", getPendingFeesCount(), new Color(231, 76, 60)));
-            panel.add(createStatCard("📕 Issued Books", getIssuedBooksCount(), new Color(26, 188, 156)));
-            panel.add(createStatCard("🏠 Hostel Rooms", getHostelRoomsCount(), new Color(149, 165, 166)));
+            panel.add(createStatCard("Pending Passes", getPendingGatePasses(), colors[4]));
+            panel.add(createStatCard("Pending Fees", getPendingFeesCount(), colors[5]));
+            panel.add(createStatCard("Issued Books", getIssuedBooksCount(), colors[6]));
+            panel.add(createStatCard("Hostel Rooms", getHostelRoomsCount(), colors[7]));
         } else if (role.equals("WARDEN")) {
             // Warden View
-            panel.add(createStatCard("🏠 Hostel Students", getHostelStudentCount(), new Color(52, 152, 219)));
-            panel.add(createStatCard("🛏️ Available Beds", getAvailableBedsCount(), new Color(46, 204, 113)));
-            panel.add(createStatCard("🎫 Pending Passes", getPendingGatePasses(), new Color(241, 196, 15)));
-            panel.add(createStatCard("⚠️ Alerts", "View", new Color(231, 76, 60)));
+            panel.add(createStatCard("Hostel Students", getHostelStudentCount(), colors[0]));
+            panel.add(createStatCard("Available Beds", getAvailableBedsCount(), colors[1]));
+            panel.add(createStatCard("Pending Passes", getPendingGatePasses(), colors[4]));
+            panel.add(createStatCard("Alerts", "View", colors[5]));
         } else {
             // Student view
-            panel.add(createStatCard("📚 My Courses", getStudentCourses(), new Color(52, 152, 219)));
-            panel.add(createStatCard("📊 Attendance", getMyAttendance() + "%", new Color(46, 204, 113)));
-            panel.add(createStatCard("💰 Fee Status", getMyFeeStatus(), new Color(241, 196, 15)));
-            panel.add(createStatCard("📖 Books Issued", getMyIssuedBooks(), new Color(155, 89, 182)));
+            panel.add(createStatCard("My Courses", getStudentCourses(), colors[0]));
+            panel.add(createStatCard("Attendance", getMyAttendance() + "%", colors[1]));
+            panel.add(createStatCard("Fee Status", getMyFeeStatus(), colors[4]));
+            panel.add(createStatCard("Books Issued", getMyIssuedBooks(), colors[2]));
 
-            panel.add(createStatCard("🎫 Gate Passes", getMyGatePasses(), new Color(230, 126, 34)));
-            panel.add(createStatCard("🏠 Hostel", getMyHostelStatus(), new Color(26, 188, 156)));
-            panel.add(createStatCard("📝 Grades", "View Reports", new Color(231, 76, 60)));
-            panel.add(createStatCard("⏰ Timetable", "View Schedule", new Color(149, 165, 166)));
+            panel.add(createStatCard("Gate Passes", getMyGatePasses(), colors[3]));
+            panel.add(createStatCard("Hostel", getMyHostelStatus(), colors[6]));
+            panel.add(createStatCard("Grades", "View Reports", colors[5]));
+            panel.add(createStatCard("Timetable", "View Schedule", colors[7]));
         }
 
         return panel;
     }
 
     private JPanel createStatCard(String title, String value, Color color) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(color);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(color.darker(), 2),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)));
+        JPanel card = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Soft shadow
+                g2.setColor(new Color(0, 0, 0, 8));
+                g2.fillRoundRect(2, 2, getWidth() - 2, getHeight() - 2, 12, 12);
+                
+                // Card background with subtle border
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth() - 2, getHeight() - 2, 12, 12);
+                
+                // Subtle border line
+                g2.setColor(new Color(226, 232, 240)); // Slate-200
+                g2.setStroke(new BasicStroke(1));
+                g2.drawRoundRect(0, 0, getWidth() - 3, getHeight() - 3, 12, 12);
+                
+                // Top accent bar (full width)
+                g2.setColor(color);
+                g2.fillRoundRect(0, 0, getWidth() - 2, 4, 4, 4);
+                
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(20, 18, 18, 18));
 
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setFont(com.college.utils.ModernTheme.FONT_SMALL);
+        titleLabel.setForeground(com.college.utils.ModernTheme.TEXT_SECONDARY);
 
         JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        valueLabel.setForeground(Color.WHITE);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        valueLabel.setForeground(com.college.utils.ModernTheme.TEXT_PRIMARY);
 
         card.add(titleLabel, BorderLayout.NORTH);
         card.add(valueLabel, BorderLayout.CENTER);
@@ -130,13 +180,36 @@ public class EnhancedHomePanel extends JPanel {
     }
 
     private JPanel createActivityFeedPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder("Recent Activity"));
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                
+                // Subtle border
+                g2.setColor(new Color(226, 232, 240));
+                g2.setStroke(new BasicStroke(1));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                
+                g2.dispose();
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel headerLabel = new JLabel("Recent Activity");
+        headerLabel.setFont(com.college.utils.ModernTheme.FONT_HEADING);
+        headerLabel.setForeground(com.college.utils.ModernTheme.TEXT_PRIMARY);
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
 
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> activityList = new JList<>(listModel);
-        activityList.setFont(new Font("Arial", Font.PLAIN, 12));
+        activityList.setFont(com.college.utils.ModernTheme.FONT_BODY);
+        activityList.setBackground(Color.WHITE);
 
         // Get recent audit logs FOR THIS USER ONLY
         String currentUsername = SessionManager.getInstance().getUsername();
@@ -156,18 +229,45 @@ public class EnhancedHomePanel extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(activityList);
         scrollPane.setPreferredSize(new Dimension(0, 200));
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        
+        panel.add(headerLabel, BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
 
     private JPanel createAlertsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder("Announcements & Alerts"));
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                
+                // Subtle border
+                g2.setColor(new Color(226, 232, 240));
+                g2.setStroke(new BasicStroke(1));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                
+                g2.dispose();
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel headerLabel = new JLabel("Announcements & Alerts");
+        headerLabel.setFont(com.college.utils.ModernTheme.FONT_HEADING);
+        headerLabel.setForeground(com.college.utils.ModernTheme.TEXT_PRIMARY);
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
 
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> alertsList = new JList<>(listModel);
+        alertsList.setFont(com.college.utils.ModernTheme.FONT_BODY);
+        alertsList.setBackground(Color.WHITE);
         alertsList.setFont(new Font("Arial", Font.PLAIN, 12));
 
         // Fetch announcements from database

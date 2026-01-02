@@ -10,13 +10,13 @@ import java.awt.*;
  */
 public class UIHelper {
 
-    // Color scheme
-    public static final Color PRIMARY_COLOR = new Color(41, 128, 185);
-    public static final Color SUCCESS_COLOR = new Color(39, 174, 96);
-    public static final Color DANGER_COLOR = new Color(231, 76, 60);
-    public static final Color WARNING_COLOR = new Color(243, 156, 18);
-    public static final Color BACKGROUND_COLOR = new Color(236, 240, 241);
-    public static final Color TEXT_COLOR = new Color(44, 62, 80);
+    // Color scheme - Now using ModernTheme
+    public static final Color PRIMARY_COLOR = ModernTheme.PRIMARY;
+    public static final Color SUCCESS_COLOR = ModernTheme.SUCCESS;
+    public static final Color DANGER_COLOR = ModernTheme.DANGER;
+    public static final Color WARNING_COLOR = ModernTheme.WARNING;
+    public static final Color BACKGROUND_COLOR = ModernTheme.BG_MAIN;
+    public static final Color TEXT_COLOR = ModernTheme.TEXT_PRIMARY;
 
     /**
      * Create a styled button
@@ -105,31 +105,43 @@ public class UIHelper {
     }
 
     /**
-     * Style a table
+     * Style a table with modern look
      * 
      * @param table JTable to style
      */
     public static void styleTable(JTable table) {
-        // Header styling
-        table.getTableHeader().setBackground(PRIMARY_COLOR);
+        // Header styling - Modern indigo color
+        table.getTableHeader().setBackground(ModernTheme.PRIMARY);
         table.getTableHeader().setForeground(Color.WHITE);
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        table.getTableHeader().setFont(ModernTheme.FONT_HEADING);
         table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
 
         // Table styling
-        table.setFont(new Font("Arial", Font.PLAIN, 13));
-        table.setRowHeight(30);
-        table.setShowGrid(true);
-        table.setGridColor(new Color(189, 195, 199));
-        table.setSelectionBackground(new Color(52, 152, 219));
+        table.setFont(ModernTheme.FONT_BODY);
+        table.setRowHeight(40);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setShowHorizontalLines(true);
+        table.setGridColor(ModernTheme.BORDER);
+        table.setSelectionBackground(ModernTheme.PRIMARY_LIGHT);
         table.setSelectionForeground(Color.WHITE);
+        table.setBackground(Color.WHITE);
 
-        // Center align cells
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
+        // Alternating row colors
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(249, 250, 251));
+                }
+                setHorizontalAlignment(JLabel.CENTER);
+                setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+                return c;
+            }
+        });
     }
 
     /**

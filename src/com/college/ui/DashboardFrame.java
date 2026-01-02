@@ -136,32 +136,34 @@ public class DashboardFrame extends JFrame {
      */
     private JPanel createTopPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(UIHelper.PRIMARY_COLOR);
-        panel.setPreferredSize(new Dimension(0, 60));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        panel.setBackground(com.college.utils.ModernTheme.PRIMARY);
+        panel.setPreferredSize(new Dimension(0, 70));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
         // Title
         JLabel titleLabel = new JLabel("College Management System");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setFont(com.college.utils.ModernTheme.FONT_TITLE);
         titleLabel.setForeground(Color.WHITE);
 
         // User Info Panel
-        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        userPanel.setBackground(UIHelper.PRIMARY_COLOR);
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        userPanel.setOpaque(false);
 
-        JLabel userLabel = new JLabel("Welcome, " + displayName + " (" + role + ")");
-        userLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        JLabel userLabel = new JLabel("Welcome, " + displayName);
+        userLabel.setFont(com.college.utils.ModernTheme.FONT_BODY);
         userLabel.setForeground(Color.WHITE);
 
-        JButton logoutButton = new JButton("Logout");
-        logoutButton.setBackground(UIHelper.DANGER_COLOR);
-        logoutButton.setForeground(Color.WHITE);
-        logoutButton.setFocusPainted(false);
-        logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JLabel roleLabel = new JLabel("[" + role + "]");
+        roleLabel.setFont(com.college.utils.ModernTheme.FONT_SMALL);
+        roleLabel.setForeground(new Color(199, 210, 254));
+
+        JButton logoutButton = com.college.utils.ModernTheme.createButton("Logout", com.college.utils.ModernTheme.DANGER);
+        logoutButton.setPreferredSize(new Dimension(100, 35));
         logoutButton.addActionListener(e -> logout());
 
         userPanel.add(userLabel);
-        userPanel.add(Box.createHorizontalStrut(20));
+        userPanel.add(roleLabel);
+        userPanel.add(Box.createHorizontalStrut(10));
         userPanel.add(logoutButton);
 
         panel.add(titleLabel, BorderLayout.WEST);
@@ -176,8 +178,8 @@ public class DashboardFrame extends JFrame {
     private JPanel createSidebarMenu() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBackground(new Color(52, 73, 94));
-        sidebar.setPreferredSize(new Dimension(250, 0));
+        sidebar.setBackground(com.college.utils.ModernTheme.SIDEBAR_BG);
+        sidebar.setPreferredSize(new Dimension(com.college.utils.ModernTheme.SIDEBAR_WIDTH, 0));
         sidebar.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
         com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
@@ -321,17 +323,17 @@ public class DashboardFrame extends JFrame {
     private JPanel createSettingsSection() {
         JPanel settingsPanel = new JPanel();
         settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
-        settingsPanel.setBackground(new Color(44, 62, 80));
+        settingsPanel.setBackground(com.college.utils.ModernTheme.SIDEBAR_BG);
         settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        settingsPanel.setMaximumSize(new Dimension(230, 180));
+        settingsPanel.setMaximumSize(new Dimension(220, 180));
         settingsPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(127, 140, 141)),
-                BorderFactory.createEmptyBorder(10, 0, 10, 0)));
+                BorderFactory.createMatteBorder(2, 0, 0, 0, com.college.utils.ModernTheme.SIDEBAR_HOVER),
+                BorderFactory.createEmptyBorder(15, 0, 10, 0)));
 
         // Settings label
-        JLabel settingsLabel = new JLabel("  ⚙ SETTINGS");
-        settingsLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        settingsLabel.setForeground(new Color(189, 195, 199));
+        JLabel settingsLabel = new JLabel("  SETTINGS");
+        settingsLabel.setFont(com.college.utils.ModernTheme.FONT_HEADING);
+        settingsLabel.setForeground(com.college.utils.ModernTheme.SIDEBAR_TEXT);
         settingsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         settingsLabel.setMaximumSize(new Dimension(230, 30));
         settingsPanel.add(settingsLabel);
@@ -357,10 +359,10 @@ public class DashboardFrame extends JFrame {
     private JButton createSettingsButton(String text, String cardName) {
         JButton button = new JButton(text);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(220, 40));
-        button.setFont(new Font("Arial", Font.PLAIN, 14));
-        button.setBackground(new Color(52, 73, 94));
-        button.setForeground(Color.WHITE);
+        button.setMaximumSize(new Dimension(210, 42));
+        button.setFont(com.college.utils.ModernTheme.FONT_BODY);
+        button.setBackground(com.college.utils.ModernTheme.SIDEBAR_BG);
+        button.setForeground(com.college.utils.ModernTheme.SIDEBAR_TEXT);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setHorizontalAlignment(SwingConstants.LEFT);
@@ -369,11 +371,13 @@ public class DashboardFrame extends JFrame {
         // Hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(UIHelper.PRIMARY_COLOR);
+                button.setBackground(com.college.utils.ModernTheme.SIDEBAR_HOVER);
+                button.setForeground(Color.WHITE);
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(new Color(52, 73, 94));
+                button.setBackground(com.college.utils.ModernTheme.SIDEBAR_BG);
+                button.setForeground(com.college.utils.ModernTheme.SIDEBAR_TEXT);
             }
         });
 
@@ -394,10 +398,10 @@ public class DashboardFrame extends JFrame {
     private void addMenuItem(JPanel sidebar, String text, String cardName) {
         JButton button = new JButton(text);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(230, 50));
-        button.setFont(new Font("Arial", Font.PLAIN, 16));
-        button.setBackground(new Color(52, 73, 94));
-        button.setForeground(Color.WHITE);
+        button.setMaximumSize(new Dimension(220, 48));
+        button.setFont(com.college.utils.ModernTheme.FONT_BODY);
+        button.setBackground(com.college.utils.ModernTheme.SIDEBAR_BG);
+        button.setForeground(com.college.utils.ModernTheme.SIDEBAR_TEXT);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setHorizontalAlignment(SwingConstants.LEFT);
@@ -406,11 +410,13 @@ public class DashboardFrame extends JFrame {
         // Hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(UIHelper.PRIMARY_COLOR);
+                button.setBackground(com.college.utils.ModernTheme.SIDEBAR_HOVER);
+                button.setForeground(Color.WHITE);
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(new Color(52, 73, 94));
+                button.setBackground(com.college.utils.ModernTheme.SIDEBAR_BG);
+                button.setForeground(com.college.utils.ModernTheme.SIDEBAR_TEXT);
             }
         });
 
