@@ -1,0 +1,46 @@
+# Compiled class files
+*.class
+bin/
+out/
+build/
+
+# JAR files
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Maven/Gradle
+target/
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+
+# JavaFX specific
+.attach_pid*
