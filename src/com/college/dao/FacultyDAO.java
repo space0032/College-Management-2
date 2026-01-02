@@ -19,9 +19,9 @@ public class FacultyDAO {
      * @param faculty Faculty object to add
      * @return generated faculty ID if successful, -1 otherwise
      */
-    public int addFaculty(Faculty faculty) {
-        String sql = "INSERT INTO faculty (name, email, phone, department, qualification, join_date) " +
-                "VALUES (?, ?, ?, ?, ?, ?)";
+    public int addFaculty(Faculty faculty, int userId) {
+        String sql = "INSERT INTO faculty (name, email, phone, department, qualification, join_date, user_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -32,6 +32,11 @@ public class FacultyDAO {
             pstmt.setString(4, faculty.getDepartment());
             pstmt.setString(5, faculty.getQualification());
             pstmt.setDate(6, new java.sql.Date(faculty.getJoinDate().getTime()));
+            if (userId > 0) {
+                pstmt.setInt(7, userId);
+            } else {
+                pstmt.setNull(7, Types.INTEGER);
+            }
 
             int rowsAffected = pstmt.executeUpdate();
 

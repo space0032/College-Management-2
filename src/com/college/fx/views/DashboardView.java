@@ -23,6 +23,7 @@ public class DashboardView {
     private int userId;
     private String displayName;
     private VBox sidebar;
+    private final java.util.Map<String, Button> menuButtons = new java.util.HashMap<>();
 
     public DashboardView(String username, String role, int userId) {
         this.username = username;
@@ -119,8 +120,15 @@ public class DashboardView {
         }
 
         // Student Management
-        if (session.hasPermission("VIEW_STUDENTS") && !session.hasPermission("MANAGE_SYSTEM")) {
+        if ((session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS")) 
+             && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Students", "students", false);
+        }
+
+        // Faculty Management
+        if ((session.hasPermission("MANAGE_FACULTY") || session.hasPermission("VIEW_FACULTY"))
+             && !session.hasPermission("MANAGE_SYSTEM")) {
+            addMenuItem(sidebar, "Faculty", "faculty", false);
         }
 
         // Course Management
@@ -133,19 +141,21 @@ public class DashboardView {
         }
 
         // Attendance
-        if (session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("VIEW_OWN_ATTENDANCE")) {
+        if ((session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("VIEW_OWN_ATTENDANCE"))
+             && !session.hasPermission("MANAGE_SYSTEM")) {
             String label = session.isStudent() ? "My Attendance" : "Attendance";
             addMenuItem(sidebar, label, "attendance", false);
         }
 
         // Grades
-        if (session.hasPermission("VIEW_GRADES") || session.hasPermission("VIEW_OWN_GRADES")) {
+        if ((session.hasPermission("VIEW_GRADES") || session.hasPermission("VIEW_OWN_GRADES"))
+             && !session.hasPermission("MANAGE_SYSTEM")) {
             String label = session.isStudent() ? "My Grades" : "Grades";
             addMenuItem(sidebar, label, "grades", false);
         }
 
         // Library
-        if (session.hasPermission("VIEW_LIBRARY")) {
+        if (session.hasPermission("VIEW_LIBRARY") && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Library", "library", false);
         }
 
@@ -157,17 +167,19 @@ public class DashboardView {
         }
 
         // Timetable
-        if (session.hasPermission("VIEW_TIMETABLE")) {
+        if (session.hasPermission("VIEW_TIMETABLE") && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Timetable", "timetable", false);
         }
 
         // Gate Pass
-        if (session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS")) {
+        if ((session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
+             && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Gate Pass", "gatepass", false);
         }
 
         // Hostel
-        if (session.hasPermission("MANAGE_HOSTEL") || session.isStudent()) {
+        if ((session.hasPermission("MANAGE_HOSTEL") || session.isStudent())
+             && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Hostel", "hostel", false);
         }
 
@@ -177,8 +189,14 @@ public class DashboardView {
         }
 
         // Assignments
-        if (session.hasPermission("VIEW_ASSIGNMENTS") || session.hasPermission("SUBMIT_ASSIGNMENTS")) {
+        if ((session.hasPermission("VIEW_ASSIGNMENTS") || session.hasPermission("SUBMIT_ASSIGNMENTS"))
+             && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Assignments", "assignments", false);
+        }
+        
+        // Admin Consolidated "Student Management"
+        if (session.hasPermission("MANAGE_SYSTEM")) {
+            addMenuItem(sidebar, "Student Management", "student_affairs", false);
         }
 
         // Settings section
@@ -226,18 +244,71 @@ public class DashboardView {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;";
 
-        menuBtn.setStyle(isActive ? activeStyle : baseStyle);
         
-        if (!isActive) {
-            menuBtn.setOnMouseEntered(e -> menuBtn.setStyle(hoverStyle));
-            menuBtn.setOnMouseExited(e -> menuBtn.setStyle(baseStyle));
+        menuButtons.put(viewName, menuBtn); // Track button
+        
+        if (isActive) {
+            updateActiveState(viewName);
         }
+        
+        // Hover effects are now handled by updateActiveState logic implicitly or needs style persistence
+        // We set initial style
+         if (!isActive) {
+             menuBtn.setStyle(baseStyle);
+             menuBtn.setOnMouseEntered(e -> {
+                 if (!viewName.equals(currentView)) menuBtn.setStyle(hoverStyle);
+             });
+             menuBtn.setOnMouseExited(e -> {
+                 if (!viewName.equals(currentView)) menuBtn.setStyle(baseStyle);
+             });
+         }
 
         menuBtn.setOnAction(e -> navigateTo(viewName));
         sidebar.getChildren().add(menuBtn);
     }
+    
+    private String currentView = "home"; // Default
+
+    private void updateActiveState(String activeView) {
+        this.currentView = activeView;
+        
+        String baseStyle = 
+            "-fx-background-color: transparent;" +
+            "-fx-text-fill: #cbd5e1;" +
+            "-fx-font-size: 14px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;";
+        
+        String activeStyle = 
+            "-fx-background-color: #14b8a6;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;";
+            
+        String hoverStyle = 
+            "-fx-background-color: #1e293b;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;";
+
+        menuButtons.forEach((view, btn) -> {
+            if (view.equals(activeView)) {
+                btn.setStyle(activeStyle);
+                btn.setOnMouseEntered(null);
+                btn.setOnMouseExited(null);
+            } else {
+                btn.setStyle(baseStyle);
+                btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
+                btn.setOnMouseExited(e -> btn.setStyle(baseStyle));
+            }
+        });
+    }
 
     private void navigateTo(String viewName) {
+        updateActiveState(viewName);
         contentArea.getChildren().clear();
         
         switch (viewName) {
@@ -286,6 +357,12 @@ public class DashboardView {
             case "password":
                 showChangePassword();
                 break;
+            case "faculty":
+                showFaculty();
+                break;
+            case "student_affairs":
+                showStudentAffairs();
+                break;
             default:
                 showHome();
         }
@@ -303,6 +380,16 @@ public class DashboardView {
 
     private void showStudents() {
         StudentManagementView view = new StudentManagementView(role, userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showFaculty() {
+        FacultyManagementView view = new FacultyManagementView(role, userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showStudentAffairs() {
+        StudentAffairsView view = new StudentAffairsView(role, userId);
         contentArea.getChildren().add(view.getView());
     }
 

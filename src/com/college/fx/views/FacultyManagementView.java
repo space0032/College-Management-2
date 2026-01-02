@@ -14,6 +14,15 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.college.dao.UserDAO;
+import com.college.dao.DepartmentDAO;
+import com.college.models.Department;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
 
 /**
@@ -133,7 +142,7 @@ public class FacultyManagementView {
 
         if (session.hasPermission("MANAGE_FACULTY")) {
             Button addBtn = createButton("Add Faculty", "#22c55e");
-            addBtn.setOnAction(e -> showAlert("Add Faculty", "Add faculty dialog would open here."));
+            addBtn.setOnAction(e -> showAddFacultyDialog());
 
             Button editBtn = createButton("Edit Faculty", "#3b82f6");
             editBtn.setOnAction(e -> editFaculty());
@@ -215,6 +224,115 @@ public class FacultyManagementView {
                 } else {
                     showAlert("Error", "Failed to delete faculty.");
                 }
+            }
+        });
+    }
+
+    private void showAddFacultyDialog() {
+        Dialog<Faculty> dialog = new Dialog<>();
+        dialog.setTitle("Add Faculty");
+        dialog.setHeaderText("Create New Faculty Profile");
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Full Name");
+        TextField emailField = new TextField();
+        emailField.setPromptText("Email");
+        TextField phoneField = new TextField();
+        phoneField.setPromptText("Phone");
+        
+        ComboBox<String> deptCombo = new ComboBox<>();
+        try {
+             DepartmentDAO deptDAO = new DepartmentDAO();
+             deptCombo.getItems().addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
+             if(!deptCombo.getItems().isEmpty()) deptCombo.getSelectionModel().select(0);
+        } catch(Exception e) {
+             deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil", "Physics", "Chemistry", "Maths");
+        }
+        
+        TextField qualField = new TextField();
+        qualField.setPromptText("Qualification (e.g. PhD)");
+        
+        DatePicker joinDate = new DatePicker(LocalDate.now());
+
+        // User Account
+        Separator sep = new Separator();
+        Label userLabel = new Label("User Account Credentials");
+        userLabel.setStyle("-fx-font-weight: bold");
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Username");
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Email:"), 0, 1);
+        grid.add(emailField, 1, 1);
+        grid.add(new Label("Phone:"), 0, 2);
+        grid.add(phoneField, 1, 2);
+        
+        grid.add(new Label("Department:"), 0, 3);
+        grid.add(deptCombo, 1, 3);
+        grid.add(new Label("Qualification:"), 0, 4);
+        grid.add(qualField, 1, 4);
+        grid.add(new Label("Join Date:"), 0, 5);
+        grid.add(joinDate, 1, 5);
+        
+        grid.add(sep, 0, 6, 2, 1);
+        grid.add(userLabel, 0, 7, 2, 1);
+        grid.add(new Label("Username:"), 0, 8);
+        grid.add(usernameField, 1, 8);
+        grid.add(new Label("Password:"), 0, 9);
+        grid.add(passwordField, 1, 9);
+
+        dialog.getDialogPane().setContent(grid);
+
+        javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.setDisable(true);
+        nameField.textProperty().addListener((o, old, newValue) -> 
+            saveButton.setDisable(newValue.trim().isEmpty() || usernameField.getText().trim().isEmpty()));
+        usernameField.textProperty().addListener((o, old, newValue) -> 
+            saveButton.setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                String uName = usernameField.getText();
+                String pass = passwordField.getText();
+                UserDAO userDAO = new UserDAO();
+                int newUserId = userDAO.addUser(uName, pass, "FACULTY"); // Role "FACULTY"
+                
+                if (newUserId != -1) {
+                    Faculty f = new Faculty();
+                    f.setName(nameField.getText());
+                    f.setEmail(emailField.getText());
+                    f.setPhone(phoneField.getText());
+                    f.setDepartment(deptCombo.getValue());
+                    f.setQualification(qualField.getText());
+                    f.setJoinDate(Date.from(joinDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                    f.setUserId(newUserId);
+                    
+                    facultyDAO.addFaculty(f, newUserId);
+                    return f;
+                } else {
+                     showAlert("Error", "Failed to create user account.");
+                     return null;
+                }
+            }
+            return null;
+        });
+
+        Optional<Faculty> result = dialog.showAndWait();
+        result.ifPresent(f -> {
+            if(f != null) {
+                loadFaculty();
+                showAlert("Success", "Faculty added successfully!");
             }
         });
     }

@@ -16,6 +16,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.college.dao.CourseDAO;
+import com.college.models.Course;
+import com.college.dao.StudentDAO; // Already there but safe to include if targeted
+import java.util.Optional;
+import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
 
 /**
@@ -152,7 +157,7 @@ public class GradesView {
 
         if (session.hasPermission("MANAGE_GRADES")) {
             Button addBtn = createButton("Add Grades", "#22c55e");
-            addBtn.setOnAction(e -> showAlert("Add Grades", "Grade entry dialog would open here."));
+            addBtn.setOnAction(e -> showAddGradeDialog());
             section.getChildren().add(addBtn);
         }
 
@@ -189,6 +194,81 @@ public class GradesView {
             // For admin/faculty - ideally filter by course first
             // Just showing nothing or needing a filter
         }
+    }
+
+    private void showAddGradeDialog() {
+        Dialog<Grade> dialog = new Dialog<>();
+        dialog.setTitle("Add/Edit Grades");
+        dialog.setHeaderText("Enter Grade Details");
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        try {
+            CourseDAO courseDAO = new CourseDAO();
+            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+        } catch(Exception e) { /* Ignore */ }
+
+        ComboBox<Student> studentCombo = new ComboBox<>();
+        studentCombo.getItems().addAll(studentDAO.getAllStudents());
+
+        TextField examField = new TextField();
+        examField.setPromptText("Exam Type (e.g. Final)");
+
+        TextField marksField = new TextField();
+        marksField.setPromptText("Marks Obtained");
+        TextField maxMarksField = new TextField();
+        maxMarksField.setPromptText("Max Marks");
+
+        grid.add(new Label("Course:"), 0, 0); grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Student:"), 0, 1); grid.add(studentCombo, 1, 1);
+        grid.add(new Label("Exam:"), 0, 2); grid.add(examField, 1, 2);
+        grid.add(new Label("Marks:"), 0, 3); grid.add(marksField, 1, 3);
+        grid.add(new Label("Max Marks:"), 0, 4); grid.add(maxMarksField, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                 try {
+                     double m = Double.parseDouble(marksField.getText());
+                     double max = Double.parseDouble(maxMarksField.getText());
+                     if(max == 0) max = 100;
+                     Grade g = new Grade();
+                     if(courseCombo.getValue() != null) g.setCourseId(courseCombo.getValue().getId());
+                     if(studentCombo.getValue() != null) g.setStudentId(studentCombo.getValue().getId());
+                     g.setExamType(examField.getText());
+                     g.setMarksObtained(m);
+                     g.setMaxMarks(max);
+                     
+                     double p = (m/max)*100;
+                     g.setPercentage(p);
+                     
+                     String l = "F";
+                     if(p >= 90) l = "A+";
+                     else if(p >= 80) l = "A";
+                     else if(p >= 70) l = "B";
+                     else if(p >= 60) l = "C";
+                     else if(p >= 50) l = "D";
+                     g.setGrade(l);
+                     
+                     gradeDAO.saveGrade(g);
+                     return g;
+                 } catch(Exception e) {
+                     return null;
+                 }
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(g -> { 
+            loadGrades(); 
+            showAlert("Success", "Grade Saved!"); 
+        });
     }
 
     private void showAlert(String title, String message) {

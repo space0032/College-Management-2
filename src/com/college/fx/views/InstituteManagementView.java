@@ -51,7 +51,12 @@ public class InstituteManagementView {
     private TableView<AuditLog> auditTable;
     private ObservableList<AuditLog> auditData;
 
+    private String userRole;
+    private int userId;
+
     public InstituteManagementView(String role, int userId) {
+        this.userRole = role;
+        this.userId = userId;
         this.departmentDAO = new DepartmentDAO();
         this.roleDAO = new RoleDAO();
         this.permissionDAO = new PermissionDAO();
@@ -63,7 +68,6 @@ public class InstituteManagementView {
         createView();
         loadDepartments();
         loadRoles();
-        // Audit logs loaded when tab selected usually, but for now:
         loadAuditLogs();
     }
 
@@ -89,8 +93,17 @@ public class InstituteManagementView {
 
         Tab auditTab = new Tab("Audit Logs");
         auditTab.setContent(createAuditTab());
+        
+        // Student & Faculty Tabs (Integrated)
+        Tab studentTab = new Tab("Students");
+        StudentManagementView studentView = new StudentManagementView(userRole, userId);
+        studentTab.setContent(studentView.getView());
+        
+        Tab facultyTab = new Tab("Faculty");
+        FacultyManagementView facultyView = new FacultyManagementView(userRole, userId);
+        facultyTab.setContent(facultyView.getView());
 
-        tabPane.getTabs().addAll(deptTab, roleTab, auditTab);
+        tabPane.getTabs().addAll(studentTab, facultyTab, deptTab, roleTab, auditTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(title, tabPane);

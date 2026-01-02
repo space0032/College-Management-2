@@ -1,6 +1,6 @@
 # College Management System
 
-A comprehensive, production-ready college management system built with Java Swing and MySQL. This system provides complete administrative, faculty, and student portals with modern UI and advanced features.
+A comprehensive, production-ready college management system built with JavaFX (AtlantaFX Theme) and MySQL. This system provides complete administrative, faculty, and student portals with modern UI and advanced features.
 
 ![Version](https://img.shields.io/badge/version-1.0-blue)
 ![Java](https://img.shields.io/badge/Java-8%2B-orange)
@@ -115,13 +115,13 @@ The College Management System is a full-featured desktop application designed to
 
 ## 💻 Technology Stack
 
-- **Frontend**: Java Swing
-- **Backend**: Java (OOP, MVC Architecture)
+- **Frontend**: JavaFX 21 (AtlantaFX Theme)
+- **Backend**: Java 17 (OOP, MVC Architecture)
 - **Database**: MySQL 5.7+
 - **Libraries**: 
-  - JCalendar (Date pickers)
+  - JavaFX SDK
+  - AtlantaFX (Modern Styling)
   - MySQL Connector/J
-  - JFreeChart (Future analytics)
 
 ---
 
@@ -376,7 +376,8 @@ max_connections = 200
 innodb_buffer_pool_size = 1G
 
 # Java runtime
-java -Xmx512m -Xms256m -cp "bin:lib/*" com.college.Main
+# Java runtime
+java --module-path lib/javafx-sdk-21/lib --add-modules javafx.controls,javafx.fxml -cp "bin:lib/*" com.college.MainFX
 ```
 
 ---
@@ -472,7 +473,8 @@ For issues or questions:
 ## 🎓 Educational Value
 
 Perfect for learning:
-- Java Swing GUI development
+- JavaFX GUI development
+- Modern UI/UX Design (CSS in Java)
 - MVC architecture patterns
 - MySQL database design
 - CRUD operations

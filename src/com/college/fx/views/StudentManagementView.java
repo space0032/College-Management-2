@@ -15,6 +15,15 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.college.dao.UserDAO;
+import com.college.dao.DepartmentDAO;
+import com.college.models.Department;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javafx.scene.control.ButtonBar.ButtonData;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
@@ -233,7 +242,143 @@ public class StudentManagementView {
     }
 
     private void addStudent() {
-        showAlert("Add Student", "Add student dialog would open here.");
+        showAddStudentDialog();
+    }
+
+    private void showAddStudentDialog() {
+        Dialog<Student> dialog = new Dialog<>();
+        dialog.setTitle("Add Student");
+        dialog.setHeaderText("Create New Student Profile");
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Full Name");
+        TextField emailField = new TextField();
+        emailField.setPromptText("Email");
+        TextField phoneField = new TextField();
+        phoneField.setPromptText("Phone");
+        TextField addressField = new TextField();
+        addressField.setPromptText("Address");
+        
+        ComboBox<String> deptCombo = new ComboBox<>();
+        try {
+             DepartmentDAO deptDAO = new DepartmentDAO();
+             deptCombo.getItems().addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
+             if(!deptCombo.getItems().isEmpty()) deptCombo.getSelectionModel().select(0);
+        } catch(Exception e) {
+             deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
+        }
+        
+        ComboBox<String> courseCombo = new ComboBox<>();
+        courseCombo.getItems().addAll("B.Tech", "M.Tech", "MBA", "BCA", "MCA");
+        courseCombo.setValue("B.Tech");
+
+        TextField batchField = new TextField();
+        batchField.setPromptText("e.g. 2023-2027");
+
+        Spinner<Integer> semSpinner = new Spinner<>(1, 8, 1);
+        
+        CheckBox hosteliteCheck = new CheckBox("Is Hostelite?");
+        
+        DatePicker enrollDate = new DatePicker(LocalDate.now());
+
+        // User Account Fields
+        Separator sep = new Separator();
+        Label userLabel = new Label("User Account Credentials");
+        userLabel.setStyle("-fx-font-weight: bold");
+        
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Username");
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Email:"), 0, 1);
+        grid.add(emailField, 1, 1);
+        grid.add(new Label("Phone:"), 0, 2);
+        grid.add(phoneField, 1, 2);
+        grid.add(new Label("Address:"), 0, 3);
+        grid.add(addressField, 1, 3);
+        
+        grid.add(new Label("Department:"), 0, 4);
+        grid.add(deptCombo, 1, 4);
+        grid.add(new Label("Course:"), 0, 5);
+        grid.add(courseCombo, 1, 5);
+        grid.add(new Label("Batch:"), 0, 6);
+        grid.add(batchField, 1, 6);
+        grid.add(new Label("Semester:"), 0, 7);
+        grid.add(semSpinner, 1, 7);
+        grid.add(new Label("Enrollment:"), 0, 8);
+        grid.add(enrollDate, 1, 8);
+        grid.add(hosteliteCheck, 1, 9);
+        
+        grid.add(sep, 0, 10, 2, 1);
+        grid.add(userLabel, 0, 11, 2, 1);
+        grid.add(new Label("Username:"), 0, 12);
+        grid.add(usernameField, 1, 12);
+        grid.add(new Label("Password:"), 0, 13);
+        grid.add(passwordField, 1, 13);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Validation
+        javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.setDisable(true);
+
+        nameField.textProperty().addListener((observable, oldValue, newValue) -> {
+            saveButton.setDisable(newValue.trim().isEmpty() || usernameField.getText().trim().isEmpty());
+        });
+        usernameField.textProperty().addListener((observable, oldValue, newValue) -> {
+            saveButton.setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty());
+        });
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                // Create User first
+                String uName = usernameField.getText();
+                String pass = passwordField.getText();
+                UserDAO userDAO = new UserDAO();
+                int newUserId = userDAO.addUser(uName, pass, "STUDENT");
+                
+                if (newUserId != -1) {
+                    Student s = new Student();
+                    s.setName(nameField.getText());
+                    s.setEmail(emailField.getText());
+                    s.setPhone(phoneField.getText());
+                    s.setAddress(addressField.getText());
+                    s.setDepartment(deptCombo.getValue());
+                    s.setCourse(courseCombo.getValue());
+                    s.setBatch(batchField.getText());
+                    s.setSemester(semSpinner.getValue());
+                    s.setHostelite(hosteliteCheck.isSelected());
+                    s.setEnrollmentDate(Date.from(enrollDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                    s.setUserId(newUserId); // Set relationship
+                    
+                    studentDAO.addStudent(s, newUserId);
+                    return s;
+                } else {
+                     showAlert("Error", "Failed to create user account. Username might be taken.");
+                     return null;
+                }
+            }
+            return null;
+        });
+
+        Optional<Student> result = dialog.showAndWait();
+        result.ifPresent(student -> {
+            if (student != null) {
+                loadStudents();
+                showAlert("Success", "Student added successfully!");
+            }
+        });
     }
 
     private void editStudent() {

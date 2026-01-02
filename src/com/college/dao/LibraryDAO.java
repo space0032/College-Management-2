@@ -31,6 +31,26 @@ public class LibraryDAO {
         }
     }
 
+    public boolean updateBook(Book book) {
+        String sql = "UPDATE books SET title=?, author=?, isbn=?, quantity=?, available=? WHERE id=?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, book.getTitle());
+            pstmt.setString(2, book.getAuthor());
+            pstmt.setString(3, book.getIsbn());
+            pstmt.setInt(4, book.getQuantity());
+            pstmt.setInt(5, book.getAvailable());
+            pstmt.setInt(6, book.getId());
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public List<Book> getAllBooks() {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books ORDER BY title";

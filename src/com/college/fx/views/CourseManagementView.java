@@ -14,6 +14,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.college.dao.DepartmentDAO;
+import com.college.models.Department;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
 
 /**
@@ -135,7 +140,7 @@ public class CourseManagementView {
 
         if (session.hasPermission("MANAGE_ALL_COURSES") || session.hasPermission("MANAGE_OWN_COURSES")) {
             Button addBtn = createButton("Add Course", "#22c55e");
-            addBtn.setOnAction(e -> showAlert("Add Course", "Add course dialog would open here."));
+            addBtn.setOnAction(e -> showAddCourseDialog());
 
             Button editBtn = createButton("Edit Course", "#3b82f6");
             editBtn.setOnAction(e -> editCourse());
@@ -218,6 +223,79 @@ public class CourseManagementView {
                     showAlert("Error", "Failed to delete course.");
                 }
             }
+        });
+    }
+
+    private void showAddCourseDialog() {
+        Dialog<Course> dialog = new Dialog<>();
+        dialog.setTitle("Add Course");
+        dialog.setHeaderText("Create New Course");
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Course Name");
+        TextField codeField = new TextField();
+        codeField.setPromptText("Course Code (e.g. CS101)");
+        
+        ComboBox<String> deptCombo = new ComboBox<>();
+        try {
+             DepartmentDAO deptDAO = new DepartmentDAO();
+             deptCombo.getItems().addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
+             if(!deptCombo.getItems().isEmpty()) deptCombo.getSelectionModel().select(0);
+        } catch(Exception e) {
+             deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
+        }
+
+        Spinner<Integer> semSpinner = new Spinner<>(1, 8, 1);
+        Spinner<Integer> creditsSpinner = new Spinner<>(1, 6, 3);
+
+        grid.add(new Label("Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Code:"), 0, 1);
+        grid.add(codeField, 1, 1);
+        grid.add(new Label("Department:"), 0, 2);
+        grid.add(deptCombo, 1, 2);
+        grid.add(new Label("Semester:"), 0, 3);
+        grid.add(semSpinner, 1, 3);
+        grid.add(new Label("Credits:"), 0, 4);
+        grid.add(creditsSpinner, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.setDisable(true);
+        nameField.textProperty().addListener((o, old, newValue) -> 
+            saveButton.setDisable(newValue.trim().isEmpty() || codeField.getText().trim().isEmpty()));
+        codeField.textProperty().addListener((o, old, newValue) -> 
+            saveButton.setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                Course c = new Course();
+                c.setName(nameField.getText());
+                c.setCode(codeField.getText());
+                c.setDepartment(deptCombo.getValue());
+                c.setSemester(semSpinner.getValue());
+                c.setCredits(creditsSpinner.getValue());
+                
+                courseDAO.addCourse(c); // assuming returns int or boolean, we ignore result for now or strict check?
+                // CourseDAO typically returns ID.
+                return c;
+            }
+            return null;
+        });
+
+        Optional<Course> result = dialog.showAndWait();
+        result.ifPresent(c -> {
+            loadCourses();
+            showAlert("Success", "Course added successfully!");
         });
     }
 

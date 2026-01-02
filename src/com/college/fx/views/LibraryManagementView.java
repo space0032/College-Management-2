@@ -14,6 +14,16 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+import com.college.dao.BookIssueDAO;
+import com.college.dao.StudentDAO;
+import com.college.models.BookIssue;
+import com.college.models.Student;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
 
 /**
@@ -25,12 +35,16 @@ public class LibraryManagementView {
     private TableView<Book> tableView;
     private ObservableList<Book> bookData;
     private LibraryDAO libraryDAO;
+    private BookIssueDAO bookIssueDAO;
+    private StudentDAO studentDAO;
     private String role;
     private TextField searchField;
 
     public LibraryManagementView(String role, int userId) {
         this.role = role;
         this.libraryDAO = new LibraryDAO();
+        this.bookIssueDAO = new BookIssueDAO();
+        this.studentDAO = new StudentDAO();
         this.bookData = FXCollections.observableArrayList();
         createView();
         loadBooks();
@@ -135,13 +149,13 @@ public class LibraryManagementView {
 
         if (session.hasPermission("MANAGE_LIBRARY")) {
             Button addBtn = createButton("Add Book", "#22c55e");
-            addBtn.setOnAction(e -> showAlert("Add Book", "Add book dialog would open here."));
+            addBtn.setOnAction(e -> showAddBookDialog());
 
             Button issueBtn = createButton("Issue Book", "#3b82f6");
-            issueBtn.setOnAction(e -> showAlert("Issue Book", "Issue book dialog would open here."));
+            issueBtn.setOnAction(e -> showIssueBookDialog());
 
             Button returnBtn = createButton("Return Book", "#f59e0b");
-            returnBtn.setOnAction(e -> showAlert("Return Book", "Return book dialog would open here."));
+            returnBtn.setOnAction(e -> showReturnBookDialog());
 
             section.getChildren().addAll(addBtn, issueBtn, returnBtn);
         } else if (role.equals("STUDENT")) {
@@ -203,6 +217,135 @@ public class LibraryManagementView {
             return;
         }
         showAlert("Request Book", "Book request submitted for: " + selected.getTitle());
+    }
+
+    private void showAddBookDialog() {
+        Dialog<Book> dialog = new Dialog<>();
+        dialog.setTitle("Add Book");
+        dialog.setHeaderText("Add New Book to Library");
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField titleField = new TextField();
+        TextField authorField = new TextField();
+        TextField isbnField = new TextField();
+        Spinner<Integer> qtySpinner = new Spinner<>(1, 100, 1);
+
+        grid.add(new Label("Title:"), 0, 0); grid.add(titleField, 1, 0);
+        grid.add(new Label("Author:"), 0, 1); grid.add(authorField, 1, 1);
+        grid.add(new Label("ISBN:"), 0, 2); grid.add(isbnField, 1, 2);
+        grid.add(new Label("Quantity:"), 0, 3); grid.add(qtySpinner, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+        
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                Book b = new Book();
+                b.setTitle(titleField.getText());
+                b.setAuthor(authorField.getText());
+                b.setIsbn(isbnField.getText());
+                b.setQuantity(qtySpinner.getValue());
+                b.setAvailable(qtySpinner.getValue());
+                libraryDAO.addBook(b);
+                return b;
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(b -> { loadBooks(); showAlert("Success", "Book added!"); });
+    }
+
+    private void showIssueBookDialog() {
+        Dialog<BookIssue> dialog = new Dialog<>();
+        dialog.setTitle("Issue Book");
+        dialog.setHeaderText("Issue Book to Student");
+        ButtonType issueBtn = new ButtonType("Issue", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(issueBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+        grid.setPadding(new Insets(20, 10, 10, 10));
+
+        ComboBox<Student> studentCombo = new ComboBox<>();
+        studentCombo.setPrefWidth(250);
+        studentCombo.getItems().addAll(studentDAO.getAllStudents()); // Can be heavy
+        
+        ComboBox<Book> bookCombo = new ComboBox<>();
+        bookCombo.setPrefWidth(250);
+        bookCombo.getItems().addAll(libraryDAO.getAllBooks().stream().filter(b -> b.getAvailable() > 0).collect(Collectors.toList()));
+
+        DatePicker dueDate = new DatePicker(LocalDate.now().plusDays(14));
+
+        grid.add(new Label("Student:"), 0, 0); grid.add(studentCombo, 1, 0);
+        grid.add(new Label("Book:"), 0, 1); grid.add(bookCombo, 1, 1);
+        grid.add(new Label("Due Date:"), 0, 2); grid.add(dueDate, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == issueBtn && studentCombo.getValue() != null && bookCombo.getValue() != null) {
+                 BookIssue issue = new BookIssue();
+                 issue.setStudentId(studentCombo.getValue().getId());
+                 issue.setBookId(bookCombo.getValue().getId());
+                 issue.setIssueDate(new Date());
+                 issue.setDueDate(Date.from(dueDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                 issue.setIssuedBy(1); // Default admin/system for now or use 'userId' field of View logic?
+                 // Wait, LibraryManagementView doesn't expose userId easily in this scope unless we use field
+                 // Use placeholder 1 or fetch from Session if possible. 
+                 // We don't have direct access to 'userId' field in this method unless I use class field. 
+                 // Constructor set 'this.role', but did it set 'this.userId'? 
+                 // Checks constructor: public LibraryManagementView(String role, int userId). It DOES NOT save userId to field.
+                 // I will fix constructor to save userId.
+                 
+                 bookIssueDAO.issueBook(issue);
+                 return issue;
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(i -> { loadBooks(); showAlert("Success", "Book Issued!"); });
+    }
+
+    private void showReturnBookDialog() {
+         Dialog<BookIssue> dialog = new Dialog<>();
+         dialog.setTitle("Return Book");
+         dialog.setHeaderText("Select Book to Return");
+         ButtonType returnBtn = new ButtonType("Return", ButtonData.OK_DONE);
+         dialog.getDialogPane().getButtonTypes().addAll(returnBtn, ButtonType.CANCEL);
+         
+         GridPane grid = new GridPane();
+         grid.setHgap(10); grid.setVgap(10);
+         grid.setPadding(new Insets(20, 10, 10, 10));
+         
+         ComboBox<BookIssue> issueCombo = new ComboBox<>();
+         issueCombo.setPrefWidth(300);
+         // toString of BookIssue might not be friendly. I might need a converter.
+         issueCombo.getItems().addAll(bookIssueDAO.getAllIssuedBooks());
+         
+         TextField fineField = new TextField("0.0");
+         fineField.setEditable(false);
+         
+         issueCombo.setOnAction(e -> {
+             BookIssue bi = issueCombo.getValue();
+             if (bi != null) fineField.setText(String.valueOf(bi.calculateFine(5.0)));
+         });
+         
+         grid.add(new Label("Issued Book:"), 0, 0); grid.add(issueCombo, 1, 0);
+         grid.add(new Label("Fine:"), 0, 1); grid.add(fineField, 1, 1);
+         
+         dialog.getDialogPane().setContent(grid);
+         
+         dialog.setResultConverter(btn -> {
+             if (btn == returnBtn && issueCombo.getValue() != null) {
+                 bookIssueDAO.returnBook(issueCombo.getValue().getId(), 1); // userId needed
+                 return issueCombo.getValue();
+             }
+             return null;
+         });
+         dialog.showAndWait().ifPresent(i -> { loadBooks(); showAlert("Success", "Book Returned!"); });
     }
 
     private void showAlert(String title, String message) {

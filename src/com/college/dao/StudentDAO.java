@@ -19,10 +19,10 @@ public class StudentDAO {
      * @param student Student object to add
      * @return generated student ID if successful, -1 otherwise
      */
-    public int addStudent(Student student) {
-        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite) "
+    public int addStudent(Student student, int userId) {
+        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite, user_id) "
                 +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -37,6 +37,11 @@ public class StudentDAO {
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
             pstmt.setBoolean(10, student.isHostelite());
+            if (userId > 0) {
+                pstmt.setInt(11, userId);
+            } else {
+                pstmt.setNull(11, Types.INTEGER);
+            }
 
             int rowsAffected = pstmt.executeUpdate();
 
