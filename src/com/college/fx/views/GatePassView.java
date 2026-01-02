@@ -60,11 +60,10 @@ public class GatePassView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "My Gate Passes" : "Gate Pass Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -84,16 +83,15 @@ public class GatePassView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
         tableView.setItems(gatePassData);
-        
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         TableColumn<GatePass, String> idCol = new TableColumn<>("ID");
@@ -106,14 +104,12 @@ public class GatePassView {
 
         TableColumn<GatePass, String> fromCol = new TableColumn<>("From");
         fromCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getFromDate() != null ? data.getValue().getFromDate().format(formatter) : "-"
-        ));
+                data.getValue().getFromDate() != null ? data.getValue().getFromDate().format(formatter) : "-"));
         fromCol.setPrefWidth(140);
 
         TableColumn<GatePass, String> toCol = new TableColumn<>("To");
         toCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getToDate() != null ? data.getValue().getToDate().format(formatter) : "-"
-        ));
+                data.getValue().getToDate() != null ? data.getValue().getToDate().format(formatter) : "-"));
         toCol.setPrefWidth(140);
 
         TableColumn<GatePass, String> statusCol = new TableColumn<>("Status");
@@ -183,19 +179,18 @@ public class GatePassView {
         btn.setPrefWidth(160);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
     private void loadGatePasses() {
         gatePassData.clear();
         List<GatePass> passes;
-        
+
         if (role.equals("STUDENT")) {
             Student student = studentDAO.getStudentByUserId(userId);
             if (student != null) {
@@ -206,12 +201,94 @@ public class GatePassView {
         } else {
             passes = gatePassDAO.getAllPasses();
         }
-        
+
         gatePassData.addAll(passes);
     }
 
     private void requestGatePass() {
-        showAlert("Request Gate Pass", "Request gate pass dialog would open here.");
+        // Create the custom dialog.
+        Dialog<GatePass> dialog = new Dialog<>();
+        dialog.setTitle("New Gate Pass Request");
+        dialog.setHeaderText("Please fill in the details for your gate pass request.");
+
+        // Set the button types.
+        ButtonType loginButtonType = new ButtonType("Submit", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(loginButtonType, ButtonType.CANCEL);
+
+        // Create the labels and fields.
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField reason = new TextField();
+        reason.setPromptText("Reason");
+
+        DatePicker fromDate = new DatePicker();
+        fromDate.setPromptText("From Date");
+
+        DatePicker toDate = new DatePicker();
+        toDate.setPromptText("To Date");
+
+        TextField destination = new TextField();
+        destination.setPromptText("Destination");
+
+        TextField parentContact = new TextField();
+        parentContact.setPromptText("Parent Contact");
+
+        grid.add(new Label("Reason:"), 0, 0);
+        grid.add(reason, 1, 0);
+        grid.add(new Label("From Date:"), 0, 1);
+        grid.add(fromDate, 1, 1);
+        grid.add(new Label("To Date:"), 0, 2);
+        grid.add(toDate, 1, 2);
+        grid.add(new Label("Destination:"), 0, 3);
+        grid.add(destination, 1, 3);
+        grid.add(new Label("Parent Contact:"), 0, 4);
+        grid.add(parentContact, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Convert the result to a GatePass object when the login button is clicked.
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == loginButtonType) {
+                // Basic Validation
+                if (reason.getText().isEmpty() || fromDate.getValue() == null || toDate.getValue() == null ||
+                        destination.getText().isEmpty() || parentContact.getText().isEmpty()) {
+                    return null; // Handle invalid input better if possible, but this prevents empty objects
+                }
+
+                GatePass gp = new GatePass();
+                gp.setReason(reason.getText());
+                gp.setFromDate(fromDate.getValue());
+                gp.setToDate(toDate.getValue());
+                gp.setDestination(destination.getText());
+                gp.setParentContact(parentContact.getText());
+
+                return gp;
+            }
+            return null;
+        });
+
+        java.util.Optional<GatePass> result = dialog.showAndWait();
+
+        result.ifPresent(gp -> {
+            // Get Student ID for current user
+            Student student = studentDAO.getStudentByUserId(userId);
+            if (student == null) {
+                showAlert("Error", "Student profile not found. Please contact admin.");
+                return;
+            }
+
+            gp.setStudentId(student.getId());
+
+            if (GatePassDAO.createRequest(gp)) {
+                loadGatePasses();
+                showAlert("Success", "Gate pass requested successfully!");
+            } else {
+                showAlert("Error", "Failed to create gate pass request.");
+            }
+        });
     }
 
     private void approveGatePass() {
@@ -224,7 +301,7 @@ public class GatePassView {
             showAlert("Error", "Can only approve pending gate passes.");
             return;
         }
-        
+
         if (gatePassDAO.approveRequest(selected.getId(), userId, "Approved via JavaFX")) {
             loadGatePasses();
             showAlert("Success", "Gate pass approved!");
@@ -243,7 +320,7 @@ public class GatePassView {
             showAlert("Error", "Can only reject pending gate passes.");
             return;
         }
-        
+
         if (gatePassDAO.rejectRequest(selected.getId(), userId, "Rejected via JavaFX")) {
             loadGatePasses();
             showAlert("Success", "Gate pass rejected.");

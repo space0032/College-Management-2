@@ -133,6 +133,16 @@ public class Grade {
         this.courseName = courseName;
     }
 
+    private int semester;
+
+    public int getSemester() {
+        return semester;
+    }
+
+    public void setSemester(int semester) {
+        this.semester = semester;
+    }
+
     @Override
     public String toString() {
         return "Grade{" +
@@ -141,9 +151,7 @@ public class Grade {
                 ", courseId=" + courseId +
                 ", examType='" + examType + '\'' +
                 ", marksObtained=" + marksObtained +
-                ", maxMarks=" + maxMarks +
                 ", grade='" + grade + '\'' +
-                ", percentage=" + percentage +
                 '}';
     }
 }

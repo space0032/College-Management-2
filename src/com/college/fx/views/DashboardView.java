@@ -49,10 +49,10 @@ public class DashboardView {
         contentArea = new StackPane();
         contentArea.setStyle("-fx-background-color: #f8fafc;");
         contentArea.setPadding(new Insets(20));
-        
+
         // Show home by default
         showHome();
-        
+
         root.setCenter(contentArea);
     }
 
@@ -76,27 +76,26 @@ public class DashboardView {
         // User info
         VBox userInfo = new VBox(2);
         userInfo.setAlignment(Pos.CENTER_RIGHT);
-        
+
         Label welcomeLabel = new Label("Welcome, " + displayName);
         welcomeLabel.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 14));
         welcomeLabel.setTextFill(Color.WHITE);
-        
+
         Label roleLabel = new Label("[" + role + "]");
         roleLabel.setFont(Font.font("Segoe UI", 12));
         roleLabel.setTextFill(Color.web("#99f6e4"));
-        
+
         userInfo.getChildren().addAll(welcomeLabel, roleLabel);
 
         // Logout button
         Button logoutBtn = new Button("Logout");
         logoutBtn.setStyle(
-            "-fx-background-color: #ef4444;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 6;" +
-            "-fx-padding: 8 20;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: #ef4444;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 6;" +
+                        "-fx-padding: 8 20;" +
+                        "-fx-cursor: hand;");
         logoutBtn.setOnAction(e -> handleLogout());
 
         topBar.getChildren().addAll(titleLabel, spacer, userInfo, logoutBtn);
@@ -120,14 +119,14 @@ public class DashboardView {
         }
 
         // Student Management
-        if ((session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS")) 
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+        if ((session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS"))
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Students", "students", false);
         }
 
         // Faculty Management
         if ((session.hasPermission("MANAGE_FACULTY") || session.hasPermission("VIEW_FACULTY"))
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Faculty", "faculty", false);
         }
 
@@ -142,14 +141,14 @@ public class DashboardView {
 
         // Attendance
         if ((session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("VIEW_OWN_ATTENDANCE"))
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             String label = session.isStudent() ? "My Attendance" : "Attendance";
             addMenuItem(sidebar, label, "attendance", false);
         }
 
         // Grades
         if ((session.hasPermission("VIEW_GRADES") || session.hasPermission("VIEW_OWN_GRADES"))
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             String label = session.isStudent() ? "My Grades" : "Grades";
             addMenuItem(sidebar, label, "grades", false);
         }
@@ -173,13 +172,13 @@ public class DashboardView {
 
         // Gate Pass
         if ((session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Gate Pass", "gatepass", false);
         }
 
         // Hostel
         if ((session.hasPermission("MANAGE_HOSTEL") || session.isStudent())
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Hostel", "hostel", false);
         }
 
@@ -190,13 +189,18 @@ public class DashboardView {
 
         // Assignments
         if ((session.hasPermission("VIEW_ASSIGNMENTS") || session.hasPermission("SUBMIT_ASSIGNMENTS"))
-             && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Assignments", "assignments", false);
         }
-        
+
         // Admin Consolidated "Student Management"
         if (session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Student Management", "student_affairs", false);
+        }
+
+        // Reports
+        if (!session.isStudent()) {
+            addMenuItem(sidebar, "Reports", "reports", false);
         }
 
         // Settings section
@@ -221,78 +225,74 @@ public class DashboardView {
         menuBtn.setPrefHeight(42);
         menuBtn.setAlignment(Pos.CENTER_LEFT);
         menuBtn.setPadding(new Insets(0, 15, 0, 15));
-        
-        String baseStyle = 
-            "-fx-background-color: transparent;" +
-            "-fx-text-fill: #cbd5e1;" +
-            "-fx-font-size: 14px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;";
-        
-        String activeStyle = 
-            "-fx-background-color: #14b8a6;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;";
-        
-        String hoverStyle = 
-            "-fx-background-color: #1e293b;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;";
 
-        
+        String baseStyle = "-fx-background-color: transparent;" +
+                "-fx-text-fill: #cbd5e1;" +
+                "-fx-font-size: 14px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;";
+
+        String activeStyle = "-fx-background-color: #14b8a6;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 14px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;";
+
+        String hoverStyle = "-fx-background-color: #1e293b;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 14px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;";
+
         menuButtons.put(viewName, menuBtn); // Track button
-        
+
         if (isActive) {
             updateActiveState(viewName);
         }
-        
-        // Hover effects are now handled by updateActiveState logic implicitly or needs style persistence
+
+        // Hover effects are now handled by updateActiveState logic implicitly or needs
+        // style persistence
         // We set initial style
-         if (!isActive) {
-             menuBtn.setStyle(baseStyle);
-             menuBtn.setOnMouseEntered(e -> {
-                 if (!viewName.equals(currentView)) menuBtn.setStyle(hoverStyle);
-             });
-             menuBtn.setOnMouseExited(e -> {
-                 if (!viewName.equals(currentView)) menuBtn.setStyle(baseStyle);
-             });
-         }
+        if (!isActive) {
+            menuBtn.setStyle(baseStyle);
+            menuBtn.setOnMouseEntered(e -> {
+                if (!viewName.equals(currentView))
+                    menuBtn.setStyle(hoverStyle);
+            });
+            menuBtn.setOnMouseExited(e -> {
+                if (!viewName.equals(currentView))
+                    menuBtn.setStyle(baseStyle);
+            });
+        }
 
         menuBtn.setOnAction(e -> navigateTo(viewName));
         sidebar.getChildren().add(menuBtn);
     }
-    
+
     private String currentView = "home"; // Default
 
     private void updateActiveState(String activeView) {
         this.currentView = activeView;
-        
-        String baseStyle = 
-            "-fx-background-color: transparent;" +
-            "-fx-text-fill: #cbd5e1;" +
-            "-fx-font-size: 14px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;";
-        
-        String activeStyle = 
-            "-fx-background-color: #14b8a6;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;";
-            
-        String hoverStyle = 
-            "-fx-background-color: #1e293b;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;";
+
+        String baseStyle = "-fx-background-color: transparent;" +
+                "-fx-text-fill: #cbd5e1;" +
+                "-fx-font-size: 14px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;";
+
+        String activeStyle = "-fx-background-color: #14b8a6;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 14px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;";
+
+        String hoverStyle = "-fx-background-color: #1e293b;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 14px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;";
 
         menuButtons.forEach((view, btn) -> {
             if (view.equals(activeView)) {
@@ -310,7 +310,7 @@ public class DashboardView {
     private void navigateTo(String viewName) {
         updateActiveState(viewName);
         contentArea.getChildren().clear();
-        
+
         switch (viewName) {
             case "home":
                 showHome();
@@ -363,9 +363,17 @@ public class DashboardView {
             case "student_affairs":
                 showStudentAffairs();
                 break;
+            case "reports":
+                showReports();
+                break;
             default:
                 showHome();
         }
+    }
+
+    private void showReports() {
+        ReportsView view = new ReportsView();
+        contentArea.getChildren().add(view.getView());
     }
 
     private void showHome() {
@@ -453,35 +461,10 @@ public class DashboardView {
         contentArea.getChildren().add(view.getView());
     }
 
-    private void showPlaceholder(String title, String description) {
-        VBox placeholder = new VBox(15);
-        placeholder.setAlignment(Pos.CENTER);
-        placeholder.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-padding: 40;"
-        );
-
-        Label titleLabel = new Label(title);
-        titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        titleLabel.setTextFill(Color.web("#0f172a"));
-
-        Label descLabel = new Label(description);
-        descLabel.setFont(Font.font("Segoe UI", 14));
-        descLabel.setTextFill(Color.web("#64748b"));
-
-        Label comingSoon = new Label("This view is being migrated to JavaFX...");
-        comingSoon.setFont(Font.font("Segoe UI", 12));
-        comingSoon.setTextFill(Color.web("#94a3b8"));
-
-        placeholder.getChildren().addAll(titleLabel, descLabel, comingSoon);
-        contentArea.getChildren().add(placeholder);
-    }
-
     private void handleLogout() {
         com.college.dao.AuditLogDAO.logAction(userId, username, "LOGOUT", "USER", userId, "User logged out");
         SessionManager.getInstance().clearSession();
-        
+
         LoginView loginView = new LoginView();
         com.college.MainFX.getPrimaryStage().getScene().setRoot(loginView.getView());
         com.college.MainFX.getPrimaryStage().setMaximized(false);

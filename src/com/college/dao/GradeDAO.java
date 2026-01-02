@@ -22,9 +22,9 @@ public class GradeDAO {
      * @return true if successful
      */
     public boolean saveGrade(Grade grade) {
-        String sql = "INSERT INTO grades (student_id, course_id, exam_type, marks_obtained, max_marks, " +
-                "grade_letter, percentage, exam_date) VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE()) " +
-                "ON DUPLICATE KEY UPDATE marks_obtained=?, max_marks=?, grade_letter=?, percentage=?";
+        String sql = "INSERT INTO grades (student_id, course_id, exam_type, marks, grade, semester) " +
+                "VALUES (?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE marks=?, grade=?, semester=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -33,15 +33,13 @@ public class GradeDAO {
             pstmt.setInt(2, grade.getCourseId());
             pstmt.setString(3, grade.getExamType());
             pstmt.setDouble(4, grade.getMarksObtained());
-            pstmt.setDouble(5, grade.getMaxMarks());
-            pstmt.setString(6, grade.getGrade());
-            pstmt.setDouble(7, grade.getPercentage());
+            pstmt.setString(5, grade.getGrade());
+            pstmt.setInt(6, grade.getSemester() != 0 ? grade.getSemester() : 1); // Default semester 1 if not set
 
             // For duplicate key update
-            pstmt.setDouble(8, grade.getMarksObtained());
-            pstmt.setDouble(9, grade.getMaxMarks());
-            pstmt.setString(10, grade.getGrade());
-            pstmt.setDouble(11, grade.getPercentage());
+            pstmt.setDouble(7, grade.getMarksObtained());
+            pstmt.setString(8, grade.getGrade());
+            pstmt.setInt(9, grade.getSemester() != 0 ? grade.getSemester() : 1);
 
             return pstmt.executeUpdate() > 0;
 
@@ -61,7 +59,7 @@ public class GradeDAO {
         List<Grade> grades = new ArrayList<>();
         String sql = "SELECT g.*, c.name as course_name FROM grades g " +
                 "JOIN courses c ON g.course_id = c.id " +
-                "WHERE g.student_id = ? ORDER BY g.exam_date DESC";
+                "WHERE g.student_id = ? ORDER BY g.exam_type DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -175,8 +173,8 @@ public class GradeDAO {
      */
     public Map<String, Integer> getGradeDistribution(int courseId) {
         Map<String, Integer> distribution = new HashMap<>();
-        String sql = "SELECT grade_letter, COUNT(*) as count FROM grades " +
-                "WHERE course_id = ? GROUP BY grade_letter";
+        String sql = "SELECT grade, COUNT(*) as count FROM grades " +
+                "WHERE course_id = ? GROUP BY grade";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -185,7 +183,7 @@ public class GradeDAO {
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                distribution.put(rs.getString("grade_letter"), rs.getInt("count"));
+                distribution.put(rs.getString("grade"), rs.getInt("count"));
             }
 
         } catch (SQLException e) {
@@ -203,10 +201,10 @@ public class GradeDAO {
         grade.setStudentId(rs.getInt("student_id"));
         grade.setCourseId(rs.getInt("course_id"));
         grade.setExamType(rs.getString("exam_type"));
-        grade.setMarksObtained(rs.getDouble("marks_obtained"));
-        grade.setMaxMarks(rs.getDouble("max_marks"));
-        grade.setGrade(rs.getString("grade_letter"));
-        grade.setPercentage(rs.getDouble("percentage"));
+        grade.setMarksObtained(rs.getDouble("marks"));
+        // grade.setMaxMarks(rs.getDouble("max_marks")); // Column doesn't exist
+        grade.setGrade(rs.getString("grade"));
+        // grade.setPercentage(rs.getDouble("percentage")); // Column doesn't exist
 
         try {
             grade.setStudentName(rs.getString("student_name"));
