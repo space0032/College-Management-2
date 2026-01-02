@@ -303,7 +303,8 @@ public class DashboardView {
     }
 
     private void showAttendance() {
-        showPlaceholder("Attendance", "Attendance tracking features.");
+        AttendanceView view = new AttendanceView(role, userId);
+        contentArea.getChildren().add(view.getView());
     }
 
     private void showLibrary() {
@@ -322,7 +323,8 @@ public class DashboardView {
     }
 
     private void showGrades() {
-        showPlaceholder("Grades", "Grade management features.");
+        GradesView view = new GradesView(role, userId);
+        contentArea.getChildren().add(view.getView());
     }
 
     private void showGatePass() {
@@ -336,7 +338,8 @@ public class DashboardView {
     }
 
     private void showAssignments() {
-        showPlaceholder("Assignments", "Assignment management.");
+        AssignmentsView view = new AssignmentsView(role, userId);
+        contentArea.getChildren().add(view.getView());
     }
 
     private void showProfile() {
