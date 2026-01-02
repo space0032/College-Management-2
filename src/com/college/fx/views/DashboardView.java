@@ -166,6 +166,11 @@ public class DashboardView {
             addMenuItem(sidebar, "Gate Pass", "gatepass", false);
         }
 
+        // Hostel
+        if (session.hasPermission("MANAGE_HOSTEL") || session.isStudent()) {
+            addMenuItem(sidebar, "Hostel", "hostel", false);
+        }
+
         // Announcements (faculty)
         if (role.equals("FACULTY")) {
             addMenuItem(sidebar, "Announcements", "announcements", false);
@@ -266,6 +271,9 @@ public class DashboardView {
             case "gatepass":
                 showGatePass();
                 break;
+            case "hostel":
+                showHostel();
+                break;
             case "announcements":
                 showAnnouncements();
                 break;
@@ -289,7 +297,8 @@ public class DashboardView {
     }
 
     private void showInstitute() {
-        showPlaceholder("Institute Management", "Admin management features coming soon.");
+        InstituteManagementView view = new InstituteManagementView(role, userId);
+        contentArea.getChildren().add(view.getView());
     }
 
     private void showStudents() {
@@ -329,6 +338,11 @@ public class DashboardView {
 
     private void showGatePass() {
         GatePassView view = new GatePassView(role, userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showHostel() {
+        HostelManagementView view = new HostelManagementView(role, userId);
         contentArea.getChildren().add(view.getView());
     }
 
