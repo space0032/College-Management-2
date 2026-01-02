@@ -87,8 +87,9 @@ public class TimetablePanel extends JPanel {
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
         filterPanel.setBackground(Color.WHITE);
 
-        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
-            // Admin/Faculty can select department and semester
+        com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
+        if (session.hasPermission("MANAGE_TIMETABLE") || session.hasPermission("VIEW_TIMETABLE")) {
+            // Users with timetable permissions can select department and semester
             filterPanel.add(new JLabel("Department:"));
             departmentCombo = new JComboBox<>();
             loadDepartments();
@@ -146,7 +147,8 @@ public class TimetablePanel extends JPanel {
                 if (column == 0)
                     return false;
                 // Other columns editable only for ADMIN/FACULTY
-                return userRole.equals("ADMIN") || userRole.equals("FACULTY");
+                com.college.utils.SessionManager s = com.college.utils.SessionManager.getInstance();
+                return s.hasPermission("MANAGE_TIMETABLE");
             }
         };
 
@@ -166,7 +168,8 @@ public class TimetablePanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
 
-        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
+        com.college.utils.SessionManager sessionMgr = com.college.utils.SessionManager.getInstance();
+        if (sessionMgr.hasPermission("MANAGE_TIMETABLE")) {
             JLabel infoLabel = new JLabel("Click cells to edit schedule");
             infoLabel.setFont(new Font("Arial", Font.ITALIC, 12));
             infoLabel.setForeground(new Color(127, 140, 141));
@@ -222,8 +225,9 @@ public class TimetablePanel extends JPanel {
         tableModel.setRowCount(0);
 
         // Determine department and semester
-        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
-            if (departmentCombo.getSelectedItem() != null) {
+        com.college.utils.SessionManager sess = com.college.utils.SessionManager.getInstance();
+        if (sess.hasPermission("MANAGE_TIMETABLE") || sess.hasPermission("VIEW_TIMETABLE")) {
+            if (departmentCombo != null && departmentCombo.getSelectedItem() != null) {
                 currentDepartment = (String) departmentCombo.getSelectedItem();
             } else {
                 currentDepartment = "General";
@@ -268,8 +272,10 @@ public class TimetablePanel extends JPanel {
     }
 
     private void saveTimetable() {
-        if (!userRole.equals("ADMIN") && !userRole.equals("FACULTY")) {
-            return; // Students cannot save
+        com.college.utils.SessionManager sessionCheck = com.college.utils.SessionManager.getInstance();
+        if (!sessionCheck.hasPermission("MANAGE_TIMETABLE")) {
+            UIHelper.showErrorMessage(this, "You don't have permission to edit timetables.");
+            return;
         }
 
         try {

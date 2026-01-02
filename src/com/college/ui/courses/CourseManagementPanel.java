@@ -59,11 +59,15 @@ public class CourseManagementPanel extends JPanel {
         // Table Panel
         JPanel tablePanel = createTablePanel();
 
-        // Button Panel - Only show for Admin/Faculty
+        // Button Panel - Only show for users with proper permissions
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
 
-        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
+        // Get session for permission checks
+        com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
+
+        // Add/Edit/Delete Course buttons - require MANAGE_ALL_COURSES or MANAGE_OWN_COURSES
+        if (session.hasPermission("MANAGE_ALL_COURSES") || session.hasPermission("MANAGE_OWN_COURSES")) {
             JButton addButton = UIHelper.createSuccessButton("Add Course");
             addButton.setPreferredSize(new Dimension(150, 40));
             addButton.addActionListener(e -> addCourse());
@@ -78,7 +82,10 @@ public class CourseManagementPanel extends JPanel {
             deleteButton.setPreferredSize(new Dimension(150, 40));
             deleteButton.addActionListener(e -> deleteCourse());
             buttonPanel.add(deleteButton);
+        }
 
+        // Export button - available to anyone who can view courses
+        if (session.hasPermission("VIEW_COURSES")) {
             JButton exportButton = UIHelper.createPrimaryButton("Export");
             exportButton.setPreferredSize(new Dimension(120, 40));
             exportButton.addActionListener(
@@ -339,11 +346,13 @@ public class CourseManagementPanel extends JPanel {
                 String studentDept = student.getDepartment();
                 int studentSemester = student.getSemester();
 
-                // Filter courses that match student's department
-                // Note: In a real system, courses should have semester info too
+                // Filter courses that match student's department AND semester
                 for (Course course : allCourses) {
-                    if (course.getDepartmentName() != null &&
-                            course.getDepartmentName().equals(studentDept)) {
+                    boolean deptMatches = course.getDepartmentName() != null &&
+                            course.getDepartmentName().equals(studentDept);
+                    boolean semesterMatches = course.getSemester() == studentSemester;
+                    
+                    if (deptMatches && semesterMatches) {
                         studentCourses.add(course);
                     }
                 }

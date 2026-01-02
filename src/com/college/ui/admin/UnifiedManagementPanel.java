@@ -38,6 +38,7 @@ public class UnifiedManagementPanel extends JPanel {
         tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
         // Add tabs
+        tabbedPane.addTab("Announcements", new com.college.ui.announcements.AnnouncementManagementPanel(role, userId));
         tabbedPane.addTab("Students", new StudentManagementPanel(role));
         tabbedPane.addTab("Faculty", new FacultyManagementPanel());
         tabbedPane.addTab("Departments", new DepartmentManagementPanel());

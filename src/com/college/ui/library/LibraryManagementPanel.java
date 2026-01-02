@@ -48,8 +48,9 @@ public class LibraryManagementPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
-        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
-            // Use tabbed pane for faculty/admin
+        com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
+        if (session.hasPermission("MANAGE_LIBRARY")) {
+            // Use tabbed pane for users with library management permission
             tabbedPane = new JTabbedPane();
             tabbedPane.addTab("Books", createBooksPanel());
             tabbedPane.addTab("Book Requests", new BookRequestsPanel(userId));
@@ -91,8 +92,9 @@ public class LibraryManagementPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
 
-        if (userRole.equals("ADMIN") || userRole.equals("FACULTY")) {
-            // Admin/Faculty buttons
+        com.college.utils.SessionManager sessionMgr = com.college.utils.SessionManager.getInstance();
+        if (sessionMgr.hasPermission("MANAGE_LIBRARY")) {
+            // Library management buttons
             JButton addButton = UIHelper.createSuccessButton("Add Book");
             addButton.setPreferredSize(new Dimension(150, 40));
             addButton.addActionListener(e -> addBook());

@@ -154,7 +154,9 @@ public class StudentManagementPanel extends JPanel {
         exportButton.addActionListener(
                 e -> com.college.utils.TableExporter.showExportDialog(this, studentTable, "students"));
 
-        if (!"WARDEN".equals(userRole)) {
+        // Only show Add/Edit/Delete buttons for users with MANAGE_STUDENTS permission
+        com.college.utils.SessionManager session = com.college.utils.SessionManager.getInstance();
+        if (session.hasPermission("MANAGE_STUDENTS")) {
             panel.add(addButton);
             panel.add(editButton);
             panel.add(deleteButton);

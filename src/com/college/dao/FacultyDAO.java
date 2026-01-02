@@ -191,6 +191,35 @@ public class FacultyDAO {
     }
 
     /**
+     * Get faculty by user ID
+     * 
+     * @param userId ID of the user
+     * @return Faculty object or null if not found
+     */
+    public Faculty getFacultyByUserId(int userId) {
+        String sql = "SELECT f.*, u.username, r.name as role_name " +
+                "FROM faculty f " +
+                "LEFT JOIN users u ON f.user_id = u.id " +
+                "LEFT JOIN roles r ON u.role_id = r.id " +
+                "WHERE f.user_id=?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return extractFacultyFromResultSet(rs);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * Helper method to extract Faculty object from ResultSet
      * 
      * @param rs ResultSet from query

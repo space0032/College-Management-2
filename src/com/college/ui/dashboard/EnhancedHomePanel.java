@@ -164,37 +164,55 @@ public class EnhancedHomePanel extends JPanel {
     private JPanel createAlertsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createTitledBorder("Alerts & Notifications"));
+        panel.setBorder(BorderFactory.createTitledBorder("Announcements & Alerts"));
 
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> alertsList = new JList<>(listModel);
         alertsList.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        // Add alerts based on role
+        // Fetch announcements from database
+        try {
+            com.college.dao.AnnouncementDAO announcementDAO = new com.college.dao.AnnouncementDAO();
+            List<com.college.models.Announcement> announcements = announcementDAO.getActiveAnnouncements(role);
+
+            for (com.college.models.Announcement announcement : announcements) {
+                String entry = String.format("%s %s: %s",
+                        announcement.getPriorityIcon(),
+                        announcement.getTitle(),
+                        announcement.getContent().length() > 60
+                                ? announcement.getContent().substring(0, 60) + "..."
+                                : announcement.getContent());
+                listModel.addElement(entry);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Add role-based alerts
         if (role.equals("ADMIN") || role.equals("FACULTY")) {
             int pendingPasses = getPendingGatePassesInt();
             if (pendingPasses > 0) {
-                listModel.addElement("⚠️ " + pendingPasses + " gate pass requests pending approval");
+                listModel.addElement("[!] " + pendingPasses + " gate pass requests pending approval");
             }
 
             int pendingFees = getPendingFeesCountInt();
             if (pendingFees > 0) {
-                listModel.addElement("💰 " + pendingFees + " students have pending fees");
+                listModel.addElement("[i] " + pendingFees + " students have pending fees");
             }
 
             int issuedBooks = getIssuedBooksCountInt();
             if (issuedBooks > 0) {
-                listModel.addElement("📕 " + issuedBooks + " books currently issued");
+                listModel.addElement("[i] " + issuedBooks + " books currently issued");
             }
         } else {
-            // Student alerts
-            listModel.addElement("ℹ️ Check your attendance regularly");
-            listModel.addElement("ℹ️ View timetable for class schedule");
-            listModel.addElement("ℹ️ Pay fees before due date");
+            // Student reminders
+            listModel.addElement("[i] Check your attendance regularly");
+            listModel.addElement("[i] View timetable for class schedule");
+            listModel.addElement("[i] Pay fees before due date");
         }
 
         if (listModel.isEmpty()) {
-            listModel.addElement("✅ No alerts at this time");
+            listModel.addElement("No announcements or alerts at this time");
         }
 
         JScrollPane scrollPane = new JScrollPane(alertsList);

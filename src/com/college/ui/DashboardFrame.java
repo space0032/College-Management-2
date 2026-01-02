@@ -27,11 +27,14 @@ public class DashboardFrame extends JFrame {
     private int userId;
     private JPanel contentPanel;
     private CardLayout cardLayout;
+    private String displayName; // Actual name (e.g., "John Doe" instead of "john_doe")
 
     public DashboardFrame(String username, String role, int userId) {
         this.username = username;
         this.role = role;
         this.userId = userId;
+        // Get the actual display name based on role
+        this.displayName = com.college.utils.UserDisplayNameUtil.getDisplayName(userId, role, username);
         initComponents();
     }
 
@@ -83,6 +86,11 @@ public class DashboardFrame extends JFrame {
         // Unified Admin Panel
         if (role.equals("ADMIN")) {
             contentPanel.add(new com.college.ui.admin.UnifiedManagementPanel(role, userId), "INSTITUTE_MANAGEMENT");
+        }
+
+        // Announcements Panel for Faculty
+        if (role.equals("FACULTY")) {
+            contentPanel.add(new com.college.ui.announcements.AnnouncementManagementPanel(role, userId), "ANNOUNCEMENTS");
         }
 
         // Add Assignments Panels
@@ -141,7 +149,7 @@ public class DashboardFrame extends JFrame {
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         userPanel.setBackground(UIHelper.PRIMARY_COLOR);
 
-        JLabel userLabel = new JLabel("Welcome, " + username + " (" + role + ")");
+        JLabel userLabel = new JLabel("Welcome, " + displayName + " (" + role + ")");
         userLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         userLabel.setForeground(Color.WHITE);
 
@@ -267,10 +275,11 @@ public class DashboardFrame extends JFrame {
         if (session.hasPermission("MANAGE_FEES") || session.hasPermission("VIEW_ALL_FEES")) {
             // Usually in Unified for Admin, but Faculty might need access if permitted
             if (!session.hasPermission("MANAGE_SYSTEM")) {
-                addMenuItem(sidebar, "Fee Management", "FEES");
+                addMenuItem(sidebar, "Student Fees", "FEES");
             }
         }
-        if (session.hasPermission("VIEW_OWN_FEES")) {
+        // My Fees - only for students, not for admin/faculty
+        if (session.hasPermission("VIEW_OWN_FEES") && session.isStudent()) {
             addMenuItem(sidebar, "My Fees", "FEES");
         }
 
@@ -287,7 +296,12 @@ public class DashboardFrame extends JFrame {
             addMenuItem(sidebar, "Audit Logs", "AUDIT_LOGS");
         }
 
-        // 13. Assignments
+        // 13. Announcements (For Faculty only, Admin has it in Unified Panel)
+        if (role.equals("FACULTY")) {
+            addMenuItem(sidebar, "Announcements", "ANNOUNCEMENTS");
+        }
+
+        // 14. Assignments
         if (session.hasPermission("VIEW_ASSIGNMENTS") || session.hasPermission("MANAGE_ASSIGNMENTS")) {
             addMenuItem(sidebar, "Assignments", "ASSIGNMENTS");
         }
@@ -416,7 +430,7 @@ public class DashboardFrame extends JFrame {
      * Create enhanced home panel with stats and activity feed
      */
     private JPanel createHomePanel() {
-        return new com.college.ui.dashboard.EnhancedHomePanel(username, role, userId);
+        return new com.college.ui.dashboard.EnhancedHomePanel(displayName, role, userId);
     }
 
     /**
