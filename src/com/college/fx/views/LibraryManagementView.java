@@ -21,7 +21,7 @@ import com.college.models.Student;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.Optional;
+
 import java.util.stream.Collectors;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.util.StringConverter;
@@ -69,11 +69,10 @@ public class LibraryManagementView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "Library" : "Library Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -101,11 +100,10 @@ public class LibraryManagementView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -180,12 +178,11 @@ public class LibraryManagementView {
         btn.setPrefWidth(140);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
@@ -204,8 +201,8 @@ public class LibraryManagementView {
         bookData.clear();
         List<Book> books = libraryDAO.getAllBooks();
         for (Book b : books) {
-            if (b.getTitle().toLowerCase().contains(keyword) || 
-                b.getAuthor().toLowerCase().contains(keyword)) {
+            if (b.getTitle().toLowerCase().contains(keyword) ||
+                    b.getAuthor().toLowerCase().contains(keyword)) {
                 bookData.add(b);
             }
         }
@@ -250,13 +247,17 @@ public class LibraryManagementView {
         TextField isbnField = new TextField(book.getIsbn());
         Spinner<Integer> qtySpinner = new Spinner<>(1, 100, book.getQuantity());
 
-        grid.add(new Label("Title:"), 0, 0); grid.add(titleField, 1, 0);
-        grid.add(new Label("Author:"), 0, 1); grid.add(authorField, 1, 1);
-        grid.add(new Label("ISBN:"), 0, 2); grid.add(isbnField, 1, 2);
-        grid.add(new Label("Quantity:"), 0, 3); grid.add(qtySpinner, 1, 3);
+        grid.add(new Label("Title:"), 0, 0);
+        grid.add(titleField, 1, 0);
+        grid.add(new Label("Author:"), 0, 1);
+        grid.add(authorField, 1, 1);
+        grid.add(new Label("ISBN:"), 0, 2);
+        grid.add(isbnField, 1, 2);
+        grid.add(new Label("Quantity:"), 0, 3);
+        grid.add(qtySpinner, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
-        
+
         dialog.setResultConverter(btn -> {
             if (btn == saveBtn) {
                 // Adjust available if quantity changed?
@@ -265,19 +266,22 @@ public class LibraryManagementView {
                 int oldQty = book.getQuantity();
                 int newQty = qtySpinner.getValue();
                 int diff = newQty - oldQty;
-                
+
                 book.setTitle(titleField.getText());
                 book.setAuthor(authorField.getText());
                 book.setIsbn(isbnField.getText());
                 book.setQuantity(newQty);
                 book.setAvailable(book.getAvailable() + diff); // Adjust available logic
-                
+
                 libraryDAO.updateBook(book);
                 return book;
             }
             return null;
         });
-        dialog.showAndWait().ifPresent(b -> { loadBooks(); showAlert("Success", "Book updated!"); });
+        dialog.showAndWait().ifPresent(b -> {
+            loadBooks();
+            showAlert("Success", "Book updated!");
+        });
     }
 
     private void showAddBookDialog() {
@@ -297,13 +301,17 @@ public class LibraryManagementView {
         TextField isbnField = new TextField();
         Spinner<Integer> qtySpinner = new Spinner<>(1, 100, 1);
 
-        grid.add(new Label("Title:"), 0, 0); grid.add(titleField, 1, 0);
-        grid.add(new Label("Author:"), 0, 1); grid.add(authorField, 1, 1);
-        grid.add(new Label("ISBN:"), 0, 2); grid.add(isbnField, 1, 2);
-        grid.add(new Label("Quantity:"), 0, 3); grid.add(qtySpinner, 1, 3);
+        grid.add(new Label("Title:"), 0, 0);
+        grid.add(titleField, 1, 0);
+        grid.add(new Label("Author:"), 0, 1);
+        grid.add(authorField, 1, 1);
+        grid.add(new Label("ISBN:"), 0, 2);
+        grid.add(isbnField, 1, 2);
+        grid.add(new Label("Quantity:"), 0, 3);
+        grid.add(qtySpinner, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
-        
+
         dialog.setResultConverter(btn -> {
             if (btn == saveBtn) {
                 Book b = new Book();
@@ -317,7 +325,10 @@ public class LibraryManagementView {
             }
             return null;
         });
-        dialog.showAndWait().ifPresent(b -> { loadBooks(); showAlert("Success", "Book added!"); });
+        dialog.showAndWait().ifPresent(b -> {
+            loadBooks();
+            showAlert("Success", "Book added!");
+        });
     }
 
     private void showIssueBookDialog() {
@@ -328,7 +339,8 @@ public class LibraryManagementView {
         dialog.getDialogPane().getButtonTypes().addAll(issueBtn, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setVgap(10);
         grid.setPadding(new Insets(20, 10, 10, 10));
 
         TextField studentSearch = new TextField();
@@ -337,12 +349,12 @@ public class LibraryManagementView {
         studentCombo.setPrefWidth(250);
         List<Student> allStudents = studentDAO.getAllStudents();
         studentCombo.getItems().addAll(allStudents);
-        
+
         studentSearch.textProperty().addListener((o, old, newVal) -> {
             String lower = newVal.toLowerCase();
             List<Student> filtered = allStudents.stream()
-                .filter(s -> s.getName().toLowerCase().contains(lower) || String.valueOf(s.getId()).contains(lower))
-                .collect(Collectors.toList());
+                    .filter(s -> s.getName().toLowerCase().contains(lower) || String.valueOf(s.getId()).contains(lower))
+                    .collect(Collectors.toList());
             studentCombo.getItems().setAll(filtered);
             studentCombo.show();
         });
@@ -351,103 +363,124 @@ public class LibraryManagementView {
         bookSearch.setPromptText("Search Book Title");
         ComboBox<Book> bookCombo = new ComboBox<>();
         bookCombo.setPrefWidth(250);
-        List<Book> avlBooks = libraryDAO.getAllBooks().stream().filter(b -> b.getAvailable() > 0).collect(Collectors.toList());
+        List<Book> avlBooks = libraryDAO.getAllBooks().stream().filter(b -> b.getAvailable() > 0)
+                .collect(Collectors.toList());
         bookCombo.getItems().addAll(avlBooks);
-        
+
         bookSearch.textProperty().addListener((o, old, newVal) -> {
             String lower = newVal.toLowerCase();
             List<Book> filtered = avlBooks.stream()
-                .filter(b -> b.getTitle().toLowerCase().contains(lower))
-                .collect(Collectors.toList());
+                    .filter(b -> b.getTitle().toLowerCase().contains(lower))
+                    .collect(Collectors.toList());
             bookCombo.getItems().setAll(filtered);
             bookCombo.show();
         });
 
         DatePicker dueDate = new DatePicker(LocalDate.now().plusDays(14));
 
-        grid.add(new Label("Filter Student:"), 0, 0); grid.add(studentSearch, 1, 0);
-        grid.add(new Label("Select Student:"), 0, 1); grid.add(studentCombo, 1, 1);
-        grid.add(new Label("Filter Book:"), 0, 2); grid.add(bookSearch, 1, 2);
-        grid.add(new Label("Select Book:"), 0, 3); grid.add(bookCombo, 1, 3);
-        grid.add(new Label("Due Date:"), 0, 4); grid.add(dueDate, 1, 4);
+        grid.add(new Label("Filter Student:"), 0, 0);
+        grid.add(studentSearch, 1, 0);
+        grid.add(new Label("Select Student:"), 0, 1);
+        grid.add(studentCombo, 1, 1);
+        grid.add(new Label("Filter Book:"), 0, 2);
+        grid.add(bookSearch, 1, 2);
+        grid.add(new Label("Select Book:"), 0, 3);
+        grid.add(bookCombo, 1, 3);
+        grid.add(new Label("Due Date:"), 0, 4);
+        grid.add(dueDate, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
             if (btn == issueBtn && studentCombo.getValue() != null && bookCombo.getValue() != null) {
-                 BookIssue issue = new BookIssue();
-                 issue.setStudentId(studentCombo.getValue().getId());
-                 issue.setBookId(bookCombo.getValue().getId());
-                 issue.setIssueDate(new Date());
-                 issue.setDueDate(Date.from(dueDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-                 issue.setIssuedBy(1); 
-                 bookIssueDAO.issueBook(issue);
-                 return issue;
+                BookIssue issue = new BookIssue();
+                issue.setStudentId(studentCombo.getValue().getId());
+                issue.setBookId(bookCombo.getValue().getId());
+                issue.setIssueDate(new Date());
+                issue.setDueDate(Date.from(dueDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                issue.setIssuedBy(1);
+                bookIssueDAO.issueBook(issue);
+                return issue;
             }
             return null;
         });
-        dialog.showAndWait().ifPresent(i -> { loadBooks(); showAlert("Success", "Book Issued!"); });
+        dialog.showAndWait().ifPresent(i -> {
+            loadBooks();
+            showAlert("Success", "Book Issued!");
+        });
     }
 
     private void showReturnBookDialog() {
-         Dialog<BookIssue> dialog = new Dialog<>();
-         dialog.setTitle("Return Book");
-         dialog.setHeaderText("Select Book to Return");
-         ButtonType returnBtn = new ButtonType("Return", ButtonData.OK_DONE);
-         dialog.getDialogPane().getButtonTypes().addAll(returnBtn, ButtonType.CANCEL);
-         
-         GridPane grid = new GridPane();
-         grid.setHgap(10); grid.setVgap(10);
-         grid.setPadding(new Insets(20, 10, 10, 10));
-         
-         TextField searchIssue = new TextField();
-         searchIssue.setPromptText("Search Book/Student");
-         
-         ComboBox<BookIssue> issueCombo = new ComboBox<>();
-         issueCombo.setPrefWidth(300);
-         List<BookIssue> allIssues = bookIssueDAO.getAllIssuedBooks();
-         issueCombo.getItems().addAll(allIssues);
-         
-         issueCombo.setConverter(new StringConverter<BookIssue>() {
-             public String toString(BookIssue object) {
-                 if(object == null) return "";
-                 return object.getBookTitle() + " (" + object.getStudentName() + ")";
-             }
-             public BookIssue fromString(String string) { return null; }
-         });
-         
-         searchIssue.textProperty().addListener((o, old, newVal) -> {
+        Dialog<BookIssue> dialog = new Dialog<>();
+        dialog.setTitle("Return Book");
+        dialog.setHeaderText("Select Book to Return");
+        ButtonType returnBtn = new ButtonType("Return", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(returnBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 10, 10, 10));
+
+        TextField searchIssue = new TextField();
+        searchIssue.setPromptText("Search Book/Student");
+
+        ComboBox<BookIssue> issueCombo = new ComboBox<>();
+        issueCombo.setPrefWidth(300);
+        List<BookIssue> allIssues = bookIssueDAO.getAllIssuedBooks();
+        issueCombo.getItems().addAll(allIssues);
+
+        issueCombo.setConverter(new StringConverter<BookIssue>() {
+            public String toString(BookIssue object) {
+                if (object == null)
+                    return "";
+                return object.getBookTitle() + " (" + object.getStudentName() + ")";
+            }
+
+            public BookIssue fromString(String string) {
+                return null;
+            }
+        });
+
+        searchIssue.textProperty().addListener((o, old, newVal) -> {
             String lower = newVal.toLowerCase();
             List<BookIssue> filtered = allIssues.stream()
-                .filter(i -> (i.getBookTitle() != null && i.getBookTitle().toLowerCase().contains(lower)) || 
-                             (i.getStudentName() != null && i.getStudentName().toLowerCase().contains(lower)))
-                .collect(Collectors.toList());
+                    .filter(i -> (i.getBookTitle() != null && i.getBookTitle().toLowerCase().contains(lower)) ||
+                            (i.getStudentName() != null && i.getStudentName().toLowerCase().contains(lower)))
+                    .collect(Collectors.toList());
             issueCombo.getItems().setAll(filtered);
             issueCombo.show();
-         });
-         
-         TextField fineField = new TextField("0.0");
-         fineField.setEditable(false);
-         
-         issueCombo.setOnAction(e -> {
-             BookIssue bi = issueCombo.getValue();
-             if (bi != null) fineField.setText(String.valueOf(bi.calculateFine(5.0)));
-         });
-         
-         grid.add(new Label("Filter:"), 0, 0); grid.add(searchIssue, 1, 0);
-         grid.add(new Label("Issued Book:"), 0, 1); grid.add(issueCombo, 1, 1);
-         grid.add(new Label("Fine:"), 0, 2); grid.add(fineField, 1, 2);
-         
-         dialog.getDialogPane().setContent(grid);
-         
-         dialog.setResultConverter(btn -> {
-             if (btn == returnBtn && issueCombo.getValue() != null) {
-                 bookIssueDAO.returnBook(issueCombo.getValue().getId(), 1); 
-                 return issueCombo.getValue();
-             }
-             return null;
-         });
-         dialog.showAndWait().ifPresent(i -> { loadBooks(); showAlert("Success", "Book Returned!"); });
+        });
+
+        TextField fineField = new TextField("0.0");
+        fineField.setEditable(false);
+
+        issueCombo.setOnAction(e -> {
+            BookIssue bi = issueCombo.getValue();
+            if (bi != null)
+                fineField.setText(String.valueOf(bi.calculateFine(5.0)));
+        });
+
+        grid.add(new Label("Filter:"), 0, 0);
+        grid.add(searchIssue, 1, 0);
+        grid.add(new Label("Issued Book:"), 0, 1);
+        grid.add(issueCombo, 1, 1);
+        grid.add(new Label("Fine:"), 0, 2);
+        grid.add(fineField, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == returnBtn && issueCombo.getValue() != null) {
+                bookIssueDAO.returnBook(issueCombo.getValue().getId(), 1);
+                return issueCombo.getValue();
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(i -> {
+            loadBooks();
+            showAlert("Success", "Book Returned!");
+        });
     }
 
     private void showAlert(String title, String message) {

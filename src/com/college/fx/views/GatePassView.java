@@ -27,6 +27,7 @@ public class GatePassView {
     private VBox root;
     private TableView<GatePass> tableView;
     private ObservableList<GatePass> gatePassData;
+    @SuppressWarnings("unused")
     private GatePassDAO gatePassDAO;
     private StudentDAO studentDAO;
     private String role;
@@ -92,7 +93,7 @@ public class GatePassView {
         tableView = new TableView<>();
         tableView.setItems(gatePassData);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         TableColumn<GatePass, String> idCol = new TableColumn<>("ID");
         idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
@@ -194,12 +195,12 @@ public class GatePassView {
         if (role.equals("STUDENT")) {
             Student student = studentDAO.getStudentByUserId(userId);
             if (student != null) {
-                passes = gatePassDAO.getStudentPasses(student.getId());
+                passes = GatePassDAO.getStudentPasses(student.getId());
             } else {
                 return;
             }
         } else {
-            passes = gatePassDAO.getAllPasses();
+            passes = GatePassDAO.getAllPasses();
         }
 
         gatePassData.addAll(passes);
@@ -302,7 +303,7 @@ public class GatePassView {
             return;
         }
 
-        if (gatePassDAO.approveRequest(selected.getId(), userId, "Approved via JavaFX")) {
+        if (GatePassDAO.approveRequest(selected.getId(), userId, "Approved via JavaFX")) {
             loadGatePasses();
             showAlert("Success", "Gate pass approved!");
         } else {
@@ -321,7 +322,7 @@ public class GatePassView {
             return;
         }
 
-        if (gatePassDAO.rejectRequest(selected.getId(), userId, "Rejected via JavaFX")) {
+        if (GatePassDAO.rejectRequest(selected.getId(), userId, "Rejected via JavaFX")) {
             loadGatePasses();
             showAlert("Success", "Gate pass rejected.");
         } else {

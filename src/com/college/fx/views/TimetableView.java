@@ -2,6 +2,7 @@ package com.college.fx.views;
 
 import com.college.dao.TimetableDAO;
 import com.college.models.Timetable;
+import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -20,17 +21,16 @@ public class TimetableView {
     private VBox root;
     private GridPane timetableGrid;
     private TimetableDAO timetableDAO;
-    private String role;
-    private int userId;
+
     private ComboBox<String> departmentCombo;
     private ComboBox<Integer> semesterCombo;
 
-    private static final String[] DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-    private static final String[] TIME_SLOTS = {"9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"};
+    private static final String[] DAYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+    private static final String[] TIME_SLOTS = { "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "2:00-3:00",
+            "3:00-4:00", "4:00-5:00" };
 
     public TimetableView(String role, int userId) {
-        this.role = role;
-        this.userId = userId;
+
         this.timetableDAO = new TimetableDAO();
         createView();
     }
@@ -42,25 +42,24 @@ public class TimetableView {
 
         // Header with controls
         HBox header = createHeader();
-        
+
         // Timetable grid
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background-color: transparent;");
-        
+
         VBox gridContainer = new VBox(15);
         gridContainer.setPadding(new Insets(20));
         gridContainer.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
-        
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
+
         timetableGrid = createTimetableGrid();
         gridContainer.getChildren().add(timetableGrid);
         scrollPane.setContent(gridContainer);
-        
+
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         root.getChildren().addAll(header, scrollPane);
     }
@@ -70,11 +69,10 @@ public class TimetableView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label("Weekly Timetable");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -103,14 +101,22 @@ public class TimetableView {
 
         Button loadBtn = new Button("Load");
         loadBtn.setStyle(
-            "-fx-background-color: #14b8a6;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: #14b8a6;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         loadBtn.setOnAction(e -> loadTimetable());
 
-        header.getChildren().addAll(title, spacer, deptLabel, departmentCombo, semLabel, semesterCombo, loadBtn);
+        // Edit button for Admin and HOD
+        SessionManager session = SessionManager.getInstance();
+        if (session.hasPermission("MANAGE_SYSTEM") || session.hasPermission("MANAGE_TIMETABLE")) {
+            Button editBtn = createButton("Edit", "#22c55e");
+            editBtn.setOnAction(e -> showAlert("Edit", "Timetable editing coming soon."));
+            header.getChildren().addAll(title, spacer, deptLabel, departmentCombo, semLabel, semesterCombo, loadBtn,
+                    editBtn);
+        } else {
+            header.getChildren().addAll(title, spacer, deptLabel, departmentCombo, semLabel, semesterCombo, loadBtn);
+        }
         return header;
     }
 
@@ -192,20 +198,20 @@ public class TimetableView {
     private void loadTimetable() {
         String department = departmentCombo.getValue();
         Integer semester = semesterCombo.getValue();
-        
+
         if (department == null || semester == null) {
             return;
         }
 
         // Clear and recreate grid
         timetableGrid.getChildren().clear();
-        
+
         // Recreate headers
         timetableGrid.add(createHeaderCell("Time"), 0, 0);
         for (int i = 0; i < DAYS.length; i++) {
             timetableGrid.add(createHeaderCell(DAYS[i]), i + 1, 0);
         }
-        
+
         // Recreate time slots with empty cells
         for (int row = 0; row < TIME_SLOTS.length; row++) {
             timetableGrid.add(createTimeCell(TIME_SLOTS[row]), 0, row + 1);
@@ -217,24 +223,22 @@ public class TimetableView {
         // Load and populate entries
         try {
             List<Timetable> entries = timetableDAO.getTimetableByDepartmentAndSemester(department, semester);
-            
+
             for (Timetable entry : entries) {
                 int dayIndex = getDayIndex(entry.getDayOfWeek());
                 int timeIndex = getTimeIndex(entry.getTimeSlot());
-                
+
                 if (dayIndex >= 0 && timeIndex >= 0) {
                     String subject = entry.getSubject();
                     String room = entry.getRoomNumber() != null ? entry.getRoomNumber() : "";
-                    
+
                     Label cell = createFilledCell(subject, room);
-                    
+
                     // Remove existing cell
-                    timetableGrid.getChildren().removeIf(node -> 
-                        GridPane.getColumnIndex(node) != null && 
-                        GridPane.getRowIndex(node) != null &&
-                        GridPane.getColumnIndex(node) == dayIndex + 1 && 
-                        GridPane.getRowIndex(node) == timeIndex + 1
-                    );
+                    timetableGrid.getChildren().removeIf(node -> GridPane.getColumnIndex(node) != null &&
+                            GridPane.getRowIndex(node) != null &&
+                            GridPane.getColumnIndex(node) == dayIndex + 1 &&
+                            GridPane.getRowIndex(node) == timeIndex + 1);
                     timetableGrid.add(cell, dayIndex + 1, timeIndex + 1);
                 }
             }
@@ -244,22 +248,43 @@ public class TimetableView {
     }
 
     private int getDayIndex(String day) {
-        if (day == null) return -1;
+        if (day == null)
+            return -1;
         for (int i = 0; i < DAYS.length; i++) {
-            if (DAYS[i].equalsIgnoreCase(day)) return i;
+            if (DAYS[i].equalsIgnoreCase(day))
+                return i;
         }
         return -1;
     }
 
     private int getTimeIndex(String timeSlot) {
-        if (timeSlot == null) return -1;
+        if (timeSlot == null)
+            return -1;
         for (int i = 0; i < TIME_SLOTS.length; i++) {
-            if (TIME_SLOTS[i].equals(timeSlot) || 
-                TIME_SLOTS[i].startsWith(timeSlot.substring(0, Math.min(timeSlot.length(), 4)))) {
+            if (TIME_SLOTS[i].equals(timeSlot) ||
+                    TIME_SLOTS[i].startsWith(timeSlot.substring(0, Math.min(timeSlot.length(), 4)))) {
                 return i;
             }
         }
         return -1;
+    }
+
+    private Button createButton(String text, String color) {
+        Button btn = new Button(text);
+        btn.setStyle(
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
+        return btn;
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     public VBox getView() {

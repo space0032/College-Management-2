@@ -4,7 +4,7 @@ import com.college.models.Announcement;
 import com.college.utils.DatabaseConnection;
 
 import java.sql.*;
-import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +17,8 @@ public class AnnouncementDAO {
      * Add a new announcement
      */
     public int addAnnouncement(Announcement announcement) {
-        String sql = "INSERT INTO announcements (title, content, target_audience, priority, created_by, expires_at, is_active) " +
+        String sql = "INSERT INTO announcements (title, content, target_audience, priority, created_by, expires_at, is_active) "
+                +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();

@@ -68,11 +68,10 @@ public class FacultyManagementView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label("Faculty Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -100,11 +99,10 @@ public class FacultyManagementView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -134,7 +132,12 @@ public class FacultyManagementView {
         qualificationCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getQualification()));
         qualificationCol.setPrefWidth(150);
 
-        tableView.getColumns().addAll(idCol, nameCol, emailCol, phoneCol, deptCol, qualificationCol);
+        TableColumn<Faculty, String> roleCol = new TableColumn<>("Role");
+        roleCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getRoleName() != null ? data.getValue().getRoleName() : "N/A"));
+        roleCol.setPrefWidth(120);
+
+        tableView.getColumns().addAll(idCol, nameCol, emailCol, phoneCol, deptCol, qualificationCol, roleCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -157,8 +160,6 @@ public class FacultyManagementView {
             Button deleteBtn = createButton("Delete Faculty", "#ef4444");
             deleteBtn.setOnAction(e -> deleteFaculty());
 
-
-            
             Button roleBtn = createButton("Assign Role", "#8b5cf6"); // Violet color
             roleBtn.setOnAction(e -> assignRole());
 
@@ -177,12 +178,11 @@ public class FacultyManagementView {
         btn.setPrefWidth(140);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
@@ -201,8 +201,8 @@ public class FacultyManagementView {
         facultyData.clear();
         List<Faculty> faculty = facultyDAO.getAllFaculty();
         for (Faculty f : faculty) {
-            if (f.getName().toLowerCase().contains(keyword) || 
-                (f.getEmail() != null && f.getEmail().toLowerCase().contains(keyword))) {
+            if (f.getName().toLowerCase().contains(keyword) ||
+                    (f.getEmail() != null && f.getEmail().toLowerCase().contains(keyword))) {
                 facultyData.add(f);
             }
         }
@@ -232,27 +232,30 @@ public class FacultyManagementView {
 
         VBox content = new VBox(10);
         content.setPadding(new Insets(20));
-        
+
         ComboBox<Role> roleCombo = new ComboBox<>();
         roleCombo.setPrefWidth(250);
         List<Role> roles = roleDAO.getAllRoles();
         roleCombo.getItems().addAll(roles);
-        
+
         roleCombo.setConverter(new StringConverter<Role>() {
             @Override
             public String toString(Role r) {
                 return r != null ? r.getName() : "";
             }
+
             @Override
             public Role fromString(String string) {
                 return null;
             }
         });
-        
-        // Try to select existing role if possible (requires fetching user's current role via RoleDAO)
+
+        // Try to select existing role if possible (requires fetching user's current
+        // role via RoleDAO)
         // For simplicity, select first or nothing.
-        if (!roles.isEmpty()) roleCombo.getSelectionModel().selectFirst();
-        
+        if (!roles.isEmpty())
+            roleCombo.getSelectionModel().selectFirst();
+
         content.getChildren().addAll(new Label("Select Role (RBAC):"), roleCombo);
         dialog.getDialogPane().setContent(content);
 
@@ -268,7 +271,7 @@ public class FacultyManagementView {
             boolean rbacSuccess = roleDAO.assignRoleToUser(selected.getUserId(), role.getId());
             // Update Legacy role (string) for fallback/display
             boolean legacySuccess = userDAO.updateUserRole(selected.getUserId(), role.getName());
-            
+
             if (rbacSuccess || legacySuccess) { // At least one succeeded
                 showAlert("Success", "Role assigned successfully (RBAC + Legacy)!");
                 loadFaculty();
@@ -278,20 +281,18 @@ public class FacultyManagementView {
         });
     }
 
-
-
     private void deleteFaculty() {
         Faculty selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Error", "Please select a faculty member to delete.");
             return;
         }
-        
+
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Faculty");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete faculty: " + selected.getName() + "?");
-        
+
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (facultyDAO.deleteFaculty(selected.getId())) {
@@ -323,19 +324,21 @@ public class FacultyManagementView {
         emailField.setPromptText("Email");
         TextField phoneField = new TextField();
         phoneField.setPromptText("Phone");
-        
+
         ComboBox<String> deptCombo = new ComboBox<>();
         try {
-             DepartmentDAO deptDAO = new DepartmentDAO();
-             deptCombo.getItems().addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
-             if(!deptCombo.getItems().isEmpty()) deptCombo.getSelectionModel().select(0);
-        } catch(Exception e) {
-             deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil", "Physics", "Chemistry", "Maths");
+            DepartmentDAO deptDAO = new DepartmentDAO();
+            deptCombo.getItems()
+                    .addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
+            if (!deptCombo.getItems().isEmpty())
+                deptCombo.getSelectionModel().select(0);
+        } catch (Exception e) {
+            deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil", "Physics", "Chemistry", "Maths");
         }
-        
+
         TextField qualField = new TextField();
         qualField.setPromptText("Qualification (e.g. PhD)");
-        
+
         DatePicker joinDate = new DatePicker(LocalDate.now());
 
         // User Account
@@ -353,14 +356,14 @@ public class FacultyManagementView {
         grid.add(emailField, 1, 1);
         grid.add(new Label("Phone:"), 0, 2);
         grid.add(phoneField, 1, 2);
-        
+
         grid.add(new Label("Department:"), 0, 3);
         grid.add(deptCombo, 1, 3);
         grid.add(new Label("Qualification:"), 0, 4);
         grid.add(qualField, 1, 4);
         grid.add(new Label("Join Date:"), 0, 5);
         grid.add(joinDate, 1, 5);
-        
+
         grid.add(sep, 0, 6, 2, 1);
         grid.add(userLabel, 0, 7, 2, 1);
         grid.add(new Label("Username:"), 0, 8);
@@ -372,10 +375,10 @@ public class FacultyManagementView {
 
         javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.setDisable(true);
-        nameField.textProperty().addListener((o, old, newValue) -> 
-            saveButton.setDisable(newValue.trim().isEmpty() || usernameField.getText().trim().isEmpty()));
-        usernameField.textProperty().addListener((o, old, newValue) -> 
-            saveButton.setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
+        nameField.textProperty().addListener((o, old, newValue) -> saveButton
+                .setDisable(newValue.trim().isEmpty() || usernameField.getText().trim().isEmpty()));
+        usernameField.textProperty().addListener((o, old, newValue) -> saveButton
+                .setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
@@ -383,7 +386,7 @@ public class FacultyManagementView {
                 String pass = passwordField.getText();
                 UserDAO userDAO = new UserDAO();
                 int newUserId = userDAO.addUser(uName, pass, "FACULTY"); // Role "FACULTY"
-                
+
                 if (newUserId != -1) {
                     Faculty f = new Faculty();
                     f.setName(nameField.getText());
@@ -393,12 +396,12 @@ public class FacultyManagementView {
                     f.setQualification(qualField.getText());
                     f.setJoinDate(Date.from(joinDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                     f.setUserId(newUserId);
-                    
+
                     facultyDAO.addFaculty(f, newUserId);
                     return f;
                 } else {
-                     showAlert("Error", "Failed to create user account.");
-                     return null;
+                    showAlert("Error", "Failed to create user account.");
+                    return null;
                 }
             }
             return null;
@@ -406,7 +409,7 @@ public class FacultyManagementView {
 
         Optional<Faculty> result = dialog.showAndWait();
         result.ifPresent(f -> {
-            if(f != null) {
+            if (f != null) {
                 loadFaculty();
                 showAlert("Success", "Faculty added successfully!");
             }

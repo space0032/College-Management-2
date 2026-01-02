@@ -130,15 +130,6 @@ public class DashboardView {
             addMenuItem(sidebar, "Faculty", "faculty", false);
         }
 
-        // Course Management
-        if (session.hasPermission("VIEW_COURSES")) {
-            if (session.isStudent()) {
-                addMenuItem(sidebar, "My Courses", "courses", false);
-            } else if (!session.hasPermission("MANAGE_SYSTEM")) {
-                addMenuItem(sidebar, "Courses", "courses", false);
-            }
-        }
-
         // Attendance
         if ((session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("VIEW_OWN_ATTENDANCE"))
                 && !session.hasPermission("MANAGE_SYSTEM")) {
@@ -193,7 +184,7 @@ public class DashboardView {
             addMenuItem(sidebar, "Assignments", "assignments", false);
         }
 
-        // Admin Consolidated "Student Management"
+        // Admin Consolidated \"Student Management\"
         if (session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Student Management", "student_affairs", false);
         }
@@ -229,13 +220,6 @@ public class DashboardView {
         String baseStyle = "-fx-background-color: transparent;" +
                 "-fx-text-fill: #cbd5e1;" +
                 "-fx-font-size: 14px;" +
-                "-fx-background-radius: 8;" +
-                "-fx-cursor: hand;";
-
-        String activeStyle = "-fx-background-color: #14b8a6;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 14px;" +
-                "-fx-font-weight: bold;" +
                 "-fx-background-radius: 8;" +
                 "-fx-cursor: hand;";
 

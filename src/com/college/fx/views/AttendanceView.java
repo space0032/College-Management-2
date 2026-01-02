@@ -20,13 +20,11 @@ import javafx.scene.text.FontWeight;
 import java.text.SimpleDateFormat;
 import com.college.dao.CourseDAO;
 import com.college.models.Course;
-import javafx.util.StringConverter;
-import javafx.scene.control.ButtonBar.ButtonData;
+
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.stream.Collectors;
+
 import java.util.List;
-import java.util.Optional;
 
 /**
  * JavaFX Attendance View
@@ -71,11 +69,10 @@ public class AttendanceView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "My Attendance" : "Attendance Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -95,22 +92,20 @@ public class AttendanceView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
         tableView.setItems(attendanceData);
-        
+
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         TableColumn<Attendance, String> dateCol = new TableColumn<>("Date");
         dateCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getDate() != null ? dateFormat.format(data.getValue().getDate()) : "-"
-        ));
+                data.getValue().getDate() != null ? dateFormat.format(data.getValue().getDate()) : "-"));
         dateCol.setPrefWidth(120);
 
         TableColumn<Attendance, String> courseCol = new TableColumn<>("Course");
@@ -144,7 +139,8 @@ public class AttendanceView {
 
         if (!role.equals("STUDENT")) {
             TableColumn<Attendance, String> studentCol = new TableColumn<>("Student ID");
-            studentCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getStudentId())));
+            studentCol.setCellValueFactory(
+                    data -> new SimpleStringProperty(String.valueOf(data.getValue().getStudentId())));
             studentCol.setPrefWidth(100);
             tableView.getColumns().add(studentCol);
         }
@@ -176,18 +172,17 @@ public class AttendanceView {
         btn.setPrefWidth(160);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
     private void loadAttendance() {
         attendanceData.clear();
-        
+
         if (role.equals("STUDENT")) {
             Student student = studentDAO.getStudentByUserId(userId);
             if (student != null) {
@@ -195,7 +190,12 @@ public class AttendanceView {
                 attendanceData.addAll(records);
             }
         } else {
-            // Admin/Faculty view logic (can be expanded)
+            // Admin/Faculty: load all students' attendance
+            List<Student> allStudents = studentDAO.getAllStudents();
+            for (Student s : allStudents) {
+                List<Attendance> records = attendanceDAO.getAttendanceByStudent(s.getId());
+                attendanceData.addAll(records);
+            }
         }
     }
 
@@ -207,7 +207,8 @@ public class AttendanceView {
         dialog.getDialogPane().getButtonTypes().addAll(markBtnType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
         ComboBox<Course> courseCombo = new ComboBox<>();
@@ -224,10 +225,14 @@ public class AttendanceView {
         statusCombo.getItems().addAll("PRESENT", "ABSENT", "LATE", "EXCUSED");
         statusCombo.setValue("PRESENT");
 
-        grid.add(new Label("Course:"), 0, 0); grid.add(courseCombo, 1, 0);
-        grid.add(new Label("Student:"), 0, 1); grid.add(studentCombo, 1, 1);
-        grid.add(new Label("Date:"), 0, 2); grid.add(datePicker, 1, 2);
-        grid.add(new Label("Status:"), 0, 3); grid.add(statusCombo, 1, 3);
+        grid.add(new Label("Course:"), 0, 0);
+        grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Student:"), 0, 1);
+        grid.add(studentCombo, 1, 1);
+        grid.add(new Label("Date:"), 0, 2);
+        grid.add(datePicker, 1, 2);
+        grid.add(new Label("Status:"), 0, 3);
+        grid.add(statusCombo, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -240,7 +245,7 @@ public class AttendanceView {
                     a.setDate(Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                 }
                 a.setStatus(statusCombo.getValue());
-                
+
                 if (attendanceDAO.markAttendance(a)) {
                     return a;
                 }

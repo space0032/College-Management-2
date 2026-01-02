@@ -48,8 +48,8 @@ College-Management-2/
 ├── bin/                        (Compiled classes)
 ├── lib/                        (Libraries)
 │
-├── compile.sh                  (Compile script)
-├── run.sh                      (Run script)
+├── compile-fx.sh               (Frontend Compile script)
+├── run-fx.sh                   (Frontend Run script)
 └── setup_complete_database.sh  (Database setup script)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -4,7 +4,7 @@ import com.college.dao.StudentDAO;
 import com.college.dao.FacultyDAO;
 import com.college.models.Student;
 import com.college.models.Faculty;
-import com.college.utils.SessionManager;
+
 import com.college.utils.UserDisplayNameUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -43,12 +43,11 @@ public class ProfileView {
         profileCard.setMaxWidth(600);
         profileCard.setAlignment(Pos.CENTER);
         profileCard.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 16;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 16;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 16;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 16;" +
+                        "-fx-border-width: 1;");
 
         // Avatar placeholder
         Label avatar = new Label(getInitials());
@@ -57,9 +56,8 @@ public class ProfileView {
         avatar.setAlignment(Pos.CENTER);
         avatar.setPrefSize(100, 100);
         avatar.setStyle(
-            "-fx-background-color: #14b8a6;" +
-            "-fx-background-radius: 50;"
-        );
+                "-fx-background-color: #14b8a6;" +
+                        "-fx-background-radius: 50;");
 
         // Name
         String displayName = UserDisplayNameUtil.getDisplayName(userId, role, username);
@@ -73,9 +71,8 @@ public class ProfileView {
         roleBadge.setTextFill(Color.WHITE);
         roleBadge.setPadding(new Insets(5, 15, 5, 15));
         roleBadge.setStyle(
-            "-fx-background-color: #14b8a6;" +
-            "-fx-background-radius: 20;"
-        );
+                "-fx-background-color: #14b8a6;" +
+                        "-fx-background-radius: 20;");
 
         Separator separator = new Separator();
         separator.setPadding(new Insets(10, 0, 10, 0));

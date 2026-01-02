@@ -26,8 +26,10 @@ public class FeesView {
     private VBox root;
     private TableView<StudentFee> tableView;
     private ObservableList<StudentFee> feeData;
+    private ObservableList<StudentFee> allFeeData;
     private EnhancedFeeDAO feeDAO;
     private StudentDAO studentDAO;
+    private TextField searchField;
     private String role;
     private int userId;
 
@@ -37,6 +39,7 @@ public class FeesView {
         this.feeDAO = new EnhancedFeeDAO();
         this.studentDAO = new StudentDAO();
         this.feeData = FXCollections.observableArrayList();
+        this.allFeeData = FXCollections.observableArrayList();
         createView();
         loadFees();
     }
@@ -59,11 +62,10 @@ public class FeesView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "My Fees" : "Fee Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -72,10 +74,21 @@ public class FeesView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        // Only show search for non-students (admin/faculty)
+        if (!role.equals("STUDENT")) {
+            searchField = new TextField();
+            searchField.setPromptText("Search by Student ID...");
+            searchField.setPrefWidth(200);
+            searchField.setStyle("-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #e2e8f0;");
+            searchField.textProperty().addListener((obs, old, newVal) -> filterFees(newVal));
+            header.getChildren().addAll(title, spacer, searchField);
+        } else {
+            header.getChildren().addAll(title, spacer);
+        }
+
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadFees());
-
-        header.getChildren().addAll(title, spacer, refreshBtn);
+        header.getChildren().add(refreshBtn);
         return header;
     }
 
@@ -83,11 +96,10 @@ public class FeesView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -99,7 +111,8 @@ public class FeesView {
 
         TableColumn<StudentFee, String> categoryCol = new TableColumn<>("Category");
         // Assuming category name is available or we display category ID for now
-        categoryCol.setCellValueFactory(data -> new SimpleStringProperty("Category " + data.getValue().getCategoryId()));
+        categoryCol
+                .setCellValueFactory(data -> new SimpleStringProperty("Category " + data.getValue().getCategoryId()));
         categoryCol.setPrefWidth(120);
 
         TableColumn<StudentFee, String> amountCol = new TableColumn<>("Total Amount");
@@ -112,8 +125,7 @@ public class FeesView {
 
         TableColumn<StudentFee, String> dueCol = new TableColumn<>("Due");
         dueCol.setCellValueFactory(data -> new SimpleStringProperty(
-            "₹" + (data.getValue().getTotalAmount() - data.getValue().getPaidAmount())
-        ));
+                "₹" + (data.getValue().getTotalAmount() - data.getValue().getPaidAmount())));
         dueCol.setPrefWidth(120);
 
         TableColumn<StudentFee, String> statusCol = new TableColumn<>("Status");
@@ -175,18 +187,18 @@ public class FeesView {
         btn.setPrefWidth(160);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
     private void loadFees() {
         feeData.clear();
-        
+        allFeeData.clear();
+
         if (role.equals("STUDENT")) {
             Student student = studentDAO.getStudentByUserId(userId);
             if (student != null) {
@@ -196,7 +208,24 @@ public class FeesView {
         } else {
             // For admin/faculty
             List<StudentFee> fees = feeDAO.getAllFees();
+            allFeeData.addAll(fees);
             feeData.addAll(fees);
+        }
+    }
+
+    private void filterFees(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            feeData.setAll(allFeeData);
+            return;
+        }
+
+        feeData.clear();
+        String lowerKeyword = keyword.toLowerCase().trim();
+
+        for (StudentFee fee : allFeeData) {
+            if (String.valueOf(fee.getStudentId()).contains(lowerKeyword)) {
+                feeData.add(fee);
+            }
         }
     }
 

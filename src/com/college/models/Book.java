@@ -1,7 +1,5 @@
 package com.college.models;
 
-import java.util.Date;
-
 /**
  * Book model class for Library Management
  * Represents a book in the library

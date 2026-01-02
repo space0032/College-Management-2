@@ -15,7 +15,6 @@ import java.util.List;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.List;
 
 public class VerificationTest {
 

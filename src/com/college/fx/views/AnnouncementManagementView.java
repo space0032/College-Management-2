@@ -2,7 +2,7 @@ package com.college.fx.views;
 
 import com.college.dao.AnnouncementDAO;
 import com.college.models.Announcement;
-import com.college.utils.SessionManager;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -25,6 +25,7 @@ public class AnnouncementManagementView {
     private TableView<Announcement> tableView;
     private ObservableList<Announcement> announcementData;
     private AnnouncementDAO announcementDAO;
+    @SuppressWarnings("unused")
     private int userId;
 
     public AnnouncementManagementView(String role, int userId) {
@@ -53,11 +54,10 @@ public class AnnouncementManagementView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label("Announcement Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -77,11 +77,10 @@ public class AnnouncementManagementView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -97,10 +96,9 @@ public class AnnouncementManagementView {
 
         TableColumn<Announcement, String> contentCol = new TableColumn<>("Content");
         contentCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getContent().length() > 50 
-                ? data.getValue().getContent().substring(0, 50) + "..." 
-                : data.getValue().getContent()
-        ));
+                data.getValue().getContent().length() > 50
+                        ? data.getValue().getContent().substring(0, 50) + "..."
+                        : data.getValue().getContent()));
         contentCol.setPrefWidth(300);
 
         TableColumn<Announcement, String> targetCol = new TableColumn<>("Target");
@@ -140,12 +138,11 @@ public class AnnouncementManagementView {
         btn.setPrefWidth(160);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
@@ -174,12 +171,12 @@ public class AnnouncementManagementView {
             showAlert("Error", "Please select an announcement to delete.");
             return;
         }
-        
+
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Announcement");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete announcement: " + selected.getTitle() + "?");
-        
+
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (announcementDAO.deleteAnnouncement(selected.getId())) {

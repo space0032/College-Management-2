@@ -6,7 +6,7 @@ import com.college.models.Hostel;
 import com.college.models.HostelAllocation;
 import com.college.models.Room;
 import com.college.models.Student;
-import com.college.utils.SessionManager;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,21 +14,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.paint.Color;
 import javafx.scene.text.FontWeight;
-import javafx.stage.Modality;
-
-import com.college.dao.CourseDAO;
-import com.college.models.Course;
-import com.college.utils.SessionManager;
 import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.util.StringConverter;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.stream.Collectors;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * JavaFX Hostel Management View
@@ -45,7 +37,7 @@ public class HostelManagementView {
     private ObservableList<HostelAllocation> allocationData;
     private ObservableList<Hostel> hostelData;
     private ObservableList<Room> roomData;
-    
+
     // Components
     private TableView<HostelAllocation> allocationTable;
     private TableView<Hostel> hostelTable;
@@ -59,7 +51,7 @@ public class HostelManagementView {
         this.allocationData = FXCollections.observableArrayList();
         this.hostelData = FXCollections.observableArrayList();
         this.roomData = FXCollections.observableArrayList();
-        
+
         createView();
         loadData();
     }
@@ -86,7 +78,7 @@ public class HostelManagementView {
 
             Tab hostelTab = new Tab("Hostels");
             hostelTab.setContent(createHostelTab());
-            
+
             Tab roomTab = new Tab("Rooms");
             roomTab.setContent(createRoomTab());
 
@@ -95,61 +87,62 @@ public class HostelManagementView {
             root.getChildren().addAll(title, tabPane);
         }
     }
-    
+
     // ==================== STUDENT VIEW ====================
-    
+
     private VBox createStudentView() {
         VBox content = new VBox(20);
         content.setPadding(new Insets(30));
         content.setAlignment(Pos.CENTER);
-        
+
         Student student = studentDAO.getStudentByUserId(userId);
         if (student != null) {
             List<HostelAllocation> allocs = hostelDAO.getAllocationsByStudent(student.getId());
             if (!allocs.isEmpty()) {
                 HostelAllocation current = allocs.get(0); // Assuming active allocation is first or only
                 if ("ACTIVE".equalsIgnoreCase(current.getStatus())) {
-                     VBox card = new VBox(15);
-                     card.setMaxWidth(500);
-                     card.setPadding(new Insets(30));
-                     card.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);");
-                     
-                     Label statusTitle = new Label("Current Accommodation");
-                     statusTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-                     statusTitle.setTextFill(Color.web("#14b8a6"));
-                     
-                     GridPane grid = new GridPane();
-                     grid.setHgap(15);
-                     grid.setVgap(15);
-                     
-                     addDetailRow(grid, "Hostel:", current.getHostelName(), 0);
-                     addDetailRow(grid, "Room No:", current.getRoomNumber(), 1);
-                     addDetailRow(grid, "Allocated On:", current.getCheckInDate().toString(), 2);
-                     
-                     card.getChildren().addAll(statusTitle, new Separator(), grid);
-                     content.getChildren().add(card);
-                     return content;
+                    VBox card = new VBox(15);
+                    card.setMaxWidth(500);
+                    card.setPadding(new Insets(30));
+                    card.setStyle(
+                            "-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);");
+
+                    Label statusTitle = new Label("Current Accommodation");
+                    statusTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+                    statusTitle.setTextFill(Color.web("#14b8a6"));
+
+                    GridPane grid = new GridPane();
+                    grid.setHgap(15);
+                    grid.setVgap(15);
+
+                    addDetailRow(grid, "Hostel:", current.getHostelName(), 0);
+                    addDetailRow(grid, "Room No:", current.getRoomNumber(), 1);
+                    addDetailRow(grid, "Allocated On:", current.getCheckInDate().toString(), 2);
+
+                    card.getChildren().addAll(statusTitle, new Separator(), grid);
+                    content.getChildren().add(card);
+                    return content;
                 }
             }
         }
-        
+
         Label noAllocLabel = new Label("No hostel room allocated assigned.");
         noAllocLabel.setFont(Font.font("Segoe UI", 16));
         noAllocLabel.setTextFill(Color.web("#64748b"));
         content.getChildren().add(noAllocLabel);
-        
+
         return content;
     }
-    
+
     private void addDetailRow(GridPane grid, String label, String value, int row) {
         Label lbl = new Label(label);
         lbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
         lbl.setTextFill(Color.web("#64748b"));
-        
+
         Label val = new Label(value);
         val.setFont(Font.font("Segoe UI", 14));
         val.setTextFill(Color.web("#0f172a"));
-        
+
         grid.add(lbl, 0, row);
         grid.add(val, 1, row);
     }
@@ -164,10 +157,10 @@ public class HostelManagementView {
         HBox toolbar = new HBox(15);
         Button allocateBtn = createButton("New Allocation", "#22c55e");
         allocateBtn.setOnAction(e -> showAllocationDialog());
-        
+
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadData());
-        
+
         toolbar.getChildren().addAll(allocateBtn, refreshBtn);
 
         allocationTable = new TableView<>();
@@ -213,52 +206,77 @@ public class HostelManagementView {
     }
 
     // ==================== HOSTEL/ROOM TABS (Simplified) ====================
-    
+
     private VBox createHostelTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
         content.setStyle("-fx-background-color: white;");
-        
+
+        HBox toolbar = new HBox(15);
+        Button addHostelBtn = createButton("Add Hostel", "#22c55e");
+        addHostelBtn.setOnAction(e -> showAlert("Add Hostel", "Add hostel functionality coming soon."));
+
+        Button deleteHostelBtn = createButton("Delete Hostel", "#ef4444");
+        deleteHostelBtn.setOnAction(e -> deleteHostel());
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadData());
+
+        toolbar.getChildren().addAll(addHostelBtn, deleteHostelBtn, refreshBtn);
+
         hostelTable = new TableView<>();
         hostelTable.setItems(hostelData);
-        
+
         TableColumn<Hostel, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
-        
+
         TableColumn<Hostel, String> typeCol = new TableColumn<>("Type");
         typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getType()));
 
         TableColumn<Hostel, String> wardenCol = new TableColumn<>("Warden");
         wardenCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getWardenName()));
-        
+
         hostelTable.getColumns().addAll(nameCol, typeCol, wardenCol);
         VBox.setVgrow(hostelTable, Priority.ALWAYS);
-        
-        content.getChildren().add(hostelTable);
+
+        content.getChildren().addAll(toolbar, hostelTable);
         return content;
     }
-    
+
     private VBox createRoomTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
         content.setStyle("-fx-background-color: white;");
-        
+
+        HBox toolbar = new HBox(15);
+        Button addRoomBtn = createButton("Add Room", "#22c55e");
+        addRoomBtn.setOnAction(e -> showAlert("Add Room", "Add room functionality coming soon."));
+
+        Button deleteRoomBtn = createButton("Delete Room", "#ef4444");
+        deleteRoomBtn.setOnAction(e -> deleteRoom());
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadData());
+
+        toolbar.getChildren().addAll(addRoomBtn, deleteRoomBtn, refreshBtn);
+
         roomTable = new TableView<>();
         roomTable.setItems(roomData);
-        
+
         TableColumn<Room, String> numCol = new TableColumn<>("Room No");
         numCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRoomNumber()));
-        
+
         TableColumn<Room, String> hostelCol = new TableColumn<>("Hostel");
         hostelCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getHostelId())));
-        
+
         TableColumn<Room, String> capCol = new TableColumn<>("Capacity");
-        capCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOccupiedCount() + "/" + data.getValue().getCapacity()));
-        
+        capCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getOccupiedCount() + "/" + data.getValue().getCapacity()));
+
         roomTable.getColumns().addAll(numCol, hostelCol, capCol);
         VBox.setVgrow(roomTable, Priority.ALWAYS);
-        
-        content.getChildren().add(roomTable);
+
+        content.getChildren().addAll(toolbar, roomTable);
         return content;
     }
 
@@ -268,10 +286,10 @@ public class HostelManagementView {
         if (!role.equals("STUDENT")) {
             allocationData.clear();
             allocationData.addAll(hostelDAO.getAllActiveAllocations());
-            
+
             hostelData.clear();
             hostelData.addAll(hostelDAO.getAllHostels());
-            
+
             roomData.clear();
             roomData.addAll(hostelDAO.getAllRooms());
         }
@@ -283,55 +301,61 @@ public class HostelManagementView {
         dialog.setHeaderText("Allocate Room to Student");
         ButtonType allocBtn = new ButtonType("Allocate", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(allocBtn, ButtonType.CANCEL);
-        
+
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
-        
+
         ComboBox<Student> studentCombo = new ComboBox<>();
         studentCombo.setPrefWidth(250);
         studentCombo.getItems().addAll(studentDAO.getAllStudents());
-        
+
         ComboBox<Hostel> hostelCombo = new ComboBox<>();
         hostelCombo.setPrefWidth(250);
         hostelCombo.getItems().addAll(hostelDAO.getAllHostels());
-        
+
         ComboBox<Room> roomCombo = new ComboBox<>();
         roomCombo.setPrefWidth(250);
-        
+
         hostelCombo.setOnAction(e -> {
             Hostel selectedHostel = hostelCombo.getValue();
             if (selectedHostel != null) {
                 roomCombo.getItems().setAll(hostelDAO.getAvailableRooms(selectedHostel.getId()));
             }
         });
-        
+
         DatePicker checkInDate = new DatePicker(java.time.LocalDate.now());
-        
-        grid.add(new Label("Student:"), 0, 0); grid.add(studentCombo, 1, 0);
-        grid.add(new Label("Hostel:"), 0, 1); grid.add(hostelCombo, 1, 1);
-        grid.add(new Label("Room:"), 0, 2); grid.add(roomCombo, 1, 2);
-        grid.add(new Label("Check-In:"), 0, 3); grid.add(checkInDate, 1, 3);
-        
+
+        grid.add(new Label("Student:"), 0, 0);
+        grid.add(studentCombo, 1, 0);
+        grid.add(new Label("Hostel:"), 0, 1);
+        grid.add(hostelCombo, 1, 1);
+        grid.add(new Label("Room:"), 0, 2);
+        grid.add(roomCombo, 1, 2);
+        grid.add(new Label("Check-In:"), 0, 3);
+        grid.add(checkInDate, 1, 3);
+
         dialog.getDialogPane().setContent(grid);
-        
+
         dialog.setResultConverter(btn -> {
             if (btn == allocBtn && studentCombo.getValue() != null && roomCombo.getValue() != null) {
                 HostelAllocation alloc = new HostelAllocation();
                 alloc.setStudentId(studentCombo.getValue().getId());
                 alloc.setRoomId(roomCombo.getValue().getId());
                 if (checkInDate.getValue() != null) {
-                    alloc.setCheckInDate(Date.from(checkInDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                    alloc.setCheckInDate(
+                            Date.from(checkInDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                 }
                 alloc.setAllocatedBy(userId);
-                
+
                 if (hostelDAO.allocateRoom(alloc)) {
                     return alloc;
                 }
             }
             return null;
         });
-        
+
         dialog.showAndWait().ifPresent(result -> {
             loadData();
             // Show alert
@@ -342,12 +366,12 @@ public class HostelManagementView {
             alert.showAndWait();
         });
     }
-    
+
     private void vacateRoom(HostelAllocation allocation) {
-         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Vacate Room");
         alert.setHeaderText("Vacate " + allocation.getStudentName() + "?");
-        
+
         if (alert.showAndWait().get() == ButtonType.OK) {
             if (hostelDAO.vacateRoom(allocation.getId())) {
                 loadData();
@@ -355,15 +379,62 @@ public class HostelManagementView {
         }
     }
 
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void deleteHostel() {
+        Hostel selected = hostelTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select a hostel to delete.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Hostel");
+        confirm.setHeaderText("Delete hostel: " + selected.getName() + "?");
+        confirm.setContentText("This action cannot be undone.");
+
+        if (confirm.showAndWait().get() == ButtonType.OK) {
+            // Call DAO delete method when implemented
+            showAlert("Info", "Delete hostel functionality needs DAO implementation.");
+            // hostelDAO.deleteHostel(selected.getId());
+            // loadData();
+        }
+    }
+
+    private void deleteRoom() {
+        Room selected = roomTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select a room to delete.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Room");
+        confirm.setHeaderText("Delete room: " + selected.getRoomNumber() + "?");
+        confirm.setContentText("This action cannot be undone.");
+
+        if (confirm.showAndWait().get() == ButtonType.OK) {
+            // Call DAO delete method when implemented
+            showAlert("Info", "Delete room functionality needs DAO implementation.");
+            // hostelDAO.deleteRoom(selected.getId());
+            // loadData();
+        }
+    }
+
     private Button createButton(String text, String color) {
         Button btn = new Button(text);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 6;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 6;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 

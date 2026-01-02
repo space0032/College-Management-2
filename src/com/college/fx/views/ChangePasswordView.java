@@ -1,7 +1,7 @@
 package com.college.fx.views;
 
 import com.college.utils.DatabaseConnection;
-import com.college.utils.SessionManager;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -43,12 +43,11 @@ public class ChangePasswordView {
         formCard.setMaxWidth(450);
         formCard.setAlignment(Pos.CENTER);
         formCard.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 16;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 16;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 16;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 16;" +
+                        "-fx-border-width: 1;");
 
         // Title
         Label title = new Label("Change Password");
@@ -68,23 +67,21 @@ public class ChangePasswordView {
         confirmPasswordField = createPasswordField("Confirm New Password");
 
         fieldsBox.getChildren().addAll(
-            createFieldBox("Current Password", currentPasswordField),
-            createFieldBox("New Password", newPasswordField),
-            createFieldBox("Confirm New Password", confirmPasswordField)
-        );
+                createFieldBox("Current Password", currentPasswordField),
+                createFieldBox("New Password", newPasswordField),
+                createFieldBox("Confirm New Password", confirmPasswordField));
 
         // Submit button
         Button submitBtn = new Button("Change Password");
         submitBtn.setPrefWidth(200);
         submitBtn.setPrefHeight(45);
         submitBtn.setStyle(
-            "-fx-background-color: #14b8a6;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: #14b8a6;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         submitBtn.setOnAction(e -> changePassword());
 
         // Message label
@@ -110,12 +107,11 @@ public class ChangePasswordView {
         field.setPromptText(prompt);
         field.setPrefHeight(45);
         field.setStyle(
-            "-fx-background-radius: 8;" +
-            "-fx-border-radius: 8;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-width: 1;" +
-            "-fx-font-size: 14px;"
-        );
+                "-fx-background-radius: 8;" +
+                        "-fx-border-radius: 8;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-width: 1;" +
+                        "-fx-font-size: 14px;");
         return field;
     }
 
@@ -188,13 +184,14 @@ public class ChangePasswordView {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(password.getBytes("UTF-8"));
             StringBuilder hexString = new StringBuilder();
-            
+
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
-            
+
             return hexString.toString();
         } catch (Exception e) {
             throw new RuntimeException(e);

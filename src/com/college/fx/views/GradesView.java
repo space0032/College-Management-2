@@ -18,8 +18,8 @@ import javafx.scene.text.FontWeight;
 
 import com.college.dao.CourseDAO;
 import com.college.models.Course;
-import com.college.dao.StudentDAO; // Already there but safe to include if targeted
-import java.util.Optional;
+// Already there but safe to include if targeted
+
 import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
 
@@ -64,11 +64,10 @@ public class GradesView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "My Grades" : "Grade Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -88,11 +87,10 @@ public class GradesView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -100,8 +98,8 @@ public class GradesView {
 
         TableColumn<Grade, String> courseCol = new TableColumn<>("Course");
         courseCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getCourseName() != null ? data.getValue().getCourseName() : String.valueOf(data.getValue().getCourseId())
-        ));
+                data.getValue().getCourseName() != null ? data.getValue().getCourseName()
+                        : String.valueOf(data.getValue().getCourseId())));
         courseCol.setPrefWidth(200);
 
         TableColumn<Grade, String> examCol = new TableColumn<>("Exam Type");
@@ -110,8 +108,7 @@ public class GradesView {
 
         TableColumn<Grade, String> marksCol = new TableColumn<>("Marks");
         marksCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getMarksObtained() + " / " + data.getValue().getMaxMarks()
-        ));
+                data.getValue().getMarksObtained() + " / " + data.getValue().getMaxMarks()));
         marksCol.setPrefWidth(120);
 
         TableColumn<Grade, String> gradeCol = new TableColumn<>("Grade");
@@ -127,8 +124,10 @@ public class GradesView {
                 } else {
                     setText(item);
                     setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a;");
-                    if (item.startsWith("A")) setStyle("-fx-font-weight: bold; -fx-text-fill: #16a34a;");
-                    else if (item.startsWith("F")) setStyle("-fx-font-weight: bold; -fx-text-fill: #dc2626;");
+                    if (item.startsWith("A"))
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #16a34a;");
+                    else if (item.startsWith("F"))
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #dc2626;");
                 }
             }
         });
@@ -136,8 +135,8 @@ public class GradesView {
         if (!role.equals("STUDENT")) {
             TableColumn<Grade, String> studentCol = new TableColumn<>("Student");
             studentCol.setCellValueFactory(data -> new SimpleStringProperty(
-                data.getValue().getStudentName() != null ? data.getValue().getStudentName() : String.valueOf(data.getValue().getStudentId())
-            ));
+                    data.getValue().getStudentName() != null ? data.getValue().getStudentName()
+                            : String.valueOf(data.getValue().getStudentId())));
             studentCol.setPrefWidth(150);
             tableView.getColumns().add(0, studentCol);
         }
@@ -172,18 +171,17 @@ public class GradesView {
         btn.setPrefWidth(160);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
     private void loadGrades() {
         gradeData.clear();
-        
+
         if (role.equals("STUDENT")) {
             Student student = studentDAO.getStudentByUserId(userId);
             if (student != null) {
@@ -191,8 +189,12 @@ public class GradesView {
                 gradeData.addAll(grades);
             }
         } else {
-            // For admin/faculty - ideally filter by course first
-            // Just showing nothing or needing a filter
+            // Admin/Faculty: load all students' grades
+            List<Student> allStudents = studentDAO.getAllStudents();
+            for (Student s : allStudents) {
+                List<Grade> grades = gradeDAO.getGradesByStudent(s.getId());
+                gradeData.addAll(grades);
+            }
         }
     }
 
@@ -212,7 +214,8 @@ public class GradesView {
         try {
             CourseDAO courseDAO = new CourseDAO();
             courseCombo.getItems().addAll(courseDAO.getAllCourses());
-        } catch(Exception e) { /* Ignore */ }
+        } catch (Exception e) {
+            /* Ignore */ }
 
         ComboBox<Student> studentCombo = new ComboBox<>();
         studentCombo.getItems().addAll(studentDAO.getAllStudents());
@@ -225,49 +228,62 @@ public class GradesView {
         TextField maxMarksField = new TextField();
         maxMarksField.setPromptText("Max Marks");
 
-        grid.add(new Label("Course:"), 0, 0); grid.add(courseCombo, 1, 0);
-        grid.add(new Label("Student:"), 0, 1); grid.add(studentCombo, 1, 1);
-        grid.add(new Label("Exam:"), 0, 2); grid.add(examField, 1, 2);
-        grid.add(new Label("Marks:"), 0, 3); grid.add(marksField, 1, 3);
-        grid.add(new Label("Max Marks:"), 0, 4); grid.add(maxMarksField, 1, 4);
+        grid.add(new Label("Course:"), 0, 0);
+        grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Student:"), 0, 1);
+        grid.add(studentCombo, 1, 1);
+        grid.add(new Label("Exam:"), 0, 2);
+        grid.add(examField, 1, 2);
+        grid.add(new Label("Marks:"), 0, 3);
+        grid.add(marksField, 1, 3);
+        grid.add(new Label("Max Marks:"), 0, 4);
+        grid.add(maxMarksField, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
             if (btn == saveBtn) {
-                 try {
-                     double m = Double.parseDouble(marksField.getText());
-                     double max = Double.parseDouble(maxMarksField.getText());
-                     if(max == 0) max = 100;
-                     Grade g = new Grade();
-                     if(courseCombo.getValue() != null) g.setCourseId(courseCombo.getValue().getId());
-                     if(studentCombo.getValue() != null) g.setStudentId(studentCombo.getValue().getId());
-                     g.setExamType(examField.getText());
-                     g.setMarksObtained(m);
-                     g.setMaxMarks(max);
-                     
-                     double p = (m/max)*100;
-                     g.setPercentage(p);
-                     
-                     String l = "F";
-                     if(p >= 90) l = "A+";
-                     else if(p >= 80) l = "A";
-                     else if(p >= 70) l = "B";
-                     else if(p >= 60) l = "C";
-                     else if(p >= 50) l = "D";
-                     g.setGrade(l);
-                     
-                     gradeDAO.saveGrade(g);
-                     return g;
-                 } catch(Exception e) {
-                     return null;
-                 }
+                try {
+                    double m = Double.parseDouble(marksField.getText());
+                    double max = Double.parseDouble(maxMarksField.getText());
+                    if (max == 0)
+                        max = 100;
+                    Grade g = new Grade();
+                    if (courseCombo.getValue() != null)
+                        g.setCourseId(courseCombo.getValue().getId());
+                    if (studentCombo.getValue() != null)
+                        g.setStudentId(studentCombo.getValue().getId());
+                    g.setExamType(examField.getText());
+                    g.setMarksObtained(m);
+                    g.setMaxMarks(max);
+
+                    double p = (m / max) * 100;
+                    g.setPercentage(p);
+
+                    String l = "F";
+                    if (p >= 90)
+                        l = "A+";
+                    else if (p >= 80)
+                        l = "A";
+                    else if (p >= 70)
+                        l = "B";
+                    else if (p >= 60)
+                        l = "C";
+                    else if (p >= 50)
+                        l = "D";
+                    g.setGrade(l);
+
+                    gradeDAO.saveGrade(g);
+                    return g;
+                } catch (Exception e) {
+                    return null;
+                }
             }
             return null;
         });
-        dialog.showAndWait().ifPresent(g -> { 
-            loadGrades(); 
-            showAlert("Success", "Grade Saved!"); 
+        dialog.showAndWait().ifPresent(g -> {
+            loadGrades();
+            showAlert("Success", "Grade Saved!");
         });
     }
 

@@ -4,7 +4,7 @@ import com.college.dao.*;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -37,10 +37,10 @@ public class HomeView {
 
         // Welcome banner
         VBox welcomeBanner = createWelcomeBanner();
-        
+
         // Stats grid
         GridPane statsGrid = createStatsGrid();
-        
+
         // Bottom section (Activity + Announcements)
         HBox bottomSection = createBottomSection();
 
@@ -55,9 +55,8 @@ public class HomeView {
         VBox banner = new VBox(8);
         banner.setPadding(new Insets(30));
         banner.setStyle(
-            "-fx-background-color: linear-gradient(to right, #14b8a6, #0d9488);" +
-            "-fx-background-radius: 12;"
-        );
+                "-fx-background-color: linear-gradient(to right, #14b8a6, #0d9488);" +
+                        "-fx-background-radius: 12;");
 
         Label welcomeLabel = new Label("Welcome back, " + displayName + "!");
         welcomeLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 26));
@@ -120,12 +119,11 @@ public class HomeView {
         VBox card = new VBox(8);
         card.setPadding(new Insets(20));
         card.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;" +
+                        "-fx-border-width: 1;");
 
         // Top accent bar
         Region accent = new Region();
@@ -163,12 +161,11 @@ public class HomeView {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(20));
         panel.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;" +
+                        "-fx-border-width: 1;");
 
         Label header = new Label("Recent Activity");
         header.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
@@ -176,17 +173,17 @@ public class HomeView {
 
         ListView<String> listView = new ListView<>();
         listView.setStyle("-fx-background-color: transparent;");
-        
+
         // Get recent logs
         String currentUsername = SessionManager.getInstance().getUsername();
         List<com.college.models.AuditLog> logs = AuditLogDAO.getLogsByUser(currentUsername, 8);
-        
+
         for (com.college.models.AuditLog log : logs) {
-            String entry = log.getTimestamp().format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")) 
-                + " - " + log.getAction().replace("_", " ");
+            String entry = log.getTimestamp().format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm"))
+                    + " - " + log.getAction().replace("_", " ");
             listView.getItems().add(entry);
         }
-        
+
         if (logs.isEmpty()) {
             listView.getItems().add("No recent activity");
         }
@@ -200,12 +197,11 @@ public class HomeView {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(20));
         panel.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;" +
+                        "-fx-border-width: 1;");
 
         Label header = new Label("Announcements & Alerts");
         header.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
@@ -218,12 +214,12 @@ public class HomeView {
         try {
             AnnouncementDAO announcementDAO = new AnnouncementDAO();
             List<com.college.models.Announcement> announcements = announcementDAO.getActiveAnnouncements(role);
-            
+
             for (com.college.models.Announcement announcement : announcements) {
                 String entry = announcement.getPriorityIcon() + " " + announcement.getTitle() + ": " +
-                    (announcement.getContent().length() > 50 
-                        ? announcement.getContent().substring(0, 50) + "..." 
-                        : announcement.getContent());
+                        (announcement.getContent().length() > 50
+                                ? announcement.getContent().substring(0, 50) + "..."
+                                : announcement.getContent());
                 listView.getItems().add(entry);
             }
         } catch (Exception e) {
@@ -245,56 +241,73 @@ public class HomeView {
     private String getStudentCount() {
         try {
             return String.valueOf(new StudentDAO().getAllStudents().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getFacultyCount() {
         try {
             return String.valueOf(new FacultyDAO().getAllFaculty().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getCourseCount() {
         try {
             return String.valueOf(new CourseDAO().getAllCourses().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getBookCount() {
         try {
             return String.valueOf(new LibraryDAO().getAllBooks().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getDepartmentCount() {
         try {
             return String.valueOf(new DepartmentDAO().getAllDepartments().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getPendingGatePasses() {
         try {
-            return String.valueOf(new GatePassDAO().getPendingPasses().size());
-        } catch (Exception e) { return "0"; }
+            return String.valueOf(GatePassDAO.getPendingPasses().size());
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getHostelRoomsCount() {
         try {
             return String.valueOf(new HostelDAO().getAllRooms().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getHostelStudentCount() {
         try {
             return String.valueOf(new StudentDAO().getHostelStudents().size());
-        } catch (Exception e) { return "0"; }
+        } catch (Exception e) {
+            return "0";
+        }
     }
 
     private String getStudentCourses() {
         // Simplified - return total courses as placeholder
         try {
             return String.valueOf(new CourseDAO().getAllCourses().size());
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return "0";
     }
 
@@ -309,7 +322,7 @@ public class HomeView {
     }
 
     private String getMyIssuedBooks() {
-        // Simplified 
+        // Simplified
         return "0";
     }
 
@@ -317,9 +330,10 @@ public class HomeView {
         try {
             Student student = new StudentDAO().getStudentByUserId(userId);
             if (student != null) {
-                return String.valueOf(new GatePassDAO().getStudentPasses(student.getId()).size());
+                return String.valueOf(GatePassDAO.getStudentPasses(student.getId()).size());
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return "0";
     }
 
@@ -329,7 +343,8 @@ public class HomeView {
             if (student != null && student.isHostelite()) {
                 return "Allotted";
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return "N/A";
     }
 

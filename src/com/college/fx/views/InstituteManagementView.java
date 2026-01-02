@@ -35,7 +35,7 @@ public class InstituteManagementView {
     private DepartmentDAO departmentDAO;
     private RoleDAO roleDAO;
     private PermissionDAO permissionDAO;
-    
+
     // Departments
     private TableView<Department> deptTable;
     private ObservableList<Department> deptData;
@@ -64,7 +64,7 @@ public class InstituteManagementView {
         this.roleData = FXCollections.observableArrayList();
         this.permissionData = FXCollections.observableArrayList();
         this.auditData = FXCollections.observableArrayList();
-        
+
         createView();
         loadDepartments();
         loadRoles();
@@ -93,17 +93,21 @@ public class InstituteManagementView {
 
         Tab auditTab = new Tab("Audit Logs");
         auditTab.setContent(createAuditTab());
-        
+
         // Student & Faculty Tabs (Integrated)
         Tab studentTab = new Tab("Students");
         StudentManagementView studentView = new StudentManagementView(userRole, userId);
         studentTab.setContent(studentView.getView());
-        
+
         Tab facultyTab = new Tab("Faculty");
         FacultyManagementView facultyView = new FacultyManagementView(userRole, userId);
         facultyTab.setContent(facultyView.getView());
 
-        tabPane.getTabs().addAll(studentTab, facultyTab, deptTab, roleTab, auditTab);
+        Tab coursesTab = new Tab("Courses");
+        CourseManagementView coursesView = new CourseManagementView(userRole, userId);
+        coursesTab.setContent(coursesView.getView());
+
+        tabPane.getTabs().addAll(studentTab, facultyTab, coursesTab, deptTab, roleTab, auditTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(title, tabPane);
@@ -111,6 +115,7 @@ public class InstituteManagementView {
 
     // ==================== DEPARTMENTS TAB ====================
 
+    @SuppressWarnings("unchecked")
     private VBox createDepartmentTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
@@ -152,8 +157,10 @@ public class InstituteManagementView {
             private final HBox pane = new HBox(5, editBtn, deleteBtn);
 
             {
-                editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-padding: 5 10; -fx-font-size: 11px;");
-                deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-padding: 5 10; -fx-font-size: 11px;");
+                editBtn.setStyle(
+                        "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-padding: 5 10; -fx-font-size: 11px;");
+                deleteBtn.setStyle(
+                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-padding: 5 10; -fx-font-size: 11px;");
 
                 editBtn.setOnAction(event -> showDepartmentDialog(getTableView().getItems().get(getIndex())));
                 deleteBtn.setOnAction(event -> confirmDeleteDepartment(getTableView().getItems().get(getIndex())));
@@ -270,9 +277,9 @@ public class InstituteManagementView {
         }
     }
 
-
     // ==================== ROLES TAB ====================
 
+    @SuppressWarnings("unchecked")
     private HBox createRoleTab() {
         HBox content = new HBox(15);
         content.setPadding(new Insets(20));
@@ -285,7 +292,21 @@ public class InstituteManagementView {
         HBox roleToolbar = new HBox(10);
         Button addRoleBtn = createButton("Add Role", "#22c55e");
         addRoleBtn.setOnAction(e -> showRoleDialog(null));
-        roleToolbar.getChildren().add(addRoleBtn);
+
+        Button editRoleBtn = createButton("Edit Role", "#3b82f6");
+        editRoleBtn.setOnAction(e -> {
+            Role selected = roleTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                showRoleDialog(selected);
+            } else {
+                showError("No Selection", "Please select a role to edit.");
+            }
+        });
+
+        Button deleteRoleBtn = createButton("Delete Role", "#ef4444");
+        deleteRoleBtn.setOnAction(e -> confirmDeleteRole());
+
+        roleToolbar.getChildren().addAll(addRoleBtn, editRoleBtn, deleteRoleBtn);
 
         roleTable = new TableView<>();
         roleTable.setItems(roleData);
@@ -297,7 +318,7 @@ public class InstituteManagementView {
         TableColumn<Role, String> rCodeCol = new TableColumn<>("Code");
         rCodeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCode()));
         rCodeCol.setPrefWidth(100);
-        
+
         TableColumn<Role, String> rSysCol = new TableColumn<>("System");
         rSysCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isSystemRole() ? "Yes" : "No"));
         rSysCol.setPrefWidth(80);
@@ -415,9 +436,9 @@ public class InstituteManagementView {
             if (role != null && role.isSystemRole()) {
                 showError("Error", "Cannot edit system roles completely.");
                 // Implementing basic edit support if needed or blocking it
-                return; 
+                return;
             }
-            
+
             boolean success;
             if (role == null) {
                 success = roleDAO.createRole(newRole);
@@ -454,10 +475,10 @@ public class InstituteManagementView {
         scroll.setFitToWidth(true);
 
         List<CheckBox> checkBoxes = new ArrayList<>();
-        
+
         // Group by category
         Map<String, List<Permission>> grouped = allPerms.stream()
-            .collect(Collectors.groupingBy(Permission::getCategory));
+                .collect(Collectors.groupingBy(Permission::getCategory));
 
         grouped.forEach((category, perms) -> {
             Label catLabel = new Label(category);
@@ -501,10 +522,37 @@ public class InstituteManagementView {
         });
     }
 
+    private void confirmDeleteRole() {
+        Role selected = roleTable.getSelectionModel().getSelectedItem();
 
+        if (selected == null) {
+            showError("No Selection", "Please select a role to delete.");
+            return;
+        }
+
+        if (selected.isSystemRole()) {
+            showError("Cannot Delete", "System roles cannot be deleted.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Role");
+        confirm.setHeaderText("Delete role: " + selected.getName() + "?");
+        confirm.setContentText("This action cannot be undone. Users with this role may lose access.");
+
+        if (confirm.showAndWait().get() == ButtonType.OK) {
+            if (roleDAO.deleteRole(selected.getId())) {
+                loadRoles();
+                showInfo("Success", "Role deleted successfully.");
+            } else {
+                showError("Error", "Failed to delete role. It may be assigned to users.");
+            }
+        }
+    }
 
     // ==================== AUDIT LOG TAB ====================
 
+    @SuppressWarnings("unchecked")
     private VBox createAuditTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
@@ -520,8 +568,8 @@ public class InstituteManagementView {
 
         TableColumn<AuditLog, String> timeCol = new TableColumn<>("Timestamp");
         timeCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getTimestamp() != null ? data.getValue().getTimestamp().toString().replace("T", " ") : ""
-        ));
+                data.getValue().getTimestamp() != null ? data.getValue().getTimestamp().toString().replace("T", " ")
+                        : ""));
         timeCol.setPrefWidth(160);
 
         TableColumn<AuditLog, String> userCol = new TableColumn<>("User");
@@ -553,12 +601,11 @@ public class InstituteManagementView {
     private Button createButton(String text, String color) {
         Button btn = new Button(text);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 6;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 6;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 

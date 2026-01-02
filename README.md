@@ -177,13 +177,13 @@ This will create all necessary tables:
 ### 4. Compile the Application
 
 ```bash
-./compile.sh
+./compile-fx.sh
 ```
 
 ### 5. Run the Application
 
 ```bash
-./run.sh
+./run-fx.sh
 ```
 
 ---
@@ -263,8 +263,8 @@ College-Management-2/
 ├── database/             # SQL schema files
 ├── lib/                  # External libraries
 ├── bin/                  # Compiled classes
-├── compile.sh            # Compilation script
-├── run.sh                # Run script
+├── compile-fx.sh         # Frontend Compilation script
+├── run-fx.sh             # Frontend Run script
 ├── setup.sh              # Database setup script
 └── README.md
 ```
@@ -424,7 +424,7 @@ mysql -u collegeapp -pcollege123 college_management
 ```bash
 # Clean and recompile
 rm -rf bin/*
-./compile.sh
+./compile-fx.sh
 ```
 
 **JCalendar Missing**:

@@ -24,7 +24,7 @@ import com.college.models.Course;
 import com.college.models.Submission;
 import java.time.ZoneId;
 import java.util.Date;
-import javafx.util.StringConverter;
+
 import java.util.List;
 
 /**
@@ -72,11 +72,10 @@ public class AssignmentsView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
 
         Label title = new Label("Assignments");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -96,11 +95,10 @@ public class AssignmentsView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -110,8 +108,8 @@ public class AssignmentsView {
 
         TableColumn<Assignment, String> courseCol = new TableColumn<>("Course");
         courseCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getCourseName() != null ? data.getValue().getCourseName() : String.valueOf(data.getValue().getCourseId())
-        ));
+                data.getValue().getCourseName() != null ? data.getValue().getCourseName()
+                        : String.valueOf(data.getValue().getCourseId())));
         courseCol.setPrefWidth(150);
 
         TableColumn<Assignment, String> titleCol = new TableColumn<>("Title");
@@ -124,8 +122,7 @@ public class AssignmentsView {
 
         TableColumn<Assignment, String> dueCol = new TableColumn<>("Due Date");
         dueCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getDueDate() != null ? dateFormat.format(data.getValue().getDueDate()) : "-"
-        ));
+                data.getValue().getDueDate() != null ? dateFormat.format(data.getValue().getDueDate()) : "-"));
         dueCol.setPrefWidth(120);
 
         tableView.getColumns().addAll(courseCol, titleCol, descCol, dueCol);
@@ -146,8 +143,9 @@ public class AssignmentsView {
             addBtn.setOnAction(e -> showAddAssignmentDialog());
 
             Button editBtn = createButton("Edit", "#3b82f6");
-            editBtn.setOnAction(e -> showAlert("Edit Assignment", "Edit functionality coming soon.")); // Placeholder for now
-            
+            editBtn.setOnAction(e -> showAlert("Edit Assignment", "Edit functionality coming soon.")); // Placeholder
+                                                                                                       // for now
+
             section.getChildren().addAll(addBtn, editBtn);
         } else if (role.equals("STUDENT")) {
             Button submitBtn = createButton("Submit Assignment", "#14b8a6");
@@ -163,12 +161,11 @@ public class AssignmentsView {
         btn.setPrefWidth(160);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
@@ -180,27 +177,32 @@ public class AssignmentsView {
         dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
         ComboBox<Course> courseCombo = new ComboBox<>();
         courseCombo.setPrefWidth(250);
         courseCombo.getItems().addAll(courseDAO.getAllCourses());
         // Simple String Converter for Course if needed, but toString might handle it.
-        
+
         TextField titleField = new TextField();
         titleField.setPromptText("Assignment Title");
-        
+
         TextArea descArea = new TextArea();
         descArea.setPromptText("Description");
         descArea.setPrefHeight(100);
-        
+
         DatePicker datePicker = new DatePicker();
 
-        grid.add(new Label("Course:"), 0, 0); grid.add(courseCombo, 1, 0);
-        grid.add(new Label("Title:"), 0, 1); grid.add(titleField, 1, 1);
-        grid.add(new Label("Description:"), 0, 2); grid.add(descArea, 1, 2);
-        grid.add(new Label("Due Date:"), 0, 3); grid.add(datePicker, 1, 3);
+        grid.add(new Label("Course:"), 0, 0);
+        grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Title:"), 0, 1);
+        grid.add(titleField, 1, 1);
+        grid.add(new Label("Description:"), 0, 2);
+        grid.add(descArea, 1, 2);
+        grid.add(new Label("Due Date:"), 0, 3);
+        grid.add(datePicker, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -219,7 +221,10 @@ public class AssignmentsView {
             }
             return null;
         });
-        dialog.showAndWait().ifPresent(a -> { loadAssignments(); showAlert("Success", "Assignment created!"); });
+        dialog.showAndWait().ifPresent(a -> {
+            loadAssignments();
+            showAlert("Success", "Assignment created!");
+        });
     }
 
     private void showSubmitAssignmentDialog() {
@@ -242,14 +247,16 @@ public class AssignmentsView {
         dialog.getDialogPane().getButtonTypes().addAll(submitBtnType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
         TextArea contentArea = new TextArea();
         contentArea.setPromptText("Enter your submission text or link...");
         contentArea.setPrefHeight(150);
 
-        grid.add(new Label("Content:"), 0, 0); grid.add(contentArea, 1, 0);
+        grid.add(new Label("Content:"), 0, 0);
+        grid.add(contentArea, 1, 0);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -271,7 +278,7 @@ public class AssignmentsView {
 
     private void loadAssignments() {
         assignmentData.clear();
-        
+
         if (role.equals("STUDENT")) {
             Student student = studentDAO.getStudentByUserId(userId);
             if (student != null) {
@@ -280,10 +287,10 @@ public class AssignmentsView {
                 assignmentData.addAll(assignments);
             }
         } else {
-             // Faculty see assignments they created or by semester
-             // Basic implementation: get by semester 1 for now or all if possible
-             List<Assignment> assignments = assignmentDAO.getAssignmentsBySemester(1);
-             assignmentData.addAll(assignments);
+            // Faculty see assignments they created or by semester
+            // Basic implementation: get by semester 1 for now or all if possible
+            List<Assignment> assignments = assignmentDAO.getAssignmentsBySemester(1);
+            assignmentData.addAll(assignments);
         }
     }
 

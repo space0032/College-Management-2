@@ -9,7 +9,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
+
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.scene.control.ButtonBar.ButtonData;
-import java.text.SimpleDateFormat;
+
 import java.util.List;
 
 /**
@@ -38,6 +38,7 @@ public class StudentManagementView {
     private ObservableList<Student> studentData;
     private StudentDAO studentDAO;
     private String role;
+    @SuppressWarnings("unused")
     private int userId;
     private TextField searchField;
 
@@ -73,12 +74,11 @@ public class StudentManagementView {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(10));
         header.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;" +
+                        "-fx-border-width: 1;");
 
         Label title = new Label("Student Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -92,27 +92,24 @@ public class StudentManagementView {
         searchField.setPromptText("Search students...");
         searchField.setPrefWidth(250);
         searchField.setStyle(
-            "-fx-background-radius: 8;" +
-            "-fx-border-radius: 8;" +
-            "-fx-border-color: #e2e8f0;"
-        );
+                "-fx-background-radius: 8;" +
+                        "-fx-border-radius: 8;" +
+                        "-fx-border-color: #e2e8f0;");
 
         Button searchBtn = new Button("Search");
         searchBtn.setStyle(
-            "-fx-background-color: #14b8a6;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: #14b8a6;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         searchBtn.setOnAction(e -> searchStudents());
 
         Button refreshBtn = new Button("Refresh");
         refreshBtn.setStyle(
-            "-fx-background-color: #3b82f6;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: #3b82f6;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         refreshBtn.setOnAction(e -> loadStudents());
 
         header.getChildren().addAll(title, spacer, searchField, searchBtn, refreshBtn);
@@ -123,12 +120,11 @@ public class StudentManagementView {
     private VBox createTableSection() {
         VBox section = new VBox();
         section.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-radius: 12;" +
-            "-fx-border-width: 1;"
-        );
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;" +
+                        "-fx-border-width: 1;");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
@@ -138,8 +134,8 @@ public class StudentManagementView {
         // Columns
         TableColumn<Student, String> idCol = new TableColumn<>("ID");
         idCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getUsername() != null ? data.getValue().getUsername() : String.valueOf(data.getValue().getId())
-        ));
+                data.getValue().getUsername() != null ? data.getValue().getUsername()
+                        : String.valueOf(data.getValue().getId())));
         idCol.setPrefWidth(100);
 
         TableColumn<Student, String> nameCol = new TableColumn<>("Name");
@@ -156,14 +152,12 @@ public class StudentManagementView {
 
         TableColumn<Student, String> deptCol = new TableColumn<>("Department");
         deptCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getDepartment() != null ? data.getValue().getDepartment() : "-"
-        ));
+                data.getValue().getDepartment() != null ? data.getValue().getDepartment() : "-"));
         deptCol.setPrefWidth(150);
 
         TableColumn<Student, String> semCol = new TableColumn<>("Semester");
         semCol.setCellValueFactory(data -> new SimpleStringProperty(
-            data.getValue().getSemester() > 0 ? String.valueOf(data.getValue().getSemester()) : "-"
-        ));
+                data.getValue().getSemester() > 0 ? String.valueOf(data.getValue().getSemester()) : "-"));
         semCol.setPrefWidth(80);
 
         TableColumn<Student, String> batchCol = new TableColumn<>("Batch");
@@ -209,12 +203,11 @@ public class StudentManagementView {
         btn.setPrefWidth(140);
         btn.setPrefHeight(40);
         btn.setStyle(
-            "-fx-background-color: " + color + ";" +
-            "-fx-text-fill: white;" +
-            "-fx-font-weight: bold;" +
-            "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
-        );
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
         return btn;
     }
 
@@ -235,7 +228,7 @@ public class StudentManagementView {
             loadStudents();
             return;
         }
-        
+
         studentData.clear();
         List<Student> students = studentDAO.searchStudents(keyword);
         studentData.addAll(students);
@@ -266,16 +259,18 @@ public class StudentManagementView {
         phoneField.setPromptText("Phone");
         TextField addressField = new TextField();
         addressField.setPromptText("Address");
-        
+
         ComboBox<String> deptCombo = new ComboBox<>();
         try {
-             DepartmentDAO deptDAO = new DepartmentDAO();
-             deptCombo.getItems().addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
-             if(!deptCombo.getItems().isEmpty()) deptCombo.getSelectionModel().select(0);
-        } catch(Exception e) {
-             deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
+            DepartmentDAO deptDAO = new DepartmentDAO();
+            deptCombo.getItems()
+                    .addAll(deptDAO.getAllDepartments().stream().map(Department::getName).collect(Collectors.toList()));
+            if (!deptCombo.getItems().isEmpty())
+                deptCombo.getSelectionModel().select(0);
+        } catch (Exception e) {
+            deptCombo.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
         }
-        
+
         ComboBox<String> courseCombo = new ComboBox<>();
         courseCombo.getItems().addAll("B.Tech", "M.Tech", "MBA", "BCA", "MCA");
         courseCombo.setValue("B.Tech");
@@ -284,16 +279,16 @@ public class StudentManagementView {
         batchField.setPromptText("e.g. 2023-2027");
 
         Spinner<Integer> semSpinner = new Spinner<>(1, 8, 1);
-        
+
         CheckBox hosteliteCheck = new CheckBox("Is Hostelite?");
-        
+
         DatePicker enrollDate = new DatePicker(LocalDate.now());
 
         // User Account Fields
         Separator sep = new Separator();
         Label userLabel = new Label("User Account Credentials");
         userLabel.setStyle("-fx-font-weight: bold");
-        
+
         TextField usernameField = new TextField();
         usernameField.setPromptText("Username");
         PasswordField passwordField = new PasswordField();
@@ -307,7 +302,7 @@ public class StudentManagementView {
         grid.add(phoneField, 1, 2);
         grid.add(new Label("Address:"), 0, 3);
         grid.add(addressField, 1, 3);
-        
+
         grid.add(new Label("Department:"), 0, 4);
         grid.add(deptCombo, 1, 4);
         grid.add(new Label("Course:"), 0, 5);
@@ -319,7 +314,7 @@ public class StudentManagementView {
         grid.add(new Label("Enrollment:"), 0, 8);
         grid.add(enrollDate, 1, 8);
         grid.add(hosteliteCheck, 1, 9);
-        
+
         grid.add(sep, 0, 10, 2, 1);
         grid.add(userLabel, 0, 11, 2, 1);
         grid.add(new Label("Username:"), 0, 12);
@@ -347,7 +342,7 @@ public class StudentManagementView {
                 String pass = passwordField.getText();
                 UserDAO userDAO = new UserDAO();
                 int newUserId = userDAO.addUser(uName, pass, "STUDENT");
-                
+
                 if (newUserId != -1) {
                     Student s = new Student();
                     s.setName(nameField.getText());
@@ -359,14 +354,15 @@ public class StudentManagementView {
                     s.setBatch(batchField.getText());
                     s.setSemester(semSpinner.getValue());
                     s.setHostelite(hosteliteCheck.isSelected());
-                    s.setEnrollmentDate(Date.from(enrollDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                    s.setEnrollmentDate(
+                            Date.from(enrollDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                     s.setUserId(newUserId); // Set relationship
-                    
+
                     studentDAO.addStudent(s, newUserId);
                     return s;
                 } else {
-                     showAlert("Error", "Failed to create user account. Username might be taken.");
-                     return null;
+                    showAlert("Error", "Failed to create user account. Username might be taken.");
+                    return null;
                 }
             }
             return null;
@@ -396,12 +392,12 @@ public class StudentManagementView {
             showAlert("Error", "Please select a student to delete.");
             return;
         }
-        
+
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Student");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete student: " + selected.getName() + "?");
-        
+
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (studentDAO.deleteStudent(selected.getId())) {
