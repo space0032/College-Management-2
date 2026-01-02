@@ -1,10 +1,12 @@
 package com.college.fx.views;
 
 import com.college.dao.HostelDAO;
+import com.college.dao.WardenDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.Hostel;
 import com.college.models.HostelAllocation;
 import com.college.models.Room;
+import com.college.models.Warden;
 import com.college.models.Student;
 
 import javafx.beans.property.SimpleStringProperty;
@@ -29,6 +31,7 @@ public class HostelManagementView {
 
     private VBox root;
     private HostelDAO hostelDAO;
+    private WardenDAO wardenDAO;
     private StudentDAO studentDAO;
     private String role;
     private int userId;
@@ -47,6 +50,7 @@ public class HostelManagementView {
         this.role = role;
         this.userId = userId;
         this.hostelDAO = new HostelDAO();
+        this.wardenDAO = new WardenDAO();
         this.studentDAO = new StudentDAO();
         this.allocationData = FXCollections.observableArrayList();
         this.hostelData = FXCollections.observableArrayList();
@@ -82,7 +86,10 @@ public class HostelManagementView {
             Tab roomTab = new Tab("Rooms");
             roomTab.setContent(createRoomTab());
 
-            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab);
+            Tab wardenTab = new Tab("Wardens");
+            wardenTab.setContent(createWardenTab());
+
+            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab, wardenTab);
             VBox.setVgrow(tabPane, Priority.ALWAYS);
             root.getChildren().addAll(title, tabPane);
         }
