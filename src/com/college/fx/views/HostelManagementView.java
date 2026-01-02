@@ -86,10 +86,7 @@ public class HostelManagementView {
             Tab roomTab = new Tab("Rooms");
             roomTab.setContent(createRoomTab());
 
-            Tab wardenTab = new Tab("Wardens");
-            wardenTab.setContent(createWardenTab());
-
-            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab, wardenTab);
+            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab);
             VBox.setVgrow(tabPane, Priority.ALWAYS);
             root.getChildren().addAll(title, tabPane);
         }

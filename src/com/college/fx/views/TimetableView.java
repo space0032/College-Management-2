@@ -1,7 +1,9 @@
 package com.college.fx.views;
 
 import com.college.dao.TimetableDAO;
+import com.college.dao.StudentDAO;
 import com.college.models.Timetable;
+import com.college.models.Student;
 import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,6 +23,9 @@ public class TimetableView {
     private VBox root;
     private GridPane timetableGrid;
     private TimetableDAO timetableDAO;
+    private StudentDAO studentDAO;
+    private String role;
+    private int userId;
 
     private ComboBox<String> departmentCombo;
     private ComboBox<Integer> semesterCombo;
@@ -30,9 +35,16 @@ public class TimetableView {
             "3:00-4:00", "4:00-5:00" };
 
     public TimetableView(String role, int userId) {
-
+        this.role = role;
+        this.userId = userId;
         this.timetableDAO = new TimetableDAO();
+        this.studentDAO = new StudentDAO();
         createView();
+
+        // Auto-load for students
+        if ("STUDENT".equals(role)) {
+            loadStudentTimetable();
+        }
     }
 
     private void createView() {
@@ -285,6 +297,15 @@ public class TimetableView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void loadStudentTimetable() {
+        Student student = studentDAO.getStudentByUserId(userId);
+        if (student != null) {
+            departmentCombo.setValue(student.getDepartment());
+            semesterCombo.setValue(student.getSemester());
+            loadTimetable();
+        }
     }
 
     public VBox getView() {

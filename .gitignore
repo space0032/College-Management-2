@@ -37,6 +37,8 @@ temp/
 .lib
 lib/
 lib/
+Lib/
+
 
 
 # Maven/Gradle

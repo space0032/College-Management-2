@@ -109,6 +109,19 @@ public class FeesView {
         idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
         idCol.setPrefWidth(60);
 
+        TableColumn<StudentFee, String> studentIdCol = new TableColumn<>("Student ID");
+        studentIdCol
+                .setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getStudentId())));
+        studentIdCol.setPrefWidth(100);
+
+        TableColumn<StudentFee, String> studentNameCol = new TableColumn<>("Student Name");
+        studentNameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
+        studentNameCol.setPrefWidth(150);
+
+        TableColumn<StudentFee, String> enrollmentCol = new TableColumn<>("Enrollment ID");
+        enrollmentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentUsername()));
+        enrollmentCol.setPrefWidth(120);
+
         TableColumn<StudentFee, String> categoryCol = new TableColumn<>("Category");
         // Assuming category name is available or we display category ID for now
         categoryCol
@@ -152,7 +165,8 @@ public class FeesView {
             }
         });
 
-        tableView.getColumns().addAll(idCol, categoryCol, amountCol, paidCol, dueCol, statusCol);
+        tableView.getColumns().addAll(idCol, studentIdCol, studentNameCol, enrollmentCol, categoryCol, amountCol,
+                paidCol, dueCol, statusCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -223,7 +237,17 @@ public class FeesView {
         String lowerKeyword = keyword.toLowerCase().trim();
 
         for (StudentFee fee : allFeeData) {
-            if (String.valueOf(fee.getStudentId()).contains(lowerKeyword)) {
+            boolean matches = String.valueOf(fee.getStudentId()).contains(lowerKeyword);
+
+            if (!matches && fee.getStudentName() != null) {
+                matches = fee.getStudentName().toLowerCase().contains(lowerKeyword);
+            }
+
+            if (!matches && fee.getStudentUsername() != null) {
+                matches = fee.getStudentUsername().toLowerCase().contains(lowerKeyword);
+            }
+
+            if (matches) {
                 feeData.add(fee);
             }
         }
