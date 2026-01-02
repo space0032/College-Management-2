@@ -46,4 +46,17 @@ public class UserDAO {
             throw new RuntimeException(e);
         }
     }
+
+    public boolean updateUserRole(int userId, String newRole) {
+        String sql = "UPDATE users SET role = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newRole);
+            pstmt.setInt(2, userId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

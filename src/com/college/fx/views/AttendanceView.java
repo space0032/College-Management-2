@@ -11,13 +11,22 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 import java.text.SimpleDateFormat;
+import com.college.dao.CourseDAO;
+import com.college.models.Course;
+import javafx.util.StringConverter;
+import javafx.scene.control.ButtonBar.ButtonData;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.stream.Collectors;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * JavaFX Attendance View
@@ -29,6 +38,7 @@ public class AttendanceView {
     private ObservableList<Attendance> attendanceData;
     private AttendanceDAO attendanceDAO;
     private StudentDAO studentDAO;
+    private CourseDAO courseDAO;
     private String role;
     private int userId;
 
@@ -37,6 +47,7 @@ public class AttendanceView {
         this.userId = userId;
         this.attendanceDAO = new AttendanceDAO();
         this.studentDAO = new StudentDAO();
+        this.courseDAO = new CourseDAO();
         this.attendanceData = FXCollections.observableArrayList();
         createView();
         loadAttendance();
@@ -153,7 +164,7 @@ public class AttendanceView {
 
         if (session.hasPermission("MANAGE_ATTENDANCE")) {
             Button markBtn = createButton("Mark Attendance", "#22c55e");
-            markBtn.setOnAction(e -> showAlert("Mark Attendance", "Attendance marking dialog would open here."));
+            markBtn.setOnAction(e -> showMarkAttendanceDialog());
             section.getChildren().add(markBtn);
         }
 
@@ -184,10 +195,63 @@ public class AttendanceView {
                 attendanceData.addAll(records);
             }
         } else {
-            // Admin/Faculty - for now showing placeholder or handling complex query
-            // Ideally we need a method to get recent attendance for all or filtering
-            // For now, let's just show a message if empty
+            // Admin/Faculty view logic (can be expanded)
         }
+    }
+
+    private void showMarkAttendanceDialog() {
+        Dialog<Attendance> dialog = new Dialog<>();
+        dialog.setTitle("Mark Attendance");
+        dialog.setHeaderText("Mark Student Attendance");
+        ButtonType markBtnType = new ButtonType("Mark", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(markBtnType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        courseCombo.setPrefWidth(250);
+        courseCombo.getItems().addAll(courseDAO.getAllCourses());
+
+        ComboBox<Student> studentCombo = new ComboBox<>();
+        studentCombo.setPrefWidth(250);
+        studentCombo.getItems().addAll(studentDAO.getAllStudents());
+
+        DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
+
+        ComboBox<String> statusCombo = new ComboBox<>();
+        statusCombo.getItems().addAll("PRESENT", "ABSENT", "LATE", "EXCUSED");
+        statusCombo.setValue("PRESENT");
+
+        grid.add(new Label("Course:"), 0, 0); grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Student:"), 0, 1); grid.add(studentCombo, 1, 1);
+        grid.add(new Label("Date:"), 0, 2); grid.add(datePicker, 1, 2);
+        grid.add(new Label("Status:"), 0, 3); grid.add(statusCombo, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == markBtnType && courseCombo.getValue() != null && studentCombo.getValue() != null) {
+                Attendance a = new Attendance();
+                a.setStudentId(studentCombo.getValue().getId());
+                a.setCourseId(courseCombo.getValue().getId());
+                if (datePicker.getValue() != null) {
+                    a.setDate(Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                }
+                a.setStatus(statusCombo.getValue());
+                
+                if (attendanceDAO.markAttendance(a)) {
+                    return a;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(a -> {
+            showAlert("Success", "Attendance marked for " + studentCombo.getValue().getName());
+            loadAttendance();
+        });
     }
 
     private void showAlert(String title, String message) {

@@ -19,6 +19,14 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 
+import com.college.dao.CourseDAO;
+import com.college.models.Course;
+import com.college.utils.SessionManager;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.util.StringConverter;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Optional;
 
@@ -270,12 +278,69 @@ public class HostelManagementView {
     }
 
     private void showAllocationDialog() {
-        // Simplified dialog
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("New Allocation");
-        alert.setHeaderText("Feature Placeholder");
-        alert.setContentText("Full allocation dialog would go here (Select Student, Hostel, Room).");
-        alert.showAndWait();
+        Dialog<HostelAllocation> dialog = new Dialog<>();
+        dialog.setTitle("New Allocation");
+        dialog.setHeaderText("Allocate Room to Student");
+        ButtonType allocBtn = new ButtonType("Allocate", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(allocBtn, ButtonType.CANCEL);
+        
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+        
+        ComboBox<Student> studentCombo = new ComboBox<>();
+        studentCombo.setPrefWidth(250);
+        studentCombo.getItems().addAll(studentDAO.getAllStudents());
+        
+        ComboBox<Hostel> hostelCombo = new ComboBox<>();
+        hostelCombo.setPrefWidth(250);
+        hostelCombo.getItems().addAll(hostelDAO.getAllHostels());
+        
+        ComboBox<Room> roomCombo = new ComboBox<>();
+        roomCombo.setPrefWidth(250);
+        
+        hostelCombo.setOnAction(e -> {
+            Hostel selectedHostel = hostelCombo.getValue();
+            if (selectedHostel != null) {
+                roomCombo.getItems().setAll(hostelDAO.getAvailableRooms(selectedHostel.getId()));
+            }
+        });
+        
+        DatePicker checkInDate = new DatePicker(java.time.LocalDate.now());
+        
+        grid.add(new Label("Student:"), 0, 0); grid.add(studentCombo, 1, 0);
+        grid.add(new Label("Hostel:"), 0, 1); grid.add(hostelCombo, 1, 1);
+        grid.add(new Label("Room:"), 0, 2); grid.add(roomCombo, 1, 2);
+        grid.add(new Label("Check-In:"), 0, 3); grid.add(checkInDate, 1, 3);
+        
+        dialog.getDialogPane().setContent(grid);
+        
+        dialog.setResultConverter(btn -> {
+            if (btn == allocBtn && studentCombo.getValue() != null && roomCombo.getValue() != null) {
+                HostelAllocation alloc = new HostelAllocation();
+                alloc.setStudentId(studentCombo.getValue().getId());
+                alloc.setRoomId(roomCombo.getValue().getId());
+                if (checkInDate.getValue() != null) {
+                    alloc.setCheckInDate(Date.from(checkInDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                }
+                alloc.setAllocatedBy(userId);
+                
+                if (hostelDAO.allocateRoom(alloc)) {
+                    return alloc;
+                }
+            }
+            return null;
+        });
+        
+        dialog.showAndWait().ifPresent(result -> {
+            loadData();
+            // Show alert
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Success");
+            alert.setHeaderText(null);
+            alert.setContentText("Room allocated successfully!");
+            alert.showAndWait();
+        });
     }
     
     private void vacateRoom(HostelAllocation allocation) {

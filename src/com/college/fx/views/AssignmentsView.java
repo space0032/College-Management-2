@@ -11,12 +11,20 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 import java.text.SimpleDateFormat;
+import com.college.dao.CourseDAO;
+import com.college.dao.SubmissionDAO;
+import com.college.models.Course;
+import com.college.models.Submission;
+import java.time.ZoneId;
+import java.util.Date;
+import javafx.util.StringConverter;
 import java.util.List;
 
 /**
@@ -29,6 +37,8 @@ public class AssignmentsView {
     private ObservableList<Assignment> assignmentData;
     private AssignmentDAO assignmentDAO;
     private StudentDAO studentDAO;
+    private CourseDAO courseDAO;
+    private SubmissionDAO submissionDAO;
     private String role;
     private int userId;
 
@@ -37,6 +47,8 @@ public class AssignmentsView {
         this.userId = userId;
         this.assignmentDAO = new AssignmentDAO();
         this.studentDAO = new StudentDAO();
+        this.courseDAO = new CourseDAO();
+        this.submissionDAO = new SubmissionDAO();
         this.assignmentData = FXCollections.observableArrayList();
         createView();
         loadAssignments();
@@ -131,15 +143,15 @@ public class AssignmentsView {
 
         if (session.hasPermission("MANAGE_ASSIGNMENTS")) {
             Button addBtn = createButton("New Assignment", "#22c55e");
-            addBtn.setOnAction(e -> showAlert("New Assignment", "Create assignment dialog."));
+            addBtn.setOnAction(e -> showAddAssignmentDialog());
 
             Button editBtn = createButton("Edit", "#3b82f6");
-            editBtn.setOnAction(e -> showAlert("Edit Assignment", "Edit assignment dialog."));
+            editBtn.setOnAction(e -> showAlert("Edit Assignment", "Edit functionality coming soon.")); // Placeholder for now
             
             section.getChildren().addAll(addBtn, editBtn);
         } else if (role.equals("STUDENT")) {
             Button submitBtn = createButton("Submit Assignment", "#14b8a6");
-            submitBtn.setOnAction(e -> showAlert("Submit Assignment", "Submission dialog would open here."));
+            submitBtn.setOnAction(e -> showSubmitAssignmentDialog());
             section.getChildren().add(submitBtn);
         }
 
@@ -158,6 +170,103 @@ public class AssignmentsView {
             "-fx-cursor: hand;"
         );
         return btn;
+    }
+
+    private void showAddAssignmentDialog() {
+        Dialog<Assignment> dialog = new Dialog<>();
+        dialog.setTitle("New Assignment");
+        dialog.setHeaderText("Create New Assignment");
+        ButtonType saveBtn = new ButtonType("Create", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        courseCombo.setPrefWidth(250);
+        courseCombo.getItems().addAll(courseDAO.getAllCourses());
+        // Simple String Converter for Course if needed, but toString might handle it.
+        
+        TextField titleField = new TextField();
+        titleField.setPromptText("Assignment Title");
+        
+        TextArea descArea = new TextArea();
+        descArea.setPromptText("Description");
+        descArea.setPrefHeight(100);
+        
+        DatePicker datePicker = new DatePicker();
+
+        grid.add(new Label("Course:"), 0, 0); grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Title:"), 0, 1); grid.add(titleField, 1, 1);
+        grid.add(new Label("Description:"), 0, 2); grid.add(descArea, 1, 2);
+        grid.add(new Label("Due Date:"), 0, 3); grid.add(datePicker, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && courseCombo.getValue() != null) {
+                Assignment a = new Assignment();
+                a.setCourseId(courseCombo.getValue().getId());
+                a.setTitle(titleField.getText());
+                a.setDescription(descArea.getText());
+                if (datePicker.getValue() != null) {
+                    a.setDueDate(Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                }
+                a.setCreatedBy(userId); // Logged in user (Faculty/Admin)
+                assignmentDAO.createAssignment(a);
+                return a;
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(a -> { loadAssignments(); showAlert("Success", "Assignment created!"); });
+    }
+
+    private void showSubmitAssignmentDialog() {
+        Assignment selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select an assignment to submit.");
+            return;
+        }
+
+        Student student = studentDAO.getStudentByUserId(userId);
+        if (student == null) {
+            showAlert("Error", "Student record not found for current user.");
+            return;
+        }
+
+        Dialog<Submission> dialog = new Dialog<>();
+        dialog.setTitle("Submit Assignment");
+        dialog.setHeaderText("Submit: " + selected.getTitle());
+        ButtonType submitBtnType = new ButtonType("Submit", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitBtnType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextArea contentArea = new TextArea();
+        contentArea.setPromptText("Enter your submission text or link...");
+        contentArea.setPrefHeight(150);
+
+        grid.add(new Label("Content:"), 0, 0); grid.add(contentArea, 1, 0);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == submitBtnType) {
+                Submission s = new Submission();
+                s.setAssignmentId(selected.getId());
+                s.setStudentId(student.getId());
+                s.setSubmissionText(contentArea.getText());
+                s.setFilePath(""); // Optional for now
+                submissionDAO.submitAssignment(s);
+                return s;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(s -> showAlert("Success", "Assignment submitted!"));
     }
 
     private void loadAssignments() {

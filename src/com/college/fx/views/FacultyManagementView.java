@@ -34,10 +34,12 @@ public class FacultyManagementView {
     private TableView<Faculty> tableView;
     private ObservableList<Faculty> facultyData;
     private FacultyDAO facultyDAO;
+    private UserDAO userDAO;
     private TextField searchField;
 
     public FacultyManagementView(String role, int userId) {
         this.facultyDAO = new FacultyDAO();
+        this.userDAO = new UserDAO();
         this.facultyData = FXCollections.observableArrayList();
         createView();
         loadFaculty();
@@ -150,7 +152,12 @@ public class FacultyManagementView {
             Button deleteBtn = createButton("Delete Faculty", "#ef4444");
             deleteBtn.setOnAction(e -> deleteFaculty());
 
-            section.getChildren().addAll(addBtn, editBtn, deleteBtn);
+
+            
+            Button roleBtn = createButton("Assign Role", "#8b5cf6"); // Violet color
+            roleBtn.setOnAction(e -> assignRole());
+
+            section.getChildren().addAll(addBtn, editBtn, deleteBtn, roleBtn);
         }
 
         Button exportBtn = createButton("Export", "#64748b");
@@ -201,8 +208,51 @@ public class FacultyManagementView {
             showAlert("Error", "Please select a faculty member to edit.");
             return;
         }
-        showAlert("Edit Faculty", "Edit dialog for: " + selected.getName());
+        showAlert("Edit Faculty", "Edit functionality coming soon.");
     }
+
+    private void assignRole() {
+        Faculty selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select a faculty member to assign a role.");
+            return;
+        }
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Assign Role");
+        dialog.setHeaderText("Assign Role to: " + selected.getName());
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(20));
+        
+        ComboBox<String> roleCombo = new ComboBox<>();
+        roleCombo.getItems().addAll("FACULTY", "ADMIN", "HOD", "WARDEN", "LIBRARIAN");
+        roleCombo.setValue("FACULTY"); // Default or current if fetched
+        
+        content.getChildren().addAll(new Label("Select Role:"), roleCombo);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                return roleCombo.getValue();
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(role -> {
+            boolean success = userDAO.updateUserRole(selected.getUserId(), role);
+            if (success) {
+                showAlert("Success", "Role updated successfully!");
+                loadFaculty(); // Refresh to update role column if visible (it's not, but good practice)
+            } else {
+                showAlert("Error", "Failed to update role.");
+            }
+        });
+    }
+
+
 
     private void deleteFaculty() {
         Faculty selected = tableView.getSelectionModel().getSelectedItem();
