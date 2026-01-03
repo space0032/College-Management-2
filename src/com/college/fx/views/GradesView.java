@@ -4,6 +4,7 @@ import com.college.dao.GradeDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.Grade;
 import com.college.models.Student;
+import com.college.utils.SearchableStudentComboBox;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -164,10 +165,14 @@ public class GradesView {
 
         SessionManager session = SessionManager.getInstance();
 
-        if (session.hasPermission("MANAGE_GRADES")) {
-            Button addBtn = createButton("Add Grades", "#22c55e");
-            addBtn.setOnAction(e -> showAddGradeDialog());
-            section.getChildren().add(addBtn);
+        if (SessionManager.getInstance().hasPermission("MANAGE_GRADES")) {
+            Button addGradeBtn = createButton("Add Grade", "#22c55e");
+            addGradeBtn.setOnAction(e -> showAddGradeDialog());
+
+            Button bulkGradeBtn = createButton("Bulk Grade Entry", "#3b82f6");
+            bulkGradeBtn.setOnAction(e -> showBulkGradeDialog());
+
+            section.getChildren().addAll(addGradeBtn, bulkGradeBtn);
         }
 
         Button exportBtn = createButton("Export Report", "#64748b");
@@ -227,11 +232,11 @@ public class GradesView {
         } catch (Exception e) {
             /* Ignore */ }
 
-        ComboBox<Student> studentCombo = new ComboBox<>();
-        studentCombo.getItems().addAll(studentDAO.getAllStudents());
+        SearchableStudentComboBox studentSelector = new SearchableStudentComboBox(studentDAO.getAllStudents());
 
-        TextField examField = new TextField();
-        examField.setPromptText("Exam Type (e.g. Final)");
+        ComboBox<String> examTypeCombo = new ComboBox<>();
+        examTypeCombo.setPromptText("Exam Type (e.g. Final)");
+        examTypeCombo.getItems().addAll("Midterm", "Final", "Quiz", "Assignment", "Project");
 
         TextField marksField = new TextField();
         marksField.setPromptText("Marks Obtained");
@@ -241,9 +246,9 @@ public class GradesView {
         grid.add(new Label("Course:"), 0, 0);
         grid.add(courseCombo, 1, 0);
         grid.add(new Label("Student:"), 0, 1);
-        grid.add(studentCombo, 1, 1);
+        grid.add(studentSelector, 1, 1);
         grid.add(new Label("Exam:"), 0, 2);
-        grid.add(examField, 1, 2);
+        grid.add(examTypeCombo, 1, 2);
         grid.add(new Label("Marks:"), 0, 3);
         grid.add(marksField, 1, 3);
         grid.add(new Label("Max Marks:"), 0, 4);
@@ -252,18 +257,16 @@ public class GradesView {
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
-            if (btn == saveBtn) {
+            if (btn == saveBtn && courseCombo.getValue() != null && studentSelector.getSelectedStudent() != null) {
                 try {
                     double m = Double.parseDouble(marksField.getText());
                     double max = Double.parseDouble(maxMarksField.getText());
                     if (max == 0)
                         max = 100;
                     Grade g = new Grade();
-                    if (courseCombo.getValue() != null)
-                        g.setCourseId(courseCombo.getValue().getId());
-                    if (studentCombo.getValue() != null)
-                        g.setStudentId(studentCombo.getValue().getId());
-                    g.setExamType(examField.getText());
+                    g.setCourseId(courseCombo.getValue().getId());
+                    g.setStudentId(studentSelector.getSelectedStudent().getId());
+                    g.setExamType(examTypeCombo.getValue());
                     g.setMarksObtained(m);
                     g.setMaxMarks(max);
 
@@ -303,6 +306,126 @@ public class GradesView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void showBulkGradeDialog() {
+        Dialog<Boolean> dialog = new Dialog<>();
+        dialog.setTitle("Bulk Grade Entry");
+        dialog.setHeaderText("Enter Grades for Entire Class");
+        ButtonType saveBtn = new ButtonType("Save All", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(700);
+
+        GridPane selectionGrid = new GridPane();
+        selectionGrid.setHgap(10);
+        selectionGrid.setVgap(10);
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        try {
+            CourseDAO courseDAO = new CourseDAO();
+            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+        } catch (Exception e) {
+            /* Ignore */ }
+
+        ComboBox<String> examTypeCombo = new ComboBox<>();
+        examTypeCombo.getItems().addAll("Midterm", "Final", "Quiz", "Assignment", "Project");
+
+        TextField maxMarksField = new TextField("100");
+
+        selectionGrid.add(new Label("Course:"), 0, 0);
+        selectionGrid.add(courseCombo, 1, 0);
+        selectionGrid.add(new Label("Exam Type:"), 0, 1);
+        selectionGrid.add(examTypeCombo, 1, 1);
+        selectionGrid.add(new Label("Max Marks:"), 0, 2);
+        selectionGrid.add(maxMarksField, 1, 2);
+
+        Button loadBtn = createButton("Load Students", "#3b82f6");
+
+        TableView<BulkGradeRecord> gradeTable = new TableView<>();
+        gradeTable.setPrefHeight(300);
+        ObservableList<BulkGradeRecord> records = FXCollections.observableArrayList();
+        gradeTable.setItems(records);
+
+        TableColumn<BulkGradeRecord, String> nameCol = new TableColumn<>("Student Name");
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().studentName));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<BulkGradeRecord, String> marksCol = new TableColumn<>("Marks");
+        marksCol.setCellFactory(col -> new TableCell<BulkGradeRecord, String>() {
+            private TextField textField = new TextField();
+            {
+                textField.setPrefWidth(80);
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (!empty) {
+                    BulkGradeRecord record = getTableView().getItems().get(getIndex());
+                    textField.textProperty().addListener((obs, old, newVal) -> {
+                        try {
+                            record.marks = newVal.isEmpty() ? null : Double.parseDouble(newVal);
+                        } catch (Exception e) {
+                            record.marks = null;
+                        }
+                    });
+                    setGraphic(textField);
+                } else
+                    setGraphic(null);
+            }
+        });
+        marksCol.setPrefWidth(100);
+
+        gradeTable.getColumns().addAll(nameCol, marksCol);
+
+        loadBtn.setOnAction(e -> {
+            records.clear();
+            for (Student s : studentDAO.getAllStudents()) {
+                records.add(new BulkGradeRecord(s.getId(), s.getName()));
+            }
+        });
+
+        content.getChildren().addAll(selectionGrid, loadBtn, gradeTable);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && courseCombo.getValue() != null) {
+                int saved = 0;
+                double max = Double.parseDouble(maxMarksField.getText());
+                for (BulkGradeRecord r : records) {
+                    if (r.marks != null) {
+                        Grade g = new Grade();
+                        g.setStudentId(r.studentId);
+                        g.setCourseId(courseCombo.getValue().getId());
+                        g.setExamType(examTypeCombo.getValue());
+                        g.setMarksObtained(r.marks);
+                        g.setMaxMarks(max);
+                        gradeDAO.saveGrade(g);
+                        saved++;
+                    }
+                }
+                showAlert("Success", saved + " grades saved!");
+                loadGrades();
+                return true;
+            }
+            return false;
+        });
+
+        dialog.showAndWait();
+    }
+
+    private static class BulkGradeRecord {
+        int studentId;
+        String studentName;
+        Double marks;
+
+        BulkGradeRecord(int id, String name) {
+            studentId = id;
+            studentName = name;
+        }
     }
 
     public VBox getView() {

@@ -130,23 +130,23 @@ public class DashboardView {
             addMenuItem(sidebar, "Faculty", "faculty", false);
         }
 
-        // Course Management - Students only (Admin/Faculty use Institute Management)
-        if (session.hasPermission("VIEW_COURSES") && session.isStudent()) {
+        // Course Management - Students should always see their courses
+        if (session.isStudent()) {
             addMenuItem(sidebar, "My Courses", "courses", false);
         }
 
-        // Attendance
-        if ((session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("VIEW_OWN_ATTENDANCE"))
-                && !session.hasPermission("MANAGE_SYSTEM")) {
-            String label = session.isStudent() ? "My Attendance" : "Attendance";
-            addMenuItem(sidebar, label, "attendance", false);
+        // Attendance - Students should always see their attendance
+        if (session.isStudent()) {
+            addMenuItem(sidebar, "My Attendance", "attendance", false);
+        } else if (session.hasPermission("VIEW_ATTENDANCE") || session.hasPermission("MANAGE_ATTENDANCE")) {
+            addMenuItem(sidebar, "Attendance", "attendance", false);
         }
 
-        // Grades
-        if ((session.hasPermission("VIEW_GRADES") || session.hasPermission("VIEW_OWN_GRADES"))
-                && !session.hasPermission("MANAGE_SYSTEM")) {
-            String label = session.isStudent() ? "My Grades" : "Grades";
-            addMenuItem(sidebar, label, "grades", false);
+        // Grades - Students should always see their grades
+        if (session.isStudent()) {
+            addMenuItem(sidebar, "My Grades", "grades", false);
+        } else if (session.hasPermission("VIEW_GRADES") || session.hasPermission("MANAGE_GRADES")) {
+            addMenuItem(sidebar, "Grades", "grades", false);
         }
 
         // Library

@@ -4,11 +4,13 @@ import com.college.dao.StudentDAO;
 import com.college.dao.DepartmentDAO;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
+import com.college.utils.EnrollmentGenerator;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.application.Platform;
 import javafx.scene.control.*;
 
 import javafx.scene.layout.*;
@@ -292,10 +294,8 @@ public class StudentManagementView {
         Label userLabel = new Label("User Account Credentials");
         userLabel.setStyle("-fx-font-weight: bold");
 
-        TextField usernameField = new TextField();
-        usernameField.setPromptText("Username");
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Password");
+        passwordField.setPromptText("Password (optional, default: 123)");
 
         grid.add(new Label("Name:"), 0, 0);
         grid.add(nameField, 1, 0);
@@ -320,51 +320,85 @@ public class StudentManagementView {
 
         grid.add(sep, 0, 10, 2, 1);
         grid.add(userLabel, 0, 11, 2, 1);
-        grid.add(new Label("Username:"), 0, 12);
-        grid.add(usernameField, 1, 12);
+
+        Label autoGenLabel = new Label("Enrollment number will be auto-generated and used as username");
+        autoGenLabel.setStyle("-fx-text-fill: #3b82f6; -fx-font-size: 11px; -fx-font-style: italic;");
+        grid.add(autoGenLabel, 0, 12, 2, 1);
+
         grid.add(new Label("Password:"), 0, 13);
         grid.add(passwordField, 1, 13);
 
+        Label passHint = new Label("(Leave empty for default: 123)");
+        passHint.setStyle("-fx-text-fill: #64748b; -fx-font-size: 10px;");
+        grid.add(passHint, 1, 14);
+
         dialog.getDialogPane().setContent(grid);
 
-        // Validation
+        // Validation - only check name
         javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.setDisable(true);
 
         nameField.textProperty().addListener((observable, oldValue, newValue) -> {
-            saveButton.setDisable(newValue.trim().isEmpty() || usernameField.getText().trim().isEmpty());
+            saveButton.setDisable(newValue.trim().isEmpty() || deptCombo.getValue() == null);
         });
-        usernameField.textProperty().addListener((observable, oldValue, newValue) -> {
-            saveButton.setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty());
+        deptCombo.valueProperty().addListener((observable, oldValue, newValue) -> {
+            saveButton.setDisable(newValue == null || nameField.getText().trim().isEmpty());
         });
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
-                // Create User first
-                String uName = usernameField.getText();
-                String pass = passwordField.getText();
-                UserDAO userDAO = new UserDAO();
-                int newUserId = userDAO.addUser(uName, pass, "STUDENT");
+                try {
+                    // Validate required fields
+                    if (nameField.getText().trim().isEmpty() || deptCombo.getValue() == null) {
+                        showAlert("Error", "Please fill in Name and Department");
+                        return null;
+                    }
 
-                if (newUserId != -1) {
-                    Student s = new Student();
-                    s.setName(nameField.getText());
-                    s.setEmail(emailField.getText());
-                    s.setPhone(phoneField.getText());
-                    s.setAddress(addressField.getText());
-                    s.setDepartment(deptCombo.getValue());
-                    s.setCourse(courseCombo.getValue());
-                    s.setBatch(batchField.getText());
-                    s.setSemester(semSpinner.getValue());
-                    s.setHostelite(hosteliteCheck.isSelected());
-                    s.setEnrollmentDate(
-                            Date.from(enrollDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-                    s.setUserId(newUserId); // Set relationship
+                    // Auto-generate enrollment number based on department
+                    String enrollmentNumber = EnrollmentGenerator.generateStudentEnrollment(deptCombo.getValue());
 
-                    studentDAO.addStudent(s, newUserId);
-                    return s;
-                } else {
-                    showAlert("Error", "Failed to create user account. Username might be taken.");
+                    // Use enrollment number as username
+                    String username = enrollmentNumber;
+                    String password = passwordField.getText().trim().isEmpty() ? "123" : passwordField.getText();
+
+                    // Create User account
+                    UserDAO userDAO = new UserDAO();
+                    int newUserId = userDAO.addUser(username, password, "STUDENT");
+
+                    if (newUserId != -1) {
+                        Student s = new Student();
+                        s.setName(nameField.getText());
+                        s.setEmail(emailField.getText());
+                        s.setPhone(phoneField.getText());
+                        s.setAddress(addressField.getText());
+                        s.setDepartment(deptCombo.getValue());
+                        s.setCourse(courseCombo.getValue());
+                        s.setBatch(batchField.getText());
+                        s.setSemester(semSpinner.getValue());
+                        s.setHostelite(hosteliteCheck.isSelected());
+                        s.setEnrollmentDate(
+                                Date.from(enrollDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                        s.setUserId(newUserId);
+                        s.setUsername(enrollmentNumber); // Store enrollment number
+
+                        studentDAO.addStudent(s, newUserId);
+
+                        // Show success with enrollment number
+                        Platform.runLater(() -> {
+                            showAlert("Success", "Student added successfully!\n\n" +
+                                    "Enrollment Number: " + enrollmentNumber + "\n" +
+                                    "Username: " + enrollmentNumber + "\n" +
+                                    "Password: " + password);
+                        });
+
+                        return s;
+                    } else {
+                        showAlert("Error", "Failed to create user account.");
+                        return null;
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Failed to add student: " + e.getMessage());
+                    e.printStackTrace();
                     return null;
                 }
             }

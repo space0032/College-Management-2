@@ -125,7 +125,24 @@ public class AssignmentsView {
                 data.getValue().getDueDate() != null ? dateFormat.format(data.getValue().getDueDate()) : "-"));
         dueCol.setPrefWidth(120);
 
-        tableView.getColumns().addAll(courseCol, titleCol, descCol, dueCol);
+        TableColumn<Assignment, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> {
+            if (role.equals("STUDENT")) {
+                Student student = studentDAO.getStudentByUserId(userId);
+                if (student != null) {
+                    Submission sub = submissionDAO.getSubmission(data.getValue().getId(), student.getId());
+                    return new SimpleStringProperty(sub != null ? "Submitted" : "Pending");
+                }
+            }
+            return new SimpleStringProperty("-");
+        });
+        statusCol.setPrefWidth(100);
+
+        if (role.equals("STUDENT")) {
+            tableView.getColumns().addAll(courseCol, titleCol, descCol, dueCol, statusCol);
+        } else {
+            tableView.getColumns().addAll(courseCol, titleCol, descCol, dueCol);
+        }
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;

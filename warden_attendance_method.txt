@@ -1,0 +1,63 @@
+    private VBox createWardenAttendanceTab() {
+        VBox tab = new VBox(15);
+        tab.setPadding(new Insets(15));
+
+        Label title = new Label("Hostel Student Attendance");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        // Get warden's hostel
+        Warden warden = wardenDAO.getWardenByUserId(userId);
+        if (warden == null || warden.getHostelId() <= 0) {
+            Label noHostel = new Label("No hostel assigned to your account.");
+            noHostel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ef4444;");
+            tab.getChildren().addAll(title, noHostel);
+            return tab;
+        }
+
+        // Get students in this hostel
+        List<HostelAllocation> allocations = hostelDAO.getAllocationsByHostelId(warden.getHostelId());
+        
+        TableView<Student> studentTable = new TableView<>();
+        ObservableList<Student> students = FXCollections.observableArrayList();
+        
+        for (HostelAllocation alloc : allocations) {
+            Student s = studentDAO.getStudentById(alloc.getStudentId());
+            if (s != null) {
+                students.add(s);
+            }
+        }
+        studentTable.setItems(students);
+
+        TableColumn<Student, String> nameCol = new TableColumn<>("Student Name");
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<Student, String> enrollCol = new TableColumn<>("Enrollment ID");
+        enrollCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getUsername()));
+        enrollCol.setPrefWidth(150);
+
+        TableColumn<Student, String> deptCol = new TableColumn<>("Department");
+        deptCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDepartment()));
+        deptCol.setPrefWidth(150);
+
+        TableColumn<Student, String> roomCol = new TableColumn<>("Room");
+        roomCol.setCellValueFactory(data -> {
+            for (HostelAllocation a : allocations) {
+                if (a.getStudentId() == data.getValue().getId()) {
+                    Room r = hostelDAO.getRoomById(a.getRoomId());
+                    return new SimpleStringProperty(r != null ? r.getRoomNumber() : "-");
+                }
+            }
+            return new SimpleStringProperty("-");
+        });
+        roomCol.setPrefWidth(100);
+
+        studentTable.getColumns().addAll(nameCol, enrollCol, deptCol, roomCol);
+        VBox.setVgrow(studentTable, Priority.ALWAYS);
+
+        Label info = new Label("Students residing in your hostel. For detailed attendance reports, use the Reports module.");
+        info.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-padding: 10 0 0 0;");
+
+        tab.getChildren().addAll(title, studentTable, info);
+        return tab;
+    }

@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.fx.views.reports.AttendanceReportTab;
 import com.college.fx.views.reports.FeesReportTab;
 import com.college.fx.views.reports.GradesReportTab;
+import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -17,8 +18,10 @@ import javafx.scene.text.FontWeight;
 public class ReportsView {
 
     private BorderPane root;
+    private String role;
 
     public ReportsView() {
+        this.role = SessionManager.getInstance().getRole();
         createView();
     }
 
@@ -51,18 +54,25 @@ public class ReportsView {
         attendanceTab.setContent(attendanceContent.getContent());
 
         // Grades Tab
-        Tab gradesTab = new Tab("Grades");
-        gradesTab.setClosable(false);
+        Tab gradesTab = new Tab("Grades Report");
         GradesReportTab gradesContent = new GradesReportTab();
         gradesTab.setContent(gradesContent.getContent());
+        gradesTab.setClosable(false);
 
         // Fees Tab
-        Tab feesTab = new Tab("Fees");
-        feesTab.setClosable(false);
+        Tab feesTab = new Tab("Fees Report");
         FeesReportTab feesContent = new FeesReportTab();
         feesTab.setContent(feesContent.getContent());
+        feesTab.setClosable(false);
 
-        tabPane.getTabs().addAll(attendanceTab, gradesTab, feesTab);
+        // Role-based tab access
+        if ("FACULTY".equals(role)) {
+            // Faculty see only Attendance and Grades
+            tabPane.getTabs().addAll(attendanceTab, gradesTab);
+        } else {
+            // Admin and others see all tabs
+            tabPane.getTabs().addAll(attendanceTab, gradesTab, feesTab);
+        }
         root.setCenter(tabPane);
     }
 

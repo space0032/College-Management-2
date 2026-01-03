@@ -251,4 +251,23 @@ public class FacultyDAO {
         }
         return faculty;
     }
+
+    /**
+     * Get total count of faculty for ID generation
+     */
+    public int getTotalFacultyCount() {
+        String sql = "SELECT COUNT(*) as count FROM faculty";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 }

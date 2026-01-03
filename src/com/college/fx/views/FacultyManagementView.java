@@ -446,8 +446,21 @@ public class FacultyManagementView {
                     f.setJoinDate(Date.from(joinDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                     f.setUserId(newUserId);
 
-                    facultyDAO.addFaculty(f, newUserId);
-                    return f;
+                    try {
+                        facultyDAO.addFaculty(f, newUserId);
+                        return f;
+                    } catch (Exception e) {
+                        if (e.getMessage() != null && e.getMessage().contains("Duplicate entry")) {
+                            if (e.getMessage().contains("email")) {
+                                showAlert("Error", "A faculty member with this email already exists!");
+                            } else {
+                                showAlert("Error", "Duplicate entry detected. Please check your input.");
+                            }
+                        } else {
+                            showAlert("Error", "Failed to add faculty: " + e.getMessage());
+                        }
+                        return null;
+                    }
                 } else {
                     showAlert("Error", "Failed to create user account.");
                     return null;

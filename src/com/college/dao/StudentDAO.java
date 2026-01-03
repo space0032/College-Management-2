@@ -297,4 +297,28 @@ public class StudentDAO {
         }
         return null;
     }
+
+    /**
+     * Get count of students by department code and year for enrollment generation
+     */
+    public int getCountByDepartmentAndYear(String deptCode, int year) {
+        String sql = "SELECT COUNT(*) as count FROM students s " +
+                "JOIN users u ON s.user_id = u.id " +
+                "WHERE u.username LIKE ? AND YEAR(s.enrollment_date) = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, deptCode + year + "%");
+            pstmt.setInt(2, year);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 }

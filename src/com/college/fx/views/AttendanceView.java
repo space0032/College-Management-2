@@ -1,11 +1,12 @@
 package com.college.fx.views;
 
 import com.college.dao.AttendanceDAO;
-import com.college.dao.StudentDAO;
 import com.college.dao.CourseDAO;
+import com.college.dao.StudentDAO;
 import com.college.models.Attendance;
-import com.college.models.Student;
 import com.college.models.Course;
+import com.college.models.Student;
+import com.college.utils.SearchableStudentComboBox;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -163,7 +164,11 @@ public class AttendanceView {
         if (session.hasPermission("MANAGE_ATTENDANCE")) {
             Button markBtn = createButton("Mark Attendance", "#22c55e");
             markBtn.setOnAction(e -> showMarkAttendanceDialog());
-            section.getChildren().add(markBtn);
+
+            Button bulkMarkBtn = createButton("Bulk Mark Attendance", "#3b82f6");
+            bulkMarkBtn.setOnAction(e -> showBulkAttendanceDialog());
+
+            section.getChildren().addAll(markBtn, bulkMarkBtn);
         }
 
         return section;
@@ -217,20 +222,18 @@ public class AttendanceView {
         courseCombo.setPrefWidth(250);
         courseCombo.getItems().addAll(courseDAO.getAllCourses());
 
-        ComboBox<Student> studentCombo = new ComboBox<>();
-        studentCombo.setPrefWidth(250);
-        studentCombo.getItems().addAll(studentDAO.getAllStudents());
+        SearchableStudentComboBox studentSelector = new SearchableStudentComboBox(studentDAO.getAllStudents());
 
         DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
 
         ComboBox<String> statusCombo = new ComboBox<>();
-        statusCombo.getItems().addAll("PRESENT", "ABSENT", "LATE", "EXCUSED");
+        statusCombo.getItems().addAll("PRESENT", "ABSENT", "LATE");
         statusCombo.setValue("PRESENT");
 
         grid.add(new Label("Course:"), 0, 0);
         grid.add(courseCombo, 1, 0);
         grid.add(new Label("Student:"), 0, 1);
-        grid.add(studentCombo, 1, 1);
+        grid.add(studentSelector, 1, 1);
         grid.add(new Label("Date:"), 0, 2);
         grid.add(datePicker, 1, 2);
         grid.add(new Label("Status:"), 0, 3);
@@ -239,9 +242,9 @@ public class AttendanceView {
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
-            if (btn == markBtnType && courseCombo.getValue() != null && studentCombo.getValue() != null) {
+            if (btn == markBtnType && courseCombo.getValue() != null && studentSelector.getSelectedStudent() != null) {
                 Attendance a = new Attendance();
-                a.setStudentId(studentCombo.getValue().getId());
+                a.setStudentId(studentSelector.getSelectedStudent().getId());
                 a.setCourseId(courseCombo.getValue().getId());
                 if (datePicker.getValue() != null) {
                     a.setDate(Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
@@ -256,7 +259,7 @@ public class AttendanceView {
         });
 
         dialog.showAndWait().ifPresent(a -> {
-            showAlert("Success", "Attendance marked for " + studentCombo.getValue().getName());
+            showAlert("Success", "Attendance marked for " + studentSelector.getSelectedStudent().getName());
             loadAttendance();
         });
     }
@@ -267,6 +270,140 @@ public class AttendanceView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void showBulkAttendanceDialog() {
+        Dialog<Boolean> dialog = new Dialog<>();
+        dialog.setTitle("Bulk Attendance Marking");
+        dialog.setHeaderText("Mark Attendance for Entire Class");
+        ButtonType saveBtn = new ButtonType("Save All", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(700);
+
+        GridPane selectionGrid = new GridPane();
+        selectionGrid.setHgap(10);
+        selectionGrid.setVgap(10);
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        try {
+            CourseDAO courseDAO = new CourseDAO();
+            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+        } catch (Exception e) {
+            /* Ignore */ }
+
+        ComboBox<Integer> semesterCombo = new ComboBox<>();
+        semesterCombo.getItems().addAll(1, 2, 3, 4, 5, 6, 7, 8);
+        semesterCombo.setPromptText("Select Semester");
+
+        DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
+
+        selectionGrid.add(new Label("Course:"), 0, 0);
+        selectionGrid.add(courseCombo, 1, 0);
+        selectionGrid.add(new Label("Semester:"), 0, 1);
+        selectionGrid.add(semesterCombo, 1, 1);
+        selectionGrid.add(new Label("Date:"), 0, 2);
+        selectionGrid.add(datePicker, 1, 2);
+
+        Button loadBtn = createButton("Load Students", "#3b82f6");
+
+        TableView<BulkAttendanceRecord> attendanceTable = new TableView<>();
+        attendanceTable.setPrefHeight(350);
+        ObservableList<BulkAttendanceRecord> records = FXCollections.observableArrayList();
+        attendanceTable.setItems(records);
+
+        TableColumn<BulkAttendanceRecord, String> nameCol = new TableColumn<>("Student");
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().studentName));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<BulkAttendanceRecord, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellFactory(col -> new TableCell<BulkAttendanceRecord, String>() {
+            private ComboBox<String> comboBox = new ComboBox<>();
+            {
+                comboBox.getItems().addAll("PRESENT", "ABSENT", "LATE");
+                comboBox.setValue("PRESENT");
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (!empty) {
+                    BulkAttendanceRecord record = getTableView().getItems().get(getIndex());
+                    comboBox.valueProperty().addListener((obs, old, newVal) -> record.status = newVal);
+                    setGraphic(comboBox);
+                } else
+                    setGraphic(null);
+            }
+        });
+        statusCol.setPrefWidth(140);
+
+        attendanceTable.getColumns().addAll(nameCol, statusCol);
+
+        loadBtn.setOnAction(e -> {
+            if (courseCombo.getValue() == null) {
+                showAlert("Error", "Please select a course");
+                return;
+            }
+            if (semesterCombo.getValue() == null) {
+                showAlert("Error", "Please select a semester");
+                return;
+            }
+
+            Course selectedCourse = courseCombo.getValue();
+            int selectedSemester = semesterCombo.getValue();
+
+            records.clear();
+            // Filter students by course department and semester
+            for (Student s : studentDAO.getAllStudents()) {
+                if (s.getDepartment().equals(selectedCourse.getDepartment()) &&
+                        s.getSemester() == selectedSemester) {
+                    records.add(new BulkAttendanceRecord(s.getId(), s.getName()));
+                }
+            }
+
+            if (records.isEmpty()) {
+                showAlert("Info", "No students found for this course/semester combination");
+            }
+        });
+
+        content.getChildren().addAll(selectionGrid, loadBtn, attendanceTable);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && courseCombo.getValue() != null && datePicker.getValue() != null) {
+                int saved = 0;
+                Date attendanceDate = Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant());
+                for (BulkAttendanceRecord r : records) {
+                    Attendance a = new Attendance();
+                    a.setStudentId(r.studentId);
+                    a.setCourseId(courseCombo.getValue().getId());
+                    a.setDate(attendanceDate);
+                    a.setStatus(r.status);
+                    if (attendanceDAO.markAttendance(a))
+                        saved++;
+                }
+                showAlert("Success", saved + " attendance records saved!");
+                loadAttendance();
+                return true;
+            }
+            return false;
+        });
+
+        dialog.showAndWait();
+    }
+
+    private static class BulkAttendanceRecord {
+        int studentId;
+        String studentName;
+        String status;
+
+        BulkAttendanceRecord(int id, String name) {
+            studentId = id;
+            studentName = name;
+            status = "PRESENT";
+        }
     }
 
     public VBox getView() {
