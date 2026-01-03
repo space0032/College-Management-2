@@ -3,11 +3,13 @@ package com.college.fx.views;
 import com.college.dao.FacultyDAO;
 import com.college.models.Faculty;
 import com.college.utils.SessionManager;
+import com.college.utils.EnrollmentGenerator;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.application.Platform;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -27,6 +29,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
  * JavaFX Faculty Management View
@@ -415,55 +418,75 @@ public class FacultyManagementView {
 
         grid.add(sep, 0, 6, 2, 1);
         grid.add(userLabel, 0, 7, 2, 1);
-        grid.add(new Label("Username:"), 0, 8);
-        grid.add(usernameField, 1, 8);
+
+        Label autoGenLabel = new Label("Faculty ID will be auto-generated (FAC###) and used as username");
+        autoGenLabel.setStyle("-fx-text-fill: #3b82f6; -fx-font-size: 11px; -fx-font-style: italic;");
+        grid.add(autoGenLabel, 0, 8, 2, 1);
+
         grid.add(new Label("Password:"), 0, 9);
         grid.add(passwordField, 1, 9);
+
+        Label passHint = new Label("(Leave empty for default: 123)");
+        passHint.setStyle("-fx-text-fill: #64748b; -fx-font-size: 10px;");
+        grid.add(passHint, 1, 10);
 
         dialog.getDialogPane().setContent(grid);
 
         javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.setDisable(true);
         nameField.textProperty().addListener((o, old, newValue) -> saveButton
-                .setDisable(newValue.trim().isEmpty() || usernameField.getText().trim().isEmpty()));
-        usernameField.textProperty().addListener((o, old, newValue) -> saveButton
+                .setDisable(newValue.trim().isEmpty() || emailField.getText().trim().isEmpty()));
+        emailField.textProperty().addListener((o, old, newValue) -> saveButton
                 .setDisable(newValue.trim().isEmpty() || nameField.getText().trim().isEmpty()));
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
-                String uName = usernameField.getText();
-                String pass = passwordField.getText();
-                UserDAO userDAO = new UserDAO();
-                int newUserId = userDAO.addUser(uName, pass, "FACULTY"); // Role "FACULTY"
+                try {
+                    // Auto-generate faculty ID
+                    String facultyId = EnrollmentGenerator.generateFacultyId();
+                    String password = passwordField.getText().trim().isEmpty() ? "123" : passwordField.getText();
 
-                if (newUserId != -1) {
-                    Faculty f = new Faculty();
-                    f.setName(nameField.getText());
-                    f.setEmail(emailField.getText());
-                    f.setPhone(phoneField.getText());
-                    f.setDepartment(deptCombo.getValue());
-                    f.setQualification(qualField.getText());
-                    f.setJoinDate(Date.from(joinDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-                    f.setUserId(newUserId);
+                    // Create user account with faculty ID as username
+                    UserDAO userDAO = new UserDAO();
+                    int newUserId = userDAO.addUser(facultyId, password, "FACULTY");
 
-                    try {
+                    if (newUserId != -1) {
+                        Faculty f = new Faculty();
+                        f.setName(nameField.getText());
+                        f.setEmail(emailField.getText());
+                        f.setPhone(phoneField.getText());
+                        f.setDepartment(deptCombo.getValue());
+                        f.setQualification(qualField.getText());
+                        f.setJoinDate(Date.from(joinDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                        f.setUserId(newUserId);
+
                         facultyDAO.addFaculty(f, newUserId);
+
+                        // Show success with credentials
+                        Platform.runLater(() -> {
+                            showAlert("Success", "Faculty added successfully!\n\n" +
+                                    "Faculty ID: " + facultyId + "\n" +
+                                    "Username: " + facultyId + "\n" +
+                                    "Password: " + password);
+                        });
+
                         return f;
-                    } catch (Exception e) {
-                        if (e.getMessage() != null && e.getMessage().contains("Duplicate entry")) {
-                            if (e.getMessage().contains("email")) {
-                                showAlert("Error", "A faculty member with this email already exists!");
-                            } else {
-                                showAlert("Error", "Duplicate entry detected. Please check your input.");
-                            }
-                        } else {
-                            showAlert("Error", "Failed to add faculty: " + e.getMessage());
-                        }
-                        return null;
+                    } else {
+                        showAlert("Error", "Failed to create user account.");
                     }
-                } else {
-                    showAlert("Error", "Failed to create user account.");
-                    return null;
+                } catch (Exception e) {
+                    // Handle duplicate constraints and other errors
+                    if (e.getMessage() != null && e.getMessage().contains("Duplicate")) {
+                        if (e.getMessage().contains("email")) {
+                            showAlert("Error", "This email address is already registered!");
+                        } else if (e.getMessage().contains("phone")) {
+                            showAlert("Error", "This phone number is already registered!");
+                        } else {
+                            showAlert("Error", "Duplicate entry detected.");
+                        }
+                    } else {
+                        showAlert("Error", "Failed to add faculty: " + e.getMessage());
+                    }
                 }
             }
             return null;
