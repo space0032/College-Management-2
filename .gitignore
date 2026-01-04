@@ -43,9 +43,4 @@ tmp/
 temp/
 
 # Secrets
-CREDENTIALS.md
-CREDENTIALS.txt
-.env
-secrets.properties
-*.key
-*.pem
+

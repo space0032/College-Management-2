@@ -9,6 +9,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -29,13 +30,16 @@ public class EmployeeManagementView extends VBox {
         btnAdd.getStyleClass().add("accent");
         btnAdd.setOnAction(e -> showAddDialog());
 
+        Button btnEdit = new Button("Edit Employee");
+        btnEdit.setOnAction(e -> showEditDialog());
+
         Button btnPayroll = new Button("Generate Payroll (This Month)");
         btnPayroll.setOnAction(e -> handleGeneratePayroll());
 
         Button btnRefresh = new Button("Refresh");
         btnRefresh.setOnAction(e -> refreshTable());
 
-        actions.getChildren().addAll(btnAdd, btnPayroll, btnRefresh);
+        actions.getChildren().addAll(btnAdd, btnEdit, btnPayroll, btnRefresh);
 
         setupTable();
         refreshTable();
@@ -60,10 +64,16 @@ public class EmployeeManagementView extends VBox {
         TableColumn<Employee, String> colDesignation = new TableColumn<>("Designation");
         colDesignation.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDesignation()));
 
+        TableColumn<Employee, String> colSalary = new TableColumn<>("Salary");
+        colSalary.setCellValueFactory(data -> {
+            BigDecimal salary = data.getValue().getSalary();
+            return new SimpleStringProperty(salary != null ? "₹" + salary.toString() : "Not Set");
+        });
+
         TableColumn<Employee, String> colStatus = new TableColumn<>("Status");
         colStatus.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus().name()));
 
-        table.getColumns().addAll(colId, colName, colEmail, colDesignation, colStatus);
+        table.getColumns().addAll(colId, colName, colEmail, colDesignation, colSalary, colStatus);
     }
 
     private void refreshTable() {
@@ -89,6 +99,8 @@ public class EmployeeManagementView extends VBox {
         TextField tfEmail = new TextField();
         TextField tfPhone = new TextField();
         TextField tfDesignation = new TextField();
+        TextField tfSalary = new TextField();
+        tfSalary.setPromptText("e.g., 50000.00");
         DatePicker dpJoin = new DatePicker(LocalDate.now());
 
         grid.add(new Label("Employee ID:"), 0, 0);
@@ -103,8 +115,10 @@ public class EmployeeManagementView extends VBox {
         grid.add(tfPhone, 1, 4);
         grid.add(new Label("Designation:"), 0, 5);
         grid.add(tfDesignation, 1, 5);
-        grid.add(new Label("Join Date:"), 0, 6);
-        grid.add(dpJoin, 1, 6);
+        grid.add(new Label("Salary (₹):"), 0, 6);
+        grid.add(tfSalary, 1, 6);
+        grid.add(new Label("Join Date:"), 0, 7);
+        grid.add(dpJoin, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -119,8 +133,19 @@ public class EmployeeManagementView extends VBox {
                 e.setDesignation(tfDesignation.getText());
                 e.setJoinDate(dpJoin.getValue());
                 e.setStatus(Employee.Status.ACTIVE);
-                // Default low salary for manual set later
-                e.setSalary(java.math.BigDecimal.ZERO);
+
+                // Parse salary
+                try {
+                    String salaryText = tfSalary.getText().trim();
+                    if (!salaryText.isEmpty()) {
+                        e.setSalary(new BigDecimal(salaryText));
+                    } else {
+                        e.setSalary(BigDecimal.ZERO);
+                    }
+                } catch (NumberFormatException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Please enter a valid salary amount.");
+                    return null;
+                }
                 return e;
             }
             return null;
@@ -137,6 +162,99 @@ public class EmployeeManagementView extends VBox {
         });
     }
 
+    private void showEditDialog() {
+        Employee selected = table.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "Select Employee", "Please select an employee to edit.");
+            return;
+        }
+
+        Dialog<Employee> dialog = new Dialog<>();
+        dialog.setTitle("Edit Employee");
+        dialog.setHeaderText("Update Employee Details");
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField tfId = new TextField(selected.getEmployeeId());
+        tfId.setDisable(true); // Cannot change employee ID
+        TextField tfFirst = new TextField(selected.getFirstName());
+        TextField tfLast = new TextField(selected.getLastName());
+        TextField tfEmail = new TextField(selected.getEmail());
+        TextField tfPhone = new TextField(selected.getPhone() != null ? selected.getPhone() : "");
+        TextField tfDesignation = new TextField(selected.getDesignation());
+        TextField tfSalary = new TextField(selected.getSalary() != null ? selected.getSalary().toString() : "");
+        tfSalary.setPromptText("e.g., 50000.00");
+        DatePicker dpJoin = new DatePicker(selected.getJoinDate() != null ? selected.getJoinDate() : LocalDate.now());
+
+        ComboBox<Employee.Status> cbStatus = new ComboBox<>();
+        cbStatus.getItems().addAll(Employee.Status.values());
+        cbStatus.setValue(selected.getStatus());
+
+        grid.add(new Label("Employee ID:"), 0, 0);
+        grid.add(tfId, 1, 0);
+        grid.add(new Label("First Name:"), 0, 1);
+        grid.add(tfFirst, 1, 1);
+        grid.add(new Label("Last Name:"), 0, 2);
+        grid.add(tfLast, 1, 2);
+        grid.add(new Label("Email:"), 0, 3);
+        grid.add(tfEmail, 1, 3);
+        grid.add(new Label("Phone:"), 0, 4);
+        grid.add(tfPhone, 1, 4);
+        grid.add(new Label("Designation:"), 0, 5);
+        grid.add(tfDesignation, 1, 5);
+        grid.add(new Label("Salary (₹):"), 0, 6);
+        grid.add(tfSalary, 1, 6);
+        grid.add(new Label("Join Date:"), 0, 7);
+        grid.add(dpJoin, 1, 7);
+        grid.add(new Label("Status:"), 0, 8);
+        grid.add(cbStatus, 1, 8);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                selected.setFirstName(tfFirst.getText());
+                selected.setLastName(tfLast.getText());
+                selected.setEmail(tfEmail.getText());
+                selected.setPhone(tfPhone.getText());
+                selected.setDesignation(tfDesignation.getText());
+                selected.setJoinDate(dpJoin.getValue());
+                selected.setStatus(cbStatus.getValue());
+
+                // Parse salary
+                try {
+                    String salaryText = tfSalary.getText().trim();
+                    if (!salaryText.isEmpty()) {
+                        selected.setSalary(new BigDecimal(salaryText));
+                    } else {
+                        selected.setSalary(BigDecimal.ZERO);
+                    }
+                } catch (NumberFormatException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Please enter a valid salary amount.");
+                    return null;
+                }
+                return selected;
+            }
+            return null;
+        });
+
+        Optional<Employee> result = dialog.showAndWait();
+        result.ifPresent(employee -> {
+            if (employeeDAO.updateEmployee(employee)) {
+                refreshTable();
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Employee updated successfully!");
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to update employee.");
+            }
+        });
+    }
+
     private void handleGeneratePayroll() {
         Employee selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -145,7 +263,7 @@ public class EmployeeManagementView extends VBox {
         }
 
         // Check if salary is set
-        if (selected.getSalary() == null || selected.getSalary().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+        if (selected.getSalary() == null || selected.getSalary().compareTo(BigDecimal.ZERO) <= 0) {
             showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Employee has no salary set. Edit employee first.");
             return;
         }

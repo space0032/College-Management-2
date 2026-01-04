@@ -125,6 +125,11 @@ public class AssignmentsView {
                 data.getValue().getDueDate() != null ? dateFormat.format(data.getValue().getDueDate()) : "-"));
         dueCol.setPrefWidth(120);
 
+        TableColumn<Assignment, String> semesterCol = new TableColumn<>("Semester");
+        semesterCol.setCellValueFactory(data -> new SimpleStringProperty(
+                "Sem " + data.getValue().getSemester()));
+        semesterCol.setPrefWidth(90);
+
         TableColumn<Assignment, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(data -> {
             if (role.equals("STUDENT")) {
@@ -139,9 +144,9 @@ public class AssignmentsView {
         statusCol.setPrefWidth(100);
 
         if (role.equals("STUDENT")) {
-            tableView.getColumns().addAll(courseCol, titleCol, descCol, dueCol, statusCol);
+            tableView.getColumns().addAll(courseCol, titleCol, descCol, semesterCol, dueCol, statusCol);
         } else {
-            tableView.getColumns().addAll(courseCol, titleCol, descCol, dueCol);
+            tableView.getColumns().addAll(courseCol, titleCol, descCol, semesterCol, dueCol);
         }
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
@@ -201,25 +206,51 @@ public class AssignmentsView {
         ComboBox<Course> courseCombo = new ComboBox<>();
         courseCombo.setPrefWidth(250);
         courseCombo.getItems().addAll(courseDAO.getAllCourses());
-        // Simple String Converter for Course if needed, but toString might handle it.
 
         TextField titleField = new TextField();
         titleField.setPromptText("Assignment Title");
+        titleField.setPrefWidth(250);
 
         TextArea descArea = new TextArea();
         descArea.setPromptText("Description");
         descArea.setPrefHeight(100);
+        descArea.setPrefWidth(250);
 
         DatePicker datePicker = new DatePicker();
+        datePicker.setPrefWidth(250);
+        datePicker.setPromptText("Select Due Date");
 
-        grid.add(new Label("Course:"), 0, 0);
+        ComboBox<Integer> semesterCombo = new ComboBox<>();
+        semesterCombo.getItems().addAll(1, 2, 3, 4, 5, 6, 7, 8);
+        semesterCombo.setValue(1); // Default semester
+        semesterCombo.setPrefWidth(250);
+
+        // Create labels with explicit styles
+        Label lblCourse = new Label("Course:");
+        lblCourse.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        Label lblTitle = new Label("Title:");
+        lblTitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        Label lblDesc = new Label("Description:");
+        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        Label lblDueDate = new Label("Due Date:");
+        lblDueDate.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        Label lblSemester = new Label("Semester:");
+        lblSemester.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        grid.add(lblCourse, 0, 0);
         grid.add(courseCombo, 1, 0);
-        grid.add(new Label("Title:"), 0, 1);
+        grid.add(lblTitle, 0, 1);
         grid.add(titleField, 1, 1);
-        grid.add(new Label("Description:"), 0, 2);
+        grid.add(lblDesc, 0, 2);
         grid.add(descArea, 1, 2);
-        grid.add(new Label("Due Date:"), 0, 3);
+        grid.add(lblDueDate, 0, 3);
         grid.add(datePicker, 1, 3);
+        grid.add(lblSemester, 0, 4);
+        grid.add(semesterCombo, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -233,6 +264,7 @@ public class AssignmentsView {
                     a.setDueDate(Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                 }
                 a.setCreatedBy(userId); // Logged in user (Faculty/Admin)
+                a.setSemester(semesterCombo.getValue()); // Set semester
                 assignmentDAO.createAssignment(a);
                 return a;
             }

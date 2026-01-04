@@ -133,6 +133,7 @@ public class DashboardView {
         // Employee (HR) Management
         if (session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Employees (HR)", "employees", false);
+            addMenuItem(sidebar, "Payroll", "payroll", false);
         }
 
         // Course Management - Students should always see their courses
@@ -371,6 +372,9 @@ public class DashboardView {
             case "employees":
                 showEmployees();
                 break;
+            case "payroll":
+                showPayroll();
+                break;
             case "student_affairs":
                 showStudentAffairs();
                 break;
@@ -409,6 +413,11 @@ public class DashboardView {
 
     private void showEmployees() {
         EmployeeManagementView view = new EmployeeManagementView();
+        contentArea.getChildren().add(view);
+    }
+
+    private void showPayroll() {
+        PayrollManagementView view = new PayrollManagementView();
         contentArea.getChildren().add(view);
     }
 

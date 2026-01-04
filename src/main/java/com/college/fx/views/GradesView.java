@@ -237,6 +237,7 @@ public class GradesView {
         ComboBox<String> examTypeCombo = new ComboBox<>();
         examTypeCombo.setPromptText("Exam Type (e.g. Final)");
         examTypeCombo.getItems().addAll("Midterm", "Final", "Quiz", "Assignment", "Project");
+        examTypeCombo.setValue("Final"); // Default selection
 
         TextField marksField = new TextField();
         marksField.setPromptText("Marks Obtained");
@@ -266,7 +267,12 @@ public class GradesView {
                     Grade g = new Grade();
                     g.setCourseId(courseCombo.getValue().getId());
                     g.setStudentId(studentSelector.getSelectedStudent().getId());
-                    g.setExamType(examTypeCombo.getValue());
+                    // Ensure exam_type is not null
+                    String examType = examTypeCombo.getValue();
+                    if (examType == null || examType.trim().isEmpty()) {
+                        examType = "Final"; // Default value
+                    }
+                    g.setExamType(examType);
                     g.setMarksObtained(m);
                     g.setMaxMarks(max);
 
@@ -332,6 +338,7 @@ public class GradesView {
 
         ComboBox<String> examTypeCombo = new ComboBox<>();
         examTypeCombo.getItems().addAll("Midterm", "Final", "Quiz", "Assignment", "Project");
+        examTypeCombo.setValue("Final"); // Default selection
 
         TextField maxMarksField = new TextField("100");
 
@@ -395,12 +402,17 @@ public class GradesView {
             if (btn == saveBtn && courseCombo.getValue() != null) {
                 int saved = 0;
                 double max = Double.parseDouble(maxMarksField.getText());
+                // Ensure exam_type is not null
+                String examType = examTypeCombo.getValue();
+                if (examType == null || examType.trim().isEmpty()) {
+                    examType = "Final"; // Default value
+                }
                 for (BulkGradeRecord r : records) {
                     if (r.marks != null) {
                         Grade g = new Grade();
                         g.setStudentId(r.studentId);
                         g.setCourseId(courseCombo.getValue().getId());
-                        g.setExamType(examTypeCombo.getValue());
+                        g.setExamType(examType);
                         g.setMarksObtained(r.marks);
                         g.setMaxMarks(max);
                         gradeDAO.saveGrade(g);

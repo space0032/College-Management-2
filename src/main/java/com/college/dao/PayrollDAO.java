@@ -45,19 +45,7 @@ public class PayrollDAO {
             pstmt.setInt(1, employeeId);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                PayrollEntry p = new PayrollEntry();
-                p.setId(rs.getInt("id"));
-                p.setEmployeeId(rs.getInt("employee_id"));
-                p.setMonth(rs.getInt("month"));
-                p.setYear(rs.getInt("year"));
-                p.setBasicSalary(rs.getBigDecimal("basic_salary"));
-                p.setBonuses(rs.getBigDecimal("bonuses"));
-                p.setDeductions(rs.getBigDecimal("deductions"));
-                p.setNetSalary(rs.getBigDecimal("net_salary"));
-                p.setStatus(PayrollEntry.Status.valueOf(rs.getString("status")));
-                Date d = rs.getDate("payment_date");
-                if (d != null)
-                    p.setPaymentDate(d.toLocalDate());
+                PayrollEntry p = mapResultSetToPayrollEntry(rs);
                 list.add(p);
             }
         } catch (SQLException e) {
@@ -78,5 +66,92 @@ public class PayrollDAO {
             Logger.error("Database operation failed", e);
             return false;
         }
+    }
+
+    public List<PayrollEntry> getAllPayrollEntries() {
+        List<PayrollEntry> list = new ArrayList<>();
+        String sql = "SELECT * FROM payroll_entries ORDER BY year DESC, month DESC, employee_id";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                PayrollEntry p = mapResultSetToPayrollEntry(rs);
+                list.add(p);
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return list;
+    }
+
+    public boolean updatePayrollEntry(PayrollEntry entry) {
+        String sql = "UPDATE payroll_entries SET bonuses = ?, deductions = ?, net_salary = ?, status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            entry.calculateNet(); // Recalculate net salary before saving
+
+            pstmt.setBigDecimal(1, entry.getBonuses());
+            pstmt.setBigDecimal(2, entry.getDeductions());
+            pstmt.setBigDecimal(3, entry.getNetSalary());
+            pstmt.setString(4, entry.getStatus().name());
+            pstmt.setInt(5, entry.getId());
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Failed to update payroll entry", e);
+            return false;
+        }
+    }
+
+    public List<PayrollEntry> getPayrollEntriesByMonthYear(int month, int year) {
+        List<PayrollEntry> list = new ArrayList<>();
+        String sql = "SELECT * FROM payroll_entries WHERE month = ? AND year = ? ORDER BY employee_id";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, month);
+            pstmt.setInt(2, year);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                PayrollEntry p = mapResultSetToPayrollEntry(rs);
+                list.add(p);
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return list;
+    }
+
+    public boolean deletePayrollEntry(int id) {
+        String sql = "DELETE FROM payroll_entries WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Failed to delete payroll entry", e);
+            return false;
+        }
+    }
+
+    private PayrollEntry mapResultSetToPayrollEntry(ResultSet rs) throws SQLException {
+        PayrollEntry p = new PayrollEntry();
+        p.setId(rs.getInt("id"));
+        p.setEmployeeId(rs.getInt("employee_id"));
+        p.setMonth(rs.getInt("month"));
+        p.setYear(rs.getInt("year"));
+        p.setBasicSalary(rs.getBigDecimal("basic_salary"));
+        p.setBonuses(rs.getBigDecimal("bonuses"));
+        p.setDeductions(rs.getBigDecimal("deductions"));
+        p.setNetSalary(rs.getBigDecimal("net_salary"));
+        p.setStatus(PayrollEntry.Status.valueOf(rs.getString("status")));
+        Date d = rs.getDate("payment_date");
+        if (d != null)
+            p.setPaymentDate(d.toLocalDate());
+        return p;
     }
 }

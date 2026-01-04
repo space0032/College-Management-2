@@ -34,6 +34,29 @@ public class EmployeeDAO {
         }
     }
 
+    public boolean updateEmployee(Employee emp) {
+        String sql = "UPDATE employees SET first_name = ?, last_name = ?, email = ?, phone = ?, " +
+                "designation = ?, join_date = ?, salary = ?, status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, emp.getFirstName());
+            pstmt.setString(2, emp.getLastName());
+            pstmt.setString(3, emp.getEmail());
+            pstmt.setString(4, emp.getPhone());
+            pstmt.setString(5, emp.getDesignation());
+            pstmt.setDate(6, Date.valueOf(emp.getJoinDate()));
+            pstmt.setBigDecimal(7, emp.getSalary());
+            pstmt.setString(8, emp.getStatus().name());
+            pstmt.setInt(9, emp.getId());
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Failed to update employee", e);
+            return false;
+        }
+    }
+
     public List<Employee> getAllEmployees() {
         List<Employee> list = new ArrayList<>();
         String sql = "SELECT * FROM employees ORDER BY last_name";
@@ -48,7 +71,12 @@ public class EmployeeDAO {
                 e.setFirstName(rs.getString("first_name"));
                 e.setLastName(rs.getString("last_name"));
                 e.setEmail(rs.getString("email"));
+                e.setPhone(rs.getString("phone"));
                 e.setDesignation(rs.getString("designation"));
+                java.sql.Date joinDate = rs.getDate("join_date");
+                if (joinDate != null)
+                    e.setJoinDate(joinDate.toLocalDate());
+                e.setSalary(rs.getBigDecimal("salary"));
                 e.setStatus(Employee.Status.valueOf(rs.getString("status")));
                 list.add(e);
             }
