@@ -2,7 +2,7 @@ package com.college.dao;
 
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
-import java.security.MessageDigest;
+import com.college.utils.PasswordUtils;
 import java.sql.*;
 
 public class UserDAO {
@@ -20,7 +20,7 @@ public class UserDAO {
         String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, hashPassword(password));
+            pstmt.setString(2, PasswordUtils.hashPasswordLegacy(password)); // Use legacy for compatibility
             pstmt.setString(3, role);
 
             int rows = pstmt.executeUpdate();
@@ -33,25 +33,6 @@ public class UserDAO {
             }
         }
         return -1;
-    }
-
-    private String hashPassword(String password) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(password.getBytes("UTF-8"));
-            StringBuilder hexString = new StringBuilder();
-
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1)
-                    hexString.append('0');
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public boolean updateUserRole(int userId, String newRole) {

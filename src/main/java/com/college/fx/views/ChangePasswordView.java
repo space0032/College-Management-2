@@ -10,7 +10,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
@@ -144,7 +143,7 @@ public class ChangePasswordView {
             // Verify current password
             try (PreparedStatement pstmt = conn.prepareStatement(verifySql)) {
                 pstmt.setInt(1, userId);
-                pstmt.setString(2, hashPassword(currentPassword));
+                pstmt.setString(2, com.college.utils.PasswordUtils.hashPasswordLegacy(currentPassword));
                 if (!pstmt.executeQuery().next()) {
                     showMessage("Current password is incorrect.", true);
                     return;
@@ -153,7 +152,7 @@ public class ChangePasswordView {
 
             // Update password
             try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
-                pstmt.setString(1, hashPassword(newPassword));
+                pstmt.setString(1, com.college.utils.PasswordUtils.hashPasswordLegacy(newPassword));
                 pstmt.setInt(2, userId);
                 if (pstmt.executeUpdate() > 0) {
                     showMessage("Password changed successfully!", false);
@@ -177,25 +176,6 @@ public class ChangePasswordView {
         currentPasswordField.clear();
         newPasswordField.clear();
         confirmPasswordField.clear();
-    }
-
-    private String hashPassword(String password) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(password.getBytes("UTF-8"));
-            StringBuilder hexString = new StringBuilder();
-
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1)
-                    hexString.append('0');
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public VBox getView() {

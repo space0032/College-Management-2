@@ -11,7 +11,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
-import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -191,7 +190,7 @@ public class LoginView {
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, username);
-                pstmt.setString(2, hashPassword(password));
+                pstmt.setString(2, com.college.utils.PasswordUtils.hashPasswordLegacy(password));
                 pstmt.setString(3, role);
 
                 ResultSet rs = pstmt.executeQuery();
@@ -203,25 +202,6 @@ public class LoginView {
         } catch (Exception e) {
             e.printStackTrace();
             return 0;
-        }
-    }
-
-    private String hashPassword(String password) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(password.getBytes("UTF-8"));
-            StringBuilder hexString = new StringBuilder();
-
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1)
-                    hexString.append('0');
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 
