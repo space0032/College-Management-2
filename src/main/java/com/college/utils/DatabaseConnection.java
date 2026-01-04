@@ -89,10 +89,23 @@ public class DatabaseConnection {
      * @return true if connection successful, false otherwise
      */
     public static boolean testConnection() {
-        try (Connection conn = getConnection()) {
-            return conn != null && !conn.isClosed();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            if (conn != null) {
+                return !conn.isClosed();
+            }
+            return false;
         } catch (SQLException e) {
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    // Ignore close errors
+                }
+            }
         }
     }
 }

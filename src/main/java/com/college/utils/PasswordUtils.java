@@ -18,7 +18,7 @@ public class PasswordUtils {
      * Hash a password with a randomly generated salt
      * 
      * @param password Plain text password
-     * @return Hashed password in format: salt:hash
+     * @return Hashed password in format: base64_salt:hex_hash (salt is base64 encoded, hash is hex encoded)
      */
     public static String hashPassword(String password) {
         try {
@@ -49,7 +49,7 @@ public class PasswordUtils {
     public static String hashPasswordLegacy(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance(ALGORITHM);
-            byte[] hash = md.digest(password.getBytes("UTF-8"));
+            byte[] hash = md.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             return bytesToHex(hash);
         } catch (Exception e) {
             throw new RuntimeException("Error hashing password", e);
