@@ -14,7 +14,7 @@ import java.util.List;
 public class CourseDAO {
 
     public boolean addCourse(Course course) {
-        String sql = "INSERT INTO courses (name, code, credits, department, department_id) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO courses (name, code, credits, department, department_id, semester, course_type, capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -28,6 +28,9 @@ public class CourseDAO {
             } else {
                 pstmt.setNull(5, java.sql.Types.INTEGER);
             }
+            pstmt.setInt(6, course.getSemester());
+            pstmt.setString(7, course.getCourseType());
+            pstmt.setInt(8, course.getCapacity());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -85,11 +88,22 @@ public class CourseDAO {
         course.setSemester(rs.getInt("semester"));
         course.setDepartmentId(rs.getInt("department_id"));
         course.setDepartmentName(rs.getString("dept_name"));
+
+        // Handle new fields gracefully if they don't exist (though migration should
+        // ensure they do)
+        try {
+            course.setCourseType(rs.getString("course_type"));
+            course.setCapacity(rs.getInt("capacity"));
+            course.setEnrolledCount(rs.getInt("enrolled_count"));
+        } catch (SQLException e) {
+            // Might happen if column doesn't exist yet, default to safe values
+            course.setCourseType("CORE");
+        }
         return course;
     }
 
     public boolean updateCourse(Course course) {
-        String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=? WHERE id=?";
+        String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=?, course_type=?, capacity=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -100,7 +114,9 @@ public class CourseDAO {
             pstmt.setString(4, course.getDepartment());
             pstmt.setInt(5, course.getSemester());
             pstmt.setInt(6, course.getDepartmentId());
-            pstmt.setInt(7, course.getId());
+            pstmt.setString(7, course.getCourseType());
+            pstmt.setInt(8, course.getCapacity());
+            pstmt.setInt(9, course.getId());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

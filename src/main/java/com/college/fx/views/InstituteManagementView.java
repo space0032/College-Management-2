@@ -103,11 +103,7 @@ public class InstituteManagementView {
         FacultyManagementView facultyView = new FacultyManagementView(userRole, userId);
         facultyTab.setContent(facultyView.getView());
 
-        Tab coursesTab = new Tab("Courses");
-        CourseManagementView coursesView = new CourseManagementView(userRole, userId);
-        coursesTab.setContent(coursesView.getView());
-
-        tabPane.getTabs().addAll(studentTab, facultyTab, coursesTab, deptTab, roleTab, auditTab);
+        tabPane.getTabs().addAll(studentTab, facultyTab, deptTab, roleTab, auditTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(title, tabPane);

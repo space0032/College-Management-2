@@ -14,6 +14,10 @@ public class Course {
     private int departmentId;
     private String departmentName;
 
+    private String courseType = "CORE"; // Default
+    private int capacity = 60;
+    private int enrolledCount = 0;
+
     // Constructors
     public Course() {
     }
@@ -93,8 +97,32 @@ public class Course {
         this.departmentName = departmentName;
     }
 
+    public String getCourseType() {
+        return courseType;
+    }
+
+    public void setCourseType(String courseType) {
+        this.courseType = courseType;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public int getEnrolledCount() {
+        return enrolledCount;
+    }
+
+    public void setEnrolledCount(int enrolledCount) {
+        this.enrolledCount = enrolledCount;
+    }
+
     @Override
     public String toString() {
-        return code + " - " + name;
+        return code + " - " + name + " (" + courseType + ")";
     }
 }
