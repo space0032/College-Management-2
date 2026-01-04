@@ -718,8 +718,17 @@ public class HostelManagementView {
         });
 
         dialog.showAndWait().ifPresent(w -> {
-            loadWardens();
-            showAlert("Success", "Warden added successfully!");
+            loadWardens(); // Refresh the list
+            if (w.getUsername() != null && !w.getUsername().isEmpty()) {
+                showAlert("Warden Created",
+                        "Warden added successfully!\n\n" +
+                                "Login Credentials:\n" +
+                                "Username: " + w.getUsername() + "\n" +
+                                "Password: password123\n\n" +
+                                "Please share these credentials with the warden.");
+            } else {
+                showAlert("Success", "Warden added successfully!");
+            }
         });
     }
 
