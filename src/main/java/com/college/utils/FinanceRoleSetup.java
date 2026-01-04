@@ -12,6 +12,12 @@ import java.util.List;
 
 /**
  * Utility to setup Finance/Bursar role and permissions
+ * 
+ * SECURITY WARNING: This utility creates a test user with a default weak password.
+ * This is for DEVELOPMENT and INITIAL SETUP only.
+ * 
+ * IMPORTANT: Change the password immediately after first login!
+ * The default password should NEVER be used in production.
  */
 public class FinanceRoleSetup {
 
@@ -21,12 +27,15 @@ public class FinanceRoleSetup {
 
     public static void main(String[] args) {
         System.out.println("Starting Finance Role Setup...");
+        System.out.println("WARNING: This creates a test user with default credentials.");
+        System.out.println("         Change the password immediately after first login!");
         
         setupPermissions();
         setupRole();
         setupTestUser();
         
         System.out.println("Finance Role Setup Completed.");
+        System.out.println("REMINDER: Change default passwords before production use!");
     }
 
     private static void setupPermissions() {

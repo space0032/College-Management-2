@@ -9,8 +9,12 @@ Currently, only the latest version of the College Management System is supported
 ### 1. Credential Management
 - **Never commit** `.env` or `CREDENTIALS.txt` files to version control
 - Always use `.env.example` as a template and create your own `.env` file
-- Change default passwords immediately after installation
-- Use strong, unique passwords for all user accounts
+- **CRITICAL**: Change ALL default passwords immediately after installation
+  - Default test accounts use password: `123` (extremely weak)
+  - These are for DEVELOPMENT/TESTING only
+  - Production systems must use strong, unique passwords
+- Use strong, unique passwords for all user accounts (minimum 12 characters, mix of upper/lower case, numbers, and special characters)
+- Consider implementing forced password change on first login
 
 ### 2. Database Security
 - Run the database with a dedicated user account (not root)
