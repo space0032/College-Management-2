@@ -15,8 +15,9 @@ public class SubmissionDAO {
      */
     public boolean submitAssignment(Submission submission) {
         String sql = "INSERT INTO submissions (assignment_id, student_id, submission_text, file_path, status, plagiarism_score) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE submission_text=VALUES(submission_text), file_path=VALUES(file_path), "
+                + "status='SUBMITTED', submitted_at=CURRENT_TIMESTAMP, plagiarism_score=VALUES(plagiarism_score)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -98,7 +99,7 @@ public class SubmissionDAO {
      * Grade submission
      */
     public boolean gradeSubmission(int submissionId, double grade, String feedback) {
-        String sql = "UPDATE submissions SET grade = ?, feedback = ?, status = 'GRADED' WHERE id = ?";
+        String sql = "UPDATE submissions SET marks_obtained = ?, feedback = ?, status = 'GRADED' WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -192,7 +193,7 @@ public class SubmissionDAO {
         submission.setSubmittedAt(rs.getTimestamp("submitted_at"));
         submission.setStatus(rs.getString("status"));
 
-        double grade = rs.getDouble("grade");
+        double grade = rs.getDouble("marks_obtained");
         if (!rs.wasNull())
             submission.setGrade(grade);
 

@@ -164,11 +164,10 @@ public class AssignmentsView {
             Button addBtn = createButton("New Assignment", "#22c55e");
             addBtn.setOnAction(e -> showAddAssignmentDialog());
 
-            Button editBtn = createButton("Edit", "#3b82f6");
-            editBtn.setOnAction(e -> showAlert("Edit Assignment", "Edit functionality coming soon.")); // Placeholder
-                                                                                                       // for now
+            Button reviewBtn = createButton("Review Submissions", "#8b5cf6");
+            reviewBtn.setOnAction(e -> showReviewSubmissionsDialog());
 
-            section.getChildren().addAll(addBtn, editBtn);
+            section.getChildren().addAll(addBtn, reviewBtn);
         } else if (role.equals("STUDENT")) {
             Button submitBtn = createButton("Submit Assignment", "#14b8a6");
             submitBtn.setOnAction(e -> showSubmitAssignmentDialog());
@@ -303,9 +302,42 @@ public class AssignmentsView {
         TextArea contentArea = new TextArea();
         contentArea.setPromptText("Enter your submission text or link...");
         contentArea.setPrefHeight(150);
+        contentArea.setPrefWidth(400);
 
-        grid.add(new Label("Content:"), 0, 0);
+        // File attachment
+        TextField filePathField = new TextField();
+        filePathField.setPromptText("No file selected");
+        filePathField.setEditable(false);
+        filePathField.setPrefWidth(300);
+
+        Button browseBtn = new Button("Browse...");
+        browseBtn.setOnAction(e -> {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Select File to Attach");
+            fileChooser.getExtensionFilters().addAll(
+                    new javafx.stage.FileChooser.ExtensionFilter("All Files", "*.*"),
+                    new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"),
+                    new javafx.stage.FileChooser.ExtensionFilter("Word Documents", "*.doc", "*.docx"),
+                    new javafx.stage.FileChooser.ExtensionFilter("Text Files", "*.txt"));
+            java.io.File file = fileChooser.showOpenDialog(dialog.getOwner());
+            if (file != null) {
+                filePathField.setText(file.getAbsolutePath());
+            }
+        });
+
+        HBox fileBox = new HBox(10);
+        fileBox.getChildren().addAll(filePathField, browseBtn);
+
+        Label lblContent = new Label("Content:");
+        lblContent.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        Label lblFile = new Label("Attach File:");
+        lblFile.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+
+        grid.add(lblContent, 0, 0);
         grid.add(contentArea, 1, 0);
+        grid.add(lblFile, 0, 1);
+        grid.add(fileBox, 1, 1);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -315,14 +347,174 @@ public class AssignmentsView {
                 s.setAssignmentId(selected.getId());
                 s.setStudentId(student.getId());
                 s.setSubmissionText(contentArea.getText());
-                s.setFilePath(""); // Optional for now
+                s.setFilePath(filePathField.getText().isEmpty() ? "" : filePathField.getText());
                 submissionDAO.submitAssignment(s);
                 return s;
             }
             return null;
         });
 
-        dialog.showAndWait().ifPresent(s -> showAlert("Success", "Assignment submitted!"));
+        dialog.showAndWait().ifPresent(s -> {
+            loadAssignments(); // Refresh to update status
+            showAlert("Success", "Assignment submitted!");
+        });
+    }
+
+    private void showReviewSubmissionsDialog() {
+        Assignment selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Warning", "Please select an assignment to review.");
+            return;
+        }
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Review Submissions");
+        dialog.setHeaderText("Submissions for: " + selected.getTitle());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        TableView<Submission> submissionTable = new TableView<>();
+        submissionTable.setPrefWidth(800);
+        submissionTable.setPrefHeight(400);
+
+        TableColumn<Submission, String> studentCol = new TableColumn<>("Student");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
+        studentCol.setPrefWidth(150);
+
+        TableColumn<Submission, String> dateCol = new TableColumn<>("Submitted At");
+        dateCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getSubmittedAt() != null ? data.getValue().getSubmittedAt().toString() : "-"));
+        dateCol.setPrefWidth(150);
+
+        TableColumn<Submission, String> plagCol = new TableColumn<>("Plagiarism");
+        plagCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getPlagiarismScore() + "%"));
+        plagCol.setPrefWidth(80);
+        plagCol.setCellFactory(col -> new TableCell<Submission, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if (item.endsWith("%")) {
+                        try {
+                            int score = Integer.parseInt(item.replace("%", ""));
+                            if (score > 50) {
+                                setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                            } else if (score > 20) {
+                                setStyle("-fx-text-fill: orange;");
+                            } else {
+                                setStyle("-fx-text-fill: green;");
+                            }
+                        } catch (NumberFormatException e) {
+                            setStyle("");
+                        }
+                    }
+                }
+            }
+        });
+
+        TableColumn<Submission, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setPrefWidth(100);
+
+        TableColumn<Submission, String> gradeCol = new TableColumn<>("Grade");
+        gradeCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getGrade() != null ? String.valueOf(data.getValue().getGrade()) : "-"));
+        gradeCol.setPrefWidth(80);
+
+        submissionTable.getColumns().addAll(studentCol, dateCol, plagCol, statusCol, gradeCol);
+
+        // Load data
+        List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(selected.getId());
+        submissionTable.setItems(FXCollections.observableArrayList(submissions));
+
+        // Add Grade Button
+        Button gradeBtn = new Button("Grade Submission");
+        gradeBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
+        gradeBtn.setOnAction(e -> {
+            Submission s = submissionTable.getSelectionModel().getSelectedItem();
+            if (s != null) {
+                showGradeDialog(s, () -> {
+                    // Refresh table
+                    List<Submission> updated = submissionDAO.getSubmissionsByAssignment(selected.getId());
+                    submissionTable.setItems(FXCollections.observableArrayList(updated));
+                });
+            } else {
+                showAlert("Warning", "Select a submission to grade.");
+            }
+        });
+
+        VBox content = new VBox(10);
+        content.getChildren().addAll(submissionTable, gradeBtn);
+        content.setPadding(new Insets(10));
+
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
+
+    private void showGradeDialog(Submission submission, Runnable onGraded) {
+        Dialog<Boolean> dialog = new Dialog<>();
+        dialog.setTitle("Grade Submission");
+        dialog.setHeaderText("Grade submission from " + submission.getStudentName());
+        ButtonType saveBtn = new ButtonType("Save Grade", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 20, 10, 10));
+
+        TextArea contentArea = new TextArea(submission.getSubmissionText());
+        contentArea.setEditable(false);
+        contentArea.setWrapText(true);
+        contentArea.setPrefHeight(100);
+
+        TextField marksField = new TextField();
+        marksField.setPromptText("Marks (0-100)");
+
+        TextArea feedbackArea = new TextArea();
+        feedbackArea.setPromptText("Enter feedback...");
+        feedbackArea.setPrefHeight(60);
+
+        grid.add(new Label("Submission Content:"), 0, 0);
+        grid.add(contentArea, 1, 0);
+
+        if (submission.getFilePath() != null && !submission.getFilePath().isEmpty()) {
+            TextField fileField = new TextField(submission.getFilePath());
+            fileField.setEditable(false);
+            grid.add(new Label("Attached File:"), 0, 1);
+            grid.add(fileField, 1, 1);
+        }
+
+        grid.add(new Label("Marks:"), 0, 2);
+        grid.add(marksField, 1, 2);
+        grid.add(new Label("Feedback:"), 0, 3);
+        grid.add(feedbackArea, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                try {
+                    double marks = Double.parseDouble(marksField.getText());
+                    submissionDAO.gradeSubmission(submission.getId(), marks, feedbackArea.getText());
+                    return true;
+                } catch (NumberFormatException e) {
+                    showAlert("Error", "Invalid marks entered.");
+                    return false;
+                }
+            }
+            return false;
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (result) {
+                onGraded.run();
+                showAlert("Success", "Graded successfully!");
+            }
+        });
     }
 
     private void loadAssignments() {

@@ -8,6 +8,7 @@ import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -123,13 +124,91 @@ public class TimetableView {
         SessionManager session = SessionManager.getInstance();
         if (session.hasPermission("MANAGE_SYSTEM") || session.hasPermission("MANAGE_TIMETABLE")) {
             Button editBtn = createButton("Edit", "#22c55e");
-            editBtn.setOnAction(e -> showAlert("Edit", "Timetable editing coming soon."));
+            editBtn.setOnAction(e -> showEditTimetableDialog());
             header.getChildren().addAll(title, spacer, deptLabel, departmentCombo, semLabel, semesterCombo, loadBtn,
                     editBtn);
         } else {
             header.getChildren().addAll(title, spacer, deptLabel, departmentCombo, semLabel, semesterCombo, loadBtn);
         }
         return header;
+    }
+
+    private void showEditTimetableDialog() {
+        Dialog<Boolean> dialog = new Dialog<>();
+        dialog.setTitle("Edit Timetable");
+        dialog.setHeaderText("Add or Update Timetable Entry");
+        ButtonType saveBtnType = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtnType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<String> dayCombo = new ComboBox<>();
+        dayCombo.getItems().addAll(DAYS);
+        dayCombo.setValue(DAYS[0]);
+        dayCombo.setPrefWidth(200);
+
+        ComboBox<String> timeCombo = new ComboBox<>();
+        timeCombo.getItems().addAll(TIME_SLOTS);
+        timeCombo.setValue(TIME_SLOTS[0]);
+        timeCombo.setPrefWidth(200);
+
+        TextField subjectField = new TextField();
+        subjectField.setPromptText("Subject Name");
+
+        TextField facultyField = new TextField();
+        facultyField.setPromptText("Faculty Name");
+
+        TextField roomField = new TextField();
+        roomField.setPromptText("Room Number");
+
+        grid.add(new Label("Day:"), 0, 0);
+        grid.add(dayCombo, 1, 0);
+        grid.add(new Label("Time:"), 0, 1);
+        grid.add(timeCombo, 1, 1);
+        grid.add(new Label("Subject:"), 0, 2);
+        grid.add(subjectField, 1, 2);
+        grid.add(new Label("Faculty:"), 0, 3);
+        grid.add(facultyField, 1, 3);
+        grid.add(new Label("Room:"), 0, 4);
+        grid.add(roomField, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtnType) {
+                String dept = departmentCombo.getValue();
+                Integer sem = semesterCombo.getValue();
+
+                if (dept == null || sem == null) {
+                    showAlert("Error", "Please select a department and semester first.");
+                    return false;
+                }
+
+                Timetable entry = new Timetable();
+                entry.setDepartment(dept);
+                entry.setSemester(sem);
+                entry.setDayOfWeek(dayCombo.getValue());
+                entry.setTimeSlot(timeCombo.getValue());
+                entry.setSubject(subjectField.getText());
+                entry.setFacultyName(facultyField.getText());
+                entry.setRoomNumber(roomField.getText());
+
+                return timetableDAO.saveTimetableEntry(entry);
+            }
+            return false;
+        });
+
+        dialog.showAndWait().ifPresent(success -> {
+            if (success) {
+                loadTimetable();
+                showAlert("Success", "Timetable updated successfully!");
+            } else {
+                showAlert("Error", "Failed to update timetable.");
+            }
+        });
     }
 
     private GridPane createTimetableGrid() {
