@@ -103,6 +103,7 @@ public class LoginView {
         roleLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569; -fx-font-weight: bold;");
         roleComboBox = new ComboBox<>();
         roleComboBox.getItems().addAll("ADMIN", "FACULTY", "STUDENT", "WARDEN", "FINANCE");
+        // We will update this to show PORTAL types, which map to Role logic
         roleComboBox.setValue("ADMIN");
         roleComboBox.setPrefHeight(45);
         roleComboBox.setMaxWidth(Double.MAX_VALUE);
@@ -159,28 +160,47 @@ public class LoginView {
             return;
         }
 
-        int userId = authenticateUser(username, password, role);
+        int userId = authenticateUser(username, password);
 
         if (userId > 0) {
-            // Initialize session
-            SessionManager.getInstance().initSession(userId, username, role);
+            // Initialize session with empty legacy role, will be populated from DB
+            SessionManager.getInstance().initSession(userId, username, "");
+
+            // Get the actual Role object from session to determine Portal
+            com.college.models.Role userRole = SessionManager.getInstance().getUserRole();
+
+            if (userRole == null) {
+                // Critical system error: User authenticated but has no valid Role assigned
+                com.college.utils.Logger.error("Login successful but no role assigned for user: " + username);
+                messageLabel.setText("Login failed: Account configuration error (No Role).");
+                return;
+            }
+
+            String portalType = userRole.getPortalType();
+            if (portalType == null || portalType.isEmpty()) {
+                portalType = "STUDENT"; // Default fallback
+            }
+
+            // Re-initialize session with the resolved Portal Type as the legacy role string
+            // This ensures logic like session.isAdmin() works correctly for UI filtering
+            SessionManager.getInstance().initSession(userId, username, portalType);
 
             // Log login
             com.college.dao.AuditLogDAO.logAction(userId, username, "LOGIN", "USER", userId,
-                    "User logged in as " + role);
+                    "User logged in. Portal: " + portalType);
 
-            // Switch to dashboard
-            DashboardView dashboardView = new DashboardView(username, role, userId);
+            // Switch to dashboard using Portal Type
+            DashboardView dashboardView = new DashboardView(username, portalType, userId);
             com.college.MainFX.getPrimaryStage().getScene().setRoot(dashboardView.getView());
             com.college.MainFX.getPrimaryStage().setMaximized(true);
         } else {
-            messageLabel.setText("Invalid username, password, or role. Please try again.");
+            messageLabel.setText("Invalid username or password.");
             passwordField.clear();
         }
     }
 
-    private int authenticateUser(String username, String password, String role) {
-        String sql = "SELECT id FROM users WHERE username=? AND password=? AND role=?";
+    private int authenticateUser(String username, String password) {
+        String sql = "SELECT id FROM users WHERE username=? AND password=?";
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             if (conn == null) {
@@ -191,7 +211,9 @@ public class LoginView {
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, username);
                 pstmt.setString(2, com.college.utils.PasswordUtils.hashPasswordLegacy(password));
-                pstmt.setString(3, role);
+                // We no longer check 'role' column since we want to allow Custom Roles to log
+                // in
+                // The Role is associated via role_id in users table (handled by SessionManager)
 
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) {

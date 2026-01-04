@@ -222,6 +222,12 @@ public class PayrollManagementView extends VBox {
             return;
         }
 
+        // Prevent editing if status is PAID
+        if (selected.getStatus() == PayrollEntry.Status.PAID) {
+            showAlert(Alert.AlertType.ERROR, "Cannot Edit", "Payroll entries with PAID status cannot be edited.");
+            return;
+        }
+
         Dialog<PayrollEntry> dialog = new Dialog<>();
         dialog.setTitle("Edit Payroll Entry");
         dialog.setHeaderText("Update Bonuses and Deductions");

@@ -450,10 +450,18 @@ public class InstituteManagementView {
         TextArea descArea = new TextArea();
         descArea.setPromptText("Description");
 
+        ComboBox<String> portalCombo = new ComboBox<>();
+        portalCombo.getItems().addAll("ADMIN", "FACULTY", "STUDENT", "WARDEN", "FINANCE");
+        portalCombo.setValue("STUDENT"); // Default
+        portalCombo.setPromptText("Select Portal View");
+
         if (role != null) {
             codeField.setText(role.getCode());
             nameField.setText(role.getName());
             descArea.setText(role.getDescription());
+            if (role.getPortalType() != null) {
+                portalCombo.setValue(role.getPortalType());
+            }
             if (role.isSystemRole()) {
                 codeField.setDisable(true);
             }
@@ -474,6 +482,11 @@ public class InstituteManagementView {
         grid.add(descLabel, 0, 2);
         grid.add(descArea, 1, 2);
 
+        Label portalLabel = new Label("Portal Type:");
+        portalLabel.setStyle("-fx-text-fill: black;");
+        grid.add(portalLabel, 0, 3);
+        grid.add(portalCombo, 1, 3);
+
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(dialogButton -> {
@@ -482,6 +495,7 @@ public class InstituteManagementView {
                 result.setCode(codeField.getText().toUpperCase());
                 result.setName(nameField.getText());
                 result.setDescription(descArea.getText());
+                result.setPortalType(portalCombo.getValue());
                 return result;
             }
             return null;

@@ -101,7 +101,7 @@ public class RoleDAO {
     }
 
     public boolean createRole(Role role) {
-        String sql = "INSERT INTO roles (code, name, description, is_system_role) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO roles (code, name, description, is_system_role, portal_type) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -110,6 +110,7 @@ public class RoleDAO {
             stmt.setString(2, role.getName());
             stmt.setString(3, role.getDescription());
             stmt.setBoolean(4, role.isSystemRole());
+            stmt.setString(5, role.getPortalType());
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -126,7 +127,7 @@ public class RoleDAO {
     }
 
     public boolean updateRole(Role role) {
-        String sql = "UPDATE roles SET code = ?, name = ?, description = ? WHERE id = ?";
+        String sql = "UPDATE roles SET code = ?, name = ?, description = ?, portal_type = ? WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -134,7 +135,8 @@ public class RoleDAO {
             stmt.setString(1, role.getCode());
             stmt.setString(2, role.getName());
             stmt.setString(3, role.getDescription());
-            stmt.setInt(4, role.getId());
+            stmt.setString(4, role.getPortalType());
+            stmt.setInt(5, role.getId());
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -278,6 +280,13 @@ public class RoleDAO {
         role.setName(rs.getString("name"));
         role.setDescription(rs.getString("description"));
         role.setSystemRole(rs.getBoolean("is_system_role"));
+        try {
+            role.setPortalType(rs.getString("portal_type"));
+        } catch (SQLException e) {
+            // backward compatibility if column doesn't exist yet (shouldn't happen with
+            // V21)
+            role.setPortalType("STUDENT");
+        }
         return role;
     }
 }

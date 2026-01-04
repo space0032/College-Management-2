@@ -12,6 +12,7 @@ public class Role {
     private String name;
     private String description;
     private boolean systemRole;
+    private String portalType; // ADMIN, FACULTY, STUDENT, WARDEN, FINANCE
     private Set<Permission> permissions;
 
     public Role() {
@@ -64,6 +65,14 @@ public class Role {
 
     public void setSystemRole(boolean systemRole) {
         this.systemRole = systemRole;
+    }
+
+    public String getPortalType() {
+        return portalType;
+    }
+
+    public void setPortalType(String portalType) {
+        this.portalType = portalType;
     }
 
     public Set<Permission> getPermissions() {
