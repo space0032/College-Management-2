@@ -128,6 +128,9 @@ public class DashboardView {
         if ((session.hasPermission("MANAGE_FACULTY") || session.hasPermission("VIEW_FACULTY"))
                 && !session.hasPermission("MANAGE_SYSTEM")) {
             addMenuItem(sidebar, "Faculty", "faculty", false);
+            if (session.hasPermission("MANAGE_SYSTEM")) {
+                addMenuItem(sidebar, "Faculty Workload", "faculty_workload", false);
+            }
         }
 
         // Employee (HR) Management
@@ -369,6 +372,9 @@ public class DashboardView {
             case "faculty":
                 showFaculty();
                 break;
+            case "faculty_workload":
+                showFacultyWorkload();
+                break;
             case "employees":
                 showEmployees();
                 break;
@@ -408,6 +414,11 @@ public class DashboardView {
 
     private void showFaculty() {
         FacultyManagementView view = new FacultyManagementView(role, userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showFacultyWorkload() {
+        FacultyWorkloadView view = new FacultyWorkloadView();
         contentArea.getChildren().add(view.getView());
     }
 

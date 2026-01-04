@@ -33,9 +33,15 @@ public class TranscriptService {
         // now)
         // In a real system, this would map Letter Grades to Points (A=10, B=9, etc.)
         for (Grade g : allGrades) {
+            // Only consider 'Final' exams for Transcript/SGPA calculation to avoid double
+            // counting
+            if (!"Final".equalsIgnoreCase(g.getExamType())) {
+                continue;
+            }
+
             int sem = g.getSemester();
-            int credits = 3; // Default credits if not in Grade model, ideally should be in Course model
-            double points = convertMarksToPoints(g.getMarks());
+            int credits = Math.max(g.getCredits(), 1); // Default to 1 if missing to avoid zero division
+            double points = g.getGradePoints();
 
             semesterGradePoints.put(sem, semesterGradePoints.getOrDefault(sem, 0.0) + (points * credits));
             semesterCredits.put(sem, semesterCredits.getOrDefault(sem, 0) + credits);
@@ -58,22 +64,6 @@ public class TranscriptService {
         double cgpa = totalCredits > 0 ? totalWeightedPoints / totalCredits : 0.0;
 
         return new TranscriptSummary(allGrades, sgpaMap, cgpa);
-    }
-
-    private double convertMarksToPoints(double marks) {
-        if (marks >= 90)
-            return 10.0;
-        if (marks >= 80)
-            return 9.0;
-        if (marks >= 70)
-            return 8.0;
-        if (marks >= 60)
-            return 7.0;
-        if (marks >= 50)
-            return 6.0;
-        if (marks >= 40)
-            return 5.0;
-        return 0.0; // Fail
     }
 
     public static class TranscriptSummary {

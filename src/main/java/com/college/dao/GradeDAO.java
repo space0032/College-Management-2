@@ -59,7 +59,7 @@ public class GradeDAO {
     public List<Grade> getGradesByStudent(int studentId) {
         List<Grade> grades = new ArrayList<>();
         String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
-                "c.name as course_name FROM grades g " +
+                "c.name as course_name, c.credits FROM grades g " +
                 "JOIN courses c ON g.course_id = c.id " +
                 "WHERE g.student_id = ? ORDER BY g.exam_type DESC";
 
@@ -213,6 +213,7 @@ public class GradeDAO {
         try {
             grade.setStudentName(rs.getString("student_name"));
             grade.setCourseName(rs.getString("course_name"));
+            grade.setCredits(rs.getInt("credits"));
         } catch (SQLException e) {
             // Fields might not be in result set
         }

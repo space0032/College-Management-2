@@ -18,6 +18,8 @@ import javafx.scene.text.FontWeight;
 
 import com.college.dao.DepartmentDAO;
 import com.college.models.Department;
+import com.college.dao.FacultyDAO;
+import com.college.models.Faculty;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.scene.control.ButtonBar.ButtonData;
@@ -33,6 +35,7 @@ public class CourseManagementView {
     private ObservableList<Course> courseData;
     private CourseDAO courseDAO;
     private StudentDAO studentDAO;
+    private FacultyDAO facultyDAO;
     private String role;
     private int userId;
     private TextField searchField;
@@ -43,6 +46,7 @@ public class CourseManagementView {
         this.userId = userId;
         this.courseDAO = new CourseDAO();
         this.studentDAO = new StudentDAO();
+        this.facultyDAO = new FacultyDAO();
         this.registrationDAO = new com.college.dao.CourseRegistrationDAO();
         this.courseData = FXCollections.observableArrayList();
         createView();
@@ -405,7 +409,12 @@ public class CourseManagementView {
                 data.getValue().getEnrolledCount() + " / " + data.getValue().getCapacity()));
         capacityCol.setPrefWidth(100);
 
-        tableView.getColumns().addAll(codeCol, nameCol, deptCol, semCol, creditsCol, typeCol, capacityCol);
+        TableColumn<Course, String> facultyCol = new TableColumn<>("Instructor");
+        facultyCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getFacultyName() != null ? data.getValue().getFacultyName() : "-"));
+        facultyCol.setPrefWidth(150);
+
+        tableView.getColumns().addAll(codeCol, nameCol, deptCol, semCol, creditsCol, typeCol, capacityCol, facultyCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -521,14 +530,48 @@ public class CourseManagementView {
         grid.add(nameField, 1, 0);
         grid.add(new Label("Code:"), 0, 1);
         grid.add(codeField, 1, 1);
-        grid.add(new Label("Credits:"), 0, 2);
-        grid.add(creditsField, 1, 2);
-        grid.add(new Label("Semester:"), 0, 3);
-        grid.add(semesterField, 1, 3);
-        grid.add(new Label("Type:"), 0, 4);
-        grid.add(typeCombo, 1, 4);
-        grid.add(new Label("Capacity:"), 0, 5);
-        grid.add(capacityField, 1, 5);
+
+        ComboBox<Department> deptCombo = new ComboBox<>();
+        try {
+            DepartmentDAO deptDAO = new DepartmentDAO();
+            List<Department> depts = deptDAO.getAllDepartments();
+            deptCombo.getItems().addAll(depts);
+
+            if (depts != null && !depts.isEmpty()) {
+                // Try to select if exists
+                if (selected.getDepartmentId() > 0) {
+                    depts.stream().filter(d -> d.getId() == selected.getDepartmentId()).findFirst()
+                            .ifPresent(deptCombo::setValue);
+                } else if (selected.getDepartment() != null) {
+                    // Fallback check by name
+                    depts.stream().filter(d -> d.getName().equalsIgnoreCase(selected.getDepartment())).findFirst()
+                            .ifPresent(deptCombo::setValue);
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        grid.add(new Label("Department:"), 0, 2);
+        grid.add(deptCombo, 1, 2);
+
+        grid.add(new Label("Credits:"), 0, 3);
+        grid.add(creditsField, 1, 3);
+        grid.add(new Label("Semester:"), 0, 4);
+        grid.add(semesterField, 1, 4);
+        grid.add(new Label("Type:"), 0, 5);
+        grid.add(typeCombo, 1, 5);
+        grid.add(new Label("Capacity:"), 0, 6);
+        grid.add(capacityField, 1, 6);
+
+        ComboBox<Faculty> facultyCombo = new ComboBox<>();
+        List<Faculty> allFaculty = facultyDAO.getAllFaculty();
+        facultyCombo.getItems().addAll(allFaculty);
+        if (selected.getFacultyId() > 0) {
+            allFaculty.stream().filter(f -> f.getId() == selected.getFacultyId()).findFirst()
+                    .ifPresent(facultyCombo::setValue);
+        }
+        grid.add(new Label("Instructor:"), 0, 7);
+        grid.add(facultyCombo, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -539,11 +582,29 @@ public class CourseManagementView {
                     selected.setCode(codeField.getText());
                     selected.setCredits(Integer.parseInt(creditsField.getText()));
                     selected.setSemester(Integer.parseInt(semesterField.getText()));
+                    if (deptCombo.getValue() != null) {
+                        selected.setDepartment(deptCombo.getValue().getName());
+                        selected.setDepartmentId(deptCombo.getValue().getId());
+                    }
                     selected.setCourseType(typeCombo.getValue());
                     selected.setCapacity(Integer.parseInt(capacityField.getText()));
+                    if (facultyCombo.getValue() != null) {
+                        System.out.println("DEBUG: Selected Faculty: " + facultyCombo.getValue().getName() + " ID: "
+                                + facultyCombo.getValue().getId());
+                        selected.setFacultyId(facultyCombo.getValue().getId());
+                        selected.setFacultyName(facultyCombo.getValue().getName());
+                    } else {
+                        System.out.println("DEBUG: Selected Faculty is NULL");
+                        selected.setFacultyId(0);
+                        selected.setFacultyName(null);
+                    }
 
+                    System.out.println("DEBUG: Updating course " + selected.getCode() + " with Faculty ID: "
+                            + selected.getFacultyId());
                     if (courseDAO.updateCourse(selected)) {
                         return selected;
+                    } else {
+                        System.out.println("DEBUG: Update Failed");
                     }
                 } catch (NumberFormatException e) {
                     // Invalid number
@@ -552,7 +613,9 @@ public class CourseManagementView {
             return null;
         });
 
-        dialog.showAndWait().ifPresent(c -> {
+        dialog.showAndWait().ifPresent(c ->
+
+        {
             loadCourses();
             showAlert("Success", "Course updated successfully!");
         });
@@ -635,6 +698,11 @@ public class CourseManagementView {
         grid.add(new Label("Capacity:"), 0, 6);
         grid.add(capacityField, 1, 6);
 
+        ComboBox<Faculty> facultyCombo = new ComboBox<>();
+        facultyCombo.getItems().addAll(facultyDAO.getAllFaculty());
+        grid.add(new Label("Instructor:"), 0, 7);
+        grid.add(facultyCombo, 1, 7);
+
         dialog.getDialogPane().setContent(grid);
 
         javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
@@ -655,6 +723,9 @@ public class CourseManagementView {
                     c.setCredits(creditsSpinner.getValue());
                     c.setCourseType(typeCombo.getValue());
                     c.setCapacity(Integer.parseInt(capacityField.getText()));
+                    if (facultyCombo.getValue() != null) {
+                        c.setFacultyId(facultyCombo.getValue().getId());
+                    }
 
                     courseDAO.addCourse(c);
                     return c;

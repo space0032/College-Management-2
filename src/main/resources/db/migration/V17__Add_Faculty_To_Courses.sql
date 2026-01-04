@@ -1,0 +1,2 @@
+ALTER TABLE courses ADD COLUMN faculty_id INT DEFAULT NULL;
+ALTER TABLE courses ADD CONSTRAINT fk_course_faculty FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE SET NULL;

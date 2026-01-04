@@ -18,6 +18,7 @@ public class Grade {
     // For display purposes
     private String studentName;
     private String courseName;
+    private int credits; // Added for weighted calculation
 
     public Grade() {
     }
@@ -46,6 +47,27 @@ public class Grade {
         if (percentage >= 40)
             return "D";
         return "F";
+    }
+
+    public double getGradePoints() {
+        if (grade == null)
+            return 0.0;
+        switch (grade) {
+            case "A+":
+                return 10.0;
+            case "A":
+                return 9.0;
+            case "B+":
+                return 8.0;
+            case "B":
+                return 7.0;
+            case "C":
+                return 6.0;
+            case "D":
+                return 5.0;
+            default:
+                return 0.0;
+        }
     }
 
     // Getters and Setters
@@ -146,6 +168,14 @@ public class Grade {
 
     public void setSemester(int semester) {
         this.semester = semester;
+    }
+
+    public int getCredits() {
+        return credits;
+    }
+
+    public void setCredits(int credits) {
+        this.credits = credits;
     }
 
     @Override

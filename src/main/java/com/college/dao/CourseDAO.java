@@ -14,7 +14,7 @@ import java.util.List;
 public class CourseDAO {
 
     public boolean addCourse(Course course) {
-        String sql = "INSERT INTO courses (name, code, credits, department, department_id, semester, course_type, capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO courses (name, code, credits, department, department_id, semester, course_type, capacity, faculty_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -31,6 +31,11 @@ public class CourseDAO {
             pstmt.setInt(6, course.getSemester());
             pstmt.setString(7, course.getCourseType());
             pstmt.setInt(8, course.getCapacity());
+            if (course.getFacultyId() > 0) {
+                pstmt.setInt(9, course.getFacultyId());
+            } else {
+                pstmt.setNull(9, Types.INTEGER);
+            }
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -41,8 +46,9 @@ public class CourseDAO {
 
     public List<Course> getAllCourses() {
         List<Course> courses = new ArrayList<>();
-        String sql = "SELECT c.*, d.name as dept_name FROM courses c " +
+        String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
                 "LEFT JOIN departments d ON c.department_id = d.id " +
+                "LEFT JOIN faculty f ON c.faculty_id = f.id " +
                 "ORDER BY c.code";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -59,8 +65,9 @@ public class CourseDAO {
     }
 
     public Course getCourseById(int id) {
-        String sql = "SELECT c.*, d.name as dept_name FROM courses c " +
+        String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
                 "LEFT JOIN departments d ON c.department_id = d.id " +
+                "LEFT JOIN faculty f ON c.faculty_id = f.id " +
                 "WHERE c.id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -88,6 +95,16 @@ public class CourseDAO {
         course.setSemester(rs.getInt("semester"));
         course.setDepartmentId(rs.getInt("department_id"));
         course.setDepartmentName(rs.getString("dept_name"));
+        // Faculty
+        int fid = rs.getInt("faculty_id");
+        if (fid > 0) {
+            course.setFacultyId(fid);
+            try {
+                course.setFacultyName(rs.getString("faculty_name"));
+            } catch (SQLException e) {
+                // Column might not exist in all queries
+            }
+        }
 
         // Handle new fields gracefully if they don't exist (though migration should
         // ensure they do)
@@ -103,7 +120,7 @@ public class CourseDAO {
     }
 
     public boolean updateCourse(Course course) {
-        String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=?, course_type=?, capacity=? WHERE id=?";
+        String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=?, course_type=?, capacity=?, faculty_id=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -113,10 +130,19 @@ public class CourseDAO {
             pstmt.setInt(3, course.getCredits());
             pstmt.setString(4, course.getDepartment());
             pstmt.setInt(5, course.getSemester());
-            pstmt.setInt(6, course.getDepartmentId());
+            if (course.getDepartmentId() > 0) {
+                pstmt.setInt(6, course.getDepartmentId());
+            } else {
+                pstmt.setNull(6, Types.INTEGER);
+            }
             pstmt.setString(7, course.getCourseType());
             pstmt.setInt(8, course.getCapacity());
-            pstmt.setInt(9, course.getId());
+            if (course.getFacultyId() > 0) {
+                pstmt.setInt(9, course.getFacultyId());
+            } else {
+                pstmt.setNull(9, Types.INTEGER);
+            }
+            pstmt.setInt(10, course.getId());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -197,5 +223,46 @@ public class CourseDAO {
                 }
             }
         }
+    }
+
+    // Faculty Assignment
+    public boolean assignFaculty(int courseId, int facultyId) {
+        String sql = "UPDATE courses SET faculty_id = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            if (facultyId > 0) {
+                pstmt.setInt(1, facultyId);
+            } else {
+                pstmt.setNull(1, Types.INTEGER);
+            }
+            pstmt.setInt(2, courseId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Assign faculty failed", e);
+            return false;
+        }
+    }
+
+    // Workload
+    public static class WorkloadStats {
+        public int count;
+        public int credits;
+    }
+
+    public WorkloadStats getFacultyWorkload(int facultyId) {
+        WorkloadStats stats = new WorkloadStats();
+        String sql = "SELECT COUNT(*) as cnt, SUM(credits) as total_credits FROM courses WHERE faculty_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, facultyId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                stats.count = rs.getInt("cnt");
+                stats.credits = rs.getInt("total_credits");
+            }
+        } catch (SQLException e) {
+            Logger.error("Workload fetch failed", e);
+        }
+        return stats;
     }
 }

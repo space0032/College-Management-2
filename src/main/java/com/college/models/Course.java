@@ -17,6 +17,8 @@ public class Course {
     private String courseType = "CORE"; // Default
     private int capacity = 60;
     private int enrolledCount = 0;
+    private int facultyId;
+    private String facultyName;
 
     // Constructors
     public Course() {
@@ -119,6 +121,22 @@ public class Course {
 
     public void setEnrolledCount(int enrolledCount) {
         this.enrolledCount = enrolledCount;
+    }
+
+    public int getFacultyId() {
+        return facultyId;
+    }
+
+    public void setFacultyId(int facultyId) {
+        this.facultyId = facultyId;
+    }
+
+    public String getFacultyName() {
+        return facultyName;
+    }
+
+    public void setFacultyName(String facultyName) {
+        this.facultyName = facultyName;
     }
 
     @Override
