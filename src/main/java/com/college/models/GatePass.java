@@ -23,6 +23,7 @@ public class GatePass {
     private String approvedByName;
     private LocalDateTime approvedAt;
     private String approvalComment;
+    private String enrollmentId;
 
     // Constructors
     public GatePass() {
@@ -150,6 +151,14 @@ public class GatePass {
 
     public void setApprovalComment(String approvalComment) {
         this.approvalComment = approvalComment;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 
     // Validation

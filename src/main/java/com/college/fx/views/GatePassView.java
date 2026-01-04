@@ -99,6 +99,14 @@ public class GatePassView {
         idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
         idCol.setPrefWidth(60);
 
+        TableColumn<GatePass, String> studentCol = new TableColumn<>("Student Name");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
+        studentCol.setPrefWidth(150);
+
+        TableColumn<GatePass, String> enrollCol = new TableColumn<>("Enrollment ID");
+        enrollCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEnrollmentId()));
+        enrollCol.setPrefWidth(120);
+
         TableColumn<GatePass, String> reasonCol = new TableColumn<>("Reason");
         reasonCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReason()));
         reasonCol.setPrefWidth(200);
@@ -143,7 +151,7 @@ public class GatePassView {
             }
         });
 
-        tableView.getColumns().addAll(idCol, reasonCol, fromCol, toCol, statusCol);
+        tableView.getColumns().addAll(idCol, studentCol, enrollCol, reasonCol, fromCol, toCol, statusCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;

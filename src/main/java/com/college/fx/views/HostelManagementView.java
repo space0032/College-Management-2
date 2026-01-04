@@ -665,7 +665,11 @@ public class HostelManagementView {
         });
         hostelCol.setPrefWidth(150);
 
-        wardenTable.getColumns().addAll(nameCol, emailCol, phoneCol, hostelCol);
+        TableColumn<Warden, String> userCol = new TableColumn<>("Username");
+        userCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getUsername()));
+        userCol.setPrefWidth(120);
+
+        wardenTable.getColumns().addAll(nameCol, userCol, emailCol, phoneCol, hostelCol);
         VBox.setVgrow(wardenTable, Priority.ALWAYS);
 
         // Control buttons

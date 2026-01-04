@@ -110,11 +110,6 @@ public class FeesView {
         idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
         idCol.setPrefWidth(60);
 
-        TableColumn<StudentFee, String> studentIdCol = new TableColumn<>("Student ID");
-        studentIdCol
-                .setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getStudentId())));
-        studentIdCol.setPrefWidth(100);
-
         TableColumn<StudentFee, String> studentNameCol = new TableColumn<>("Student Name");
         studentNameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
         studentNameCol.setPrefWidth(150);
@@ -124,9 +119,9 @@ public class FeesView {
         enrollmentCol.setPrefWidth(120);
 
         TableColumn<StudentFee, String> categoryCol = new TableColumn<>("Category");
-        // Assuming category name is available or we display category ID for now
         categoryCol
-                .setCellValueFactory(data -> new SimpleStringProperty("Category " + data.getValue().getCategoryId()));
+                .setCellValueFactory(
+                        data -> new SimpleStringProperty(getCategoryName(data.getValue().getCategoryId())));
         categoryCol.setPrefWidth(120);
 
         TableColumn<StudentFee, String> amountCol = new TableColumn<>("Total Amount");
@@ -166,7 +161,7 @@ public class FeesView {
             }
         });
 
-        tableView.getColumns().addAll(idCol, studentIdCol, studentNameCol, enrollmentCol, categoryCol, amountCol,
+        tableView.getColumns().addAll(idCol, studentNameCol, enrollmentCol, categoryCol, amountCol,
                 paidCol, dueCol, statusCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);

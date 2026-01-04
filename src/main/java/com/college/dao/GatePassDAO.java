@@ -88,9 +88,11 @@ public class GatePassDAO {
      */
     public static List<GatePass> getStudentPasses(int studentId) {
         List<GatePass> passes = new ArrayList<>();
-        String sql = "SELECT gp.*, s.name as student_name, u.username as approved_by_name " +
+        String sql = "SELECT gp.*, s.name as student_name, su.username as enrollment_id, u.username as approved_by_name "
+                +
                 "FROM gate_passes gp " +
                 "JOIN students s ON gp.student_id = s.id " +
+                "LEFT JOIN users su ON s.user_id = su.id " +
                 "LEFT JOIN users u ON gp.approved_by = u.id " +
                 "WHERE gp.student_id = ? " +
                 "ORDER BY gp.requested_at DESC";
@@ -117,9 +119,11 @@ public class GatePassDAO {
      */
     public static List<GatePass> getPendingPasses() {
         List<GatePass> passes = new ArrayList<>();
-        String sql = "SELECT gp.*, s.name as student_name, u.username as approved_by_name " +
+        String sql = "SELECT gp.*, s.name as student_name, su.username as enrollment_id, u.username as approved_by_name "
+                +
                 "FROM gate_passes gp " +
                 "JOIN students s ON gp.student_id = s.id " +
+                "LEFT JOIN users su ON s.user_id = su.id " +
                 "LEFT JOIN users u ON gp.approved_by = u.id " +
                 "WHERE gp.status = 'PENDING' " +
                 "ORDER BY gp.requested_at ASC";
@@ -144,9 +148,11 @@ public class GatePassDAO {
      */
     public static List<GatePass> getAllPasses() {
         List<GatePass> passes = new ArrayList<>();
-        String sql = "SELECT gp.*, s.name as student_name, u.username as approved_by_name " +
+        String sql = "SELECT gp.*, s.name as student_name, su.username as enrollment_id, u.username as approved_by_name "
+                +
                 "FROM gate_passes gp " +
                 "JOIN students s ON gp.student_id = s.id " +
+                "LEFT JOIN users su ON s.user_id = su.id " +
                 "LEFT JOIN users u ON gp.approved_by = u.id " +
                 "ORDER BY gp.requested_at DESC " +
                 "LIMIT 500";
@@ -171,9 +177,11 @@ public class GatePassDAO {
      */
     public static List<GatePass> getPassesByStatus(String status) {
         List<GatePass> passes = new ArrayList<>();
-        String sql = "SELECT gp.*, s.name as student_name, u.username as approved_by_name " +
+        String sql = "SELECT gp.*, s.name as student_name, su.username as enrollment_id, u.username as approved_by_name "
+                +
                 "FROM gate_passes gp " +
                 "JOIN students s ON gp.student_id = s.id " +
+                "LEFT JOIN users su ON s.user_id = su.id " +
                 "LEFT JOIN users u ON gp.approved_by = u.id " +
                 "WHERE gp.status = ? " +
                 "ORDER BY gp.requested_at DESC";
@@ -235,6 +243,12 @@ public class GatePassDAO {
         }
 
         gatePass.setApprovalComment(rs.getString("approval_comment"));
+
+        try {
+            gatePass.setEnrollmentId(rs.getString("enrollment_id"));
+        } catch (SQLException e) {
+            // Field might not exist in old queries if not updated everywhere (safety)
+        }
 
         return gatePass;
     }
