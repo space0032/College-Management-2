@@ -1,0 +1,3 @@
+src/test/java/com/college/tests/FinanceRoleVerification.java
+src/test/java/com/college/tests/FinanceFeatureVerification.java
+src/test/java/com/college/dao/EnrollmentDAOTest.java

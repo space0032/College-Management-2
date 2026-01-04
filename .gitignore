@@ -1,0 +1,47 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+dependency-reduced-pom.xml
+
+# Dependencies
+lib/
+*.jar
+*.war
+*.ear
+
+# Compile Output
+*.class
+bin/
+out/
+
+# Logs
+*.log
+app_errors.log
+
+# IDEs
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS specific
+.DS_Store
+Thumbs.db
+.directory
+
+# Temp
+tmp/
+temp/
+
+# Secrets (Just in case)
+CREDENTIALS.md
+CREDENTIALS.txt
+.env
+secrets.properties

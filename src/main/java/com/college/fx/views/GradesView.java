@@ -1,0 +1,434 @@
+package com.college.fx.views;
+
+import com.college.dao.GradeDAO;
+import com.college.dao.StudentDAO;
+import com.college.models.Grade;
+import com.college.models.Student;
+import com.college.utils.SearchableStudentComboBox;
+import com.college.utils.SessionManager;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+
+import com.college.dao.CourseDAO;
+import com.college.models.Course;
+// Already there but safe to include if targeted
+
+import javafx.scene.control.ButtonBar.ButtonData;
+import java.util.List;
+
+/**
+ * JavaFX Grades View
+ */
+public class GradesView {
+
+    private VBox root;
+    private TableView<Grade> tableView;
+    private ObservableList<Grade> gradeData;
+    private GradeDAO gradeDAO;
+    private StudentDAO studentDAO;
+    private String role;
+    private int userId;
+
+    public GradesView(String role, int userId) {
+        this.role = role;
+        this.userId = userId;
+        this.gradeDAO = new GradeDAO();
+        this.studentDAO = new StudentDAO();
+        this.gradeData = FXCollections.observableArrayList();
+        createView();
+        loadGrades();
+    }
+
+    private void createView() {
+        root = new VBox(20);
+        root.setPadding(new Insets(10));
+        root.setStyle("-fx-background-color: #f8fafc;");
+
+        HBox header = createHeader();
+        VBox tableSection = createTableSection();
+        VBox.setVgrow(tableSection, Priority.ALWAYS);
+        HBox buttonSection = createButtonSection();
+
+        root.getChildren().addAll(header, tableSection, buttonSection);
+    }
+
+    private HBox createHeader() {
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(15));
+        header.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
+
+        Label title = new Label(role.equals("STUDENT") ? "My Grades" : "Grade Management");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.setTextFill(Color.web("#0f172a"));
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadGrades());
+
+        header.getChildren().addAll(title, spacer, refreshBtn);
+        return header;
+    }
+
+    @SuppressWarnings("unchecked")
+    private VBox createTableSection() {
+        VBox section = new VBox();
+        section.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #e2e8f0;" +
+                        "-fx-border-radius: 12;");
+        section.setPadding(new Insets(15));
+
+        tableView = new TableView<>();
+        tableView.setItems(gradeData);
+
+        TableColumn<Grade, String> courseCol = new TableColumn<>("Course");
+        courseCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getCourseName() != null ? data.getValue().getCourseName()
+                        : String.valueOf(data.getValue().getCourseId())));
+        courseCol.setPrefWidth(200);
+
+        TableColumn<Grade, String> examCol = new TableColumn<>("Exam Type");
+        examCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getExamType()));
+        examCol.setPrefWidth(120);
+
+        TableColumn<Grade, String> marksCol = new TableColumn<>("Marks");
+        marksCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getMarksObtained() + " / " + data.getValue().getMaxMarks()));
+        marksCol.setPrefWidth(120);
+
+        TableColumn<Grade, String> gradeCol = new TableColumn<>("Grade");
+        gradeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getGrade()));
+        gradeCol.setPrefWidth(80);
+        gradeCol.setCellFactory(col -> new TableCell<Grade, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a;");
+                    if (item.startsWith("A"))
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #16a34a;");
+                    else if (item.startsWith("F"))
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #dc2626;");
+                }
+            }
+        });
+
+        if (!role.equals("STUDENT")) {
+            TableColumn<Grade, String> studentCol = new TableColumn<>("Student");
+            studentCol.setCellValueFactory(data -> new SimpleStringProperty(
+                    data.getValue().getStudentName() != null ? data.getValue().getStudentName()
+                            : String.valueOf(data.getValue().getStudentId())));
+            studentCol.setPrefWidth(150);
+            tableView.getColumns().add(0, studentCol);
+        }
+
+        TableColumn<Grade, String> studentCol = new TableColumn<>("Student");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getStudentName() != null ? data.getValue().getStudentName()
+                        : String.valueOf(data.getValue().getStudentId())));
+        studentCol.setPrefWidth(150);
+
+        if (role.equals("STUDENT")) {
+            tableView.getColumns().addAll(courseCol, examCol, marksCol, gradeCol);
+        } else {
+            tableView.getColumns().addAll(studentCol, courseCol, examCol, marksCol, gradeCol);
+        }
+        VBox.setVgrow(tableView, Priority.ALWAYS);
+        section.getChildren().add(tableView);
+        return section;
+    }
+
+    private HBox createButtonSection() {
+        HBox section = new HBox(15);
+        section.setAlignment(Pos.CENTER);
+        section.setPadding(new Insets(10));
+
+        SessionManager session = SessionManager.getInstance();
+
+        if (SessionManager.getInstance().hasPermission("MANAGE_GRADES")) {
+            Button addGradeBtn = createButton("Add Grade", "#22c55e");
+            addGradeBtn.setOnAction(e -> showAddGradeDialog());
+
+            Button bulkGradeBtn = createButton("Bulk Grade Entry", "#3b82f6");
+            bulkGradeBtn.setOnAction(e -> showBulkGradeDialog());
+
+            section.getChildren().addAll(addGradeBtn, bulkGradeBtn);
+        }
+
+        Button exportBtn = createButton("Export Report", "#64748b");
+        section.getChildren().add(exportBtn);
+
+        return section;
+    }
+
+    private Button createButton(String text, String color) {
+        Button btn = new Button(text);
+        btn.setPrefWidth(160);
+        btn.setPrefHeight(40);
+        btn.setStyle(
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
+        return btn;
+    }
+
+    private void loadGrades() {
+        gradeData.clear();
+
+        if (role.equals("STUDENT")) {
+            Student student = studentDAO.getStudentByUserId(userId);
+            if (student != null) {
+                List<Grade> grades = gradeDAO.getGradesByStudent(student.getId());
+                gradeData.addAll(grades);
+            }
+        } else {
+            // Admin/Faculty: load all students' grades
+            List<Student> allStudents = studentDAO.getAllStudents();
+            for (Student s : allStudents) {
+                List<Grade> grades = gradeDAO.getGradesByStudent(s.getId());
+                gradeData.addAll(grades);
+            }
+        }
+    }
+
+    private void showAddGradeDialog() {
+        Dialog<Grade> dialog = new Dialog<>();
+        dialog.setTitle("Add/Edit Grades");
+        dialog.setHeaderText("Enter Grade Details");
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        try {
+            CourseDAO courseDAO = new CourseDAO();
+            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+        } catch (Exception e) {
+            /* Ignore */ }
+
+        SearchableStudentComboBox studentSelector = new SearchableStudentComboBox(studentDAO.getAllStudents());
+
+        ComboBox<String> examTypeCombo = new ComboBox<>();
+        examTypeCombo.setPromptText("Exam Type (e.g. Final)");
+        examTypeCombo.getItems().addAll("Midterm", "Final", "Quiz", "Assignment", "Project");
+
+        TextField marksField = new TextField();
+        marksField.setPromptText("Marks Obtained");
+        TextField maxMarksField = new TextField();
+        maxMarksField.setPromptText("Max Marks");
+
+        grid.add(new Label("Course:"), 0, 0);
+        grid.add(courseCombo, 1, 0);
+        grid.add(new Label("Student:"), 0, 1);
+        grid.add(studentSelector, 1, 1);
+        grid.add(new Label("Exam:"), 0, 2);
+        grid.add(examTypeCombo, 1, 2);
+        grid.add(new Label("Marks:"), 0, 3);
+        grid.add(marksField, 1, 3);
+        grid.add(new Label("Max Marks:"), 0, 4);
+        grid.add(maxMarksField, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && courseCombo.getValue() != null && studentSelector.getSelectedStudent() != null) {
+                try {
+                    double m = Double.parseDouble(marksField.getText());
+                    double max = Double.parseDouble(maxMarksField.getText());
+                    if (max == 0)
+                        max = 100;
+                    Grade g = new Grade();
+                    g.setCourseId(courseCombo.getValue().getId());
+                    g.setStudentId(studentSelector.getSelectedStudent().getId());
+                    g.setExamType(examTypeCombo.getValue());
+                    g.setMarksObtained(m);
+                    g.setMaxMarks(max);
+
+                    double p = (m / max) * 100;
+                    g.setPercentage(p);
+
+                    String l = "F";
+                    if (p >= 90)
+                        l = "A+";
+                    else if (p >= 80)
+                        l = "A";
+                    else if (p >= 70)
+                        l = "B";
+                    else if (p >= 60)
+                        l = "C";
+                    else if (p >= 50)
+                        l = "D";
+                    g.setGrade(l);
+
+                    gradeDAO.saveGrade(g);
+                    return g;
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(g -> {
+            loadGrades();
+            showAlert("Success", "Grade Saved!");
+        });
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showBulkGradeDialog() {
+        Dialog<Boolean> dialog = new Dialog<>();
+        dialog.setTitle("Bulk Grade Entry");
+        dialog.setHeaderText("Enter Grades for Entire Class");
+        ButtonType saveBtn = new ButtonType("Save All", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(700);
+
+        GridPane selectionGrid = new GridPane();
+        selectionGrid.setHgap(10);
+        selectionGrid.setVgap(10);
+
+        ComboBox<Course> courseCombo = new ComboBox<>();
+        try {
+            CourseDAO courseDAO = new CourseDAO();
+            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+        } catch (Exception e) {
+            /* Ignore */ }
+
+        ComboBox<String> examTypeCombo = new ComboBox<>();
+        examTypeCombo.getItems().addAll("Midterm", "Final", "Quiz", "Assignment", "Project");
+
+        TextField maxMarksField = new TextField("100");
+
+        selectionGrid.add(new Label("Course:"), 0, 0);
+        selectionGrid.add(courseCombo, 1, 0);
+        selectionGrid.add(new Label("Exam Type:"), 0, 1);
+        selectionGrid.add(examTypeCombo, 1, 1);
+        selectionGrid.add(new Label("Max Marks:"), 0, 2);
+        selectionGrid.add(maxMarksField, 1, 2);
+
+        Button loadBtn = createButton("Load Students", "#3b82f6");
+
+        TableView<BulkGradeRecord> gradeTable = new TableView<>();
+        gradeTable.setPrefHeight(300);
+        ObservableList<BulkGradeRecord> records = FXCollections.observableArrayList();
+        gradeTable.setItems(records);
+
+        TableColumn<BulkGradeRecord, String> nameCol = new TableColumn<>("Student Name");
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().studentName));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<BulkGradeRecord, String> marksCol = new TableColumn<>("Marks");
+        marksCol.setCellFactory(col -> new TableCell<BulkGradeRecord, String>() {
+            private TextField textField = new TextField();
+            {
+                textField.setPrefWidth(80);
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (!empty) {
+                    BulkGradeRecord record = getTableView().getItems().get(getIndex());
+                    textField.textProperty().addListener((obs, old, newVal) -> {
+                        try {
+                            record.marks = newVal.isEmpty() ? null : Double.parseDouble(newVal);
+                        } catch (Exception e) {
+                            record.marks = null;
+                        }
+                    });
+                    setGraphic(textField);
+                } else
+                    setGraphic(null);
+            }
+        });
+        marksCol.setPrefWidth(100);
+
+        gradeTable.getColumns().addAll(nameCol, marksCol);
+
+        loadBtn.setOnAction(e -> {
+            records.clear();
+            for (Student s : studentDAO.getAllStudents()) {
+                records.add(new BulkGradeRecord(s.getId(), s.getName()));
+            }
+        });
+
+        content.getChildren().addAll(selectionGrid, loadBtn, gradeTable);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn && courseCombo.getValue() != null) {
+                int saved = 0;
+                double max = Double.parseDouble(maxMarksField.getText());
+                for (BulkGradeRecord r : records) {
+                    if (r.marks != null) {
+                        Grade g = new Grade();
+                        g.setStudentId(r.studentId);
+                        g.setCourseId(courseCombo.getValue().getId());
+                        g.setExamType(examTypeCombo.getValue());
+                        g.setMarksObtained(r.marks);
+                        g.setMaxMarks(max);
+                        gradeDAO.saveGrade(g);
+                        saved++;
+                    }
+                }
+                showAlert("Success", saved + " grades saved!");
+                loadGrades();
+                return true;
+            }
+            return false;
+        });
+
+        dialog.showAndWait();
+    }
+
+    private static class BulkGradeRecord {
+        int studentId;
+        String studentName;
+        Double marks;
+
+        BulkGradeRecord(int id, String name) {
+            studentId = id;
+            studentName = name;
+        }
+    }
+
+    public VBox getView() {
+        return root;
+    }
+}
