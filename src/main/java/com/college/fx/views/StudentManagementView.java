@@ -19,7 +19,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-import com.college.dao.UserDAO;
 import com.college.dao.DepartmentDAO;
 import com.college.models.Department;
 import java.time.LocalDate;

@@ -197,8 +197,8 @@ public class DashboardView {
             addMenuItem(sidebar, "Hostel", "hostel", false);
         }
 
-        // Announcements (faculty)
-        if (role.equals("FACULTY")) {
+        // Announcements (Everyone except students)
+        if (!role.equals("STUDENT")) {
             addMenuItem(sidebar, "Announcements", "announcements", false);
         }
 

@@ -215,6 +215,16 @@ public class InstituteManagementView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+        col1.setHgrow(Priority.NEVER);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
+
         TextField codeField = new TextField();
         codeField.setPromptText("DEPT_CODE");
         TextField nameField = new TextField();
@@ -232,13 +242,24 @@ public class InstituteManagementView {
             descArea.setText(dept.getDescription());
         }
 
-        grid.add(new Label("Code:"), 0, 0);
+        Label codeLabel = new Label("Code:");
+        codeLabel.setStyle("-fx-text-fill: black;");
+        grid.add(codeLabel, 0, 0);
         grid.add(codeField, 1, 0);
-        grid.add(new Label("Name:"), 0, 1);
+
+        Label nameLabel = new Label("Name:");
+        nameLabel.setStyle("-fx-text-fill: black;");
+        grid.add(nameLabel, 0, 1);
         grid.add(nameField, 1, 1);
-        grid.add(new Label("Head:"), 0, 2);
+
+        Label headLabel = new Label("Head:");
+        headLabel.setStyle("-fx-text-fill: black;");
+        grid.add(headLabel, 0, 2);
         grid.add(headField, 1, 2);
-        grid.add(new Label("Description:"), 0, 3);
+
+        Label descLabel = new Label("Description:");
+        descLabel.setStyle("-fx-text-fill: black;");
+        grid.add(descLabel, 0, 3);
         grid.add(descArea, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
@@ -412,6 +433,16 @@ public class InstituteManagementView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+        col1.setHgrow(Priority.NEVER);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
+
         TextField codeField = new TextField();
         codeField.setPromptText("ROLE_CODE");
         TextField nameField = new TextField();
@@ -428,11 +459,19 @@ public class InstituteManagementView {
             }
         }
 
-        grid.add(new Label("Code:"), 0, 0);
+        Label codeLabel = new Label("Code:");
+        codeLabel.setStyle("-fx-text-fill: black;");
+        grid.add(codeLabel, 0, 0);
         grid.add(codeField, 1, 0);
-        grid.add(new Label("Name:"), 0, 1);
+
+        Label nameLabel = new Label("Name:");
+        nameLabel.setStyle("-fx-text-fill: black;");
+        grid.add(nameLabel, 0, 1);
         grid.add(nameField, 1, 1);
-        grid.add(new Label("Description:"), 0, 2);
+
+        Label descLabel = new Label("Description:");
+        descLabel.setStyle("-fx-text-fill: black;");
+        grid.add(descLabel, 0, 2);
         grid.add(descArea, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
@@ -698,6 +737,16 @@ public class InstituteManagementView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+        col1.setHgrow(Priority.NEVER);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
+
         TextField usernameField = new TextField();
         usernameField.setPromptText("Username");
 
@@ -739,11 +788,19 @@ public class InstituteManagementView {
             }
         });
 
-        grid.add(new Label("Username:"), 0, 0);
+        Label userLabel = new Label("Username:");
+        userLabel.setStyle("-fx-text-fill: black;");
+        grid.add(userLabel, 0, 0);
         grid.add(usernameField, 1, 0);
-        grid.add(new Label("Password:"), 0, 1);
+
+        Label passLabel = new Label("Password:");
+        passLabel.setStyle("-fx-text-fill: black;");
+        grid.add(passLabel, 0, 1);
         grid.add(passwordField, 1, 1);
-        grid.add(new Label("Role:"), 0, 2);
+
+        Label roleLabel = new Label("Role:");
+        roleLabel.setStyle("-fx-text-fill: black;");
+        grid.add(roleLabel, 0, 2);
         grid.add(roleCombo, 1, 2);
 
         dialog.getDialogPane().setContent(grid);

@@ -21,8 +21,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 import java.text.SimpleDateFormat;
-import com.college.dao.CourseDAO;
-import com.college.models.Course;
 
 import java.time.ZoneId;
 import java.util.Date;

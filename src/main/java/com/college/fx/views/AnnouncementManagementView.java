@@ -25,7 +25,6 @@ public class AnnouncementManagementView {
     private TableView<Announcement> tableView;
     private ObservableList<Announcement> announcementData;
     private AnnouncementDAO announcementDAO;
-    @SuppressWarnings("unused")
     private int userId;
 
     public AnnouncementManagementView(String role, int userId) {
@@ -153,7 +152,7 @@ public class AnnouncementManagementView {
     }
 
     private void addAnnouncement() {
-        showAlert("Add Announcement", "Add announcement dialog would open here.");
+        showAnnouncementDialog(null);
     }
 
     private void editAnnouncement() {
@@ -162,7 +161,112 @@ public class AnnouncementManagementView {
             showAlert("Error", "Please select an announcement to edit.");
             return;
         }
-        showAlert("Edit Announcement", "Edit dialog for: " + selected.getTitle());
+        showAnnouncementDialog(selected);
+    }
+
+    private void showAnnouncementDialog(Announcement announcement) {
+        Dialog<Announcement> dialog = new Dialog<>();
+        dialog.setTitle(announcement == null ? "Add Announcement" : "Edit Announcement");
+        dialog.setHeaderText(null);
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+        col1.setHgrow(Priority.NEVER);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
+
+        TextField titleField = new TextField();
+        titleField.setPromptText("Title");
+        if (announcement != null)
+            titleField.setText(announcement.getTitle());
+
+        TextArea contentArea = new TextArea();
+        contentArea.setPromptText("Content");
+        contentArea.setPrefRowCount(3);
+        if (announcement != null)
+            contentArea.setText(announcement.getContent());
+
+        ComboBox<String> targetBox = new ComboBox<>();
+        targetBox.getItems().addAll("ALL", "STUDENTS", "FACULTY", "STUDENTS_FACULTY");
+        targetBox.setValue(announcement != null ? announcement.getTargetAudience() : "ALL");
+
+        ComboBox<String> priorityBox = new ComboBox<>();
+        priorityBox.getItems().addAll("NORMAL", "HIGH", "URGENT", "LOW");
+        priorityBox.setValue(announcement != null ? announcement.getPriority() : "NORMAL");
+
+        CheckBox activeCheck = new CheckBox("Active");
+        activeCheck.setSelected(announcement == null || announcement.isActive());
+
+        Label titleLabel = new Label("Title:");
+        titleLabel.setStyle("-fx-text-fill: black;");
+        grid.add(titleLabel, 0, 0);
+        grid.add(titleField, 1, 0);
+
+        Label contentLabel = new Label("Content:");
+        contentLabel.setStyle("-fx-text-fill: black;");
+        grid.add(contentLabel, 0, 1);
+        grid.add(contentArea, 1, 1);
+
+        Label targetLabel = new Label("Target:");
+        targetLabel.setStyle("-fx-text-fill: black;");
+        grid.add(targetLabel, 0, 2);
+        grid.add(targetBox, 1, 2);
+
+        Label priorityLabel = new Label("Priority:");
+        priorityLabel.setStyle("-fx-text-fill: black;");
+        grid.add(priorityLabel, 0, 3);
+        grid.add(priorityBox, 1, 3);
+
+        Label statusLabel = new Label("Status:");
+        statusLabel.setStyle("-fx-text-fill: black;");
+        grid.add(statusLabel, 0, 4);
+        grid.add(activeCheck, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                Announcement result = announcement != null ? announcement : new Announcement();
+                result.setTitle(titleField.getText());
+                result.setContent(contentArea.getText());
+                result.setTargetAudience(targetBox.getValue());
+                result.setPriority(priorityBox.getValue());
+                result.setActive(activeCheck.isSelected());
+                result.setCreatedBy(userId); // Ensure userId is used
+                return result;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (announcement == null) {
+                if (announcementDAO.addAnnouncement(result) > 0) {
+                    loadAnnouncements();
+                    showAlert("Success", "Announcement added successfully!");
+                } else {
+                    showAlert("Error", "Failed to add announcement.");
+                }
+            } else {
+                if (announcementDAO.updateAnnouncement(result)) {
+                    loadAnnouncements();
+                    showAlert("Success", "Announcement updated successfully!");
+                } else {
+                    showAlert("Error", "Failed to update announcement.");
+                }
+            }
+        });
     }
 
     private void deleteAnnouncement() {

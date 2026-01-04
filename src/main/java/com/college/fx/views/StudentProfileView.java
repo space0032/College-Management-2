@@ -5,7 +5,6 @@ import com.college.models.Student;
 import com.college.services.TranscriptService;
 import com.college.models.Grade;
 
-import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;

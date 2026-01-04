@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.scene.control.ButtonBar.ButtonData;
 import java.util.List;
-import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
  * JavaFX Faculty Management View
