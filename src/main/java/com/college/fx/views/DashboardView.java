@@ -182,6 +182,9 @@ public class DashboardView {
             addMenuItem(sidebar, "Timetable", "timetable", false);
         }
 
+        // Academic Calendar (Visible to all)
+        addMenuItem(sidebar, "Academic Calendar", "calendar", false);
+
         // Gate Pass
         if ((session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
                 && !session.hasPermission("MANAGE_SYSTEM")) {
@@ -348,6 +351,9 @@ public class DashboardView {
             case "timetable":
                 showTimetable();
                 break;
+            case "calendar":
+                showCalendar();
+                break;
             case "grades":
                 showGrades();
                 break;
@@ -459,6 +465,11 @@ public class DashboardView {
 
     private void showTimetable() {
         TimetableView view = new TimetableView(role, userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showCalendar() {
+        AcademicCalendarView view = new AcademicCalendarView();
         contentArea.getChildren().add(view.getView());
     }
 

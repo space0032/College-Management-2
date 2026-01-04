@@ -4,6 +4,7 @@ import com.college.dao.EnhancedFeeDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.StudentFee;
 import com.college.models.Student;
+import com.college.models.FeePayment;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -449,15 +450,128 @@ public class FeesView {
             return;
         }
 
-        if ("PAID".equals(selected.getStatus()) || "PARTIAL".equals(selected.getStatus())) {
-            showAlert("Download Receipt",
-                    "Receipt downloaded for:\n" +
-                            "Student: " + selected.getStudentName() + "\n" +
-                            "Category: " + getCategoryName(selected.getCategoryId()) + "\n" +
-                            "Amount Paid: ₹" + selected.getPaidAmount());
-        } else {
+        if (!"PAID".equals(selected.getStatus()) && !"PARTIAL".equals(selected.getStatus())) {
             showAlert("Unavailable", "Receipts are only available for paid or partially paid fees.");
+            return;
         }
+
+        showReceiptDialog(selected);
+    }
+
+    private void showReceiptDialog(StudentFee fee) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Fee Receipt");
+        dialog.setHeaderText(null);
+
+        ButtonType printBtn = new ButtonType("Print", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(printBtn, ButtonType.CLOSE);
+
+        // Fetch payment details
+        List<FeePayment> payments = feeDAO.getPaymentHistory(fee.getId());
+
+        // Receipt Container
+        VBox receipt = new VBox(10);
+        receipt.setPadding(new Insets(40)); // High padding for paper look
+        receipt.setPrefWidth(500);
+        receipt.setStyle(
+                "-fx-background-color: white; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);");
+
+        // Header
+        Label collegeName = new Label("College Management System");
+        collegeName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+        Label address = new Label("123, University Road, Academic City");
+        Label receiptTitle = new Label("FEE RECEIPT");
+        receiptTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+        receiptTitle.setStyle("-fx-underline: true; -fx-padding: 10 0 10 0;");
+
+        VBox header = new VBox(5, collegeName, address, receiptTitle);
+        header.setAlignment(Pos.CENTER);
+
+        // Student Details
+        GridPane details = new GridPane();
+        details.setHgap(10);
+        details.setVgap(5);
+        details.setPadding(new Insets(20, 0, 20, 0));
+
+        details.add(new Label("Date:"), 0, 0);
+        details.add(new Label(java.time.LocalDate.now().toString()), 1, 0);
+
+        details.add(new Label("Student Name:"), 0, 1);
+        details.add(new Label(fee.getStudentName()), 1, 1);
+
+        details.add(new Label("Enrollment ID:"), 0, 2);
+        details.add(new Label(fee.getStudentUsername() != null ? fee.getStudentUsername() : "N/A"), 1, 2);
+
+        details.add(new Label("Fee Category:"), 0, 3);
+        details.add(new Label(getCategoryName(fee.getCategoryId())), 1, 3);
+
+        // Payment Table
+        VBox paymentBox = new VBox(5);
+        paymentBox.setPadding(new Insets(10, 0, 10, 0));
+        paymentBox.getChildren().add(new Separator());
+
+        GridPane table = new GridPane();
+        table.setHgap(20);
+        table.setVgap(5);
+        table.add(new Label("Payment ID"), 0, 0);
+        table.add(new Label("Date"), 1, 0);
+        table.add(new Label("Mode"), 2, 0);
+        table.add(new Label("Amount"), 3, 0);
+
+        // Header Style
+        for (javafx.scene.Node n : table.getChildren()) {
+            n.setStyle("-fx-font-weight: bold;");
+        }
+
+        int row = 1;
+        double totalPaidInReceipt = 0;
+        for (FeePayment p : payments) {
+            table.add(new Label(p.getReceiptNumber()), 0, row);
+            table.add(new Label(p.getPaymentDate().toString()), 1, row);
+            table.add(new Label(p.getPaymentMode()), 2, row);
+            table.add(new Label("₹" + p.getAmount()), 3, row);
+            totalPaidInReceipt += p.getAmount();
+            row++;
+        }
+
+        paymentBox.getChildren().addAll(table, new Separator());
+
+        // Footer
+        HBox totalBox = new HBox(10);
+        totalBox.setAlignment(Pos.CENTER_RIGHT);
+        Label totalLbl = new Label("Total Paid: ₹" + totalPaidInReceipt);
+        totalLbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+        totalBox.getChildren().add(totalLbl);
+
+        Label authSig = new Label("Authorized Signature");
+        authSig.setPadding(new Insets(40, 0, 0, 0));
+        authSig.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox footer = new VBox(10, totalBox, authSig);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+
+        receipt.getChildren().addAll(header, details, paymentBox, footer);
+
+        ScrollPane scroll = new ScrollPane(receipt);
+        dialog.getDialogPane().setContent(scroll);
+
+        // Print Logic
+        final javafx.scene.Node printNode = receipt;
+        dialog.setResultConverter(btn -> {
+            if (btn == printBtn) {
+                javafx.print.PrinterJob job = javafx.print.PrinterJob.createPrinterJob();
+                if (job != null && job.showPrintDialog(root.getScene().getWindow())) {
+                    boolean success = job.printPage(printNode);
+                    if (success) {
+                        job.endJob();
+                        showAlert("Success", "Receipt sent to printer.");
+                    }
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait();
     }
 
     private void handleSendReminder() {
