@@ -477,6 +477,23 @@ public class DashboardView {
     }
 
     private void showProfile() {
+        if ("STUDENT".equals(role)) {
+            com.college.dao.StudentDAO sDAO = new com.college.dao.StudentDAO();
+            com.college.models.Student student = sDAO.getStudentByUserId(userId);
+            if (student != null) {
+                StudentProfileView view = new StudentProfileView(student, false, null); // Students can't edit basic
+                                                                                        // info freely, maybe some?
+                // Actually StudentProfileView handles editability. Let's allowing editing
+                // contact info?
+                // For now, let's keep editable=true for students on their own profile for
+                // Personal/Family tabs
+                // But Academic is read-only. The view handles this.
+                // Re-instantiating with editable=true so they can update phone/email/activities
+                view = new StudentProfileView(student, true, null);
+                contentArea.getChildren().add(view.getView());
+                return;
+            }
+        }
         ProfileView view = new ProfileView(role, userId, username);
         contentArea.getChildren().add(view.getView());
     }

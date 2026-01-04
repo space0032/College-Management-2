@@ -84,7 +84,13 @@ public class HostelManagementView {
             Tab myAllocationTab = new Tab("My Hostel");
             myAllocationTab.setContent(createStudentAllocationView());
             myAllocationTab.setClosable(false);
-            tabPane.getTabs().add(myAllocationTab);
+
+            Tab complaintsTab = new Tab("My Complaints");
+            complaintsTab.setContent(createStudentComplaintsTab());
+            complaintsTab.setClosable(false);
+
+            tabPane.getTabs().addAll(myAllocationTab, complaintsTab);
+
         } else if (role.equals("WARDEN")) {
             // Warden view - show their hostel allocations and rooms only
             Tab allocTab = new Tab("Hostel Allocations");
@@ -99,7 +105,11 @@ public class HostelManagementView {
             attendanceTab.setContent(createWardenAttendanceTab());
             attendanceTab.setClosable(false);
 
-            tabPane.getTabs().addAll(allocTab, roomTab, attendanceTab);
+            Tab complaintTab = new Tab("Complaints");
+            complaintTab.setContent(createWardenComplaintsTab());
+            complaintTab.setClosable(false);
+
+            tabPane.getTabs().addAll(allocTab, roomTab, attendanceTab, complaintTab);
         } else {
             // Admin/Faculty view - full access
             Tab allocTab = new Tab("Allocations");
@@ -118,7 +128,14 @@ public class HostelManagementView {
             wardenTab.setContent(createWardenTab());
             wardenTab.setClosable(false);
 
-            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab, wardenTab);
+            // Admins can also see all complaints ideally, but for now sticking to
+            // requirements
+            // Adding a read-only or full complaints tab for Admin could be useful
+            Tab complaintTab = new Tab("All Complaints");
+            complaintTab.setContent(createWardenComplaintsTab()); // Reusing warden tab for admin
+            complaintTab.setClosable(false);
+
+            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab, wardenTab, complaintTab);
         }
         VBox.setVgrow(tabPane, Priority.ALWAYS);
         root.getChildren().addAll(title, tabPane);
@@ -135,8 +152,15 @@ public class HostelManagementView {
         if (student != null) {
             List<HostelAllocation> allocs = hostelDAO.getAllocationsByStudent(student.getId());
             if (!allocs.isEmpty()) {
-                HostelAllocation current = allocs.get(0); // Assuming active allocation is first or only
-                if ("ACTIVE".equalsIgnoreCase(current.getStatus())) {
+                HostelAllocation activeAlloc = null;
+                for (HostelAllocation alloc : allocs) {
+                    if ("ACTIVE".equalsIgnoreCase(alloc.getStatus())) {
+                        activeAlloc = alloc;
+                        break;
+                    }
+                }
+
+                if (activeAlloc != null) {
                     VBox card = new VBox(15);
                     card.setMaxWidth(500);
                     card.setPadding(new Insets(30));
@@ -151,9 +175,9 @@ public class HostelManagementView {
                     grid.setHgap(15);
                     grid.setVgap(15);
 
-                    addDetailRow(grid, "Hostel:", current.getHostelName(), 0);
-                    addDetailRow(grid, "Room No:", current.getRoomNumber(), 1);
-                    addDetailRow(grid, "Allocated On:", current.getCheckInDate().toString(), 2);
+                    addDetailRow(grid, "Hostel:", activeAlloc.getHostelName(), 0);
+                    addDetailRow(grid, "Room No:", activeAlloc.getRoomNumber(), 1);
+                    addDetailRow(grid, "Allocated On:", activeAlloc.getCheckInDate().toString(), 2);
 
                     card.getChildren().addAll(statusTitle, new Separator(), grid);
                     content.getChildren().add(card);
@@ -904,6 +928,213 @@ public class HostelManagementView {
 
         tab.getChildren().addAll(title, studentTable, info);
         return tab;
+    }
+
+    // ==================== COMPLAINTS ====================
+
+    private VBox createStudentComplaintsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        // Form to file new complaint
+        VBox form = new VBox(10);
+        form.setStyle(
+                "-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e2e8f0; -fx-border-radius: 8;");
+        Label formTitle = new Label("File a New Complaint");
+        formTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
+
+        TextField titleField = new TextField();
+        titleField.setPromptText("Complaint Title (e.g., Leaking Tap)");
+
+        ComboBox<String> typeCombo = new ComboBox<>();
+        typeCombo.getItems().addAll("Maintenance", "Food", "Cleanliness", "Discipline", "Other");
+        typeCombo.setPromptText("Category");
+        typeCombo.getSelectionModel().selectFirst();
+
+        TextArea descArea = new TextArea();
+        descArea.setPromptText("Describe the issue in detail...");
+        descArea.setPrefHeight(80);
+
+        Button fileBtn = createButton("Submit Complaint", "#ef4444");
+        fileBtn.setOnAction(e -> {
+            String t = titleField.getText().trim();
+            String d = descArea.getText().trim();
+            if (t.isEmpty() || d.isEmpty()) {
+                showAlert("Error", "Please fill in title and description.");
+                return;
+            }
+            Student s = studentDAO.getStudentByUserId(userId);
+            if (s == null)
+                return;
+
+            com.college.models.Complaint c = new com.college.models.Complaint(s.getId(), t, d, typeCombo.getValue());
+            com.college.dao.ComplaintDAO cDAO = new com.college.dao.ComplaintDAO();
+            if (cDAO.createComplaint(c)) {
+                showAlert("Success", "Complaint filed successfully.");
+                titleField.clear();
+                descArea.clear();
+                // Refresh list if we had a dedicated list component here.
+                // For now, simpler UI. To see history, user might need another view or just
+                // refresh.
+                // Or better, let's show history below.
+            } else {
+                showAlert("Error", "Failed to file complaint.");
+            }
+        });
+
+        form.getChildren().addAll(formTitle, titleField, typeCombo, descArea, fileBtn);
+
+        // List of my complaints
+        TableView<com.college.models.Complaint> myComplaintsTable = new TableView<>();
+
+        TableColumn<com.college.models.Complaint, String> cTitle = new TableColumn<>("Title");
+        cTitle.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTitle()));
+        cTitle.setPrefWidth(200);
+
+        TableColumn<com.college.models.Complaint, String> cCat = new TableColumn<>("Category");
+        cCat.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getCategory()));
+
+        TableColumn<com.college.models.Complaint, String> cStatus = new TableColumn<>("Status");
+        cStatus.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getStatus()));
+
+        TableColumn<com.college.models.Complaint, String> cDate = new TableColumn<>("Filed On");
+        cDate.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFiledDate().toString()));
+
+        TableColumn<com.college.models.Complaint, String> cRemarks = new TableColumn<>("Warden Remarks");
+        cRemarks.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getRemarks()));
+        cRemarks.setPrefWidth(200);
+
+        myComplaintsTable.getColumns().addAll(cTitle, cCat, cStatus, cDate, cRemarks);
+        VBox.setVgrow(myComplaintsTable, Priority.ALWAYS);
+
+        // Load data button
+        Button refreshBtn = createButton("Refresh History", "#3b82f6");
+        refreshBtn.setOnAction(e -> {
+            Student s = studentDAO.getStudentByUserId(userId);
+            if (s != null) {
+                com.college.dao.ComplaintDAO cDAO = new com.college.dao.ComplaintDAO();
+                myComplaintsTable.getItems().setAll(cDAO.getComplaintsByStudent(s.getId()));
+            }
+        });
+
+        // Initial load
+        refreshBtn.fire();
+
+        content.getChildren().addAll(form, new Separator(), new Label("My Complaint History"), myComplaintsTable,
+                refreshBtn);
+        return content;
+    }
+
+    private VBox createWardenComplaintsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        Label title = new Label("Manage Complaints");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+
+        TableView<com.college.models.Complaint> table = new TableView<>();
+        com.college.dao.ComplaintDAO cDAO = new com.college.dao.ComplaintDAO();
+
+        // Cols
+        TableColumn<com.college.models.Complaint, String> colId = new TableColumn<>("ID");
+        colId.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
+
+        TableColumn<com.college.models.Complaint, String> colStudent = new TableColumn<>("Student");
+        colStudent.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getStudentName()));
+
+        TableColumn<com.college.models.Complaint, String> colHostel = new TableColumn<>("Title");
+        colHostel.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTitle()));
+
+        TableColumn<com.college.models.Complaint, String> colCat = new TableColumn<>("Category");
+        colCat.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getCategory()));
+
+        TableColumn<com.college.models.Complaint, String> colStatus = new TableColumn<>("Status");
+        colStatus.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getStatus()));
+
+        TableColumn<com.college.models.Complaint, String> colDate = new TableColumn<>("Date");
+        colDate.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFiledDate().toString()));
+
+        table.getColumns().addAll(colId, colStudent, colHostel, colCat, colStatus, colDate);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> {
+            // Should filter by warden's hostel realistically, but for now showing all or
+            // all for assigned students
+            table.getItems().setAll(cDAO.getAllComplaints());
+        });
+
+        Button viewBtn = createButton("View details", "#64748b");
+        viewBtn.setOnAction(e -> {
+            com.college.models.Complaint sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) {
+                showAlert("Error", "Select a complaint.");
+                return;
+            }
+
+            Dialog<Void> d = new Dialog<>();
+            d.setTitle("Complaint Details");
+            d.setHeaderText(sel.getTitle());
+            d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+            VBox v = new VBox(10);
+            v.setPadding(new Insets(10));
+            v.getChildren().addAll(
+                    new Label("Student: " + sel.getStudentName()),
+                    new Label("Category: " + sel.getCategory()),
+                    new Label("Status: " + sel.getStatus()),
+                    new Separator(),
+                    new Label("Description:"),
+                    new Label(sel.getDescription()),
+                    new Separator(),
+                    new Label("Resolution Remarks:"),
+                    new Label(sel.getRemarks() == null ? "None" : sel.getRemarks()));
+            d.getDialogPane().setContent(v);
+            d.showAndWait();
+        });
+
+        Button resolveBtn = createButton("Resolve / Reject", "#22c55e");
+        resolveBtn.setOnAction(e -> {
+            com.college.models.Complaint sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) {
+                showAlert("Error", "Select a complaint.");
+                return;
+            }
+            if (!"OPEN".equals(sel.getStatus())) {
+                showAlert("Info", "This complaint is already closed.");
+                return;
+            }
+
+            Dialog<String> d = new Dialog<>();
+            d.setTitle("Resolve Complaint");
+            d.setHeaderText("Action on: " + sel.getTitle());
+            ButtonType resolve = new ButtonType("Mark Resolved", ButtonData.OK_DONE);
+            ButtonType reject = new ButtonType("Reject", ButtonData.OK_DONE);
+            d.getDialogPane().getButtonTypes().addAll(resolve, reject, ButtonType.CANCEL);
+
+            TextArea remarks = new TextArea();
+            remarks.setPromptText("Remarks / Resolution Details");
+            d.getDialogPane().setContent(remarks);
+
+            d.setResultConverter(b -> {
+                if (b == resolve)
+                    return "RESOLVED";
+                if (b == reject)
+                    return "REJECTED";
+                return null;
+            });
+
+            d.showAndWait().ifPresent(res -> {
+                cDAO.updateStatus(sel.getId(), res, userId, remarks.getText());
+                refreshBtn.fire();
+            });
+        });
+
+        HBox actions = new HBox(10, refreshBtn, viewBtn, resolveBtn);
+        content.getChildren().addAll(title, actions, table);
+
+        refreshBtn.fire();
+        return content;
     }
 
     public VBox getView() {

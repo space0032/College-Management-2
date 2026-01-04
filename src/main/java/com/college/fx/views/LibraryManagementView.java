@@ -15,8 +15,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 import com.college.dao.BookIssueDAO;
+import com.college.dao.BookRequestDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.BookIssue;
+import com.college.models.BookRequest;
 import com.college.models.Student;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -33,22 +35,42 @@ import java.util.List;
 public class LibraryManagementView {
 
     private VBox root;
-    private TableView<Book> tableView;
+
+    // Catalog Tab
+    private TableView<Book> catalogTable;
     private ObservableList<Book> bookData;
+
+    // Issued Books Tab (for Students)
+    private TableView<BookIssue> issuedTable;
+    private ObservableList<BookIssue> issuedData;
+
+    // Requests Tab (for Students)
+    private TableView<BookRequest> requestTable;
+    private ObservableList<BookRequest> requestData;
+
     private LibraryDAO libraryDAO;
     private BookIssueDAO bookIssueDAO;
+    private BookRequestDAO bookRequestDAO;
     private StudentDAO studentDAO;
+
     private String role;
+    private int userId;
     private TextField searchField;
 
     public LibraryManagementView(String role, int userId) {
         this.role = role;
+        this.userId = userId;
         this.libraryDAO = new LibraryDAO();
         this.bookIssueDAO = new BookIssueDAO();
+        this.bookRequestDAO = new BookRequestDAO();
         this.studentDAO = new StudentDAO();
+
         this.bookData = FXCollections.observableArrayList();
+        this.issuedData = FXCollections.observableArrayList();
+        this.requestData = FXCollections.observableArrayList();
+
         createView();
-        loadBooks();
+        refreshData();
     }
 
     private void createView() {
@@ -56,35 +78,57 @@ public class LibraryManagementView {
         root.setPadding(new Insets(10));
         root.setStyle("-fx-background-color: #f8fafc;");
 
-        HBox header = createHeader();
-        VBox tableSection = createTableSection();
-        VBox.setVgrow(tableSection, Priority.ALWAYS);
-        HBox buttonSection = createButtonSection();
-
-        root.getChildren().addAll(header, tableSection, buttonSection);
-    }
-
-    private HBox createHeader() {
-        HBox header = new HBox(20);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
-
         Label title = new Label(role.equals("STUDENT") ? "Library" : "Library Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
         title.setTextFill(Color.web("#0f172a"));
+        title.setPadding(new Insets(0, 0, 10, 10));
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.setStyle("-fx-background-color: transparent;");
+
+        // 1. Catalog Tab (All Books)
+        Tab catalogTab = new Tab("Book Catalog");
+        catalogTab.setContent(createCatalogTab());
+
+        tabPane.getTabs().add(catalogTab);
+
+        if ("STUDENT".equals(role)) {
+            // 2. My Issued Books Tab
+            Tab issuedTab = new Tab("My Issued Books");
+            issuedTab.setContent(createIssuedBooksTab());
+            tabPane.getTabs().add(issuedTab);
+
+            // 3. My Requests Tab
+            Tab requestsTab = new Tab("My Requests");
+            requestsTab.setContent(createRequestsTab());
+            tabPane.getTabs().add(requestsTab);
+        }
+
+        root.getChildren().addAll(title, tabPane);
+    }
+
+    private void refreshData() {
+        loadBooks();
+        if ("STUDENT".equals(role)) {
+            loadIssuedBooks();
+            loadRequests();
+        }
+    }
+
+    // --- Catalog Tab ---
+
+    private VBox createCatalogTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(10));
+
+        // Search Bar
+        HBox header = new HBox(15);
+        header.setAlignment(Pos.CENTER_LEFT);
 
         searchField = new TextField();
-        searchField.setPromptText("Search books...");
-        searchField.setPrefWidth(250);
-        searchField.setStyle("-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #e2e8f0;");
+        searchField.setPromptText("Search by Title or Author...");
+        searchField.setPrefWidth(300);
 
         Button searchBtn = createButton("Search", "#14b8a6");
         searchBtn.setOnAction(e -> searchBooks());
@@ -92,22 +136,11 @@ public class LibraryManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadBooks());
 
-        header.getChildren().addAll(title, spacer, searchField, searchBtn, refreshBtn);
-        return header;
-    }
+        header.getChildren().addAll(searchField, searchBtn, refreshBtn);
 
-    @SuppressWarnings("unchecked")
-    private VBox createTableSection() {
-        VBox section = new VBox();
-        section.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
-        section.setPadding(new Insets(15));
-
-        tableView = new TableView<>();
-        tableView.setItems(bookData);
+        // Table
+        catalogTable = new TableView<>();
+        catalogTable.setItems(bookData);
 
         TableColumn<Book, String> idCol = new TableColumn<>("ID");
         idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
@@ -125,71 +158,153 @@ public class LibraryManagementView {
         isbnCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIsbn()));
         isbnCol.setPrefWidth(130);
 
-        TableColumn<Book, String> qtyCol = new TableColumn<>("Quantity");
-        qtyCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getQuantity())));
-        qtyCol.setPrefWidth(80);
+        TableColumn<Book, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getAvailable() > 0 ? "Available (" + data.getValue().getAvailable() + ")"
+                        : "Out of Stock"));
+        statusCol.setPrefWidth(120);
 
-        TableColumn<Book, String> availCol = new TableColumn<>("Available");
-        availCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getAvailable())));
-        availCol.setPrefWidth(80);
+        catalogTable.getColumns().addAll(idCol, titleCol, authorCol, isbnCol, statusCol);
+        VBox.setVgrow(catalogTable, Priority.ALWAYS);
 
-        tableView.getColumns().addAll(idCol, titleCol, authorCol, isbnCol, qtyCol, availCol);
-        VBox.setVgrow(tableView, Priority.ALWAYS);
-        section.getChildren().add(tableView);
-        return section;
-    }
-
-    private HBox createButtonSection() {
-        HBox section = new HBox(15);
-        section.setAlignment(Pos.CENTER);
-        section.setPadding(new Insets(10));
+        // Buttons
+        HBox buttonBox = new HBox(15);
+        buttonBox.setAlignment(Pos.CENTER);
+        buttonBox.setPadding(new Insets(10));
 
         SessionManager session = SessionManager.getInstance();
-
         if (session.hasPermission("MANAGE_LIBRARY")) {
             Button addBtn = createButton("Add Book", "#22c55e");
             addBtn.setOnAction(e -> showAddBookDialog());
-
             Button editBtn = createButton("Edit Book", "#6366f1");
             editBtn.setOnAction(e -> editBook());
-
             Button issueBtn = createButton("Issue Book", "#3b82f6");
             issueBtn.setOnAction(e -> showIssueBookDialog());
-
             Button returnBtn = createButton("Return Book", "#f59e0b");
             returnBtn.setOnAction(e -> showReturnBookDialog());
-
-            section.getChildren().addAll(addBtn, editBtn, issueBtn, returnBtn);
-        } else if (role.equals("STUDENT")) {
+            buttonBox.getChildren().addAll(addBtn, editBtn, issueBtn, returnBtn);
+        } else if ("STUDENT".equals(role)) {
             Button requestBtn = createButton("Request Book", "#14b8a6");
             requestBtn.setOnAction(e -> requestBook());
-            section.getChildren().add(requestBtn);
+            buttonBox.getChildren().add(requestBtn);
         }
 
-        Button exportBtn = createButton("Export", "#64748b");
-        exportBtn.setOnAction(e -> exportData());
-        section.getChildren().add(exportBtn);
-
-        return section;
+        content.getChildren().addAll(header, catalogTable, buttonBox);
+        return content;
     }
 
-    private Button createButton(String text, String color) {
-        Button btn = new Button(text);
-        btn.setPrefWidth(140);
-        btn.setPrefHeight(40);
-        btn.setStyle(
-                "-fx-background-color: " + color + ";" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
-        return btn;
+    // --- My Issued Books Tab ---
+
+    private VBox createIssuedBooksTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(10));
+
+        issuedTable = new TableView<>();
+        issuedTable.setItems(issuedData);
+
+        TableColumn<BookIssue, String> bTitleCol = new TableColumn<>("Book Title");
+        bTitleCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBookTitle()));
+        bTitleCol.setPrefWidth(250);
+
+        TableColumn<BookIssue, String> issueDateCol = new TableColumn<>("Issue Date");
+        issueDateCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIssueDate().toString()));
+
+        TableColumn<BookIssue, String> dueDateCol = new TableColumn<>("Due Date");
+        dueDateCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDueDate().toString()));
+
+        TableColumn<BookIssue, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+
+        // Fine column
+        TableColumn<BookIssue, String> fineCol = new TableColumn<>("Current Fine");
+        fineCol.setCellValueFactory(data -> new SimpleStringProperty(
+                String.format("Rs. %.2f", data.getValue().calculateFine(5.0))));
+
+        issuedTable.getColumns().addAll(bTitleCol, issueDateCol, dueDateCol, statusCol, fineCol);
+        VBox.setVgrow(issuedTable, Priority.ALWAYS);
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadIssuedBooks());
+
+        content.getChildren().addAll(issuedTable, refreshBtn);
+        return content;
     }
+
+    // --- My Requests Tab ---
+
+    private VBox createRequestsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(10));
+
+        requestTable = new TableView<>();
+        requestTable.setItems(requestData);
+
+        TableColumn<BookRequest, String> titleCol = new TableColumn<>("Book Title");
+        titleCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBookTitle()));
+        titleCol.setPrefWidth(250);
+
+        TableColumn<BookRequest, String> dateCol = new TableColumn<>("Request Date");
+        dateCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRequestDate().toString()));
+
+        TableColumn<BookRequest, String> msgCol = new TableColumn<>("Remarks");
+        msgCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRemarks()));
+
+        TableColumn<BookRequest, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setCellFactory(column -> new TableCell<BookRequest, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if ("APPROVED".equals(item))
+                        setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                    else if ("REJECTED".equals(item))
+                        setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    else
+                        setStyle("-fx-text-fill: orange; -fx-font-weight: bold;");
+                }
+            }
+        });
+
+        requestTable.getColumns().addAll(titleCol, dateCol, msgCol, statusCol);
+        VBox.setVgrow(requestTable, Priority.ALWAYS);
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadRequests());
+
+        content.getChildren().addAll(requestTable, refreshBtn);
+        return content;
+    }
+
+    // --- Data Loaders ---
 
     private void loadBooks() {
         bookData.clear();
-        List<Book> books = libraryDAO.getAllBooks();
-        bookData.addAll(books);
+        bookData.addAll(libraryDAO.getAllBooks());
+    }
+
+    private void loadIssuedBooks() {
+        if (!"STUDENT".equals(role))
+            return;
+        Student s = studentDAO.getStudentByUserId(userId);
+        if (s != null) {
+            issuedData.clear();
+            issuedData.addAll(bookIssueDAO.getIssuedBooksByStudent(s.getId()));
+        }
+    }
+
+    private void loadRequests() {
+        if (!"STUDENT".equals(role))
+            return;
+        Student s = studentDAO.getStudentByUserId(userId);
+        if (s != null) {
+            requestData.clear();
+            requestData.addAll(bookRequestDAO.getRequestsByStudent(s.getId()));
+        }
     }
 
     private void searchBooks() {
@@ -208,79 +323,43 @@ public class LibraryManagementView {
         }
     }
 
+    // --- Actions ---
+
     private void requestBook() {
-        Book selected = tableView.getSelectionModel().getSelectedItem();
+        Book selected = catalogTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Error", "Please select a book to request.");
             return;
         }
         if (selected.getAvailable() <= 0) {
-            showAlert("Error", "This book is not available.");
+            showAlert("Error", "This book is currently out of stock.");
             return;
         }
-        showAlert("Request Book", "Book request submitted for: " + selected.getTitle());
-    }
 
-    private void editBook() {
-        Book selected = tableView.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Error", "Please select a book to edit.");
+        Student s = studentDAO.getStudentByUserId(userId);
+        if (s == null) {
+            showAlert("Error", "Student profile not found.");
             return;
         }
-        showEditBookDialog(selected);
-    }
 
-    private void showEditBookDialog(Book book) {
-        Dialog<Book> dialog = new Dialog<>();
-        dialog.setTitle("Edit Book");
-        dialog.setHeaderText("Edit Book Details");
-        ButtonType saveBtn = new ButtonType("Update", ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Request Book");
+        dialog.setHeaderText("Requesting: " + selected.getTitle());
+        dialog.setContentText("Remarks (Optional):");
 
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        dialog.showAndWait().ifPresent(remarks -> {
+            BookRequest req = new BookRequest();
+            req.setStudentId(s.getId());
+            req.setBookId(selected.getId());
+            req.setLoanPeriodDays(14); // Default 14 days
+            req.setRemarks(remarks);
 
-        TextField titleField = new TextField(book.getTitle());
-        TextField authorField = new TextField(book.getAuthor());
-        TextField isbnField = new TextField(book.getIsbn());
-        Spinner<Integer> qtySpinner = new Spinner<>(1, 100, book.getQuantity());
-
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleField, 1, 0);
-        grid.add(new Label("Author:"), 0, 1);
-        grid.add(authorField, 1, 1);
-        grid.add(new Label("ISBN:"), 0, 2);
-        grid.add(isbnField, 1, 2);
-        grid.add(new Label("Quantity:"), 0, 3);
-        grid.add(qtySpinner, 1, 3);
-
-        dialog.getDialogPane().setContent(grid);
-
-        dialog.setResultConverter(btn -> {
-            if (btn == saveBtn) {
-                // Adjust available if quantity changed?
-                // For simplicity, we just update total quantity.
-                // Or calculating diff.
-                int oldQty = book.getQuantity();
-                int newQty = qtySpinner.getValue();
-                int diff = newQty - oldQty;
-
-                book.setTitle(titleField.getText());
-                book.setAuthor(authorField.getText());
-                book.setIsbn(isbnField.getText());
-                book.setQuantity(newQty);
-                book.setAvailable(book.getAvailable() + diff); // Adjust available logic
-
-                libraryDAO.updateBook(book);
-                return book;
+            if (bookRequestDAO.createRequest(req)) {
+                showAlert("Success", "Request submitted successfully!");
+                loadRequests();
+            } else {
+                showAlert("Error", "Failed to submit request.");
             }
-            return null;
-        });
-        dialog.showAndWait().ifPresent(b -> {
-            loadBooks();
-            showAlert("Success", "Book updated!");
         });
     }
 
@@ -328,6 +407,63 @@ public class LibraryManagementView {
         dialog.showAndWait().ifPresent(b -> {
             loadBooks();
             showAlert("Success", "Book added!");
+        });
+    }
+
+    private void editBook() {
+        Book selected = catalogTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select a book to edit.");
+            return;
+        }
+
+        Dialog<Book> dialog = new Dialog<>();
+        dialog.setTitle("Edit Book");
+        dialog.setHeaderText("Edit Book: " + selected.getTitle());
+        ButtonType saveBtn = new ButtonType("Update", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField titleField = new TextField(selected.getTitle());
+        TextField authorField = new TextField(selected.getAuthor());
+        TextField isbnField = new TextField(selected.getIsbn());
+        Spinner<Integer> qtySpinner = new Spinner<>(1, 100, selected.getQuantity());
+
+        grid.add(new Label("Title:"), 0, 0);
+        grid.add(titleField, 1, 0);
+        grid.add(new Label("Author:"), 0, 1);
+        grid.add(authorField, 1, 1);
+        grid.add(new Label("ISBN:"), 0, 2);
+        grid.add(isbnField, 1, 2);
+        grid.add(new Label("Quantity:"), 0, 3);
+        grid.add(qtySpinner, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == saveBtn) {
+                int oldQty = selected.getQuantity();
+                int newQty = qtySpinner.getValue();
+                int diff = newQty - oldQty;
+
+                selected.setTitle(titleField.getText());
+                selected.setAuthor(authorField.getText());
+                selected.setIsbn(isbnField.getText());
+                selected.setQuantity(newQty);
+                selected.setAvailable(selected.getAvailable() + diff);
+
+                libraryDAO.updateBook(selected);
+                return selected;
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(b -> {
+            loadBooks();
+            showAlert("Success", "Book updated!");
         });
     }
 
@@ -398,7 +534,7 @@ public class LibraryManagementView {
                 issue.setBookId(bookCombo.getValue().getId());
                 issue.setIssueDate(new Date());
                 issue.setDueDate(Date.from(dueDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-                issue.setIssuedBy(1);
+                issue.setIssuedBy(1); // Default admin ID
                 bookIssueDAO.issueBook(issue);
                 return issue;
             }
@@ -483,6 +619,21 @@ public class LibraryManagementView {
         });
     }
 
+    // --- Helpers ---
+
+    private Button createButton(String text, String color) {
+        Button btn = new Button(text);
+        btn.setPrefWidth(120);
+        btn.setPrefHeight(35);
+        btn.setStyle(
+                "-fx-background-color: " + color + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;");
+        return btn;
+    }
+
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
@@ -492,11 +643,9 @@ public class LibraryManagementView {
     }
 
     private void exportData() {
-        if (tableView.getItems().isEmpty()) {
-            showAlert("Export", "No data to export.");
-            return;
-        }
-        com.college.utils.FxTableExporter.exportWithDialog(tableView, root.getScene().getWindow());
+        // Default export catalog, assuming that's what user usually wants
+        // Can be improved to export active tab
+        com.college.utils.FxTableExporter.exportWithDialog(catalogTable, root.getScene().getWindow());
     }
 
     public VBox getView() {

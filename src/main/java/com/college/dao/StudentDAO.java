@@ -31,8 +31,10 @@ public class StudentDAO {
     }
 
     public int addStudent(Connection conn, Student student, int userId) throws SQLException {
-        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite, user_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite, "
+                +
+                "dob, gender, blood_group, category, nationality, father_name, mother_name, guardian_contact, previous_school, tenth_percentage, twelfth_percentage, extracurricular_activities, profile_photo_path, user_id) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, student.getName());
@@ -45,10 +47,26 @@ public class StudentDAO {
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
             pstmt.setBoolean(10, student.isHostelite());
+
+            // New fields
+            pstmt.setDate(11, student.getDob() != null ? new java.sql.Date(student.getDob().getTime()) : null);
+            pstmt.setString(12, student.getGender());
+            pstmt.setString(13, student.getBloodGroup());
+            pstmt.setString(14, student.getCategory());
+            pstmt.setString(15, student.getNationality());
+            pstmt.setString(16, student.getFatherName());
+            pstmt.setString(17, student.getMotherName());
+            pstmt.setString(18, student.getGuardianContact());
+            pstmt.setString(19, student.getPreviousSchool());
+            pstmt.setDouble(20, student.getTenthPercentage());
+            pstmt.setDouble(21, student.getTwelfthPercentage());
+            pstmt.setString(22, student.getExtracurricularActivities());
+            pstmt.setString(23, student.getProfilePhotoPath());
+
             if (userId > 0) {
-                pstmt.setInt(11, userId);
+                pstmt.setInt(24, userId);
             } else {
-                pstmt.setNull(11, Types.INTEGER);
+                pstmt.setNull(24, Types.INTEGER);
             }
 
             int rowsAffected = pstmt.executeUpdate();
@@ -71,7 +89,10 @@ public class StudentDAO {
      */
     public boolean updateStudent(Student student) {
         String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
-                "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=? WHERE id=?";
+                "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=?, " +
+                "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=? "
+                +
+                "WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -86,7 +107,23 @@ public class StudentDAO {
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
             pstmt.setBoolean(10, student.isHostelite());
-            pstmt.setInt(11, student.getId());
+            pstmt.setDate(11, student.getDob() != null ? new java.sql.Date(student.getDob().getTime()) : null); // null
+                                                                                                                // if
+                                                                                                                // missing
+            pstmt.setString(12, student.getGender());
+            pstmt.setString(13, student.getBloodGroup());
+            pstmt.setString(14, student.getCategory());
+            pstmt.setString(15, student.getNationality());
+            pstmt.setString(16, student.getFatherName());
+            pstmt.setString(17, student.getMotherName());
+            pstmt.setString(18, student.getGuardianContact());
+            pstmt.setString(19, student.getPreviousSchool());
+            pstmt.setDouble(20, student.getTenthPercentage());
+            pstmt.setDouble(21, student.getTwelfthPercentage());
+            pstmt.setString(22, student.getExtracurricularActivities());
+            pstmt.setString(23, student.getProfilePhotoPath());
+
+            pstmt.setInt(24, student.getId());
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -259,6 +296,25 @@ public class StudentDAO {
         student.setBatch(rs.getString("batch"));
         student.setEnrollmentDate(rs.getDate("enrollment_date"));
         student.setAddress(rs.getString("address"));
+
+        // Extended Profile Fields
+        try {
+            student.setDob(rs.getDate("dob"));
+            student.setGender(rs.getString("gender"));
+            student.setBloodGroup(rs.getString("blood_group"));
+            student.setCategory(rs.getString("category"));
+            student.setNationality(rs.getString("nationality"));
+            student.setFatherName(rs.getString("father_name"));
+            student.setMotherName(rs.getString("mother_name"));
+            student.setGuardianContact(rs.getString("guardian_contact"));
+            student.setPreviousSchool(rs.getString("previous_school"));
+            student.setTenthPercentage(rs.getDouble("tenth_percentage"));
+            student.setTwelfthPercentage(rs.getDouble("twelfth_percentage"));
+            student.setExtracurricularActivities(rs.getString("extracurricular_activities"));
+            student.setProfilePhotoPath(rs.getString("profile_photo_path"));
+        } catch (SQLException e) {
+            // Field might not exist in old queries or tables
+        }
 
         // Handle new fields with defaults
         try {

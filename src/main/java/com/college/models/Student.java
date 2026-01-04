@@ -136,12 +136,131 @@ public class Student {
 
     private String username;
 
+    // Detailed Profile Fields
+    private Date dob;
+    private String gender;
+    private String bloodGroup;
+    private String category;
+    private String nationality;
+    private String fatherName;
+    private String motherName;
+    private String guardianContact;
+    private String previousSchool;
+    private double tenthPercentage;
+    private double twelfthPercentage;
+    private String extracurricularActivities;
+    private String profilePhotoPath;
+
     public String getUsername() {
         return username;
     }
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public Date getDob() {
+        return dob;
+    }
+
+    public void setDob(Date dob) {
+        this.dob = dob;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getBloodGroup() {
+        return bloodGroup;
+    }
+
+    public void setBloodGroup(String bloodGroup) {
+        this.bloodGroup = bloodGroup;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getNationality() {
+        return nationality;
+    }
+
+    public void setNationality(String nationality) {
+        this.nationality = nationality;
+    }
+
+    public String getFatherName() {
+        return fatherName;
+    }
+
+    public void setFatherName(String fatherName) {
+        this.fatherName = fatherName;
+    }
+
+    public String getMotherName() {
+        return motherName;
+    }
+
+    public void setMotherName(String motherName) {
+        this.motherName = motherName;
+    }
+
+    public String getGuardianContact() {
+        return guardianContact;
+    }
+
+    public void setGuardianContact(String guardianContact) {
+        this.guardianContact = guardianContact;
+    }
+
+    public String getPreviousSchool() {
+        return previousSchool;
+    }
+
+    public void setPreviousSchool(String previousSchool) {
+        this.previousSchool = previousSchool;
+    }
+
+    public double getTenthPercentage() {
+        return tenthPercentage;
+    }
+
+    public void setTenthPercentage(double tenthPercentage) {
+        this.tenthPercentage = tenthPercentage;
+    }
+
+    public double getTwelfthPercentage() {
+        return twelfthPercentage;
+    }
+
+    public void setTwelfthPercentage(double twelfthPercentage) {
+        this.twelfthPercentage = twelfthPercentage;
+    }
+
+    public String getExtracurricularActivities() {
+        return extracurricularActivities;
+    }
+
+    public void setExtracurricularActivities(String extracurricularActivities) {
+        this.extracurricularActivities = extracurricularActivities;
+    }
+
+    public String getProfilePhotoPath() {
+        return profilePhotoPath;
+    }
+
+    public void setProfilePhotoPath(String profilePhotoPath) {
+        this.profilePhotoPath = profilePhotoPath;
     }
 
     @Override

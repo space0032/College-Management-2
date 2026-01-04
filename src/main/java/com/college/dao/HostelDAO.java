@@ -117,8 +117,9 @@ public class HostelDAO {
      * Allocate room to student
      */
     public boolean allocateRoom(HostelAllocation allocation) {
-        String sql = "INSERT INTO hostel_allocations (student_id, room_id, check_in_date, remarks, allocated_by) " +
-                "VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO hostel_allocations (student_id, room_id, check_in_date, remarks, allocated_by, status) "
+                +
+                "VALUES (?, ?, ?, ?, ?, 'ACTIVE')";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

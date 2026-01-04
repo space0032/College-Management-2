@@ -201,6 +201,10 @@ public class StudentManagementView {
             section.getChildren().addAll(addBtn, editBtn, deleteBtn, importBtn);
         }
 
+        Button viewProfileBtn = createButton("View Profile", "#f59e0b"); // Amber color
+        viewProfileBtn.setOnAction(e -> viewStudentProfile());
+        section.getChildren().add(viewProfileBtn);
+
         Button exportBtn = createButton("Export", "#64748b");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
@@ -537,6 +541,44 @@ public class StudentManagementView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void viewStudentProfile() {
+        Student selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select a student to view.");
+            return;
+        }
+
+        // Fetch full details including new profile fields
+        Student fullDetails = studentDAO.getStudentById(selected.getId());
+        if (fullDetails == null)
+            fullDetails = selected;
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Student Profile");
+        dialog.setHeaderText("Profile: " + fullDetails.getName());
+
+        ButtonType closeBtn = new ButtonType("Close", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(closeBtn);
+
+        // Allow editing if Admin or Faculty with permission (Assuming Fac can edit for
+        // now or just view)
+        // User requested: Faculty can add profile pic? "student can add... and in
+        // faculty add view student button"
+        // Let's assume Faculty can View. Admin can Edit.
+        // Or if role is MANAGE_STUDENTS they can Edit.
+        boolean canEdit = SessionManager.getInstance().hasPermission("MANAGE_STUDENTS");
+
+        // However, StudentProfileView handles its own updates.
+        StudentProfileView profileView = new StudentProfileView(fullDetails, canEdit, () -> loadStudents());
+
+        // Set content size
+        dialog.getDialogPane().setContent(profileView.getView());
+        dialog.getDialogPane().setPrefWidth(800);
+        dialog.getDialogPane().setPrefHeight(600);
+
+        dialog.showAndWait();
     }
 
     private void importStudentsFromCSV() {

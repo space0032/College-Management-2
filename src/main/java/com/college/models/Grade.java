@@ -91,6 +91,11 @@ public class Grade {
         this.grade = calculateGrade(percentage);
     }
 
+    // Alias for getMarksObtained, used by TranscriptService
+    public double getMarks() {
+        return marksObtained;
+    }
+
     public double getMaxMarks() {
         return maxMarks;
     }
