@@ -97,6 +97,26 @@ public class GradesView {
         tableView = new TableView<>();
         tableView.setItems(gradeData);
 
+        // Columns definitions
+        TableColumn<Grade, String> studentCol = new TableColumn<>("Student Name");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getStudentName() != null ? data.getValue().getStudentName() : "-"));
+        studentCol.setPrefWidth(150);
+
+        TableColumn<Grade, String> enrollCol = new TableColumn<>("Enrollment No");
+        enrollCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getEnrollmentNumber() != null ? data.getValue().getEnrollmentNumber() : "-"));
+        enrollCol.setPrefWidth(120);
+
+        TableColumn<Grade, String> deptCol = new TableColumn<>("Department");
+        deptCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getDepartment() != null ? data.getValue().getDepartment() : "-"));
+        deptCol.setPrefWidth(120);
+
+        TableColumn<Grade, String> semCol = new TableColumn<>("Sem");
+        semCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getSemester())));
+        semCol.setPrefWidth(50);
+
         TableColumn<Grade, String> courseCol = new TableColumn<>("Course");
         courseCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getCourseName() != null ? data.getValue().getCourseName()
@@ -105,16 +125,16 @@ public class GradesView {
 
         TableColumn<Grade, String> examCol = new TableColumn<>("Exam Type");
         examCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getExamType()));
-        examCol.setPrefWidth(120);
+        examCol.setPrefWidth(100);
 
         TableColumn<Grade, String> marksCol = new TableColumn<>("Marks");
         marksCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getMarksObtained() + " / " + data.getValue().getMaxMarks()));
-        marksCol.setPrefWidth(120);
+        marksCol.setPrefWidth(100);
 
         TableColumn<Grade, String> gradeCol = new TableColumn<>("Grade");
         gradeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getGrade()));
-        gradeCol.setPrefWidth(80);
+        gradeCol.setPrefWidth(60);
         gradeCol.setCellFactory(col -> new TableCell<Grade, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -133,26 +153,14 @@ public class GradesView {
             }
         });
 
-        if (!role.equals("STUDENT")) {
-            TableColumn<Grade, String> studentCol = new TableColumn<>("Student");
-            studentCol.setCellValueFactory(data -> new SimpleStringProperty(
-                    data.getValue().getStudentName() != null ? data.getValue().getStudentName()
-                            : String.valueOf(data.getValue().getStudentId())));
-            studentCol.setPrefWidth(150);
-            tableView.getColumns().add(0, studentCol);
-        }
-
-        TableColumn<Grade, String> studentCol = new TableColumn<>("Student");
-        studentCol.setCellValueFactory(data -> new SimpleStringProperty(
-                data.getValue().getStudentName() != null ? data.getValue().getStudentName()
-                        : String.valueOf(data.getValue().getStudentId())));
-        studentCol.setPrefWidth(150);
-
+        // Add columns based on role
         if (role.equals("STUDENT")) {
-            tableView.getColumns().addAll(courseCol, examCol, marksCol, gradeCol);
+            tableView.getColumns().addAll(courseCol, deptCol, semCol, examCol, marksCol, gradeCol);
         } else {
-            tableView.getColumns().addAll(studentCol, courseCol, examCol, marksCol, gradeCol);
+            tableView.getColumns().addAll(studentCol, enrollCol, courseCol, deptCol, semCol, examCol, marksCol,
+                    gradeCol);
         }
+
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -203,13 +211,10 @@ public class GradesView {
                 List<Grade> grades = gradeDAO.getGradesByStudent(student.getId());
                 gradeData.addAll(grades);
             }
+        } else if ("FACULTY".equals(role)) {
+            gradeData.addAll(gradeDAO.getGradesByFaculty(userId));
         } else {
-            // Admin/Faculty: load all students' grades
-            List<Student> allStudents = studentDAO.getAllStudents();
-            for (Student s : allStudents) {
-                List<Grade> grades = gradeDAO.getGradesByStudent(s.getId());
-                gradeData.addAll(grades);
-            }
+            gradeData.addAll(gradeDAO.getAllGrades());
         }
     }
 
@@ -228,11 +233,27 @@ public class GradesView {
         ComboBox<Course> courseCombo = new ComboBox<>();
         try {
             CourseDAO courseDAO = new CourseDAO();
-            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+            List<Course> courses;
+            if ("FACULTY".equals(role)) {
+                courses = courseDAO.getCoursesByFaculty(userId);
+            } else {
+                courses = courseDAO.getAllCourses();
+            }
+            courseCombo.getItems().addAll(courses);
         } catch (Exception e) {
             /* Ignore */ }
 
-        SearchableStudentComboBox studentSelector = new SearchableStudentComboBox(studentDAO.getAllStudents());
+        // Student selector - will be populated based on course selection
+        SearchableStudentComboBox studentSelector = new SearchableStudentComboBox(FXCollections.observableArrayList());
+
+        courseCombo.setOnAction(e -> {
+            Course selected = courseCombo.getValue();
+            if (selected != null) {
+                com.college.dao.CourseRegistrationDAO crDAO = new com.college.dao.CourseRegistrationDAO();
+                List<Student> enrolled = crDAO.getEnrolledStudents(selected.getId());
+                studentSelector.setStudents(enrolled);
+            }
+        });
 
         ComboBox<String> examTypeCombo = new ComboBox<>();
         examTypeCombo.setPromptText("Exam Type (e.g. Final)");
@@ -332,7 +353,13 @@ public class GradesView {
         ComboBox<Course> courseCombo = new ComboBox<>();
         try {
             CourseDAO courseDAO = new CourseDAO();
-            courseCombo.getItems().addAll(courseDAO.getAllCourses());
+            List<Course> courses;
+            if ("FACULTY".equals(role)) {
+                courses = courseDAO.getCoursesByFaculty(userId);
+            } else {
+                courses = courseDAO.getAllCourses();
+            }
+            courseCombo.getItems().addAll(courses);
         } catch (Exception e) {
             /* Ignore */ }
 
@@ -389,8 +416,14 @@ public class GradesView {
         gradeTable.getColumns().addAll(nameCol, marksCol);
 
         loadBtn.setOnAction(e -> {
+            if (courseCombo.getValue() == null) {
+                showAlert("Error", "Please select a course first.");
+                return;
+            }
             records.clear();
-            for (Student s : studentDAO.getAllStudents()) {
+            com.college.dao.CourseRegistrationDAO crDAO = new com.college.dao.CourseRegistrationDAO();
+            List<Student> enrolled = crDAO.getEnrolledStudents(courseCombo.getValue().getId());
+            for (Student s : enrolled) {
                 records.add(new BulkGradeRecord(s.getId(), s.getName()));
             }
         });

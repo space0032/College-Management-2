@@ -197,6 +197,65 @@ public class GradeDAO {
     }
 
     /**
+     * Get ALL grades with full details (Admin/Faculty view)
+     */
+    public List<Grade> getAllGrades() {
+        List<Grade> grades = new ArrayList<>();
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+                "s.name as student_name, u.username as enrollment_no, " +
+                "c.name as course_name, c.credits, d.name as dept_name " +
+                "FROM grades g " +
+                "JOIN students s ON g.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "JOIN courses c ON g.course_id = c.id " +
+                "LEFT JOIN departments d ON c.department_id = d.id " +
+                "ORDER BY s.name, c.name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                grades.add(extractGradeFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Fetch all grades failed", e);
+        }
+        return grades;
+    }
+
+    /**
+     * Get grades by Faculty (only courses taught by them)
+     */
+    public List<Grade> getGradesByFaculty(int facultyId) {
+        List<Grade> grades = new ArrayList<>();
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+                "s.name as student_name, u.username as enrollment_no, " +
+                "c.name as course_name, c.credits, d.name as dept_name " +
+                "FROM grades g " +
+                "JOIN students s ON g.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "JOIN courses c ON g.course_id = c.id " +
+                "LEFT JOIN departments d ON c.department_id = d.id " +
+                "WHERE c.faculty_id = ? " +
+                "ORDER BY s.name, c.name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, facultyId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                grades.add(extractGradeFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Fetch faculty grades failed", e);
+        }
+        return grades;
+    }
+
+    /**
      * Extract Grade object from ResultSet
      */
     private Grade extractGradeFromResultSet(ResultSet rs) throws SQLException {
@@ -206,14 +265,23 @@ public class GradeDAO {
         grade.setCourseId(rs.getInt("course_id"));
         grade.setExamType(rs.getString("exam_type"));
         grade.setMarksObtained(rs.getDouble("marks"));
-        // grade.setMaxMarks(rs.getDouble("max_marks")); // Column doesn't exist
         grade.setGrade(rs.getString("grade"));
-        // grade.setPercentage(rs.getDouble("percentage")); // Column doesn't exist
+        grade.setSemester(rs.getInt("semester"));
 
         try {
             grade.setStudentName(rs.getString("student_name"));
             grade.setCourseName(rs.getString("course_name"));
             grade.setCredits(rs.getInt("credits"));
+            // Optional fields
+            try {
+                grade.setEnrollmentNumber(rs.getString("enrollment_no"));
+            } catch (Exception e) {
+            }
+            try {
+                grade.setDepartment(rs.getString("dept_name"));
+            } catch (Exception e) {
+            }
+
         } catch (SQLException e) {
             // Fields might not be in result set
         }

@@ -113,4 +113,11 @@ public class SearchableStudentComboBox extends VBox {
         searchField.clear();
         comboBox.setValue(null);
     }
+
+    public void setStudents(List<Student> students) {
+        this.allStudents.setAll(students);
+        this.filteredStudents.setAll(students);
+        this.searchField.clear();
+        this.comboBox.setValue(null);
+    }
 }

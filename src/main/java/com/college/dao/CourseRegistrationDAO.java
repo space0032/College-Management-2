@@ -1,6 +1,5 @@
 package com.college.dao;
 
-import com.college.models.Course;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
 
@@ -351,5 +350,49 @@ public class CourseRegistrationDAO {
             Logger.error("Fetch pending failed", e);
         }
         return ids;
+    }
+
+    /**
+     * Get all students enrolled in a specific course.
+     */
+    public List<com.college.models.Student> getEnrolledStudents(int courseId) {
+        List<com.college.models.Student> students = new ArrayList<>();
+        String sql = "SELECT s.* FROM students s " +
+                "JOIN course_registrations cr ON s.id = cr.student_id " +
+                "WHERE cr.course_id = ? AND (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED') " +
+                "ORDER BY s.name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, courseId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                // Reuse extraction logic if possible, or just fetch essential
+                // For safety and completeness, let's use StudentDAO's extraction if visible or
+                // just map manually
+                // Since extractStudentFromResultSet is likely private, we'll rely on
+                // StudentDAO.getStudentById
+                // but that's N+1. Better to map essential fields here or make extraction
+                // public.
+                // Checking StudentDAO... for now, let's just map ID and Name as that's what we
+                // need for grading.
+                // Wait, StudentDAO is in same package. check visibility.
+
+                // Better approach: use StudentDAO.extractStudentFromResultSet if
+                // package-private.
+                // Assuming it's private. Let's map manually what we need.
+                com.college.models.Student s = new com.college.models.Student();
+                s.setId(rs.getInt("id"));
+                s.setName(rs.getString("name"));
+                // s.setRollNumber(rs.getString("roll_number"));
+                students.add(s);
+            }
+
+        } catch (SQLException e) {
+            Logger.error("Fetch enrolled students failed", e);
+        }
+        return students;
     }
 }

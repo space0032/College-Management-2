@@ -17,7 +17,9 @@ public class Grade {
 
     // For display purposes
     private String studentName;
+    private String enrollmentNumber;
     private String courseName;
+    private String department;
     private int credits; // Added for weighted calculation
 
     public Grade() {
@@ -158,6 +160,22 @@ public class Grade {
 
     public void setCourseName(String courseName) {
         this.courseName = courseName;
+    }
+
+    public String getEnrollmentNumber() {
+        return enrollmentNumber;
+    }
+
+    public void setEnrollmentNumber(String enrollmentNumber) {
+        this.enrollmentNumber = enrollmentNumber;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     private int semester;

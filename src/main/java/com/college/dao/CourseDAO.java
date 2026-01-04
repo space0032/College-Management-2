@@ -265,4 +265,27 @@ public class CourseDAO {
         }
         return stats;
     }
+
+    public List<Course> getCoursesByFaculty(int facultyId) {
+        List<Course> courses = new ArrayList<>();
+        String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
+                "LEFT JOIN departments d ON c.department_id = d.id " +
+                "LEFT JOIN faculty f ON c.faculty_id = f.id " +
+                "WHERE c.faculty_id = ? ORDER BY c.code";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, facultyId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                courses.add(extractCourseFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            Logger.error("Fetch faculty courses failed", e);
+        }
+        return courses;
+    }
 }
