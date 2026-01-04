@@ -6,7 +6,6 @@ import com.college.models.CalendarEvent.EventType;
 import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
