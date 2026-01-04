@@ -1,101 +1,81 @@
 # 🎓 College Management System
 
-A comprehensive JavaFX-based college management system with role-based access control, featuring auto-enrollment, bulk operations, and advanced analytics.
+A comprehensive, modernized JavaFX-based college management system with role-based access control, automated database migrations, and a beautiful UI powered by **AtlantaFX**.
 
 ![Java](https://img.shields.io/badge/Java-17+-orange?style=flat-square)
-![JavaFX](https://img.shields.io/badge/JavaFX-21-blue?style=flat-square)
+![JavaFX](https://img.shields.io/badge/JavaFX-17+-blue?style=flat-square)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?style=flat-square)
+![Build](https://img.shields.io/badge/Build-Maven%20%7C%20Bash-green?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen?style=flat-square)
 
 ---
 
 ## ✨ Key Features
 
-### 📚 Auto-Enrollment System
-- **Students**: Automatic enrollment number generation (e.g., `CS2026001`, `EE2026002`)
-- **Faculty**: Automatic faculty ID generation (e.g., `FAC001`, `FAC002`)
-- **Credentials**: Auto-generated usernames with customizable passwords
-- **Consistency**: Unified enrollment system across the platform
+### 🎨 Modern UI & Experience
+- **AtlantaFX Theme**: tailored, modern look and feel.
+- **Responsive Navigation**: Role-specific dashboards and sidebars.
+
+### 🛠️ Technical Enhancements
+- **Native Migrations**: Custom `MigrationRunner` automatically updates the database schema on startup. No manual SQL scripts needed.
+- **Transactional Integrity**: `EnrollmentDAO` ensures data consistency across users and students.
+- **CI/CD**: Automated build and testing pipeline via GitHub Actions.
+- **Comprehensive Testing**: JUnit 5 & Mockito test suite ensuring core logic stability.
 
 ### 👥 Role-Based Access Control
-- **Admin Portal**: Complete system management and oversight
-- **Faculty Portal**: Course management, attendance marking, grade entry
-- **Student Portal**: View courses, attendance, grades, assignments
-- **Warden Portal**: Hostel management and gate pass approvals
+- **Admin**: Complete system oversight, user management, and system logs.
+- **Faculty**: Course management, attendance marking, grading.
+- **Student**: View personalized timetable, attendance, grades, and fees.
+- **Warden**: Hostel room allocation and gate pass management.
+- **Finance**: **(New)** Manage fee collections, view transaction reports, and handle receipts.
 
-### 🏫 Institute Management
-- **Student Management**: CRUD operations with enrollment tracking
-- **Faculty Management**: Profile management with department assignment
-- **Course Management**: Course creation and faculty assignment
-- **Department Management**: Organizational structure
-
-### 📊 Academic Features
-- **Bulk Attendance**: Mark attendance for entire classes at once
-- **Bulk Grades**: Enter grades for multiple students efficiently
-- **Assignments**: Create, submit, and grade assignments
-- **Timetable**: Weekly schedule management
-- **Reports**: Comprehensive analytics with CSV export
-
-### 🏠 Hostel Management
-- **Room Allocation**: Assign students to hostel rooms
-- **Warden Management**: Complete warden profile and assignment system
-- **Gate Pass**: Student gate pass request and approval workflow
-- **Occupancy Tracking**: Monitor room availability
-
-### 💰 Fee Management
-- **Fee Assignment**: Multiple fee categories (Tuition, Hostel, Library, etc.)
-- **Payment Tracking**: Record and monitor payments
-- **Payment History**: Complete transaction trail
-- **Status Tracking**: PENDING → PARTIAL → PAID
-
-### 📈 Reports & Analytics
-- **Attendance Reports**: Course-wise and student-wise analytics
-- **Grade Reports**: Performance tracking and distribution
-- **Fee Reports**: Payment status and collection summaries
-- **CSV Export**: Export all reports for external analysis
+### 📚 Core Modules
+- **Institute**: Manage Students, Faculty, Courses, Departments.
+- **Academic**: Attendance, Grades, Timetables, Assignments.
+- **Hostel**: Room allocation, Warden management, Gate Passes.
+- **Reports**: Visual analytics for Attendance, Fees, and Grades (with CSV export).
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Java Development Kit (JDK) 17 or higher
-- MySQL 8.0 or higher
-- Linux/Windows/macOS
+- **Java JDK 17+**
+- **MySQL 8.0+**
+- **Maven** (Optional, for dependency updates)
+- **Git**
 
-### Installation
+### Installation & Running
 
 1. **Clone the repository**
-```bash
-git clone <repository-url>
-cd College-Management-2
-```
+   ```bash
+   git clone <repository-url>
+   cd College-Management-2
+   ```
 
-2. **Set up MySQL database**
-```bash
-# Start MySQL
-sudo service mysql start
+2. **Database Setup**
+   Simply create an empty database. The app handles the tables!
+   ```sql
+   CREATE DATABASE college_db;
+   -- That's it! The MigrationRunner handles the rest on first launch.
+   ```
+   *(Ensure your `src/main/java/com/college/utils/DatabaseConnection.java` or environment variables point to this DB).*
 
-# Create database
-mysql -u root -p
+3. **Build the Project**
+   This script compiles the code and resources.
+   ```bash
+   ./build.sh
+   ```
 
-# In MySQL shell:
-CREATE DATABASE college_db;
-USE college_db;
-SOURCE database/schema.sql;
-SOURCE database/reset_test_data.sql;
-EXIT;
-```
+4. **Run the Application**
+   ```bash
+   ./run.sh
+   ```
 
-3. **Compile the application**
-```bash
-./compile-fx.sh
-```
-
-4. **Run the application**
-```bash
-./run-fx.sh
-```
+5. **Run Tests** (Optional)
+   ```bash
+   ./test.sh
+   ```
 
 ---
 
@@ -103,21 +83,21 @@ EXIT;
 
 All test users have password: **`123`**
 
-### Admin Access
-- **Username**: `admin`
-- **Access**: Full system control
+### Admin
+- **User**: `admin`
 
-### Faculty Access
-- **Username**: `FAC001`, `FAC002`, `FAC003`, `FAC004`, `FAC005`
-- **Access**: Course management, attendance, grades
+### Faculty
+- **Users**: `FAC001`, `FAC002`...
 
-### Student Access
-- **Username**: `CS2023001`, `CS2023002`, `CS2023003`, `CS2023004`, `CS2023005`
-- **Access**: View courses, attendance, grades, assignments
+### Student
+- **Users**: `CS2026001`, `CS2026002`...
 
-### Warden Access
-- **Username**: `WARDEN01`, `WARDEN02`
-- **Access**: Hostel management, gate passes
+### Finance **(New)**
+- **User**: `finance_admin`
+- **Access**: Fee collection, Dashboard statistics.
+
+### Warden
+- **Users**: `WARDEN01`...
 
 ---
 
@@ -125,189 +105,45 @@ All test users have password: **`123`**
 
 ```
 College-Management-2/
-├── src/com/college/
-│   ├── dao/                    # Data Access Objects
-│   │   ├── StudentDAO.java
-│   │   ├── FacultyDAO.java
-│   │   ├── AttendanceDAO.java
-│   │   └── ...
-│   ├── models/                 # Entity Models
-│   │   ├── Student.java
-│   │   ├── Faculty.java
-│   │   ├── Course.java
-│   │   └── ...
-│   ├── fx/views/              # JavaFX UI Views
-│   │   ├── DashboardView.java
-│   │   ├── StudentManagementView.java
-│   │   ├── AttendanceView.java
-│   │   ├── GradesView.java
-│   │   └── ...
-│   └── utils/                 # Utility Classes
-│       ├── SessionManager.java
-│       ├── EnrollmentGenerator.java
-│       └── DatabaseConnection.java
-├── database/
-│   ├── schema.sql             # Database schema
-│   └── reset_test_data.sql    # Test data
-├── lib/                       # External libraries
-├── bin/                       # Compiled classes
-├── compile-fx.sh              # Compilation script
-├── run-fx.sh                  # Run script
-└── README.md
+├── src/main/java/com/college/
+│   ├── api/                    # Native REST API Handlers
+│   ├── dao/                    # Data Access Objects (SQL)
+│   ├── fx/views/               # JavaFX UI Controllers
+│   ├── models/                 # POJOs
+│   ├── utils/                  # Helpers (MigrationRunner, Session, etc.)
+│   └── Launcher.java           # App Entry Point
+├── src/main/resources/
+│   └── db/migration/           # SQL Migration Scripts (V1__...)
+├── src/test/java/              # JUnit Tests
+├── .github/workflows/          # CI/CD Configuration
+├── lib/                        # Managed Dependencies (Mockito, AtlantaFX, etc.)
+├── build.sh                    # Main Build Script
+├── run.sh                      # Main Run Script
+├── test.sh                     # Test Runner Script
+└── pom.xml                     # Maven Project Configuration
 ```
 
 ---
 
 ## 💻 Technology Stack
 
-- **Frontend**: JavaFX 21
-- **Backend**: Java 17 (OOP, MVC Architecture)
-- **Database**: MySQL 8.0
-- **Charts**: JFreeChart (for analytics)
-- **Build**: Shell scripts for compilation
-
----
-
-## 🎯 Usage Guide
-
-### For Administrators
-
-1. **Manage Students**:
-   - Add new students with auto-generated enrollment numbers
-   - View enrollment numbers in bold (first column)
-   - Edit student information
-   - Delete with confirmation dialogs
-
-2. **Manage Faculty**:
-   - Add faculty with auto-generated IDs (FAC###)
-   - View faculty IDs in bold (first column)
-   - Assign roles and departments
-   - Delete with confirmation
-
-3. **Institute Management**:
-   - Access all modules from Institute Management menu
-   - No duplicate attendance/grades in sidebar
-   - Streamlined navigation
-
-### For Faculty
-
-1. **Mark Attendance**: Bulk attendance marking for entire classes
-2. **Enter Grades**: Bulk grade entry with validation
-3. **Manage Courses**: Create and assign courses
-4. **View Reports**: Access analytics and export data
-
-### For Students
-
-1. **View Enrollment**: See your enrollment number prominently
-2. **Track Attendance**: Monitor attendance percentage
-3. **Check Grades**: View marks and performance
-4. **Submit Assignments**: Complete and submit work
-
----
-
-## 🔧 Configuration
-
-### Database Connection
-Edit `src/com/college/utils/DatabaseConnection.java`:
-
-```java
-private static final String URL = "jdbc:mysql://localhost:3306/college_db";
-private static final String USER = "root";
-private static final String PASSWORD = "your_password";
-```
-
----
-
-## 📊 Key Improvements
-
-### Latest Updates ✨
-
-1. **Auto-Enrollment System**
-   - Students: CS2026001, CS2026002...
-   - Faculty: FAC001, FAC002...
-   - Consistent username generation
-
-2. **UI Enhancements**
-   - Enrollment Number: Bold, first column in student table
-   - Faculty ID: Bold, first column in faculty table
-   - Clean admin navigation (no duplicate menus)
-
-3. **Bulk Operations**
-   - Bulk attendance marking for classes
-   - Bulk grade entry for courses
-   - Searchable student selection
-
-4. **Code Quality**
-   - Removed unused imports
-   - Proper error handling
-   - Delete confirmations
-
----
-
-## 🐛 Troubleshooting
-
-### Database Connection Issues
-```bash
-# Check MySQL is running
-sudo service mysql status
-
-# Verify credentials
-mysql -u root -p college_db
-```
-
-### Compilation Errors
-```bash
-# Clean and recompile
-rm -rf bin/*
-./compile-fx.sh
-```
-
-### JavaFX Runtime Issues
-Ensure `lib/javafx-sdk-21.0.2/` exists with all required libraries.
+- **Language**: Java 17
+- **UI Framework**: JavaFX + AtlantaFX (Theme)
+- **Database**: MySQL 8.0 (JDBC)
+- **Testing**: JUnit 5, Mockito
+- **Build**: Custom Bash Scripts + Maven (for dependency resolution)
+- **CI/CD**: GitHub Actions
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork the repo.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes.
+4. Push to the branch.
+5. Open a Pull Request.
 
 ---
 
-## 📝 License
-
-This project is available for educational and commercial use.
-
----
-
-## 👨‍💻 Support
-
-For issues or questions:
-- Review the code documentation
-- Check the troubleshooting section
-- Refer to inline comments
-
----
-
-## ⭐ Features Checklist
-
-- ✅ Auto-enrollment for students and faculty
-- ✅ Role-based dashboards
-- ✅ Bulk attendance marking
-- ✅ Bulk grade entry
-- ✅ Searchable student selection
-- ✅ Hostel management with wardens
-- ✅ Gate pass system
-- ✅ Fee management
-- ✅ Reports with CSV export
-- ✅ Delete confirmations
-- ✅ Clean, intuitive UI
-
----
-
-**Built with ❤️ for educational institutions**
-
-🌟 **Star this repository if you find it helpful!**
+**Built with ❤️ for educational excellence.**
