@@ -134,8 +134,12 @@ public class DashboardView {
         }
 
         // Employee (HR) Management
-        if (session.hasPermission("MANAGE_SYSTEM")) {
+        if (session.hasPermission("MANAGE_EMPLOYEES") || session.hasPermission("VIEW_EMPLOYEES")) {
             addMenuItem(sidebar, "Employees (HR)", "employees", false);
+        }
+
+        // Payroll Management
+        if (session.hasPermission("MANAGE_PAYROLL") || session.hasPermission("VIEW_PAYROLL")) {
             addMenuItem(sidebar, "Payroll", "payroll", false);
         }
 

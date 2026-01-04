@@ -7,8 +7,10 @@ import com.college.models.PayrollEntry;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import com.college.utils.SessionManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -26,19 +28,28 @@ public class EmployeeManagementView extends VBox {
         header.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
 
         HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        SessionManager session = SessionManager.getInstance();
+        boolean canManage = session.hasPermission("MANAGE_EMPLOYEES");
+
         Button btnAdd = new Button("Add Employee");
         btnAdd.getStyleClass().add("accent");
         btnAdd.setOnAction(e -> showAddDialog());
+        btnAdd.setDisable(!canManage);
 
         Button btnEdit = new Button("Edit Employee");
         btnEdit.setOnAction(e -> showEditDialog());
+        btnEdit.setDisable(!canManage);
 
         Button btnPayroll = new Button("Generate Payroll (Check)");
         btnPayroll.setOnAction(e -> handleGeneratePayroll());
+        btnPayroll.setDisable(!canManage);
 
         Button btnBulkPayroll = new Button("Bulk Generate Payroll");
         btnBulkPayroll.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white;");
         btnBulkPayroll.setOnAction(e -> handleBulkPayroll());
+        btnBulkPayroll.setDisable(!canManage);
 
         Button btnRefresh = new Button("Refresh");
         btnRefresh.setOnAction(e -> refreshTable());

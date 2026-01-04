@@ -8,6 +8,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import com.college.utils.SessionManager;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -80,17 +81,25 @@ public class PayrollManagementView extends VBox {
         Button btnRefresh = new Button("Refresh");
         btnRefresh.setOnAction(e -> refreshTable());
 
+        // Check permissions for action buttons
+        SessionManager session = SessionManager.getInstance();
+        boolean canManage = session.hasPermission("MANAGE_PAYROLL");
+        boolean canApprove = session.hasPermission("APPROVE_PAYROLL") || canManage;
+
         // Action buttons
         Button btnEdit = new Button("Edit Entry");
         btnEdit.setOnAction(e -> showEditDialog());
+        btnEdit.setDisable(!canManage);
 
         Button btnMarkPaid = new Button("Mark as Paid");
         btnMarkPaid.getStyleClass().add("accent");
         btnMarkPaid.setOnAction(e -> markAsPaid());
+        btnMarkPaid.setDisable(!canApprove);
 
         Button btnBulkMarkPaid = new Button("Bulk Mark as Paid");
         btnBulkMarkPaid.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white;");
         btnBulkMarkPaid.setOnAction(e -> handleBulkMarkAsPaid());
+        btnBulkMarkPaid.setDisable(!canApprove);
 
         Button btnExport = new Button("Export CSV");
         btnExport.setOnAction(e -> exportToCSV());

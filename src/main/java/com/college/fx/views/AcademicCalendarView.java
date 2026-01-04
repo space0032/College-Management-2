@@ -192,6 +192,17 @@ public class AcademicCalendarView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
+        // Add column constraints to prevent label truncation
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+        col1.setHgrow(Priority.NEVER);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
+
         TextField titleField = new TextField();
         titleField.setPromptText("Event Title");
 
