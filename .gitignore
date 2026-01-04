@@ -40,8 +40,10 @@ Thumbs.db
 tmp/
 temp/
 
-# Secrets (Just in case)
+# Secrets
 CREDENTIALS.md
-# CREDENTIALS.txt
-# .env
+CREDENTIALS.txt
+.env
 secrets.properties
+*.key
+*.pem
