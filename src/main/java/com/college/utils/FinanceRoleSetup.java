@@ -150,7 +150,9 @@ public class FinanceRoleSetup {
         // Let's just create one and see.
         
         String username = "finance";
-        String password = "password"; 
+        // WARNING: This is a DEFAULT password for initial setup only
+        // Users should change this password immediately after first login
+        String password = "123"; // Default test password - MUST BE CHANGED 
         
         try {
             // Need to link to role_id. UserDAO.addUser takes string role

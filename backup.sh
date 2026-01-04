@@ -14,9 +14,7 @@ mkdir -p "$BACKUP_DIR"
 echo "Creating backup for database: $DB_NAME..."
 # Note: Providing password on command line can be insecure, better to use .my.cnf
 # For this setup, we assume user might need to enter password or has configured .my.cnf
-mysqldump -u "$DB_USER" -p "$DB_NAME" > "$FILENAME"
-
-if [ $? -eq 0 ]; then
+if mysqldump -u "$DB_USER" -p "$DB_NAME" > "$FILENAME"; then
     echo "✅ Backup successful: $FILENAME"
     echo "Size: $(du -h "$FILENAME" | cut -f1)"
 else

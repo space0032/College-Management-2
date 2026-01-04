@@ -17,7 +17,7 @@ if [ ! -f "$BACKUP_FILE" ]; then
 fi
 
 echo "⚠️  WARNING: This will OVERWRITE the '$DB_NAME' database."
-read -p "Are you sure you want to continue? (y/N): " confirm
+read -r -p "Are you sure you want to continue? (y/N): " confirm
 
 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
     echo "Restore cancelled."
@@ -25,9 +25,7 @@ if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
 fi
 
 echo "Restoring from $BACKUP_FILE..."
-mysql -u "$DB_USER" -p "$DB_NAME" < "$BACKUP_FILE"
-
-if [ $? -eq 0 ]; then
+if mysql -u "$DB_USER" -p "$DB_NAME" < "$BACKUP_FILE"; then
     echo "✅ Restore successful!"
 else
     echo "❌ Restore failed!"

@@ -3,7 +3,6 @@ set -e
 
 # Configuration
 SRC_DIR="src/main/java"
-TEST_SRC_DIR="src/test/java"
 OUT_DIR="target/classes"
 LIB_DIR="lib"
 
