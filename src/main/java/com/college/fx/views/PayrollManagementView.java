@@ -88,6 +88,10 @@ public class PayrollManagementView extends VBox {
         btnMarkPaid.getStyleClass().add("accent");
         btnMarkPaid.setOnAction(e -> markAsPaid());
 
+        Button btnBulkMarkPaid = new Button("Bulk Mark as Paid");
+        btnBulkMarkPaid.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white;");
+        btnBulkMarkPaid.setOnAction(e -> handleBulkMarkAsPaid());
+
         Button btnExport = new Button("Export CSV");
         btnExport.setOnAction(e -> exportToCSV());
 
@@ -96,7 +100,7 @@ public class PayrollManagementView extends VBox {
 
         container.getChildren().addAll(
                 filterLabel, monthCombo, yearCombo, btnFilter, btnRefresh,
-                spacer, btnEdit, btnMarkPaid, btnExport);
+                spacer, btnEdit, btnMarkPaid, btnBulkMarkPaid, btnExport);
 
         return container;
     }
@@ -375,6 +379,106 @@ public class PayrollManagementView extends VBox {
             showAlert(Alert.AlertType.ERROR, "Export Failed",
                     "Failed to export payroll data: " + e.getMessage());
         }
+    }
+
+    private void handleBulkMarkAsPaid() {
+        // Get all PENDING payroll entries from current view
+        List<PayrollEntry> pendingEntries = table.getItems().stream()
+                .filter(entry -> entry.getStatus() == PayrollEntry.Status.PENDING)
+                .collect(java.util.stream.Collectors.toList());
+
+        if (pendingEntries.isEmpty()) {
+            showAlert(Alert.AlertType.INFORMATION, "No Pending Entries",
+                    "There are no pending payroll entries to process.");
+            return;
+        }
+
+        // Dialog for bonus/deduction input
+        Dialog<BigDecimal[]> dialog = new Dialog<>();
+        dialog.setTitle("Bulk Mark as Paid");
+        dialog.setHeaderText("Process " + pendingEntries.size() + " pending payroll entries");
+
+        ButtonType confirmButtonType = new ButtonType("Confirm & Mark Paid", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        Label infoLabel = new Label("Apply same bonus/deduction to all pending entries:");
+        infoLabel.setStyle("-fx-font-weight: bold;");
+
+        TextField tfBonus = new TextField("0");
+        tfBonus.setPromptText("e.g., 5000.00");
+
+        TextField tfDeduction = new TextField("0");
+        tfDeduction.setPromptText("e.g., 1000.00");
+
+        grid.add(infoLabel, 0, 0, 2, 1);
+        grid.add(new Label("Bonus (₹):"), 0, 1);
+        grid.add(tfBonus, 1, 1);
+        grid.add(new Label("Deduction (₹):"), 0, 2);
+        grid.add(tfDeduction, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                try {
+                    BigDecimal bonus = new BigDecimal(tfBonus.getText().isEmpty() ? "0" : tfBonus.getText());
+                    BigDecimal deduction = new BigDecimal(
+                            tfDeduction.getText().isEmpty() ? "0" : tfDeduction.getText());
+                    return new BigDecimal[] { bonus, deduction };
+                } catch (NumberFormatException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter valid amounts.");
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        Optional<BigDecimal[]> result = dialog.showAndWait();
+        result.ifPresent(amounts -> {
+            BigDecimal bonus = amounts[0];
+            BigDecimal deduction = amounts[1];
+
+            int successCount = 0;
+            int failCount = 0;
+
+            for (PayrollEntry entry : pendingEntries) {
+                // Apply bonus/deduction
+                entry.setBonuses(entry.getBonuses().add(bonus));
+                entry.setDeductions(entry.getDeductions().add(deduction));
+                entry.calculateNet(); // Recalculate net salary
+
+                // Update entry first
+                if (payrollDAO.updatePayrollEntry(entry)) {
+                    // Then mark as paid
+                    if (payrollDAO.markAsPaid(entry.getId())) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } else {
+                    failCount++;
+                }
+            }
+
+            // Refresh table
+            applyFilter();
+
+            // Completion dialog
+            Alert completion = new Alert(Alert.AlertType.INFORMATION);
+            completion.setTitle("Bulk Payment Complete");
+            completion.setHeaderText("Payroll Processing Complete");
+            completion.setContentText(
+                    "✓ Successfully paid: " + successCount + " entries\n" +
+                            "✗ Failed: " + failCount + "\n\n" +
+                            "Bonus applied: ₹" + formatCurrency(bonus) + "\n" +
+                            "Deduction applied: ₹" + formatCurrency(deduction));
+            completion.showAndWait();
+        });
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {

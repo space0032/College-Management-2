@@ -291,10 +291,24 @@ public class EmployeeManagementView extends VBox {
     }
 
     private void handleBulkPayroll() {
-        int count = 0;
-        int skipped = 0;
         int month = LocalDate.now().getMonthValue();
         int year = LocalDate.now().getYear();
+        String monthName = java.time.Month.of(month).toString();
+
+        // Confirmation dialog
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Bulk Payroll Generation");
+        confirm.setHeaderText("Generate Payroll for All Employees");
+        confirm.setContentText("Generate payroll for " + monthName + " " + year + "?\n\n" +
+                "This will create payroll entries for all employees with valid salary configurations.");
+
+        Optional<ButtonType> confirmResult = confirm.showAndWait();
+        if (confirmResult.isEmpty() || confirmResult.get() != ButtonType.OK) {
+            return; // User cancelled
+        }
+
+        int count = 0;
+        int skipped = 0;
 
         // Check existing for this month to avoid duplicates (naive check: just try
         // insert or skip)
@@ -333,9 +347,15 @@ public class EmployeeManagementView extends VBox {
             }
         }
 
-        showAlert(Alert.AlertType.INFORMATION, "Bulk Payroll",
-                "Generated: " + count + "\nSkipped/Failed: " + skipped
-                        + "\n(Employees must have profile and salary set)");
+        // Completion dialog
+        Alert completion = new Alert(Alert.AlertType.INFORMATION);
+        completion.setTitle("Payroll Generation Complete");
+        completion.setHeaderText("Bulk Payroll for " + monthName + " " + year);
+        completion.setContentText(
+                "✓ Successfully generated: " + count + " payroll entries\n" +
+                        "⊘ Skipped/Failed: " + skipped + "\n\n" +
+                        "Employees must have a valid profile and salary to generate payroll.");
+        completion.showAndWait();
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {
