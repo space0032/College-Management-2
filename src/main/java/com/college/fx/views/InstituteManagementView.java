@@ -3,10 +3,12 @@ package com.college.fx.views;
 import com.college.dao.DepartmentDAO;
 import com.college.dao.PermissionDAO;
 import com.college.dao.RoleDAO;
+import com.college.dao.UserDAO; // Added
 import com.college.dao.AuditLogDAO;
 import com.college.models.Department;
 import com.college.models.Permission;
 import com.college.models.Role;
+import com.college.models.User; // Added
 import com.college.models.AuditLog;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -27,7 +29,7 @@ import java.util.stream.Collectors;
 
 /**
  * JavaFX Institute Management View
- * Handles Departments, Roles, and Permissions
+ * Handles Departments, Roles, Permissions, and Special Users
  */
 public class InstituteManagementView {
 
@@ -35,6 +37,7 @@ public class InstituteManagementView {
     private DepartmentDAO departmentDAO;
     private RoleDAO roleDAO;
     private PermissionDAO permissionDAO;
+    private UserDAO userDAO; // Added
 
     // Departments
     private TableView<Department> deptTable;
@@ -46,6 +49,10 @@ public class InstituteManagementView {
     private ListView<Permission> permissionList;
     private ObservableList<Permission> permissionData;
     private Role selectedRole;
+
+    // Users (Special)
+    private TableView<User> userTable;
+    private ObservableList<User> userData;
 
     // Audit Logs
     private TableView<AuditLog> auditTable;
@@ -60,14 +67,19 @@ public class InstituteManagementView {
         this.departmentDAO = new DepartmentDAO();
         this.roleDAO = new RoleDAO();
         this.permissionDAO = new PermissionDAO();
+        this.userDAO = new UserDAO();
         this.deptData = FXCollections.observableArrayList();
         this.roleData = FXCollections.observableArrayList();
         this.permissionData = FXCollections.observableArrayList();
+        this.userData = FXCollections.observableArrayList();
         this.auditData = FXCollections.observableArrayList();
 
         createView();
         loadDepartments();
         loadRoles();
+        if ("ADMIN".equals(userRole)) {
+            loadUsers();
+        }
         loadAuditLogs();
     }
 
@@ -103,7 +115,16 @@ public class InstituteManagementView {
         FacultyManagementView facultyView = new FacultyManagementView(userRole, userId);
         facultyTab.setContent(facultyView.getView());
 
-        tabPane.getTabs().addAll(studentTab, facultyTab, deptTab, roleTab, auditTab);
+        tabPane.getTabs().addAll(studentTab, facultyTab, deptTab, roleTab);
+
+        // Add Special Users tab only for Admins
+        if ("ADMIN".equals(userRole)) {
+            Tab usersTab = new Tab("Special Users");
+            usersTab.setContent(createUsersTab());
+            tabPane.getTabs().add(usersTab);
+        }
+
+        tabPane.getTabs().add(auditTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(title, tabPane);
@@ -590,6 +611,199 @@ public class InstituteManagementView {
     private void loadAuditLogs() {
         auditData.clear();
         auditData.addAll(AuditLogDAO.getAllLogs());
+    }
+
+    // ==================== SPECIAL USERS TAB ====================
+
+    private VBox createUsersTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setStyle("-fx-background-color: white; -fx-background-radius: 0 0 12 12;");
+
+        HBox toolbar = new HBox(15);
+
+        Button addUserBtn = createButton("Create Special User", "#8b5cf6");
+        addUserBtn.setOnAction(e -> showAddUserDialog());
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadUsers());
+
+        toolbar.getChildren().addAll(addUserBtn, refreshBtn);
+
+        userTable = new TableView<>();
+        userTable.setItems(userData);
+
+        TableColumn<User, String> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
+        idCol.setPrefWidth(60);
+
+        TableColumn<User, String> nameCol = new TableColumn<>("Username");
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getUsername()));
+        nameCol.setPrefWidth(150);
+
+        TableColumn<User, String> roleCol = new TableColumn<>("Role");
+        roleCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRoleName()));
+        roleCol.setPrefWidth(150);
+
+        TableColumn<User, Void> actionCol = new TableColumn<>("Actions");
+        actionCol.setPrefWidth(120);
+        actionCol.setCellFactory(param -> new TableCell<>() {
+            private final Button deleteBtn = new Button("Delete");
+
+            {
+                deleteBtn.setStyle(
+                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-padding: 5 10; -fx-font-size: 11px;");
+                deleteBtn.setOnAction(event -> deleteUser(getTableView().getItems().get(getIndex())));
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    User user = getTableView().getItems().get(getIndex());
+                    // Prevent deleting self or certain critical users if needed
+                    if (user.getId() == userId) {
+                        setGraphic(null);
+                    } else {
+                        setGraphic(deleteBtn);
+                    }
+                }
+            }
+        });
+
+        userTable.getColumns().addAll(idCol, nameCol, roleCol, actionCol);
+        VBox.setVgrow(userTable, Priority.ALWAYS);
+
+        content.getChildren().addAll(toolbar, userTable);
+        return content;
+    }
+
+    private void loadUsers() {
+        userData.clear();
+        userData.addAll(userDAO.getSpecialUsers());
+    }
+
+    private void showAddUserDialog() {
+        Dialog<User> dialog = new Dialog<>();
+        dialog.setTitle("Create Special User");
+        dialog.setHeaderText("Create a new system user");
+
+        ButtonType createBtn = new ButtonType("Create", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(createBtn, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Username");
+
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+
+        ComboBox<Role> roleCombo = new ComboBox<>();
+        roleCombo.setPromptText("Select Role");
+
+        // Filter roles: Show only ADMIN, FINANCE, EXAM_COORD
+        List<Role> allRoles = roleDAO.getAllRoles();
+        List<String> allowedRoles = List.of("ADMIN", "FINANCE", "EXAM_COORD");
+        List<Role> specialRoles = allRoles.stream()
+                .filter(r -> allowedRoles.contains(r.getCode().toUpperCase()))
+                .collect(Collectors.toList());
+        roleCombo.getItems().addAll(specialRoles);
+
+        // Custom cell factory to show role name
+        roleCombo.setCellFactory(param -> new ListCell<Role>() {
+            @Override
+            protected void updateItem(Role item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName());
+                }
+            }
+        });
+        roleCombo.setButtonCell(new ListCell<Role>() {
+            @Override
+            protected void updateItem(Role item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName());
+                }
+            }
+        });
+
+        grid.add(new Label("Username:"), 0, 0);
+        grid.add(usernameField, 1, 0);
+        grid.add(new Label("Password:"), 0, 1);
+        grid.add(passwordField, 1, 1);
+        grid.add(new Label("Role:"), 0, 2);
+        grid.add(roleCombo, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == createBtn) {
+                if (usernameField.getText().isEmpty() || passwordField.getText().isEmpty()
+                        || roleCombo.getValue() == null) {
+                    return null; // Validate
+                }
+
+                String username = usernameField.getText();
+                if (userDAO.isUsernameTaken(username)) {
+                    showError("Error", "Username already taken");
+                    return null;
+                }
+
+                String password = passwordField.getText();
+                Role role = roleCombo.getValue();
+
+                // Create user
+                // Note: addUser takes string role (legacy). We pass the role name for now,
+                // but we also need to set the role_id for RBAC.
+                // Since UserDAO.addUser doesn't take roleId in the method I saw,
+                // I might need to update UserDAO or do a two-step process: Create User ->
+                // Assign Role ID.
+                // Let's check UserDAO again. It has assignRoleToUser(int userId, int roleId) in
+                // RoleDAO.
+
+                int newUserId = userDAO.addUser(username, password, role.getCode());
+                if (newUserId != -1) {
+                    roleDAO.assignRoleToUser(newUserId, role.getId());
+                    return new User(newUserId, username, role.getName());
+                } else {
+                    showError("Error", "Failed to create user");
+                }
+            }
+            return null;
+        });
+
+        Optional<User> result = dialog.showAndWait();
+        result.ifPresent(u -> {
+            loadUsers();
+            showInfo("Success", "User created successfully.");
+        });
+    }
+
+    private void deleteUser(User user) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete User");
+        alert.setHeaderText("Delete " + user.getUsername() + "?");
+        alert.setContentText("Are you sure? This cannot be undone.");
+
+        if (alert.showAndWait().get() == ButtonType.OK) {
+            if (userDAO.deleteUser(user.getId())) {
+                loadUsers();
+            } else {
+                showError("Error", "Failed to delete user.");
+            }
+        }
     }
 
     // ==================== HELPERS ====================
