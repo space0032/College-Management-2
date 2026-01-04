@@ -53,29 +53,52 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
    cd College-Management-2
    ```
 
-2. **Database Setup**
+2. **Configure Environment**
+   Create a `.env` file from the template:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database credentials
+   ```
+   
+   **Important**: Never commit `.env` to version control!
+
+3. **Database Setup**
    Simply create an empty database. The app handles the tables!
    ```sql
    CREATE DATABASE college_db;
-   -- That's it! The MigrationRunner handles the rest on first launch.
+   CREATE USER 'college_user'@'localhost' IDENTIFIED BY 'your_secure_password';
+   GRANT ALL PRIVILEGES ON college_db.* TO 'college_user'@'localhost';
+   FLUSH PRIVILEGES;
    ```
-   *(Ensure your `src/main/java/com/college/utils/DatabaseConnection.java` or environment variables point to this DB).*
+   *(The MigrationRunner handles table creation on first launch).*
 
-3. **Build the Project**
+4. **Build the Project**
    This script compiles the code and resources.
    ```bash
    ./build.sh
    ```
 
-4. **Run the Application**
+5. **Run the Application**
    ```bash
    ./run.sh
    ```
 
-5. **Run Tests** (Optional)
+6. **Run Tests** (Optional)
    ```bash
    ./test.sh
    ```
+
+---
+
+## 🔒 Security
+
+This project follows security best practices:
+- Password hashing with SHA-256 (salted hashing available)
+- SQL injection protection via PreparedStatements
+- Environment-based configuration
+- Secure credential management
+
+**See [SECURITY.md](SECURITY.md) for detailed security information and best practices.**
 
 ---
 

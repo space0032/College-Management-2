@@ -16,6 +16,8 @@ lib/
 *.class
 bin/
 out/
+sources.txt
+test_sources.txt
 
 # Logs
 *.log
