@@ -35,7 +35,7 @@ public class MigrationRunner {
 
         } catch (Exception e) {
             System.err.println("[Migration] Failed to run migrations: " + e.getMessage());
-            e.printStackTrace();
+            Logger.error("Migration failed", e);
         }
     }
 

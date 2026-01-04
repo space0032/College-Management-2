@@ -45,7 +45,7 @@ public class TableExporter {
 
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error exporting to CSV", e);
             return false;
         }
     }
@@ -85,7 +85,7 @@ public class TableExporter {
 
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error exporting to Excel", e);
             return false;
         }
     }

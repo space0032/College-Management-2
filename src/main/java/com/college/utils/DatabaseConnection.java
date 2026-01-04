@@ -76,11 +76,9 @@ public class DatabaseConnection {
             // Create new connection for each request
             return DriverManager.getConnection(URL, USERNAME, PASSWORD);
         } catch (ClassNotFoundException e) {
-            System.err.println("MySQL JDBC Driver not found!");
-            e.printStackTrace();
+            System.err.println("MySQL JDBC Driver not found: " + e.getMessage());
         } catch (SQLException e) {
-            System.err.println("Failed to connect to database!");
-            e.printStackTrace();
+            System.err.println("Failed to connect to database: " + e.getMessage());
         }
         return null;
     }

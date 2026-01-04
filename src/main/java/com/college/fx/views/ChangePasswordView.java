@@ -162,7 +162,7 @@ public class ChangePasswordView {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.college.utils.Logger.error("Error changing password", e);
             showMessage("Error: " + e.getMessage(), true);
         }
     }

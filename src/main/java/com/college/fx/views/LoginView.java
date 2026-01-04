@@ -200,7 +200,7 @@ public class LoginView {
             }
             return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.college.utils.Logger.error("Authentication failed", e);
             return 0;
         }
     }

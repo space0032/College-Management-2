@@ -42,7 +42,7 @@ public class ReportGenerator {
 
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error generating report", e);
             return false;
         }
     }

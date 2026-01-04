@@ -76,7 +76,7 @@ public class JsonHelper {
             }
             return obj;
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error("Error deserializing JSON", e);
         }
         return null;
     }
