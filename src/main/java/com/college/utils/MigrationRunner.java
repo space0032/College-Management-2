@@ -54,21 +54,30 @@ public class MigrationRunner {
     private static List<String> findMigrationFiles() {
         List<String> files = new ArrayList<>();
         try {
-            // This works for exploded directories (target/classes)
-            // For JARs, we'd need a different approach (e.g. valid jar scan)
-            URL url = MigrationRunner.class.getClassLoader().getResource("db/migration");
-            if (url != null) {
-                try (InputStream is = url.openStream();
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                    files = reader.lines()
-                            .filter(line -> line.endsWith(".sql"))
-                            .collect(Collectors.toList());
-                }
+            // Use java.nio to properly scan the migration directory
+            java.nio.file.Path migrationDir = java.nio.file.Paths.get("src/main/resources/db/migration");
+
+            if (java.nio.file.Files.exists(migrationDir)) {
+                files = java.nio.file.Files.list(migrationDir)
+                        .map(path -> path.getFileName().toString())
+                        .filter(name -> name.endsWith(".sql"))
+                        .sorted() // Natural sort first
+                        .collect(Collectors.toList());
+
+                // Custom sort: V1, V2, ..., V9, V10, V11
+                Collections.sort(files, (a, b) -> {
+                    try {
+                        int verA = Integer.parseInt(a.substring(1, a.indexOf("__")));
+                        int verB = Integer.parseInt(b.substring(1, b.indexOf("__")));
+                        return Integer.compare(verA, verB);
+                    } catch (Exception e) {
+                        return a.compareTo(b); // Fallback to lexical
+                    }
+                });
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error("Failed to find migration files", e);
         }
-        Collections.sort(files); // V1 comes before V2
         return files;
     }
 

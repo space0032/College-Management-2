@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.GatePass;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 
@@ -33,7 +34,7 @@ public class GatePassDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -55,7 +56,7 @@ public class GatePassDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -77,7 +78,7 @@ public class GatePassDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -105,7 +106,7 @@ public class GatePassDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return passes;
@@ -132,7 +133,7 @@ public class GatePassDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return passes;
@@ -159,7 +160,7 @@ public class GatePassDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return passes;
@@ -188,7 +189,7 @@ public class GatePassDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return passes;
@@ -251,7 +252,7 @@ public class GatePassDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }

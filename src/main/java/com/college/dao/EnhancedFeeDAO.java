@@ -4,6 +4,7 @@ import com.college.models.FeeCategory;
 import com.college.models.StudentFee;
 import com.college.models.FeePayment;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return categories;
@@ -65,7 +66,7 @@ public class EnhancedFeeDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -84,9 +85,15 @@ public class EnhancedFeeDAO {
     }
 
     /**
-     * Record payment (Convenience method)
+     * Record payment (Convenience method with validation)
      */
     public boolean recordPayment(int studentFeeId, double amount, Date paymentDate) {
+        // Validate amount is positive
+        if (amount <= 0) {
+            Logger.error("Invalid payment amount: " + amount);
+            return false;
+        }
+
         FeePayment payment = new FeePayment();
         payment.setStudentFeeId(studentFeeId);
         payment.setAmount(amount);
@@ -96,9 +103,41 @@ public class EnhancedFeeDAO {
     }
 
     /**
-     * Record payment
+     * Record payment with validation
      */
     public boolean recordPayment(FeePayment payment) {
+        // Validate payment amount
+        if (payment.getAmount() <= 0) {
+            Logger.error("Invalid payment amount: " + payment.getAmount());
+            return false;
+        }
+
+        // Check if payment would exceed total fee
+        String checkSql = "SELECT total_amount, paid_amount FROM student_fees WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+
+            checkStmt.setInt(1, payment.getStudentFeeId());
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (rs.next()) {
+                double totalAmount = rs.getDouble("total_amount");
+                double paidAmount = rs.getDouble("paid_amount");
+                double remaining = totalAmount - paidAmount;
+
+                if (payment.getAmount() > remaining) {
+                    Logger.warn(String.format("Payment amount %.2f exceeds remaining fee %.2f",
+                            payment.getAmount(), remaining));
+                    // Optionally allow overpayment or reject it
+                    // For now, we'll cap it at remaining amount
+                    payment.setAmount(remaining);
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to validate payment", e);
+            return false;
+        }
+
         // Generate receipt number
         String receiptNumber = generateReceiptNumber();
         payment.setReceiptNumber(receiptNumber);
@@ -129,7 +168,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return false;
@@ -158,7 +197,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return fees;
@@ -185,7 +224,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return fees;
@@ -212,7 +251,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return fees;
@@ -249,7 +288,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return payments;
@@ -280,7 +319,7 @@ public class EnhancedFeeDAO {
             pstmt.executeUpdate();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
     }
 
@@ -301,7 +340,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return "RCP000001";
@@ -383,7 +422,7 @@ public class EnhancedFeeDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return payments;
     }
@@ -400,7 +439,7 @@ public class EnhancedFeeDAO {
                 return rs.getDouble("total");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return 0.0;
     }
@@ -419,7 +458,7 @@ public class EnhancedFeeDAO {
                 return rs.getDouble("pending");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return 0.0;
     }

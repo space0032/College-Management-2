@@ -83,7 +83,12 @@ public class SessionManager {
      * Falls back to legacy role check if RBAC not set up
      */
     public boolean hasPermission(String permissionCode) {
-        if (userRole != null) {
+        // Null safety check
+        if (permissionCode == null || permissionCode.trim().isEmpty()) {
+            return false;
+        }
+
+        if (userRole != null && userRole.getPermissions() != null) {
             return userRole.hasPermission(permissionCode);
         }
         // Fallback to legacy role-based checks
@@ -94,6 +99,10 @@ public class SessionManager {
      * Check if user has any of the specified permissions
      */
     public boolean hasAnyPermission(String... permissionCodes) {
+        if (permissionCodes == null || permissionCodes.length == 0) {
+            return false;
+        }
+
         for (String code : permissionCodes) {
             if (hasPermission(code)) {
                 return true;
@@ -104,12 +113,33 @@ public class SessionManager {
 
     /**
      * Fallback permission check based on legacy role
+     * This ensures users can still use the system even if RBAC isn't fully set up
      */
     private boolean fallbackPermissionCheck(String permissionCode) {
-        if ("ADMIN".equals(role)) {
-            return true; // Admin has all permissions in legacy mode
+        if (role == null) {
+            return false;
         }
-        // Add other fallback logic as needed
+
+        // Admin has all permissions in legacy mode
+        if ("ADMIN".equals(role)) {
+            return true;
+        }
+
+        // Faculty specific permissions
+        if ("FACULTY".equals(role)) {
+            return permissionCode.contains("VIEW_") ||
+                    permissionCode.contains("MANAGE_ATTENDANCE") ||
+                    permissionCode.contains("MANAGE_GRADES") ||
+                    permissionCode.contains("MANAGE_ASSIGNMENTS");
+        }
+
+        // Student specific permissions
+        if ("STUDENT".equals(role)) {
+            return permissionCode.contains("VIEW_OWN_") ||
+                    permissionCode.contains("REQUEST_") ||
+                    permissionCode.contains("SUBMIT_");
+        }
+
         return false;
     }
 

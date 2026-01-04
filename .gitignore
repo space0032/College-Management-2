@@ -42,6 +42,6 @@ temp/
 
 # Secrets (Just in case)
 CREDENTIALS.md
-CREDENTIALS.txt
-.env
+# CREDENTIALS.txt
+# .env
 secrets.properties

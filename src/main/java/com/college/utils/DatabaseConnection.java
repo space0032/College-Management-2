@@ -10,12 +10,61 @@ import java.sql.SQLException;
  */
 public class DatabaseConnection {
 
-    // Database credentials - sourced from environment variables with defaults
-    private static final String URL = System.getenv("DB_URL") != null ? System.getenv("DB_URL")
-            : "jdbc:mysql://localhost:3306/college_management";
-    private static final String USERNAME = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "collegeapp";
-    private static final String PASSWORD = System.getenv("DB_PASSWORD") != null ? System.getenv("DB_PASSWORD")
-            : "college123";
+    // Database credentials
+    private static String URL = "jdbc:mysql://localhost:3306/college_db";
+    private static String USERNAME = "root";
+    private static String PASSWORD = "";
+
+    static {
+        loadEnv();
+    }
+
+    private static void loadEnv() {
+        System.out.println("[DEBUG] Loading environment variables...");
+
+        // 1. Try Environment Variables first
+        if (System.getenv("DB_URL") != null)
+            URL = System.getenv("DB_URL");
+        if (System.getenv("DB_USER") != null)
+            USERNAME = System.getenv("DB_USER");
+        if (System.getenv("DB_PASSWORD") != null)
+            PASSWORD = System.getenv("DB_PASSWORD");
+
+        // 2. Try .env file if Env Vars are missing
+        java.io.File envFile = new java.io.File(".env");
+        System.out.println("[DEBUG] Looking for .env at: " + envFile.getAbsolutePath());
+
+        if (envFile.exists()) {
+            System.out.println("[DEBUG] .env file found!");
+            try (java.util.Scanner scanner = new java.util.Scanner(envFile)) {
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine().trim();
+                    if (line.isEmpty() || line.startsWith("#"))
+                        continue;
+                    String[] parts = line.split("=", 2);
+                    if (parts.length == 2) {
+                        String key = parts[0].trim();
+                        String value = parts[1].trim();
+                        if (key.equals("DB_USER")) {
+                            USERNAME = value;
+                            System.out.println("[DEBUG] Loaded DB_USER: " + USERNAME);
+                        } else if (key.equals("DB_PASSWORD")) {
+                            PASSWORD = value;
+                            System.out
+                                    .println("[DEBUG] Loaded DB_PASSWORD: " + (value.isEmpty() ? "(empty)" : "******"));
+                        } else if (key.equals("DB_URL")) {
+                            URL = value;
+                        }
+                    }
+                }
+            } catch (java.io.FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("[DEBUG] .env file NOT found.");
+        }
+        System.out.println("[DEBUG] Final DB User: " + USERNAME);
+    }
 
     private static Connection connection = null;
 

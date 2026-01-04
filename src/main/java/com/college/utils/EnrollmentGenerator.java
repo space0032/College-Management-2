@@ -28,13 +28,35 @@ public class EnrollmentGenerator {
     /**
      * Generate faculty ID in format: FAC + SEQ_NUM
      * Example: FAC001, FAC002
+     * Queries users table to find next available ID
      */
     public static String generateFacultyId() {
-        FacultyDAO facultyDAO = new FacultyDAO();
-        int count = facultyDAO.getTotalFacultyCount();
+        try (java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+                java.sql.Statement stmt = conn.createStatement()) {
 
-        String seqNum = String.format("%03d", count + 1);
-        return "FAC" + seqNum;
+            // Query to find the highest number in existing FAC IDs
+            String sql = "SELECT username FROM users WHERE username LIKE 'FAC%' ORDER BY username DESC LIMIT 1";
+            java.sql.ResultSet rs = stmt.executeQuery(sql);
+
+            int nextNum = 1;
+            if (rs.next()) {
+                String lastId = rs.getString("username");
+                // Extract number from FAC001, FAC002, etc.
+                String numPart = lastId.substring(3); // Remove "FAC"
+                try {
+                    nextNum = Integer.parseInt(numPart) + 1;
+                } catch (NumberFormatException e) {
+                    // If parsing fails, start from 1
+                    nextNum = 1;
+                }
+            }
+
+            return "FAC" + String.format("%03d", nextNum);
+
+        } catch (Exception e) {
+            // Fallback: use timestamp-based ID to ensure uniqueness
+            return "FAC" + System.currentTimeMillis() % 1000;
+        }
     }
 
     /**

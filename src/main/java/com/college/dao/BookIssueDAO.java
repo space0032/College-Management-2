@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.BookIssue;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public class BookIssueDAO {
             return false;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -77,7 +78,7 @@ public class BookIssueDAO {
             return false;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -102,7 +103,7 @@ public class BookIssueDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return issues;
     }
@@ -129,7 +130,7 @@ public class BookIssueDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return issues;
     }
@@ -155,7 +156,7 @@ public class BookIssueDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -174,7 +175,7 @@ public class BookIssueDAO {
             pstmt.executeUpdate();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
     }
 
@@ -195,7 +196,7 @@ public class BookIssueDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }

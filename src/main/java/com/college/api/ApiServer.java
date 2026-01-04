@@ -13,11 +13,10 @@ public class ApiServer {
         // Create server on port 7000
         HttpServer server = HttpServer.create(new InetSocketAddress(7000), 0);
 
-        // Define routes
-        server.createContext("/", new RootHandler());
-        server.createContext("/students", new StudentController());
-        // Simple manual path checking in handler for fees pending
-        server.createContext("/fees", new FeeController());
+        // Define routes (Protected)
+        server.createContext("/", new RootHandler()); // Public
+        server.createContext("/students", new ProtectedHandler(new StudentController()));
+        server.createContext("/fees", new ProtectedHandler(new FeeController()));
 
         server.setExecutor(null); // default executor
         server.start();
@@ -27,11 +26,30 @@ public class ApiServer {
     static class RootHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            String response = "College Management API (Native) is Running";
+            // Public endpoint check
+            String response = "College Management API (Native) is Running. Use /students, /fees endpoints.";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
+        }
+    }
+
+    // Wrapper to enforce Auth on other handlers
+    static class ProtectedHandler implements HttpHandler {
+        private final HttpHandler delegate;
+
+        public ProtectedHandler(HttpHandler delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+            if (!ApiAuthMiddleware.isAuthenticated(t)) {
+                ApiAuthMiddleware.sendUnauthorized(t);
+                return;
+            }
+            delegate.handle(t);
         }
     }
 }

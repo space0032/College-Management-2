@@ -516,12 +516,9 @@ public class FacultyManagementView {
         });
 
         Optional<Faculty> result = dialog.showAndWait();
-        result.ifPresent(f -> {
-            if (f != null) {
-                loadFaculty();
-                showAlert("Success", "Faculty added successfully!");
-            }
-        });
+        if (result.isPresent() && result.get() != null) {
+            loadFaculty(); // Refresh the list
+        }
     }
 
     private void showAlert(String title, String message) {

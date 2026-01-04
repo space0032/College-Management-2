@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Announcement;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 
@@ -49,7 +50,7 @@ public class AnnouncementDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return -1;
@@ -81,7 +82,7 @@ public class AnnouncementDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -99,7 +100,7 @@ public class AnnouncementDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -122,7 +123,7 @@ public class AnnouncementDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return null;
@@ -145,7 +146,7 @@ public class AnnouncementDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return announcements;
@@ -188,7 +189,7 @@ public class AnnouncementDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return announcements;

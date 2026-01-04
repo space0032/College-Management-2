@@ -1,6 +1,7 @@
 package com.college.dao;
 
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 import java.security.MessageDigest;
 import java.sql.*;
 
@@ -10,7 +11,7 @@ public class UserDAO {
         try (Connection conn = DatabaseConnection.getConnection()) {
             return addUser(conn, username, password, role);
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return -1;
         }
     }
@@ -61,7 +62,7 @@ public class UserDAO {
             pstmt.setInt(2, userId);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }

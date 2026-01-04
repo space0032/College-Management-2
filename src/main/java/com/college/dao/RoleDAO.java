@@ -3,6 +3,7 @@ package com.college.dao;
 import com.college.models.Permission;
 import com.college.models.Role;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ public class RoleDAO {
                 roles.add(role);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         // Load permissions after closing the roles ResultSet
@@ -52,7 +53,7 @@ public class RoleDAO {
                 return role;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -72,7 +73,7 @@ public class RoleDAO {
                 return role;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -94,7 +95,7 @@ public class RoleDAO {
                 return role;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -119,7 +120,7 @@ public class RoleDAO {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -137,7 +138,7 @@ public class RoleDAO {
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -151,7 +152,7 @@ public class RoleDAO {
             stmt.setInt(1, roleId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -166,7 +167,7 @@ public class RoleDAO {
             stmt.setInt(2, permissionId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -181,7 +182,7 @@ public class RoleDAO {
             stmt.setInt(2, permissionId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -210,7 +211,7 @@ public class RoleDAO {
             conn.commit();
             return true;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -225,7 +226,7 @@ public class RoleDAO {
             stmt.setInt(2, userId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -251,7 +252,7 @@ public class RoleDAO {
                 role.addPermission(p);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
     }
 

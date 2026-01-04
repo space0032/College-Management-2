@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Permission;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -24,7 +25,7 @@ public class PermissionDAO {
                 permissions.add(extractPermissionFromResultSet(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return permissions;
     }
@@ -43,7 +44,7 @@ public class PermissionDAO {
                 permissions.add(extractPermissionFromResultSet(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return permissions;
     }
@@ -61,7 +62,7 @@ public class PermissionDAO {
                 return extractPermissionFromResultSet(rs);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -87,7 +88,7 @@ public class PermissionDAO {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return false;
     }
@@ -104,7 +105,7 @@ public class PermissionDAO {
                 categories.add(rs.getString("category"));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return categories;
     }

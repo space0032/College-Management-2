@@ -183,16 +183,21 @@ public class LoginView {
     private int authenticateUser(String username, String password, String role) {
         String sql = "SELECT id FROM users WHERE username=? AND password=? AND role=?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            if (conn == null) {
+                System.err.println("Could not establish database connection.");
+                return 0;
+            }
 
-            pstmt.setString(1, username);
-            pstmt.setString(2, hashPassword(password));
-            pstmt.setString(3, role);
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, username);
+                pstmt.setString(2, hashPassword(password));
+                pstmt.setString(3, role);
 
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("id");
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
             }
             return 0;
         } catch (Exception e) {

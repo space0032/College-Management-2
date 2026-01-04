@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Timetable;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class TimetableDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return timetable;
     }
@@ -64,7 +65,7 @@ public class TimetableDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -82,7 +83,7 @@ public class TimetableDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -103,7 +104,7 @@ public class TimetableDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         // Add default if empty
@@ -131,7 +132,7 @@ public class TimetableDAO {
             return pstmt.executeUpdate() >= 0; // Returns true even if 0 rows deleted
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }

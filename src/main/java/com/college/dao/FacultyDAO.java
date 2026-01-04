@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Faculty;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ public class FacultyDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return -1;
     }
@@ -79,7 +80,7 @@ public class FacultyDAO {
             return rowsAffected > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -101,7 +102,7 @@ public class FacultyDAO {
             return rowsAffected > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -130,7 +131,7 @@ public class FacultyDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -158,7 +159,7 @@ public class FacultyDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return facultyList;
     }
@@ -190,7 +191,7 @@ public class FacultyDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return facultyList;
     }
@@ -219,7 +220,7 @@ public class FacultyDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -266,7 +267,7 @@ public class FacultyDAO {
                 return rs.getInt("count");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return 0;
     }

@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.AuditLog;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -60,7 +61,7 @@ public class AuditLogDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return logs;
@@ -84,7 +85,7 @@ public class AuditLogDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return logs;
@@ -109,7 +110,7 @@ public class AuditLogDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return logs;
@@ -135,7 +136,7 @@ public class AuditLogDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return logs;
@@ -159,7 +160,7 @@ public class AuditLogDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
 
         return logs;
@@ -202,7 +203,7 @@ public class AuditLogDAO {
             return pstmt.executeUpdate();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return 0;
         }
     }

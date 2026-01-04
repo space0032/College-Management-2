@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Course;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class CourseDAO {
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -49,7 +50,7 @@ public class CourseDAO {
                 courses.add(extractCourseFromResultSet(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return courses;
     }
@@ -69,7 +70,7 @@ public class CourseDAO {
                 return extractCourseFromResultSet(rs);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -103,7 +104,7 @@ public class CourseDAO {
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -124,7 +125,7 @@ public class CourseDAO {
                 courses.add(extractCourseFromResultSet(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return courses;
     }
@@ -168,7 +169,7 @@ public class CourseDAO {
                     ex.printStackTrace();
                 }
             }
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         } finally {
             if (conn != null) {
@@ -176,7 +177,7 @@ public class CourseDAO {
                     conn.setAutoCommit(true);
                     conn.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    Logger.error("Database operation failed", e);
                 }
             }
         }

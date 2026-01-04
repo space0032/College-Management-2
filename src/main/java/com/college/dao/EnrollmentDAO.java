@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Student;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 import com.college.utils.EnrollmentGenerator;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -50,7 +51,7 @@ public class EnrollmentDAO {
             return student;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             if (conn != null) {
                 try {
                     conn.rollback(); // Rollback on error
@@ -65,7 +66,7 @@ public class EnrollmentDAO {
                     conn.setAutoCommit(true); // Reset auto-commit
                     conn.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    Logger.error("Database operation failed", e);
                 }
             }
         }

@@ -1,7 +1,9 @@
 package com.college.dao;
 
+import com.college.models.Course;
 import com.college.models.Student;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -23,7 +25,7 @@ public class StudentDAO {
         try (Connection conn = DatabaseConnection.getConnection()) {
             return addStudent(conn, student, userId);
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Failed to add student: " + student.getName(), e);
             return -1;
         }
     }
@@ -90,7 +92,7 @@ public class StudentDAO {
             return rowsAffected > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Failed to update student: " + student.getName(), e);
             return false;
         }
     }
@@ -112,7 +114,7 @@ public class StudentDAO {
             return rowsAffected > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -137,7 +139,7 @@ public class StudentDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -160,7 +162,7 @@ public class StudentDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return students;
     }
@@ -181,7 +183,7 @@ public class StudentDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return students;
     }
@@ -210,7 +212,7 @@ public class StudentDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return students;
     }
@@ -236,7 +238,7 @@ public class StudentDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return students;
     }
@@ -295,7 +297,7 @@ public class StudentDAO {
                 return extractStudentFromResultSet(rs);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return null;
     }
@@ -319,8 +321,55 @@ public class StudentDAO {
                 return rs.getInt("count");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return 0;
+    }
+
+    /**
+     * Get list of courses registered by the student
+     */
+    public List<Course> getRegisteredCourses(int studentId) {
+        List<Course> courses = new ArrayList<>();
+        String sql = "SELECT c.*, sc.status as enrollment_status FROM courses c " +
+                "JOIN student_courses sc ON c.id = sc.course_id " +
+                "WHERE sc.student_id = ? ORDER BY c.code";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Course c = new Course();
+                c.setId(rs.getInt("id"));
+                c.setName(rs.getString("name"));
+                c.setCode(rs.getString("code"));
+                c.setCredits(rs.getInt("credits"));
+                c.setDepartmentId(rs.getInt("department_id"));
+                courses.add(c);
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return courses;
+    }
+
+    /**
+     * Register student for a course
+     */
+    public boolean registerCourse(int studentId, int courseId, int semester, int year) {
+        String sql = "INSERT INTO student_courses (student_id, course_id, semester, academic_year, status) VALUES (?, ?, ?, ?, 'ENROLLED')";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, studentId);
+            pstmt.setInt(2, courseId);
+            pstmt.setInt(3, semester);
+            pstmt.setInt(4, year);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 }

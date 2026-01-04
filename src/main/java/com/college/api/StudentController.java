@@ -20,12 +20,58 @@ public class StudentController implements HttpHandler {
         String method = t.getRequestMethod();
         String path = t.getRequestURI().getPath();
 
-        if ("GET".equals(method)) {
+        if (path.matches("/students/\\d+/courses")) {
+            if ("GET".equals(method))
+                handleGetCourses(t);
+            else
+                sendResponse(t, 405, "Method Not Allowed");
+        } else if (path.matches("/students/\\d+/enroll")) {
+            if ("POST".equals(method))
+                handleEnroll(t);
+            else
+                sendResponse(t, 405, "Method Not Allowed");
+        } else if ("GET".equals(method)) {
             handleGet(t);
         } else if ("POST".equals(method)) {
             handlePost(t);
         } else {
             sendResponse(t, 405, "Method Not Allowed");
+        }
+    }
+
+    private int getIdFromPath(HttpExchange t) {
+        String path = t.getRequestURI().getPath();
+        String[] parts = path.split("/");
+        // /students/123/courses -> parts[0]="", [1]="students", [2]="123"
+        return Integer.parseInt(parts[2]);
+    }
+
+    private void handleGetCourses(HttpExchange t) throws IOException {
+        int studentId = getIdFromPath(t);
+        List<?> courses = studentDAO.getRegisteredCourses(studentId);
+        sendResponse(t, 200, JsonHelper.toJson(courses));
+    }
+
+    private void handleEnroll(HttpExchange t) throws IOException {
+        int studentId = getIdFromPath(t);
+        InputStream is = t.getRequestBody();
+        String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        try {
+            int courseId = Integer.parseInt(body.replaceAll(".*\"courseId\"\\s*:\\s*(\\d+).*", "$1"));
+            int semester = 1;
+            if (body.contains("semester"))
+                semester = Integer.parseInt(body.replaceAll(".*\"semester\"\\s*:\\s*(\\d+).*", "$1"));
+            int year = 2025;
+            if (body.contains("year"))
+                year = Integer.parseInt(body.replaceAll(".*\"year\"\\s*:\\s*(\\d+).*", "$1"));
+
+            if (studentDAO.registerCourse(studentId, courseId, semester, year)) {
+                sendResponse(t, 200, "{\"status\":\"Enrolled\"}");
+            } else {
+                sendResponse(t, 400, "{\"error\":\"Enrollment failed\"}");
+            }
+        } catch (Exception e) {
+            sendResponse(t, 400, "{\"error\":\"Invalid JSON: " + e.getMessage() + "\"}");
         }
     }
 

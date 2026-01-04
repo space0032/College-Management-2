@@ -2,6 +2,7 @@ package com.college.dao;
 
 import com.college.models.Attendance;
 import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ public class AttendanceDAO {
             return rowsAffected > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return false;
         }
     }
@@ -85,7 +86,7 @@ public class AttendanceDAO {
             return count;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
             return 0;
         }
     }
@@ -118,7 +119,7 @@ public class AttendanceDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return attendanceList;
     }
@@ -149,7 +150,7 @@ public class AttendanceDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return attendanceList;
     }
@@ -185,7 +186,7 @@ public class AttendanceDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return 0.0;
     }
@@ -222,7 +223,7 @@ public class AttendanceDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            Logger.error("Database operation failed", e);
         }
         return stats;
     }

@@ -130,6 +130,11 @@ public class DashboardView {
             addMenuItem(sidebar, "Faculty", "faculty", false);
         }
 
+        // Employee (HR) Management
+        if (session.hasPermission("MANAGE_SYSTEM")) {
+            addMenuItem(sidebar, "Employees (HR)", "employees", false);
+        }
+
         // Course Management - Students should always see their courses
         if (session.isStudent()) {
             addMenuItem(sidebar, "My Courses", "courses", false);
@@ -363,6 +368,9 @@ public class DashboardView {
             case "faculty":
                 showFaculty();
                 break;
+            case "employees":
+                showEmployees();
+                break;
             case "student_affairs":
                 showStudentAffairs();
                 break;
@@ -397,6 +405,11 @@ public class DashboardView {
     private void showFaculty() {
         FacultyManagementView view = new FacultyManagementView(role, userId);
         contentArea.getChildren().add(view.getView());
+    }
+
+    private void showEmployees() {
+        EmployeeManagementView view = new EmployeeManagementView();
+        contentArea.getChildren().add(view);
     }
 
     private void showStudentAffairs() {
