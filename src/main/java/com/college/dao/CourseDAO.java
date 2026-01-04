@@ -166,7 +166,7 @@ public class CourseDAO {
                 try {
                     conn.rollback();
                 } catch (SQLException ex) {
-                    ex.printStackTrace();
+                    Logger.error("Could not rollback", ex);
                 }
             }
             Logger.error("Database operation failed", e);

@@ -61,10 +61,12 @@ public class AttendanceDAO {
                 "VALUES (?, ?, ?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE status=?, remarks=?, updated_at=CURRENT_TIMESTAMP";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
+
+            PreparedStatement pstmt = conn.prepareStatement(sql);
             int count = 0;
 
             for (Attendance attendance : attendanceList) {
@@ -81,13 +83,27 @@ public class AttendanceDAO {
                 count++;
             }
 
-            int[] results = pstmt.executeBatch();
+            pstmt.executeBatch();
             conn.commit();
+            pstmt.close();
             return count;
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            Logger.error("Failed to mark bulk attendance", e);
+            try {
+                if (conn != null)
+                    conn.rollback();
+            } catch (Exception ex) {
+            }
             return 0;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (Exception ex) {
+            }
         }
     }
 

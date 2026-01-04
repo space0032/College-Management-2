@@ -191,7 +191,9 @@ public class RoleDAO {
         String deleteSql = "DELETE FROM role_permissions WHERE role_id = ?";
         String insertSql = "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)";
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
             try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
@@ -211,9 +213,22 @@ public class RoleDAO {
             conn.commit();
             return true;
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            Logger.error("Failed to set role permissions", e);
+            try {
+                if (conn != null)
+                    conn.rollback();
+            } catch (Exception ex) {
+            }
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (Exception ex) {
+            }
         }
-        return false;
     }
 
     public boolean assignRoleToUser(int userId, int roleId) {

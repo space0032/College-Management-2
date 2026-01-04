@@ -51,22 +51,26 @@ public class EnrollmentDAO {
             return student;
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-            if (conn != null) {
-                try {
-                    conn.rollback(); // Rollback on error
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
+            Logger.error("Failed to enroll student", e);
+            // Try to rollback, but don't fail if connection is already closed
+            try {
+                if (conn != null) {
+                    conn.rollback();
                 }
+            } catch (Exception rollbackEx) {
+                // Log but don't throw - connection might already be closed
+                Logger.error("Could not rollback transaction", rollbackEx);
             }
             return null;
         } finally {
             if (conn != null) {
                 try {
-                    conn.setAutoCommit(true); // Reset auto-commit
+                    if (!conn.isClosed()) {
+                        conn.setAutoCommit(true); // Reset auto-commit
+                    }
                     conn.close();
                 } catch (SQLException e) {
-                    Logger.error("Database operation failed", e);
+                    Logger.error("Failed to close connection", e);
                 }
             }
         }
