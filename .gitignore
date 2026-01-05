@@ -22,11 +22,6 @@ test_sources.txt
 # Logs
 *.log
 app_errors.log
-app.log
-
-# Generated/Exported Files
-*.csv
-payroll_export_*.csv
 
 # IDEs
 .idea/
