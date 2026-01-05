@@ -20,24 +20,20 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
 - **Native Migrations**: Custom `MigrationRunner` automatically updates the database schema on startup. No manual SQL scripts needed.
 - **Transactional Integrity**: `EnrollmentDAO` ensures data consistency across users and students.
 - **CI/CD**: Automated build and testing pipeline via GitHub Actions.
-- **Data Seeding**: Automated seeding of realistic demo data (100 Students, 30 Faculty) via `DataSeeder` utility.
+- **Comprehensive Testing**: JUnit 5 & Mockito test suite ensuring core logic stability.
 
 ### 👥 Role-Based Access Control
 - **Admin**: Complete system oversight, user management, and system logs.
-- **Faculty**: Course management, attendance marking, grades, and payroll access.
+- **Faculty**: Course management, attendance marking, grading.
 - **Student**: View personalized timetable, attendance, grades, and fees.
 - **Warden**: Hostel room allocation and gate pass management.
-- **Finance**: Manage fee collections, view transaction reports, and handle payroll approvals.
-- **HR**: **(New)** Manage employee records, contracts, and payroll generation.
+- **Finance**: **(New)** Manage fee collections, view transaction reports, and handle receipts.
 
 ### 📚 Core Modules
 - **Institute**: Manage Students, Faculty, Courses, Departments.
 - **Academic**: Attendance, Grades, Timetables, Assignments.
 - **Hostel**: Room allocation, Warden management, Gate Passes.
-- **Human Resources**: Employee profiles, Salary management, Leave tracking.
-- **Payroll**: Automated payroll generation, Bonus/Deduction tracking, Payslip management.
 - **Reports**: Visual analytics for Attendance, Fees, and Grades (with CSV export).
-- **Permissions**: Granular, categorized permission system (System, Academic, Hostel, HR, Finance).
 
 ---
 
@@ -87,6 +83,11 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
    ./run.sh
    ```
 
+6. **Run Tests** (Optional)
+   ```bash
+   ./test.sh
+   ```
+
 ---
 
 ## 🔒 Security
@@ -103,20 +104,23 @@ This project follows security best practices:
 
 ## 🔑 Login Credentials
 
-All seeded test users have password: **`password123`** (Default)
+All test users have password: **`123`**
 
 ### Admin
 - **User**: `admin`
-- **Pass**: `admin123`
 
 ### Faculty
-- **Users**: `f101`, `f102`...
+- **Users**: `FAC001`, `FAC002`...
 
 ### Student
-- **Users**: `s2024001`, `s2024002`...
+- **Users**: `CS2026001`, `CS2026002`...
 
-### Staff / Warden
-- **Users**: `w501`, `w502`...
+### Finance **(New)**
+- **User**: `finance_admin`
+- **Access**: Fee collection, Dashboard statistics.
+
+### Warden
+- **Users**: `WARDEN01`...
 
 ---
 
