@@ -10,6 +10,7 @@ import com.college.models.Warden;
 import com.college.models.Student;
 
 import com.college.utils.SearchableStudentComboBox;
+import com.college.utils.SessionManager;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -128,6 +129,16 @@ public class HostelManagementView {
             wardenTab.setContent(createWardenTab());
             wardenTab.setClosable(false);
 
+            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab, wardenTab);
+
+            // Check for Hostel Attendance Permission
+            if (SessionManager.getInstance().hasPermission("VIEW_HOSTEL_ATTENDANCE")) {
+                Tab attendanceTab = new Tab("Hostel Attendance");
+                attendanceTab.setContent(createWardenAttendanceTab());
+                attendanceTab.setClosable(false);
+                tabPane.getTabs().add(attendanceTab);
+            }
+
             // Admins can also see all complaints ideally, but for now sticking to
             // requirements
             // Adding a read-only or full complaints tab for Admin could be useful
@@ -135,7 +146,7 @@ public class HostelManagementView {
             complaintTab.setContent(createWardenComplaintsTab()); // Reusing warden tab for admin
             complaintTab.setClosable(false);
 
-            tabPane.getTabs().addAll(allocTab, hostelTab, roomTab, wardenTab, complaintTab);
+            tabPane.getTabs().add(complaintTab);
         }
         VBox.setVgrow(tabPane, Priority.ALWAYS);
         root.getChildren().addAll(title, tabPane);

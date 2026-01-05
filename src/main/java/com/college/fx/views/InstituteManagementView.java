@@ -534,49 +534,199 @@ public class InstituteManagementView {
         Dialog<List<Integer>> dialog = new Dialog<>();
         dialog.setTitle("Manage Permissions: " + selectedRole.getName());
         dialog.setHeaderText("Select permissions for this role");
+        dialog.setResizable(true);
 
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
         List<Permission> allPerms = permissionDAO.getAllPermissions();
-        VBox content = new VBox(10);
-        ScrollPane scroll = new ScrollPane(content);
-        scroll.setPrefHeight(400);
-        scroll.setFitToWidth(true);
 
-        List<CheckBox> checkBoxes = new ArrayList<>();
+        // Root layout
+        VBox rootLayout = new VBox(10);
+        rootLayout.setPadding(new Insets(10));
+        rootLayout.setPrefSize(700, 600);
+
+        // Search Bar
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search permissions...");
+        rootLayout.getChildren().add(searchField);
+
+        // Scroll Content
+        VBox content = new VBox(15);
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+        rootLayout.getChildren().add(scroll);
+
+        // Map to store category -> list of permission checkboxes
+        Map<String, List<CheckBox>> categoryCheckboxes = new java.util.HashMap<>();
+        // Map to store checkbox -> permission for filtering
+        Map<CheckBox, String> checkboxSearchText = new java.util.HashMap<>();
 
         // Group by category
         Map<String, List<Permission>> grouped = allPerms.stream()
                 .collect(Collectors.groupingBy(p -> p.getCategory() == null ? "General" : p.getCategory()));
 
-        grouped.forEach((category, perms) -> {
+        // Sort categories logic
+        List<String> logicalOrder = java.util.Arrays.asList(
+                "System",
+                "Student Management",
+                "Academic",
+                "Faculty",
+                "Hostel Management",
+                "HR",
+                "Finance",
+                "General");
+
+        List<String> sortedCategories = new ArrayList<>(grouped.keySet());
+        sortedCategories.sort((c1, c2) -> {
+            int i1 = logicalOrder.indexOf(c1);
+            int i2 = logicalOrder.indexOf(c2);
+
+            if (i1 != -1 && i2 != -1)
+                return Integer.compare(i1, i2);
+            if (i1 != -1)
+                return -1;
+            if (i2 != -1)
+                return 1;
+
+            return c1.compareTo(c2);
+        });
+
+        for (String category : sortedCategories) {
+            List<Permission> perms = grouped.get(category);
+
+            // Category Container
+            VBox catContainer = new VBox(5);
+            catContainer.setStyle(
+                    "-fx-border-color: #e2e8f0; -fx-border-radius: 5; -fx-padding: 10; -fx-background-color: white;");
+
+            // Header: Select All + Label
+            HBox header = new HBox(10);
+            header.setAlignment(Pos.CENTER_LEFT);
+            header.setStyle("-fx-background-color: #f1f5f9; -fx-padding: 8; -fx-background-radius: 4;");
+
+            CheckBox selectAllCat = new CheckBox();
             Label catLabel = new Label(category);
             catLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
-            catLabel.setStyle("-fx-background-color: #e2e8f0; -fx-padding: 5;");
-            catLabel.setMaxWidth(Double.MAX_VALUE);
-            content.getChildren().add(catLabel);
+            header.getChildren().addAll(selectAllCat, catLabel);
+
+            // Grid for Permissions
+            GridPane grid = new GridPane();
+            grid.setHgap(15);
+            grid.setVgap(8);
+
+            List<CheckBox> boxes = new ArrayList<>();
+            int col = 0;
+            int row = 0;
 
             for (Permission p : perms) {
-                CheckBox cb = new CheckBox(p.getName() + " (" + p.getCode() + ")");
-                // Check if role has this permission
+                CheckBox cb = new CheckBox(p.getName());
+                // Use default tooltip if desc is null
+                Tooltip tp = new Tooltip(p.getDescription() != null ? p.getDescription() : p.getName());
+                cb.setTooltip(tp);
+                cb.setUserData(p.getId());
+
                 if (selectedRole.hasPermission(p.getCode())) {
                     cb.setSelected(true);
                 }
-                cb.setUserData(p.getId());
-                checkBoxes.add(cb);
-                content.getChildren().add(cb);
+
+                checkboxSearchText.put(cb, (p.getName() + " " + p.getCode() + " " + category).toLowerCase());
+                boxes.add(cb);
+
+                grid.add(cb, col, row);
+                col++;
+                if (col > 1) { // 2 Columns
+                    col = 0;
+                    row++;
+                }
+            }
+            categoryCheckboxes.put(category, boxes);
+
+            // Select All Logic
+            selectAllCat.setOnAction(e -> {
+                boolean selected = selectAllCat.isSelected();
+                boxes.forEach(cb -> {
+                    if (cb.isVisible())
+                        cb.setSelected(selected);
+                });
+            });
+
+            // Update "Select All" state if specific boxes clicked
+            for (CheckBox cb : boxes) {
+                cb.selectedProperty().addListener((obs, oldV, newV) -> {
+                    boolean allSelected = boxes.stream().filter(javafx.scene.Node::isVisible)
+                            .allMatch(CheckBox::isSelected);
+                    boolean anySelected = boxes.stream().filter(javafx.scene.Node::isVisible)
+                            .anyMatch(CheckBox::isSelected);
+                    selectAllCat.setSelected(allSelected);
+                    if (!allSelected && anySelected) {
+                        selectAllCat.setIndeterminate(true);
+                    } else {
+                        selectAllCat.setIndeterminate(false);
+                    }
+                });
+            }
+
+            // Initial check for select all state
+            boolean allInit = boxes.stream().allMatch(CheckBox::isSelected);
+            if (allInit && !boxes.isEmpty())
+                selectAllCat.setSelected(true);
+
+            catContainer.getChildren().addAll(header, grid);
+            content.getChildren().add(catContainer);
+        }
+
+        // Search Logic
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            String term = newVal.toLowerCase();
+
+            for (String category : sortedCategories) {
+                List<CheckBox> boxes = categoryCheckboxes.get(category);
+                // Grid is index 1 in children
+                // Wait, need reference to catContainer.
+                // It is simpler to store catContainers or retrieve
+                CheckBox first = boxes.get(0);
+                GridPane grid = (GridPane) first.getParent();
+                VBox catContainer = (VBox) grid.getParent();
+
+                boolean anyVisible = false;
+                grid.getChildren().clear(); // Clear grid to re-layout visible items
+
+                int c = 0;
+                int r = 0;
+
+                for (CheckBox cb : boxes) {
+                    if (term.isEmpty() || checkboxSearchText.get(cb).contains(term)) {
+                        cb.setVisible(true);
+                        cb.setManaged(true);
+                        anyVisible = true;
+
+                        grid.add(cb, c, r);
+                        c++;
+                        if (c > 1) {
+                            c = 0;
+                            r++;
+                        }
+                    } else {
+                        cb.setVisible(false);
+                        cb.setManaged(false);
+                    }
+                }
+
+                catContainer.setVisible(anyVisible);
+                catContainer.setManaged(anyVisible);
             }
         });
 
-        dialog.getDialogPane().setContent(scroll);
+        dialog.getDialogPane().setContent(rootLayout);
 
-        dialog.setResultConverter(Button -> {
-            if (Button == saveBtn) {
-                return checkBoxes.stream()
-                        .filter(CheckBox::isSelected)
-                        .map(cb -> (Integer) cb.getUserData())
-                        .collect(Collectors.toList());
+        dialog.setResultConverter(btnType -> {
+            if (btnType == saveBtn) {
+                List<Integer> ids = new ArrayList<>();
+                categoryCheckboxes.values().forEach(list -> list.stream().filter(CheckBox::isSelected)
+                        .forEach(cb -> ids.add((Integer) cb.getUserData())));
+                return ids;
             }
             return null;
         });
