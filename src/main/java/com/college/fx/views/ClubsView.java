@@ -98,15 +98,22 @@ public class ClubsView {
         HBox filters = new HBox(10);
         filters.setAlignment(Pos.CENTER_LEFT);
 
-        Label filterLabel = new Label("Filter by Category:");
+        // Search field
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search clubs...");
+        searchField.setPrefWidth(250);
+        searchField.textProperty()
+                .addListener((obs, oldVal, newVal) -> applySearchAndFilter(newVal, filterCombo.getValue()));
+
+        Label filterLabel = new Label("Category:");
         filterLabel.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
 
         filterCombo = new ComboBox<>();
         filterCombo.getItems().addAll("All Clubs", "TECHNICAL", "CULTURAL", "SPORTS", "SOCIAL", "ACADEMIC");
         filterCombo.setValue("All Clubs");
-        filterCombo.setOnAction(e -> applyFilter());
+        filterCombo.setOnAction(e -> applySearchAndFilter(searchField.getText(), filterCombo.getValue()));
 
-        filters.getChildren().addAll(filterLabel, filterCombo);
+        filters.getChildren().addAll(searchField, filterLabel, filterCombo);
 
         // Table
         allClubsTable = createClubsTable(true);
@@ -139,25 +146,38 @@ public class ClubsView {
         TableColumn<Club, String> nameCol = new TableColumn<>("Club Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
         nameCol.setPrefWidth(200);
+        nameCol.setSortable(true);
 
         TableColumn<Club, String> categoryCol = new TableColumn<>("Category");
         categoryCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCategory()));
         categoryCol.setPrefWidth(120);
+        categoryCol.setSortable(true);
 
         TableColumn<Club, String> presidentCol = new TableColumn<>("President");
         presidentCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getPresidentName() != null ? data.getValue().getPresidentName() : "TBA"));
         presidentCol.setPrefWidth(150);
+        presidentCol.setSortable(true);
 
         TableColumn<Club, String> coordinatorCol = new TableColumn<>("Faculty Coordinator");
         coordinatorCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getCoordinatorName() != null ? data.getValue().getCoordinatorName() : "TBA"));
         coordinatorCol.setPrefWidth(180);
+        coordinatorCol.setSortable(true);
 
         TableColumn<Club, String> membersCol = new TableColumn<>("Members");
         membersCol.setCellValueFactory(
                 data -> new SimpleStringProperty(String.valueOf(data.getValue().getMemberCount())));
         membersCol.setPrefWidth(80);
+        membersCol.setSortable(true);
+        // Sort numerically
+        membersCol.setComparator((m1, m2) -> {
+            try {
+                return Integer.compare(Integer.parseInt(m1), Integer.parseInt(m2));
+            } catch (Exception e) {
+                return m1.compareTo(m2);
+            }
+        });
 
         table.getColumns().addAll(nameCol, categoryCol, presidentCol, coordinatorCol, membersCol);
 
@@ -262,6 +282,24 @@ public class ClubsView {
             myClubsData.setAll(myClubs);
             myClubsTable.setItems(myClubsData);
         }
+    }
+
+    private void applySearchAndFilter(String searchText, String categoryFilter) {
+        ObservableList<Club> filtered = allClubsData;
+
+        // Apply category filter
+        if (categoryFilter != null && !categoryFilter.equals("All Clubs")) {
+            filtered = filtered.filtered(c -> c.getCategory().equals(categoryFilter));
+        }
+
+        // Apply search filter
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String search = searchText.toLowerCase();
+            filtered = filtered.filtered(c -> c.getName().toLowerCase().contains(search) ||
+                    (c.getDescription() != null && c.getDescription().toLowerCase().contains(search)));
+        }
+
+        allClubsTable.setItems(filtered);
     }
 
     private void applyFilter() {

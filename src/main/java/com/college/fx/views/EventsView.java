@@ -98,15 +98,22 @@ public class EventsView {
         HBox filters = new HBox(10);
         filters.setAlignment(Pos.CENTER_LEFT);
 
-        Label filterLabel = new Label("Filter by Type:");
+        // Search field
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search events...");
+        searchField.setPrefWidth(250);
+        searchField.textProperty()
+                .addListener((obs, oldVal, newVal) -> applySearchAndFilter(newVal, filterCombo.getValue()));
+
+        Label filterLabel = new Label("Type:");
         filterLabel.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
 
         filterCombo = new ComboBox<>();
         filterCombo.getItems().addAll("All Events", "FEST", "CULTURAL", "SPORTS", "ACADEMIC", "CLUB", "SEMINAR");
         filterCombo.setValue("All Events");
-        filterCombo.setOnAction(e -> applyFilter());
+        filterCombo.setOnAction(e -> applySearchAndFilter(searchField.getText(), filterCombo.getValue()));
 
-        filters.getChildren().addAll(filterLabel, filterCombo);
+        filters.getChildren().addAll(searchField, filterLabel, filterCombo);
 
         // Table
         allEventsTable = createEventsTable(true);
@@ -141,23 +148,36 @@ public class EventsView {
         TableColumn<Event, String> nameCol = new TableColumn<>("Event Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
         nameCol.setPrefWidth(200);
+        nameCol.setSortable(true);
 
         TableColumn<Event, String> typeCol = new TableColumn<>("Type");
         typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEventType()));
         typeCol.setPrefWidth(100);
+        typeCol.setSortable(true);
 
         TableColumn<Event, String> dateCol = new TableColumn<>("Start Time");
         dateCol.setCellValueFactory(data -> new SimpleStringProperty(
                 dateFormat.format(data.getValue().getStartTime())));
         dateCol.setPrefWidth(150);
+        dateCol.setSortable(true);
+        // Sort by actual date, not string
+        dateCol.setComparator((date1, date2) -> {
+            try {
+                return dateFormat.parse(date1).compareTo(dateFormat.parse(date2));
+            } catch (Exception e) {
+                return date1.compareTo(date2);
+            }
+        });
 
         TableColumn<Event, String> locationCol = new TableColumn<>("Location");
         locationCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getLocation()));
         locationCol.setPrefWidth(150);
+        locationCol.setSortable(true);
 
         TableColumn<Event, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
         statusCol.setPrefWidth(100);
+        statusCol.setSortable(true);
 
         table.getColumns().addAll(nameCol, typeCol, dateCol, locationCol, statusCol);
 
@@ -225,6 +245,25 @@ public class EventsView {
             myEventsData.setAll(myEvents);
             myEventsTable.setItems(myEventsData);
         }
+    }
+
+    private void applySearchAndFilter(String searchText, String typeFilter) {
+        ObservableList<Event> filtered = allEventsData;
+
+        // Apply type filter
+        if (typeFilter != null && !typeFilter.equals("All Events")) {
+            filtered = filtered.filtered(e -> e.getEventType().equals(typeFilter));
+        }
+
+        // Apply search filter
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String search = searchText.toLowerCase();
+            filtered = filtered.filtered(e -> e.getName().toLowerCase().contains(search) ||
+                    e.getLocation().toLowerCase().contains(search) ||
+                    (e.getDescription() != null && e.getDescription().toLowerCase().contains(search)));
+        }
+
+        allEventsTable.setItems(filtered);
     }
 
     private void applyFilter() {
