@@ -189,24 +189,10 @@ public class DashboardView {
         // Academic Calendar (Visible to all)
         addMenuItem(sidebar, "Academic Calendar", "calendar", false);
 
-        // Events
-        if (session.hasPermission("VIEW_EVENTS")) {
-            addMenuItem(sidebar, "Events", "events", false);
-        }
-
-        // Event Management (Admin/Faculty)
-        if (session.hasPermission("MANAGE_EVENTS")) {
-            addMenuItem(sidebar, "Event Management", "event_management", false);
-        }
-
-        // Clubs
-        if (session.hasPermission("JOIN_CLUBS")) {
-            addMenuItem(sidebar, "Clubs", "clubs", false);
-        }
-
-        // Club Management (Admin/Faculty)
-        if (session.hasPermission("MANAGE_CLUBS")) {
-            addMenuItem(sidebar, "Club Management", "club_management", false);
+        // Student Activities (Events & Clubs Dashboard)
+        if (session.hasPermission("VIEW_EVENTS") || session.hasPermission("MANAGE_EVENTS") ||
+                session.hasPermission("JOIN_CLUBS") || session.hasPermission("MANAGE_CLUBS")) {
+            addMenuItem(sidebar, "Student Activities", "student_activities", false);
         }
 
         // Gate Pass
@@ -263,6 +249,15 @@ public class DashboardView {
         addMenuItem(sidebar, "Change Password", "password", false);
 
         return sidebar;
+    }
+
+    private void addCategoryHeader(VBox sidebar, String headerText) {
+        Label categoryLabel = new Label(headerText);
+        categoryLabel.setStyle("-fx-text-fill: #64748b; " +
+                "-fx-font-size: 11px; " +
+                "-fx-font-weight: bold; " +
+                "-fx-padding: 15 15 5 15;");
+        sidebar.getChildren().add(categoryLabel);
     }
 
     private void addMenuItem(VBox sidebar, String text, String viewName, boolean isActive) {
@@ -429,6 +424,9 @@ public class DashboardView {
             case "club_management":
                 showClubManagement();
                 break;
+            case "student_activities":
+                showStudentActivities();
+                break;
             default:
                 showHome();
         }
@@ -590,6 +588,15 @@ public class DashboardView {
 
     private void showClubManagement() {
         ClubManagementView view = new ClubManagementView(userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showStudentActivities() {
+        StudentActivitiesView view = new StudentActivitiesView(
+                this::showEvents,
+                this::showClubs,
+                this::showEventManagement,
+                this::showClubManagement);
         contentArea.getChildren().add(view.getView());
     }
 
