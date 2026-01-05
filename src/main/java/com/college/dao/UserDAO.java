@@ -27,7 +27,7 @@ public class UserDAO {
         String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, PasswordUtils.hashPasswordLegacy(password));
+            pstmt.setString(2, PasswordUtils.hashPassword(password));
             pstmt.setString(3, role);
 
             int rows = pstmt.executeUpdate();
@@ -48,7 +48,7 @@ public class UserDAO {
         String sql = "INSERT INTO users (username, password, role, role_id) VALUES (?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, PasswordUtils.hashPasswordLegacy(password));
+            pstmt.setString(2, PasswordUtils.hashPassword(password));
             pstmt.setString(3, roleName);
             pstmt.setInt(4, roleId);
 

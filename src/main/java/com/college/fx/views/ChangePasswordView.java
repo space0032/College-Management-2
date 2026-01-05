@@ -141,18 +141,24 @@ public class ChangePasswordView {
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Verify current password
-            try (PreparedStatement pstmt = conn.prepareStatement(verifySql)) {
+            String storedHash = null;
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT password FROM users WHERE id = ?")) {
                 pstmt.setInt(1, userId);
-                pstmt.setString(2, com.college.utils.PasswordUtils.hashPasswordLegacy(currentPassword));
-                if (!pstmt.executeQuery().next()) {
-                    showMessage("Current password is incorrect.", true);
-                    return;
+                try (java.sql.ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        storedHash = rs.getString("password");
+                    }
                 }
+            }
+
+            if (storedHash == null || !com.college.utils.PasswordUtils.verifyPassword(currentPassword, storedHash)) {
+                showMessage("Current password is incorrect.", true);
+                return;
             }
 
             // Update password
             try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
-                pstmt.setString(1, com.college.utils.PasswordUtils.hashPasswordLegacy(newPassword));
+                pstmt.setString(1, com.college.utils.PasswordUtils.hashPassword(newPassword));
                 pstmt.setInt(2, userId);
                 if (pstmt.executeUpdate() > 0) {
                     showMessage("Password changed successfully!", false);
