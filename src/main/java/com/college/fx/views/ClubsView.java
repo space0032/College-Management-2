@@ -110,6 +110,8 @@ public class ClubsView {
 
         // Table
         allClubsTable = createClubsTable(true);
+        // TODO: Fix CSS resource loading
+        // allClubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(allClubsTable, Priority.ALWAYS);
 
         content.getChildren().addAll(filters, allClubsTable);
@@ -122,6 +124,8 @@ public class ClubsView {
         content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
 
         myClubsTable = createClubsTable(false);
+        // TODO: Fix CSS resource loading
+        // myClubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(myClubsTable, Priority.ALWAYS);
 
         content.getChildren().add(myClubsTable);
@@ -327,13 +331,13 @@ public class ClubsView {
         content.setPrefWidth(500);
 
         content.getChildren().addAll(
-                new Label("📝 Description:"),
+                new Label("Description:"),
                 new Label(club.getDescription() != null ? club.getDescription() : "No description available."),
                 new Separator(),
-                new Label("👤 President: " + (club.getPresidentName() != null ? club.getPresidentName() : "TBA")),
-                new Label("👨‍🏫 Faculty Coordinator: "
+                new Label("President: " + (club.getPresidentName() != null ? club.getPresidentName() : "TBA")),
+                new Label("Faculty Coordinator: "
                         + (club.getCoordinatorName() != null ? club.getCoordinatorName() : "TBA")),
-                new Label("👥 Total Members: " + club.getMemberCount()));
+                new Label("Total Members: " + club.getMemberCount()));
 
         dialog.getDialogPane().setContent(content);
 

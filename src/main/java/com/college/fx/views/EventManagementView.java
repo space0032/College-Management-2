@@ -88,6 +88,8 @@ public class EventManagementView {
         eventsTable = new TableView<>();
         eventsTable.setItems(eventsData);
         eventsTable.setPlaceholder(new Label("No events yet.\nClick 'Create Event' to get started."));
+        // TODO: Fix CSS resource loading
+        // eventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(eventsTable, Priority.ALWAYS);
 
         TableColumn<Event, String> nameCol = new TableColumn<>("Event Name");
@@ -236,6 +238,14 @@ public class EventManagementView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20));
         grid.setPrefWidth(600);
+
+        // Set column constraints to prevent label truncation
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(120);
+        col1.setPrefWidth(120);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
 
         TextField nameField = new TextField(event != null ? event.getName() : "");
         nameField.setPromptText("Event Name");

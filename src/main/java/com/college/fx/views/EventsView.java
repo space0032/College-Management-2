@@ -110,7 +110,8 @@ public class EventsView {
 
         // Table
         allEventsTable = createEventsTable(true);
-        allEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        // TODO: Fix CSS resource loading
+        // allEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(allEventsTable, Priority.ALWAYS);
 
         content.getChildren().addAll(filters, allEventsTable);
@@ -123,6 +124,8 @@ public class EventsView {
         content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
 
         myEventsTable = createEventsTable(false);
+        // TODO: Fix CSS resource loading
+        // myEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(myEventsTable, Priority.ALWAYS);
 
         content.getChildren().add(myEventsTable);
@@ -269,14 +272,14 @@ public class EventsView {
         SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMM dd, yyyy 'at' hh:mm a");
 
         content.getChildren().addAll(
-                new Label("📍 Location: " + event.getLocation()),
-                new Label("🕒 Start: " + dateFormat.format(event.getStartTime())),
-                new Label("🕒 End: " + dateFormat.format(event.getEndTime())),
+                new Label("Location: " + event.getLocation()),
+                new Label("Start: " + dateFormat.format(event.getStartTime())),
+                new Label("End: " + dateFormat.format(event.getEndTime())),
                 new Separator(),
                 new Label("Description:"),
                 new Label(event.getDescription() != null ? event.getDescription() : "No description available."),
                 new Separator(),
-                new Label("👥 Registered: " + event.getRegistrationCount() +
+                new Label("Registered: " + event.getRegistrationCount() +
                         (event.getMaxParticipants() != null ? " / " + event.getMaxParticipants() : "")));
 
         dialog.getDialogPane().setContent(content);

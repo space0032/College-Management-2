@@ -88,6 +88,8 @@ public class ClubManagementView {
         clubsTable = new TableView<>();
         clubsTable.setItems(clubsData);
         clubsTable.setPlaceholder(new Label("No clubs yet.\nClick 'Create Club' to get started."));
+        // TODO: Fix CSS resource loading
+        // clubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(clubsTable, Priority.ALWAYS);
 
         TableColumn<Club, String> nameCol = new TableColumn<>("Club Name");
@@ -237,6 +239,14 @@ public class ClubManagementView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20));
         grid.setPrefWidth(500);
+
+        // Set column constraints to prevent label truncation
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(180);
+        col1.setPrefWidth(180);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
 
         TextField nameField = new TextField(club != null ? club.getName() : "");
         nameField.setPromptText("Club Name");
