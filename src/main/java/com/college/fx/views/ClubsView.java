@@ -25,7 +25,6 @@ public class ClubsView {
     private VBox root;
     private ClubDAO clubDAO;
     private StudentDAO studentDAO;
-    private int userId;
     private Student currentStudent;
 
     private ObservableList<Club> allClubsData;
@@ -35,7 +34,6 @@ public class ClubsView {
     private ComboBox<String> filterCombo;
 
     public ClubsView(int userId) {
-        this.userId = userId;
         this.clubDAO = new ClubDAO();
         this.studentDAO = new StudentDAO();
         this.currentStudent = studentDAO.getStudentByUserId(userId);
@@ -77,7 +75,7 @@ public class ClubsView {
         header.setStyle(
                 "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12;");
 
-        Label title = new Label("🎭 Student Clubs");
+        Label title = new Label("Student Clubs");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
         title.setTextFill(Color.web("#0f172a"));
 
@@ -346,6 +344,7 @@ public class ClubsView {
         });
     }
 
+    @SuppressWarnings("unchecked")
     private void showClubMembers(Club club) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Members of " + club.getName());

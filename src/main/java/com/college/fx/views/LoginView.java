@@ -153,7 +153,6 @@ public class LoginView {
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
-        String role = roleComboBox.getValue();
 
         if (username.isEmpty() || password.isEmpty()) {
             messageLabel.setText("Please enter both username and password.");
@@ -199,6 +198,7 @@ public class LoginView {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private int authenticateUser(String username, String password) {
         String sql = "SELECT id FROM users WHERE username=? AND password=?";
 

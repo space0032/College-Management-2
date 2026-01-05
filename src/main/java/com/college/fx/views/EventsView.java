@@ -4,7 +4,6 @@ import com.college.dao.EventDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.Event;
 import com.college.models.Student;
-import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -26,7 +25,6 @@ public class EventsView {
     private VBox root;
     private EventDAO eventDAO;
     private StudentDAO studentDAO;
-    private int userId;
     private Student currentStudent;
 
     private ObservableList<Event> allEventsData;
@@ -36,7 +34,6 @@ public class EventsView {
     private ComboBox<String> filterCombo;
 
     public EventsView(int userId) {
-        this.userId = userId;
         this.eventDAO = new EventDAO();
         this.studentDAO = new StudentDAO();
         this.currentStudent = studentDAO.getStudentByUserId(userId);
@@ -78,7 +75,7 @@ public class EventsView {
         header.setStyle(
                 "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12;");
 
-        Label title = new Label("📅 College Events");
+        Label title = new Label("College Events");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
         title.setTextFill(Color.web("#0f172a"));
 
@@ -113,6 +110,7 @@ public class EventsView {
 
         // Table
         allEventsTable = createEventsTable(true);
+        allEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(allEventsTable, Priority.ALWAYS);
 
         content.getChildren().addAll(filters, allEventsTable);

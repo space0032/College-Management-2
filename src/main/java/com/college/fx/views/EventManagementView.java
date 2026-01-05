@@ -3,7 +3,6 @@ package com.college.fx.views;
 import com.college.dao.EventDAO;
 import com.college.models.Event;
 import com.college.models.EventRegistration;
-import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -60,7 +59,7 @@ public class EventManagementView {
         header.setStyle(
                 "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12;");
 
-        Label title = new Label("📅 Event Management");
+        Label title = new Label("Event Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
         title.setTextFill(Color.web("#0f172a"));
 
@@ -88,6 +87,7 @@ public class EventManagementView {
 
         eventsTable = new TableView<>();
         eventsTable.setItems(eventsData);
+        eventsTable.setPlaceholder(new Label("No events yet.\nClick 'Create Event' to get started."));
         VBox.setVgrow(eventsTable, Priority.ALWAYS);
 
         TableColumn<Event, String> nameCol = new TableColumn<>("Event Name");
@@ -420,6 +420,7 @@ public class EventManagementView {
         return event;
     }
 
+    @SuppressWarnings("unchecked")
     private void showRegistrationsDialog(Event event) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Event Registrations");

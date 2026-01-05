@@ -1,0 +1,163 @@
+/* College Management System - Shared Table Styles */
+
+/* Table base styling */
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+
+/* Table rows - alternating colors */
+.table-row-cell {
+    -fx-background-color: white;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #f8fafc;
+}
+
+/* Hover effect */
+.table-row-cell:hover {
+    -fx-background-color: #e0f2fe;
+    -fx-cursor: hand;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #bfdbfe;
+}
+
+/* Table headers */
+.table-view .column-header {
+    -fx-background-color: #f1f5f9;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #0f172a;
+}
+
+.table-view .column-header:hover {
+    -fx-background-color: #e2e8f0;
+}
+
+/* Table cells */
+.table-cell {
+    -fx-padding: 8px;
+    -fx-font-size: 13px;
+    -fx-text-fill: #1e293b;
+}
+
+/* Empty table placeholder */
+.table-view .placeholder .label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #64748b;
+    -fx-padding: 40px;
+}
+
+/* Buttons */
+.button {
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-opacity: 0.9;
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+.button:pressed {
+    -fx-opacity: 0.8;
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* Button color classes */
+.btn-primary {
+    -fx-background-color: #3b82f6;
+    -fx-text-fill: white;
+}
+
+.btn-success {
+    -fx-background-color: #22c55e;
+    -fx-text-fill: white;
+}
+
+.btn-warning {
+    -fx-background-color: #f59e0b;
+    -fx-text-fill: white;
+}
+
+.btn-danger {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+}
+
+.btn-secondary {
+    -fx-background-color: #8b5cf6;
+    -fx-text-fill: white;
+}
+
+.btn-disabled {
+    -fx-background-color: #94a3b8;
+    -fx-text-fill: white;
+    -fx-opacity: 0.6;
+    -fx-cursor: default;
+}
+
+/* Dialogs */
+.dialog-pane {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 2px;
+    -fx-border-radius: 12px;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-min-width: 80px;
+    -fx-padding: 8px 16px;
+}
+
+/* Forms */
+.text-field, .text-area, .combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #cbd5e1;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-padding: 8px;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused {
+    -fx-border-color: #3b82f6;
+    -fx-border-width: 2px;
+}
+
+/* Headers */
+.header-container {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-padding: 15px;
+}
+
+/* Tab pane */
+.tab-pane {
+    -fx-border-width: 0;
+}
+
+.tab {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-padding: 10px 20px;
+}
+
+.tab:selected {
+    -fx-background-color: white;
+    -fx-font-weight: bold;
+}
+
+.tab:hover {
+    -fx-background-color: #e2e8f0;
+}

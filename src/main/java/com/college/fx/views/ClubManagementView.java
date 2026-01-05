@@ -7,7 +7,6 @@ import com.college.models.Club;
 import com.college.models.ClubMembership;
 import com.college.models.Student;
 import com.college.models.Faculty;
-import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -30,13 +29,11 @@ public class ClubManagementView {
     private ClubDAO clubDAO;
     private StudentDAO studentDAO;
     private FacultyDAO facultyDAO;
-    private int userId;
 
     private ObservableList<Club> clubsData;
     private TableView<Club> clubsTable;
 
     public ClubManagementView(int userId) {
-        this.userId = userId;
         this.clubDAO = new ClubDAO();
         this.studentDAO = new StudentDAO();
         this.facultyDAO = new FacultyDAO();
@@ -64,7 +61,7 @@ public class ClubManagementView {
         header.setStyle(
                 "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12;");
 
-        Label title = new Label("🎭 Club Management");
+        Label title = new Label("Club Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
         title.setTextFill(Color.web("#0f172a"));
 
@@ -90,6 +87,7 @@ public class ClubManagementView {
 
         clubsTable = new TableView<>();
         clubsTable.setItems(clubsData);
+        clubsTable.setPlaceholder(new Label("No clubs yet.\nClick 'Create Club' to get started."));
         VBox.setVgrow(clubsTable, Priority.ALWAYS);
 
         TableColumn<Club, String> nameCol = new TableColumn<>("Club Name");
@@ -343,6 +341,7 @@ public class ClubManagementView {
         return club;
     }
 
+    @SuppressWarnings("unchecked")
     private void showMembersDialog(Club club) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Club Members");
@@ -396,6 +395,7 @@ public class ClubManagementView {
         dialog.showAndWait();
     }
 
+    @SuppressWarnings("unchecked")
     private void showPendingApprovalsDialog(Club club) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Pending Join Requests");
