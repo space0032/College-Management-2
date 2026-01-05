@@ -20,11 +20,37 @@ public class UserDAO {
     }
 
     public int addUser(Connection conn, String username, String password, String role) throws SQLException {
+        // Legacy support - try to find role ID if possible, otherwise just insert
+        // string
+        // Ideally we should look up role ID here, but let's add the overloaded method
+        // instead
         String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, PasswordUtils.hashPasswordLegacy(password)); // Use legacy for compatibility
+            pstmt.setString(2, PasswordUtils.hashPasswordLegacy(password));
             pstmt.setString(3, role);
+
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    public int addUser(Connection conn, String username, String password, String roleName, int roleId)
+            throws SQLException {
+        // Insert with both role string (legacy) and role_id (new)
+        String sql = "INSERT INTO users (username, password, role, role_id) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, PasswordUtils.hashPasswordLegacy(password));
+            pstmt.setString(3, roleName);
+            pstmt.setInt(4, roleId);
 
             int rows = pstmt.executeUpdate();
             if (rows > 0) {
@@ -89,8 +115,8 @@ public class UserDAO {
         // joined via role table
         String sql = "SELECT u.*, r.name as role_name, r.code as role_code FROM users u " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
-                "WHERE (r.code NOT IN ('STUDENT', 'FACULTY') OR r.code IS NULL) " +
-                "AND (u.role NOT IN ('STUDENT', 'FACULTY')) " + // Legacy check
+                "WHERE (r.code NOT IN ('STUDENT', 'FACULTY', 'WARDEN') OR r.code IS NULL) " +
+                "AND (u.role NOT IN ('STUDENT', 'FACULTY', 'WARDEN')) " + // Legacy check
                 "ORDER BY u.username";
 
         try (Connection conn = DatabaseConnection.getConnection();

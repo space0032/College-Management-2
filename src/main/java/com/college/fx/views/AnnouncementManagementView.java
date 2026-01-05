@@ -108,7 +108,11 @@ public class AnnouncementManagementView {
         activeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isActive() ? "Yes" : "No"));
         activeCol.setPrefWidth(80);
 
-        tableView.getColumns().addAll(priorityCol, titleCol, contentCol, targetCol, activeCol);
+        TableColumn<Announcement, String> authorCol = new TableColumn<>("Author");
+        authorCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCreatedByName()));
+        authorCol.setPrefWidth(120);
+
+        tableView.getColumns().addAll(priorityCol, titleCol, contentCol, targetCol, authorCol, activeCol);
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -161,6 +165,13 @@ public class AnnouncementManagementView {
             showAlert("Error", "Please select an announcement to edit.");
             return;
         }
+
+        // Only author or admin can edit
+        if (selected.getCreatedBy() != userId && !com.college.utils.SessionManager.getInstance().isAdmin()) {
+            showAlert("Permission Denied", "You can only edit announcements created by you.");
+            return;
+        }
+
         showAnnouncementDialog(selected);
     }
 
@@ -273,6 +284,12 @@ public class AnnouncementManagementView {
         Announcement selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Error", "Please select an announcement to delete.");
+            return;
+        }
+
+        // Only author or admin can delete
+        if (selected.getCreatedBy() != userId && !com.college.utils.SessionManager.getInstance().isAdmin()) {
+            showAlert("Permission Denied", "You can only delete announcements created by you.");
             return;
         }
 

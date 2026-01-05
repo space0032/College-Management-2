@@ -119,6 +119,30 @@ public class CourseDAO {
         return course;
     }
 
+    public List<Course> getCoreCourses(String department, int semester) {
+        List<Course> courses = new ArrayList<>();
+        String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
+                "LEFT JOIN departments d ON c.department_id = d.id " +
+                "LEFT JOIN faculty f ON c.faculty_id = f.id " +
+                "WHERE (c.department = ? OR d.name = ?) AND c.semester = ? AND c.course_type = 'CORE'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, department);
+            pstmt.setString(2, department);
+            pstmt.setInt(3, semester);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                courses.add(extractCourseFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return courses;
+    }
+
     public boolean updateCourse(Course course) {
         String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=?, course_type=?, capacity=?, faculty_id=? WHERE id=?";
 

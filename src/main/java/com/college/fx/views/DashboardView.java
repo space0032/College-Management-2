@@ -195,15 +195,15 @@ public class DashboardView {
             addMenuItem(sidebar, "Student Activities", "student_activities", false);
         }
 
-        // Gate Pass
+        // Gate Pass (Wardens have their own section)
         if ((session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
-                && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM") && !role.equals("WARDEN")) {
             addMenuItem(sidebar, "Gate Pass", "gatepass", false);
         }
 
-        // Hostel
+        // Hostel (Wardens have their own section)
         if ((session.hasPermission("MANAGE_HOSTEL") || session.isStudent())
-                && !session.hasPermission("MANAGE_SYSTEM")) {
+                && !session.hasPermission("MANAGE_SYSTEM") && !role.equals("WARDEN")) {
             addMenuItem(sidebar, "Hostel", "hostel", false);
         }
 

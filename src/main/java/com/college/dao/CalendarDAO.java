@@ -31,21 +31,35 @@ public class CalendarDAO {
     public List<CalendarEvent> getEventsByMonth(int year, int month) {
         List<CalendarEvent> events = new ArrayList<>();
         // Fetch events for the specified month/year
-        String sql = "SELECT * FROM calendar_events WHERE MONTH(event_date) = ? AND YEAR(event_date) = ? ORDER BY event_date";
+        String sql = "SELECT id, title, event_date, event_type, description FROM calendar_events " +
+                "WHERE MONTH(event_date) = ? AND YEAR(event_date) = ? " +
+                "UNION ALL " +
+                "SELECT id, name as title, start_date as event_date, 'EVENT' as event_type, description FROM events " +
+                "WHERE MONTH(start_date) = ? AND YEAR(start_date) = ? " +
+                "ORDER BY event_date";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, month);
             pstmt.setInt(2, year);
+            pstmt.setInt(3, month);
+            pstmt.setInt(4, year);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 CalendarEvent event = new CalendarEvent();
-                event.setId(rs.getInt("id"));
+                event.setId(rs.getInt("id")); // Note: ID collision possible but harmless for display
                 event.setTitle(rs.getString("title"));
                 event.setEventDate(rs.getDate("event_date").toLocalDate());
-                event.setEventType(EventType.valueOf(rs.getString("event_type")));
+
+                String typeStr = rs.getString("event_type");
+                try {
+                    event.setEventType(EventType.valueOf(typeStr));
+                } catch (Exception e) {
+                    event.setEventType(EventType.EVENT); // Fallback
+                }
+
                 event.setDescription(rs.getString("description"));
                 events.add(event);
             }
