@@ -548,7 +548,7 @@ public class InstituteManagementView {
 
         // Group by category
         Map<String, List<Permission>> grouped = allPerms.stream()
-                .collect(Collectors.groupingBy(Permission::getCategory));
+                .collect(Collectors.groupingBy(p -> p.getCategory() == null ? "General" : p.getCategory()));
 
         grouped.forEach((category, perms) -> {
             Label catLabel = new Label(category);
