@@ -46,7 +46,7 @@ public class EventDAO {
                 "FROM events e " +
                 "LEFT JOIN users u ON e.created_by = u.id " +
                 "LEFT JOIN event_registrations er ON e.id = er.event_id " +
-                "WHERE e.status = 'UPCOMING' AND e.start_time > NOW() " +
+                "WHERE e.status IN ('UPCOMING', 'ONGOING') " +
                 "GROUP BY e.id " +
                 "ORDER BY e.start_time ASC";
 

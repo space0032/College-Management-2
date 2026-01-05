@@ -143,19 +143,46 @@ public class ClubDAO {
 
     // Membership methods
     public boolean joinClub(int clubId, int studentId) {
+        // Create PENDING membership request
+        String sql = "INSERT INTO club_memberships (club_id, student_id, role, status) VALUES (?, ?, 'MEMBER', 'PENDING')";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, clubId);
+            pstmt.setInt(2, studentId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error creating membership request: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean approveMembership(int membershipId) {
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Add membership
-            String sql = "INSERT INTO club_memberships (club_id, student_id, role) VALUES (?, ?, 'MEMBER')";
+            // Get club ID before updating
+            String getClubSql = "SELECT club_id FROM club_memberships WHERE id = ?";
+            PreparedStatement getStmt = conn.prepareStatement(getClubSql);
+            getStmt.setInt(1, membershipId);
+            ResultSet rs = getStmt.executeQuery();
+
+            if (!rs.next()) {
+                conn.rollback();
+                return false;
+            }
+            int clubId = rs.getInt("club_id");
+
+            // Update membership status
+            String sql = "UPDATE club_memberships SET status = 'APPROVED' WHERE id = ?";
             PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, clubId);
-            pstmt.setInt(2, studentId);
+            pstmt.setInt(1, membershipId);
             pstmt.executeUpdate();
 
-            // Update member count
+            // Increment member count
             String updateSql = "UPDATE clubs SET member_count = member_count + 1 WHERE id = ?";
             PreparedStatement updatePstmt = conn.prepareStatement(updateSql);
             updatePstmt.setInt(1, clubId);
@@ -171,7 +198,7 @@ public class ClubDAO {
                     Logger.error("Rollback error: " + ex.getMessage());
                 }
             }
-            Logger.error("Error joining club: " + e.getMessage());
+            Logger.error("Error approving membership: " + e.getMessage());
             return false;
         } finally {
             if (conn != null) {
@@ -183,6 +210,52 @@ public class ClubDAO {
                 }
             }
         }
+    }
+
+    public boolean rejectMembership(int membershipId) {
+        String sql = "UPDATE club_memberships SET status = 'REJECTED' WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, membershipId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error rejecting membership: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public List<ClubMembership> getPendingMemberships(int clubId) {
+        List<ClubMembership> pending = new ArrayList<>();
+        String sql = "SELECT cm.*, s.name as student_name, c.name as club_name " +
+                "FROM club_memberships cm " +
+                "JOIN students s ON cm.student_id = s.id " +
+                "JOIN clubs c ON cm.club_id = c.id " +
+                "WHERE cm.club_id = ? AND cm.status = 'PENDING' " +
+                "ORDER BY cm.joined_at";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, clubId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                ClubMembership membership = new ClubMembership();
+                membership.setId(rs.getInt("id"));
+                membership.setClubId(rs.getInt("club_id"));
+                membership.setStudentId(rs.getInt("student_id"));
+                membership.setRole(rs.getString("role"));
+                membership.setStatus(rs.getString("status"));
+                membership.setJoinedAt(rs.getTimestamp("joined_at"));
+                membership.setStudentName(rs.getString("student_name"));
+                membership.setClubName(rs.getString("club_name"));
+                pending.add(membership);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching pending memberships: " + e.getMessage());
+        }
+        return pending;
     }
 
     public boolean leaveClub(int clubId, int studentId) {
@@ -229,7 +302,7 @@ public class ClubDAO {
     }
 
     public boolean isStudentMember(int clubId, int studentId) {
-        String sql = "SELECT 1 FROM club_memberships WHERE club_id = ? AND student_id = ?";
+        String sql = "SELECT 1 FROM club_memberships WHERE club_id = ? AND student_id = ? AND status IN ('APPROVED', 'PENDING')";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -249,7 +322,7 @@ public class ClubDAO {
                 "FROM club_memberships cm " +
                 "JOIN students s ON cm.student_id = s.id " +
                 "JOIN clubs c ON cm.club_id = c.id " +
-                "WHERE cm.club_id = ? " +
+                "WHERE cm.club_id = ? AND cm.status = 'APPROVED' " +
                 "ORDER BY cm.role, cm.joined_at";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -263,6 +336,7 @@ public class ClubDAO {
                 membership.setClubId(rs.getInt("club_id"));
                 membership.setStudentId(rs.getInt("student_id"));
                 membership.setRole(rs.getString("role"));
+                membership.setStatus(rs.getString("status"));
                 membership.setJoinedAt(rs.getTimestamp("joined_at"));
                 membership.setStudentName(rs.getString("student_name"));
                 membership.setClubName(rs.getString("club_name"));
@@ -283,7 +357,7 @@ public class ClubDAO {
                 "JOIN club_memberships cm ON c.id = cm.club_id " +
                 "LEFT JOIN students s ON c.president_student_id = s.id " +
                 "LEFT JOIN faculty f ON c.faculty_coordinator_id = f.id " +
-                "WHERE cm.student_id = ? " +
+                "WHERE cm.student_id = ? AND cm.status = 'APPROVED' " +
                 "ORDER BY c.name";
 
         try (Connection conn = DatabaseConnection.getConnection();

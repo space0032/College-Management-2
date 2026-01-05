@@ -189,6 +189,26 @@ public class DashboardView {
         // Academic Calendar (Visible to all)
         addMenuItem(sidebar, "Academic Calendar", "calendar", false);
 
+        // Events
+        if (session.hasPermission("VIEW_EVENTS")) {
+            addMenuItem(sidebar, "Events", "events", false);
+        }
+
+        // Event Management (Admin/Faculty)
+        if (session.hasPermission("MANAGE_EVENTS")) {
+            addMenuItem(sidebar, "Event Management", "event_management", false);
+        }
+
+        // Clubs
+        if (session.hasPermission("JOIN_CLUBS")) {
+            addMenuItem(sidebar, "Clubs", "clubs", false);
+        }
+
+        // Club Management (Admin/Faculty)
+        if (session.hasPermission("MANAGE_CLUBS")) {
+            addMenuItem(sidebar, "Club Management", "club_management", false);
+        }
+
         // Gate Pass
         if ((session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
                 && !session.hasPermission("MANAGE_SYSTEM")) {
@@ -397,6 +417,18 @@ public class DashboardView {
             case "reports":
                 showReports();
                 break;
+            case "events":
+                showEvents();
+                break;
+            case "event_management":
+                showEventManagement();
+                break;
+            case "clubs":
+                showClubs();
+                break;
+            case "club_management":
+                showClubManagement();
+                break;
             default:
                 showHome();
         }
@@ -539,6 +571,26 @@ public class DashboardView {
         com.college.MainFX.getPrimaryStage().setWidth(1000);
         com.college.MainFX.getPrimaryStage().setHeight(650);
         com.college.MainFX.getPrimaryStage().centerOnScreen();
+    }
+
+    private void showEvents() {
+        EventsView view = new EventsView(userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showEventManagement() {
+        EventManagementView view = new EventManagementView(userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showClubs() {
+        ClubsView view = new ClubsView(userId);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showClubManagement() {
+        ClubManagementView view = new ClubManagementView(userId);
+        contentArea.getChildren().add(view.getView());
     }
 
     public BorderPane getView() {

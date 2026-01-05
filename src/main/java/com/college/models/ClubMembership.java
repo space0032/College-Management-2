@@ -10,6 +10,7 @@ public class ClubMembership {
     private int clubId;
     private int studentId;
     private String role; // PRESIDENT, VICE_PRESIDENT, SECRETARY, TREASURER, MEMBER
+    private String status; // PENDING, APPROVED, REJECTED
     private Date joinedAt;
 
     // Display fields
@@ -49,6 +50,14 @@ public class ClubMembership {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Date getJoinedAt() {
