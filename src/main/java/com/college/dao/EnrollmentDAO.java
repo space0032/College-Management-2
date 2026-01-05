@@ -18,7 +18,6 @@ public class EnrollmentDAO {
     private final RoleDAO roleDAO = new RoleDAO();
     private final EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
     private final com.college.dao.CourseDAO courseDAO = new com.college.dao.CourseDAO();
-    private final com.college.dao.CourseRegistrationDAO registrationDAO = new com.college.dao.CourseRegistrationDAO();
 
     /**
      * Enrolls a new student with transaction safety.

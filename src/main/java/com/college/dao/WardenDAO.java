@@ -32,11 +32,19 @@ public class WardenDAO {
                 // Generate unique username: WARDEN + 4 random digits
                 String username = "WARDEN" + (int) (Math.random() * 9000 + 1000);
                 UserDAO userDAO = new UserDAO();
+                RoleDAO roleDAO = new RoleDAO();
+
+                com.college.models.Role wardenRole = roleDAO.getRoleByCode("WARDEN");
+                int roleId = (wardenRole != null) ? wardenRole.getId() : 0;
 
                 // Ensure uniqueness (simple retry logic could be added here, but purely random
                 // is usually fine for low volume)
                 // Default password: password123
-                userId = userDAO.addUser(conn, username, "password123", "WARDEN");
+                if (roleId > 0) {
+                    userId = userDAO.addUser(conn, username, "password123", "WARDEN", roleId);
+                } else {
+                    userId = userDAO.addUser(conn, username, "password123", "WARDEN");
+                }
 
                 if (userId <= 0) {
                     conn.rollback();

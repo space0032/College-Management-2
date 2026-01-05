@@ -407,15 +407,24 @@ public class StudentManagementView {
                     s.setEnrollmentDate(
                             Date.from(enrollDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
 
-                    com.college.dao.EnrollmentDAO enrollmentDAO = new com.college.dao.EnrollmentDAO();
-                    Student enrolledStudent = enrollmentDAO.enrollStudent(s, password);
+                    com.college.dao.EnrollmentDAO enrollmentDAO = null;
+                    Student enrolledStudent = null;
+                    try {
+                        enrollmentDAO = new com.college.dao.EnrollmentDAO();
+                        enrolledStudent = enrollmentDAO.enrollStudent(s, password);
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        showAlert("Error", "Failed to initialize EnrollmentDAO: " + t.getMessage());
+                        return null;
+                    }
 
                     if (enrolledStudent != null) {
+                        Student finalStudent = enrolledStudent;
                         // Show success
                         Platform.runLater(() -> {
                             showAlert("Success", "Student enrolled successfully!\n\n" +
-                                    "Enrollment Number: " + enrolledStudent.getUsername() + "\n" +
-                                    "Username: " + enrolledStudent.getUsername() + "\n" +
+                                    "Enrollment Number: " + finalStudent.getUsername() + "\n" +
+                                    "Username: " + finalStudent.getUsername() + "\n" +
                                     "Password: " + password);
                         });
                         return enrolledStudent;

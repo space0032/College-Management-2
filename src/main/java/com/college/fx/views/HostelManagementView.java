@@ -285,7 +285,10 @@ public class HostelManagementView {
 
         HBox toolbar = new HBox(15);
         Button addHostelBtn = createButton("Add Hostel", "#22c55e");
-        addHostelBtn.setOnAction(e -> showAddHostelDialog());
+        addHostelBtn.setOnAction(e -> showHostelDialog(null));
+
+        Button editHostelBtn = createButton("Edit Hostel", "#3b82f6");
+        editHostelBtn.setOnAction(e -> editHostel());
 
         Button deleteHostelBtn = createButton("Delete Hostel", "#ef4444");
         deleteHostelBtn.setOnAction(e -> deleteHostel());
@@ -293,7 +296,7 @@ public class HostelManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadData());
 
-        toolbar.getChildren().addAll(addHostelBtn, deleteHostelBtn, refreshBtn);
+        toolbar.getChildren().addAll(addHostelBtn, editHostelBtn, deleteHostelBtn, refreshBtn);
 
         hostelTable = new TableView<>();
         hostelTable.setItems(hostelData);
@@ -538,10 +541,19 @@ public class HostelManagementView {
         }
     }
 
-    private void showAddHostelDialog() {
+    private void editHostel() {
+        Hostel selected = hostelTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Error", "Please select a hostel to edit.");
+            return;
+        }
+        showHostelDialog(selected);
+    }
+
+    private void showHostelDialog(Hostel hostel) {
         Dialog<Hostel> dialog = new Dialog<>();
-        dialog.setTitle("Add Hostel");
-        dialog.setHeaderText("Create New Hostel");
+        dialog.setTitle(hostel == null ? "Add Hostel" : "Edit Hostel");
+        dialog.setHeaderText(hostel == null ? "Create New Hostel" : "Edit Hostel Details");
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
@@ -550,31 +562,73 @@ public class HostelManagementView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20));
 
-        TextField nameField = new TextField();
+        TextField nameField = new TextField(hostel != null ? hostel.getName() : "");
         nameField.setPromptText("Hostel Name");
+
         ComboBox<String> typeCombo = new ComboBox<>();
         typeCombo.getItems().addAll("BOYS", "GIRLS");
-        typeCombo.setValue("BOYS");
-        TextField wardenField = new TextField();
-        wardenField.setPromptText("Warden Name");
+        typeCombo.setValue(hostel != null ? hostel.getType() : "BOYS");
+
+        ComboBox<Warden> wardenCombo = new ComboBox<>();
+        List<Warden> allWardens = wardenDAO.getAllWardens();
+        wardenCombo.getItems().addAll(allWardens);
+        wardenCombo.setPromptText("Select Warden");
+
+        // Define how to display Warden in ComboBox
+        javafx.util.StringConverter<Warden> converter = new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Warden w) {
+                return w != null ? w.getName() : "";
+            }
+
+            @Override
+            public Warden fromString(String string) {
+                return null;
+            }
+        };
+        wardenCombo.setConverter(converter);
+
+        // Pre-select warden if editing
+        if (hostel != null && hostel.getWardenName() != null) {
+            for (Warden w : allWardens) {
+                if (w.getName().equals(hostel.getWardenName())) {
+                    wardenCombo.setValue(w);
+                    break;
+                }
+            }
+        }
 
         grid.add(new Label("Name:"), 0, 0);
         grid.add(nameField, 1, 0);
         grid.add(new Label("Type:"), 0, 1);
         grid.add(typeCombo, 1, 1);
         grid.add(new Label("Warden:"), 0, 2);
-        grid.add(wardenField, 1, 2);
+        grid.add(wardenCombo, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
             if (btn == saveBtn && !nameField.getText().trim().isEmpty()) {
-                Hostel h = new Hostel();
+                Hostel h = hostel != null ? hostel : new Hostel();
                 h.setName(nameField.getText());
                 h.setType(typeCombo.getValue());
-                h.setWardenName(wardenField.getText());
-                if (hostelDAO.addHostel(h)) {
-                    return h;
+
+                Warden selectedWarden = wardenCombo.getValue();
+                if (selectedWarden != null) {
+                    h.setWardenName(selectedWarden.getName());
+                    h.setWardenContact(selectedWarden.getPhone());
+                } else if (hostel == null) {
+                    // If adding and no warden selected, clear fields
+                    h.setWardenName("");
+                    h.setWardenContact("");
+                }
+
+                if (hostel == null) {
+                    if (hostelDAO.addHostel(h))
+                        return h;
+                } else {
+                    if (hostelDAO.updateHostel(h))
+                        return h;
                 }
             }
             return null;
@@ -582,7 +636,7 @@ public class HostelManagementView {
 
         dialog.showAndWait().ifPresent(h -> {
             loadData();
-            showAlert("Success", "Hostel added successfully!");
+            showAlert("Success", "Hostel " + (hostel == null ? "added" : "updated") + " successfully!");
         });
     }
 

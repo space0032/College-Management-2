@@ -310,6 +310,30 @@ public class HostelDAO {
     }
 
     /**
+     * Update hostel
+     */
+    public boolean updateHostel(Hostel hostel) {
+        String sql = "UPDATE hostels SET name=?, type=?, warden_name=?, warden_contact=?, total_rooms=?, total_capacity=?, address=? WHERE id=?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, hostel.getName());
+            pstmt.setString(2, hostel.getType());
+            pstmt.setString(3, hostel.getWardenName());
+            pstmt.setString(4, hostel.getWardenContact());
+            pstmt.setInt(5, hostel.getTotalRooms());
+            pstmt.setInt(6, hostel.getTotalCapacity());
+            pstmt.setString(7, hostel.getAddress());
+            pstmt.setInt(8, hostel.getId());
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Failed to update hostel: " + hostel.getId(), e);
+            return false;
+        }
+    }
+
+    /**
      * Delete hostel
      */
     public boolean deleteHostel(int id) {

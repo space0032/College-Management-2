@@ -145,20 +145,6 @@ public class RoleDAO {
         return false;
     }
 
-    public boolean deleteRole(int roleId) {
-        String sql = "DELETE FROM roles WHERE id = ? AND is_system_role = FALSE";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, roleId);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-        }
-        return false;
-    }
-
     public boolean assignPermissionToRole(int roleId, int permissionId) {
         String sql = "INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)";
 
@@ -230,6 +216,38 @@ public class RoleDAO {
                 }
             } catch (Exception ex) {
             }
+        }
+    }
+
+    public boolean deleteRole(int roleId) {
+        // 1. Check if it's a protected system role
+        String checkSql = "SELECT code FROM roles WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(checkSql)) {
+            pstmt.setInt(1, roleId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String code = rs.getString("code");
+                if ("ADMIN".equalsIgnoreCase(code) || "WARDEN".equalsIgnoreCase(code)
+                        || "FINANCE".equalsIgnoreCase(code)) {
+                    Logger.error("Attempt to delete system role prevented: " + code);
+                    return false; // Prevent deletion
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to check role type", e);
+            return false;
+        }
+
+        // 2. Proceed with deletion if safe
+        String sql = "DELETE FROM roles WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, roleId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Failed to delete role", e);
+            return false;
         }
     }
 
