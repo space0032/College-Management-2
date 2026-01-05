@@ -84,13 +84,11 @@ public class UserDAO {
 
     public List<User> getSpecialUsers() {
         List<User> users = new ArrayList<>();
-        // Exclude users with roles STUDENT or FACULTY
-        // Assuming roles are stored as 'STUDENT' and 'FACULTY' in the 'role' column or
-        // joined via role table
+        // Only show: ADMIN, FINANCE (Finance Manager), EXAM_COORD (Exam Coordinator)
+        // Exclude: STUDENT, FACULTY, HOD, WARDEN, LIBRARIAN, etc.
         String sql = "SELECT u.*, r.name as role_name, r.code as role_code FROM users u " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
-                "WHERE (r.code NOT IN ('STUDENT', 'FACULTY') OR r.code IS NULL) " +
-                "AND (u.role NOT IN ('STUDENT', 'FACULTY')) " + // Legacy check
+                "WHERE r.code IN ('ADMIN', 'FINANCE', 'EXAM_COORD') " +
                 "ORDER BY u.username";
 
         try (Connection conn = DatabaseConnection.getConnection();
