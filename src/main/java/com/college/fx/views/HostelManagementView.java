@@ -9,6 +9,8 @@ import com.college.models.Room;
 import com.college.models.Warden;
 import com.college.models.Student;
 
+import com.college.dao.HostelAttendanceDAO;
+import com.college.models.HostelAttendance;
 import com.college.utils.SearchableStudentComboBox;
 import com.college.utils.SessionManager;
 
@@ -45,6 +47,7 @@ public class HostelManagementView {
     private ObservableList<Hostel> hostelData;
     private ObservableList<Room> roomData;
     private ObservableList<Warden> wardenData;
+    private HostelAttendanceDAO attendanceDAO;
 
     // Components
     private TableView<HostelAllocation> allocationTable;
@@ -57,6 +60,7 @@ public class HostelManagementView {
         this.hostelDAO = new HostelDAO();
         this.wardenDAO = new WardenDAO();
         this.studentDAO = new StudentDAO();
+        this.attendanceDAO = new HostelAttendanceDAO();
         this.allocationData = FXCollections.observableArrayList();
         this.hostelData = FXCollections.observableArrayList();
         this.roomData = FXCollections.observableArrayList();
@@ -925,27 +929,55 @@ public class HostelManagementView {
         VBox tab = new VBox(15);
         tab.setPadding(new Insets(15));
 
+        HBox header = new HBox(15);
+        header.setAlignment(Pos.CENTER_LEFT);
+
         Label title = new Label("Hostel Student Attendance");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button markBtn = createButton("Mark Attendance", "#22c55e");
+        markBtn.setOnAction(e -> showMarkHostelAttendanceDialog());
+
+        Button bulkBtn = createButton("Bulk Attendance", "#3b82f6");
+        bulkBtn.setOnAction(e -> showBulkHostelAttendanceDialog());
+
+        header.getChildren().addAll(title, spacer, markBtn, bulkBtn);
+
         // Get warden's hostel
         Warden warden = wardenDAO.getWardenByUserId(userId);
-        if (warden == null || warden.getHostelId() <= 0) {
-            Label noHostel = new Label("No hostel assigned to your account.");
-            noHostel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ef4444;");
-            tab.getChildren().addAll(title, noHostel);
-            return tab;
+        if (warden == null && !role.equals("ADMIN")) { // Admin check if managing all
+            if (role.equals("ADMIN")) {
+                // Admin logic if needed, simplify for now
+            } else {
+                Label noHostel = new Label("No hostel assigned to your account.");
+                noHostel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ef4444;");
+                tab.getChildren().addAll(title, noHostel);
+                return tab;
+            }
         }
 
-        // Get students in this hostel
+        int hostelId = (warden != null) ? warden.getHostelId() : 0;
+
+        // Show today's attendance summary or list
+        // Simple table of students in this hostel
+
+        // Use existing student fetch logic
         List<HostelAllocation> allAllocs = hostelDAO.getAllActiveAllocations();
         List<Room> allRooms = hostelDAO.getAllRooms();
         List<HostelAllocation> hostelAllocs = new ArrayList<>();
+
         for (HostelAllocation alloc : allAllocs) {
             for (Room r : allRooms) {
-                if (r.getId() == alloc.getRoomId() && r.getHostelId() == warden.getHostelId()) {
-                    hostelAllocs.add(alloc);
-                    break;
+                // If ADMIN, maybe show all? stick to warden constraint for now or show all if
+                // admin
+                if (r.getId() == alloc.getRoomId()) {
+                    if (hostelId == 0 || r.getHostelId() == hostelId) {
+                        hostelAllocs.add(alloc);
+                        break;
+                    }
                 }
             }
         }
@@ -966,21 +998,17 @@ public class HostelManagementView {
         nameCol.setPrefWidth(200);
 
         TableColumn<Student, String> enrollCol = new TableColumn<>("Enrollment ID");
+        // FIXED: Now uses username which is correctly populated by fixed DAO
         enrollCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getUsername()));
         enrollCol.setPrefWidth(150);
-
-        TableColumn<Student, String> deptCol = new TableColumn<>("Department");
-        deptCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDepartment()));
-        deptCol.setPrefWidth(150);
 
         TableColumn<Student, String> roomCol = new TableColumn<>("Room");
         roomCol.setCellValueFactory(data -> {
             for (HostelAllocation a : hostelAllocs) {
                 if (a.getStudentId() == data.getValue().getId()) {
                     for (Room r : allRooms) {
-                        if (r.getId() == a.getRoomId()) {
+                        if (r.getId() == a.getRoomId())
                             return new SimpleStringProperty(r.getRoomNumber());
-                        }
                     }
                 }
             }
@@ -988,15 +1016,363 @@ public class HostelManagementView {
         });
         roomCol.setPrefWidth(100);
 
-        studentTable.getColumns().addAll(nameCol, enrollCol, deptCol, roomCol);
+        studentTable.getColumns().addAll(nameCol, enrollCol, roomCol);
         VBox.setVgrow(studentTable, Priority.ALWAYS);
 
-        Label info = new Label(
-                "Students residing in your hostel. For detailed attendance reports, use the Reports module.");
-        info.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-padding: 10 0 0 0;");
-
-        tab.getChildren().addAll(title, studentTable, info);
+        tab.getChildren().addAll(header, studentTable);
         return tab;
+    }
+
+    private void showMarkHostelAttendanceDialog() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Mark Hostel Attendance");
+        dialog.setHeaderText("Mark Individual Attendance");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(120);
+        grid.getColumnConstraints().add(col1);
+
+        // Hostel Students with Active Allocations only
+        Warden warden = wardenDAO.getWardenByUserId(userId);
+        List<Student> students = new ArrayList<>();
+        int currentHostelId = 0;
+
+        List<HostelAllocation> allActiveAllocations = hostelDAO.getAllActiveAllocations();
+
+        if (warden != null && warden.getHostelId() > 0) {
+            currentHostelId = warden.getHostelId();
+            // Filter allocations for this warden's hostel
+            for (HostelAllocation alloc : allActiveAllocations) {
+                // Check if allocation belongs to warden's hostel
+                // Since allocation object now contains hostelName but maybe not ID directly if
+                // not joined efficiently
+                // But wait, getAllActiveAllocations() joins rooms and hostels.
+                // Let's check room -> hostel ID mapping.
+                // Re-fetching rooms is safer or relies on allocation data if extended.
+                // The current DAO method returns: ha.*, s.name, r.room_number, h.name
+                // It does NOT return hostel_id explicit in the JOIN select unless ha.room_id ->
+                // room -> hostel_id
+                // But typically we can filter by room.
+
+                // Efficient approach: fetch all rooms to map room_id -> hostel_id
+                // Or relies on a helper.
+
+                // Let's use the existing comprehensive list logic from previous method which
+                // was correct
+                // BUT simplify it by using the pre-fetched active allocations.
+
+                // Optimization: Get room map
+                List<Room> allRooms = hostelDAO.getAllRooms();
+                for (Room r : allRooms) {
+                    if (r.getId() == alloc.getRoomId() && r.getHostelId() == currentHostelId) {
+                        Student s = studentDAO.getStudentById(alloc.getStudentId());
+                        if (s != null)
+                            students.add(s);
+                        break;
+                    }
+                }
+            }
+        } else {
+            // Admin / View All: Show ALL students with active allocations
+            for (HostelAllocation alloc : allActiveAllocations) {
+                Student s = studentDAO.getStudentById(alloc.getStudentId());
+                if (s != null) {
+                    // Check if already added to avoid duplicates if multiple allocations exist
+                    // (shouldn't for active)
+                    boolean exists = false;
+                    for (Student existing : students) {
+                        if (existing.getId() == s.getId()) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists)
+                        students.add(s);
+                }
+            }
+        }
+
+        SearchableStudentComboBox studentSelector = new SearchableStudentComboBox(students);
+
+        DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
+        ComboBox<String> statusCombo = new ComboBox<>();
+        statusCombo.getItems().addAll("PRESENT", "ABSENT", "LEAVE", "LATE");
+        statusCombo.setValue("PRESENT");
+
+        TextArea remarks = new TextArea();
+        remarks.setPromptText("Remarks (optional)");
+        remarks.setPrefRowCount(2);
+
+        grid.add(new Label("Student:"), 0, 0);
+        grid.add(studentSelector, 1, 0);
+        grid.add(new Label("Date:"), 0, 1);
+        grid.add(datePicker, 1, 1);
+        grid.add(new Label("Status:"), 0, 2);
+        grid.add(statusCombo, 1, 2);
+        grid.add(new Label("Remarks:"), 0, 3);
+        grid.add(remarks, 1, 3);
+
+        Button saveBtn = createButton("Mark", "#22c55e"); // avoid clash with dialog button
+        final int finalHostelId = currentHostelId;
+
+        // Listener to check existing attendance
+        Runnable checkExisting = () -> {
+            Student sel = studentSelector.getSelectedStudent();
+            java.time.LocalDate d = datePicker.getValue();
+            if (sel != null && d != null) {
+                HostelAttendance existing = attendanceDAO.getAttendanceByStudentAndDate(sel.getId(),
+                        Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                if (existing != null) {
+                    statusCombo.setValue(existing.getStatus());
+                    remarks.setText(existing.getRemarks());
+                    // Restrict modification if policy dictates "once per day"
+                    // Assuming strict "once" means creation not allowed, or show warning.
+                    // User said "only able to mark one student attendance once per day".
+                    // This could mean "prevent duplicate inserts" or "prevent changing it".
+                    // Let's use a warning label and maybe change button text to "Update" if we
+                    // allow correction, or Disable.
+                    // A strict interpretation "once" implies disabling.
+                    saveBtn.setText("Update");
+                    saveBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white;");
+                    if (!grid.getChildren().contains(saveBtn)) { // Ensure button is there
+                        // It is there.
+                    }
+                    // Add warning
+                    // We can't easily add a new row dynamically without managing indices, but we
+                    // can change the button or tooltip.
+                    saveBtn.setTooltip(new Tooltip("Attendance already marked. Click to update."));
+                } else {
+                    statusCombo.setValue("PRESENT");
+                    remarks.clear();
+                    saveBtn.setText("Mark");
+                    saveBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;");
+                    saveBtn.setTooltip(null);
+                }
+            }
+        };
+
+        datePicker.valueProperty().addListener((obs, old, nv) -> checkExisting.run());
+        // We need to hook into student selection. The SearchableStudentComboBox might
+        // not expose a property easily if not designed well.
+        // Assuming it has a selection model or we can add a listener to value property
+        // if it's a ComboBox subclass.
+        // If not, we might need to modify it or add a listener to its selection.
+        // Let's look at SearchableStudentComboBox... it usually extends ComboBox or has
+        // getSelectionModel().
+        studentSelector.selectedItemProperty().addListener((obs, old, nv) -> checkExisting.run());
+
+        saveBtn.setOnAction(e -> {
+            Student s = studentSelector.getSelectedStudent();
+            if (s == null || datePicker.getValue() == null) {
+                showAlert("Error", "Select student and date");
+                return;
+            }
+
+            // Need hostel ID
+            int hId = finalHostelId;
+            if (hId == 0) {
+                // Fetch student's hostel allocation
+                List<HostelAllocation> allocs = hostelDAO.getAllocationsByStudent(s.getId());
+                for (HostelAllocation ha : allocs) {
+                    if ("ACTIVE".equals(ha.getStatus())) {
+                        // Find hostel ID from allocation/room...
+                        List<Room> rooms = hostelDAO.getAllRooms();
+                        for (Room r : rooms) {
+                            if (r.getId() == ha.getRoomId()) {
+                                hId = r.getHostelId();
+                                break;
+                            }
+                        }
+                        if (hId > 0)
+                            break;
+                    }
+                }
+                if (hId == 0) {
+                    showAlert("Error", "Could not determine student's hostel. Warden permission required.");
+                    return;
+                }
+            }
+
+            // Re-check for existing to prevent "once per day" violation if we interpret it
+            // as strict Create-Only
+            // IF strict:
+            // HostelAttendance existing = attendanceDAO.getAttendanceByStudentAndDate(...)
+            // if(existing != null && !confirm("Overwrite?")) return;
+            // The DAO does upsert (ON DUPLICATE KEY UPDATE).
+
+            HostelAttendance ha = new HostelAttendance();
+            ha.setStudentId(s.getId());
+            ha.setHostelId(hId);
+            ha.setDate(Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            ha.setStatus(statusCombo.getValue());
+            ha.setRemarks(remarks.getText());
+            ha.setMarkedBy(userId);
+
+            if (attendanceDAO.markAttendance(ha)) {
+                showAlert("Success", "Attendance Marked: " + ha.getStatus());
+                // remarks.clear(); // Keep attributes visible as per "show marked attendance"
+                // request
+                // Refresh logic to show current state (which is what we just saved)
+                checkExisting.run();
+            } else {
+                showAlert("Error", "Failed to mark.");
+            }
+        });
+
+        grid.add(saveBtn, 1, 4);
+        dialog.getDialogPane().setContent(grid);
+        dialog.showAndWait();
+    }
+
+    private void showBulkHostelAttendanceDialog() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Bulk Hostel Attendance");
+        dialog.setHeaderText("Mark Attendance by Room");
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(800);
+        content.setPrefHeight(600);
+
+        DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
+        Button loadBtn = createButton("Load Students", "#3b82f6");
+
+        HBox top = new HBox(10, new Label("Date:"), datePicker, loadBtn);
+        top.setAlignment(Pos.CENTER_LEFT);
+
+        TableView<BulkHostelRecord> table = new TableView<>();
+        ObservableList<BulkHostelRecord> records = FXCollections.observableArrayList();
+        table.setItems(records);
+        table.setEditable(true);
+
+        TableColumn<BulkHostelRecord, String> roomCol = new TableColumn<>("Room");
+        roomCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().roomNumber));
+        roomCol.setComparator((r1, r2) -> {
+            // Try numeric sort
+            try {
+                return Integer.compare(Integer.parseInt(r1), Integer.parseInt(r2));
+            } catch (Exception e) {
+                return r1.compareTo(r2);
+            }
+        });
+
+        TableColumn<BulkHostelRecord, String> nameCol = new TableColumn<>("Name");
+        nameCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().studentName));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<BulkHostelRecord, String> enrollCol = new TableColumn<>("Enrollment");
+        enrollCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().enrollmentId));
+
+        TableColumn<BulkHostelRecord, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellFactory(col -> new TableCell<>() {
+            private final ComboBox<String> cb = new ComboBox<>();
+            {
+                cb.getItems().addAll("PRESENT", "ABSENT", "LEAVE", "LATE");
+                cb.valueProperty().addListener((obs, old, nv) -> {
+                    if (getTableRow().getItem() != null)
+                        ((BulkHostelRecord) getTableRow().getItem()).status = nv;
+                });
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty)
+                    setGraphic(null);
+                else {
+                    cb.setValue(getTableView().getItems().get(getIndex()).status);
+                    setGraphic(cb);
+                }
+            }
+        });
+
+        table.getColumns().addAll(roomCol, enrollCol, nameCol, statusCol);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Warden warden = wardenDAO.getWardenByUserId(userId);
+
+        loadBtn.setOnAction(e -> {
+            if (warden == null || warden.getHostelId() <= 0) {
+                showAlert("Error", "No hostel assigned.");
+                return;
+            }
+            records.clear();
+
+            // Fetch all students in this hostel with room numbers
+            List<HostelAllocation> allAllocs = hostelDAO.getAllActiveAllocations();
+            List<Room> allRooms = hostelDAO.getAllRooms();
+
+            for (HostelAllocation alloc : allAllocs) {
+                // Find room
+                Room r = allRooms.stream().filter(rm -> rm.getId() == alloc.getRoomId()).findFirst().orElse(null);
+                if (r != null && r.getHostelId() == warden.getHostelId()) {
+                    Student s = studentDAO.getStudentById(alloc.getStudentId());
+                    if (s != null) {
+                        records.add(new BulkHostelRecord(s.getId(), s.getName(), s.getUsername(), r.getRoomNumber()));
+                    }
+                }
+            }
+            // Sort by room
+            records.sort((a, b) -> {
+                try {
+                    return Integer.compare(Integer.parseInt(a.roomNumber), Integer.parseInt(b.roomNumber));
+                } catch (Exception x) {
+                    return a.roomNumber.compareTo(b.roomNumber);
+                }
+            });
+        });
+
+        Button saveBtn = createButton("Save Attendance", "#22c55e");
+        saveBtn.setOnAction(e -> {
+            if (records.isEmpty())
+                return;
+            if (datePicker.getValue() == null) {
+                showAlert("Error", "Select date");
+                return;
+            }
+
+            Date d = Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant());
+            int count = 0;
+            for (BulkHostelRecord rec : records) {
+                HostelAttendance ha = new HostelAttendance();
+                ha.setStudentId(rec.studentId);
+                ha.setHostelId(warden.getHostelId());
+                ha.setDate(d);
+                ha.setStatus(rec.status);
+                ha.setMarkedBy(userId);
+                if (attendanceDAO.markAttendance(ha))
+                    count++;
+            }
+            showAlert("Success", "Saved " + count + " records.");
+            dialog.close();
+        });
+
+        content.getChildren().addAll(top, table, saveBtn);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
+
+    private static class BulkHostelRecord {
+        int studentId;
+        String studentName;
+        String enrollmentId;
+        String roomNumber;
+        String status = "PRESENT";
+
+        public BulkHostelRecord(int sid, String name, String eid, String rno) {
+            this.studentId = sid;
+            this.studentName = name;
+            this.enrollmentId = eid;
+            this.roomNumber = rno;
+        }
     }
 
     // ==================== COMPLAINTS ====================

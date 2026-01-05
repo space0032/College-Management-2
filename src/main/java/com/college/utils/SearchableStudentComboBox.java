@@ -109,6 +109,10 @@ public class SearchableStudentComboBox extends VBox {
         return comboBox;
     }
 
+    public javafx.beans.property.ReadOnlyObjectProperty<Student> selectedItemProperty() {
+        return comboBox.getSelectionModel().selectedItemProperty();
+    }
+
     public void clear() {
         searchField.clear();
         comboBox.setValue(null);

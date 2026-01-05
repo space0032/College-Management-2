@@ -163,7 +163,7 @@ public class StudentDAO {
      * @return Student object or null if not found
      */
     public Student getStudentById(int studentId) {
-        String sql = "SELECT * FROM students WHERE id=?";
+        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE s.id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
