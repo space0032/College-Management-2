@@ -557,11 +557,14 @@ public class InstituteManagementView {
         scroll.setFitToWidth(true);
         VBox.setVgrow(scroll, Priority.ALWAYS);
         rootLayout.getChildren().add(scroll);
-
         // Map to store category -> list of permission checkboxes
         Map<String, List<CheckBox>> categoryCheckboxes = new java.util.HashMap<>();
         // Map to store checkbox -> permission for filtering
         Map<CheckBox, String> checkboxSearchText = new java.util.HashMap<>();
+        // Map to store category -> container VBox (for visibility control)
+        Map<String, VBox> categoryContainers = new java.util.HashMap<>();
+        // Map to store category -> GridPane (for re-layout during search)
+        Map<String, GridPane> categoryGrids = new java.util.HashMap<>();
 
         // Group by category
         Map<String, List<Permission>> grouped = allPerms.stream()
@@ -569,13 +572,15 @@ public class InstituteManagementView {
 
         // Sort categories logic
         List<String> logicalOrder = java.util.Arrays.asList(
-                "System",
-                "Student Management",
-                "Academic",
-                "Faculty",
-                "Hostel Management",
+                "SYSTEM",
+                "STUDENT",
+                "ACADEMIC",
+                "FACULTY",
+                "HOSTEL",
                 "HR",
-                "Finance",
+                "FINANCE",
+                "LIBRARY",
+                "REPORT",
                 "General");
 
         List<String> sortedCategories = new ArrayList<>(grouped.keySet());
@@ -601,6 +606,9 @@ public class InstituteManagementView {
             catContainer.setStyle(
                     "-fx-border-color: #e2e8f0; -fx-border-radius: 5; -fx-padding: 10; -fx-background-color: white;");
 
+            // Store reference
+            categoryContainers.put(category, catContainer);
+
             // Header: Select All + Label
             HBox header = new HBox(10);
             header.setAlignment(Pos.CENTER_LEFT);
@@ -615,6 +623,9 @@ public class InstituteManagementView {
             GridPane grid = new GridPane();
             grid.setHgap(15);
             grid.setVgap(8);
+
+            // Store grid reference
+            categoryGrids.put(category, grid);
 
             List<CheckBox> boxes = new ArrayList<>();
             int col = 0;
@@ -679,16 +690,16 @@ public class InstituteManagementView {
 
         // Search Logic
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            String term = newVal.toLowerCase();
+            String term = newVal == null ? "" : newVal.toLowerCase();
 
             for (String category : sortedCategories) {
                 List<CheckBox> boxes = categoryCheckboxes.get(category);
-                // Grid is index 1 in children
-                // Wait, need reference to catContainer.
-                // It is simpler to store catContainers or retrieve
-                CheckBox first = boxes.get(0);
-                GridPane grid = (GridPane) first.getParent();
-                VBox catContainer = (VBox) grid.getParent();
+                GridPane grid = categoryGrids.get(category);
+                VBox catContainer = categoryContainers.get(category);
+
+                if (boxes == null || grid == null || catContainer == null) {
+                    continue;
+                }
 
                 boolean anyVisible = false;
                 grid.getChildren().clear(); // Clear grid to re-layout visible items
@@ -697,7 +708,8 @@ public class InstituteManagementView {
                 int r = 0;
 
                 for (CheckBox cb : boxes) {
-                    if (term.isEmpty() || checkboxSearchText.get(cb).contains(term)) {
+                    String searchText = checkboxSearchText.get(cb);
+                    if (term.isEmpty() || (searchText != null && searchText.contains(term))) {
                         cb.setVisible(true);
                         cb.setManaged(true);
                         anyVisible = true;
