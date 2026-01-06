@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.CalendarDAO;
 import com.college.models.CalendarEvent;
 import com.college.models.CalendarEvent.EventType;
+import com.college.services.GoogleCalendarService;
 import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -25,9 +26,11 @@ public class AcademicCalendarView {
     private GridPane calendarGrid;
     private Label monthYearLabel;
     private CalendarDAO calendarDAO;
+    private GoogleCalendarService googleCalendarService;
 
     public AcademicCalendarView() {
         this.calendarDAO = new CalendarDAO();
+        this.googleCalendarService = new GoogleCalendarService();
         this.currentYearMonth = YearMonth.now();
         createView();
     }
@@ -91,8 +94,17 @@ public class AcademicCalendarView {
         int dayOfWeek = firstDayOfMonth.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
         int daysInMonth = currentYearMonth.lengthOfMonth();
 
-        List<CalendarEvent> events = calendarDAO.getEventsByMonth(currentYearMonth.getYear(),
+        List<CalendarEvent> dbEvents = calendarDAO.getEventsByMonth(currentYearMonth.getYear(),
                 currentYearMonth.getMonthValue());
+
+        // Fetch holidays from Google Calendar Service
+        List<CalendarEvent> googleHolidays = googleCalendarService.getHolidays(currentYearMonth.getYear(),
+                currentYearMonth.getMonthValue());
+
+        // Merge lists (dbEvents is mutable or not? DAO returns generic list. Let's
+        // create a combined list)
+        List<CalendarEvent> events = new java.util.ArrayList<>(dbEvents);
+        events.addAll(googleHolidays);
 
         int row = 1;
         int col = dayOfWeek - 1;
@@ -119,6 +131,10 @@ public class AcademicCalendarView {
         // Highlight today
         if (date.equals(LocalDate.now())) {
             cell.setStyle("-fx-border-color: #3b82f6; -fx-background-color: #eff6ff; -fx-border-width: 2;");
+        } else if (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+                || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            // Highlight Weekends (Holidays)
+            cell.setStyle("-fx-border-color: #e2e8f0; -fx-background-color: #fef2f2;"); // Light red background
         }
 
         Label dateLbl = new Label(String.valueOf(date.getDayOfMonth()));

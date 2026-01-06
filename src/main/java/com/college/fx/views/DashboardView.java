@@ -600,7 +600,20 @@ public class DashboardView {
         contentArea.getChildren().add(view.getView());
     }
 
-    public BorderPane getView() {
-        return root;
+    private StackPane mainContainer;
+
+    public javafx.scene.Parent getView() {
+        if (mainContainer == null) {
+            mainContainer = new StackPane(root);
+
+            // Add ChatBot Overlay
+            com.college.fx.components.ChatBotOverlay chatBot = new com.college.fx.components.ChatBotOverlay();
+            mainContainer.getChildren().add(chatBot);
+
+            // Ensure chat bot doesn't block interaction with underlying dashboard when
+            // collapsed
+            chatBot.setPickOnBounds(false);
+        }
+        return mainContainer;
     }
 }
