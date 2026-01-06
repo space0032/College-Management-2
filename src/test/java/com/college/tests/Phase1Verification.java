@@ -3,11 +3,11 @@ package com.college.tests;
 import com.college.dao.*;
 import com.college.models.*;
 import com.college.utils.DatabaseConnection;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -16,9 +16,9 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class Phase1Verification {
 
     private static EventDAO eventDAO;
@@ -35,7 +35,7 @@ public class Phase1Verification {
     private static int studentProfileId;
     private static int facultyProfileId;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         eventDAO = new EventDAO();
         clubDAO = new ClubDAO();
@@ -117,7 +117,7 @@ public class Phase1Verification {
                 .orElse(-1);
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() throws Exception {
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement()) {
@@ -162,11 +162,11 @@ public class Phase1Verification {
         event.setStatus("UPCOMING");
         event.setCreatedBy(testAdmin.getId()); // Events are created by USERS (Admin/Faculty)
 
-        assertTrue("Event should be created", eventDAO.createEvent(event));
+        assertTrue(eventDAO.createEvent(event), "Event should be created");
 
         List<Event> events = eventDAO.getAllEvents();
         boolean found = events.stream().anyMatch(e -> e.getName().equals("P1 Test Event"));
-        assertTrue("Event should be found in list", found);
+        assertTrue(found, "Event should be found in list");
     }
 
     @Test
@@ -179,7 +179,7 @@ public class Phase1Verification {
         event.setLocation("New Auditorium");
         event.setMaxParticipants(100);
 
-        assertTrue("Event update success", eventDAO.updateEvent(event));
+        assertTrue(eventDAO.updateEvent(event), "Event update success");
 
         Event updated = eventDAO.getAllEvents().stream()
                 .filter(e -> e.getId() == event.getId())
@@ -196,8 +196,8 @@ public class Phase1Verification {
         assertNotNull(event);
 
         // Register using STUDENT PROFILE ID
-        assertTrue("Registration should succeed", eventDAO.registerStudent(event.getId(), studentProfileId));
-        assertTrue("Should be registered", eventDAO.isStudentRegistered(event.getId(), studentProfileId));
+        assertTrue(eventDAO.registerStudent(event.getId(), studentProfileId), "Registration should succeed");
+        assertTrue(eventDAO.isStudentRegistered(event.getId(), studentProfileId), "Should be registered");
     }
 
     @Test
@@ -212,10 +212,9 @@ public class Phase1Verification {
         EventRegistration reg = regs.stream()
                 .filter(r -> r.getStudentId() == studentProfileId)
                 .findFirst().orElse(null);
-        assertNotNull("Registration must exist", reg);
+        assertNotNull(reg, "Registration must exist");
 
-        assertTrue("Update attendance success",
-                eventDAO.markAttendance(reg.getId(), "ATTENDED"));
+        assertTrue(eventDAO.markAttendance(reg.getId(), "ATTENDED"), "Update attendance success");
 
         // Verify
         regs = eventDAO.getEventRegistrations(event.getId());
@@ -234,8 +233,8 @@ public class Phase1Verification {
                 .findFirst().orElse(null);
         assertNotNull(event);
 
-        assertTrue("Unregistration success", eventDAO.unregisterStudent(event.getId(), studentProfileId));
-        assertFalse("Should not be registered", eventDAO.isStudentRegistered(event.getId(), studentProfileId));
+        assertTrue(eventDAO.unregisterStudent(event.getId(), studentProfileId), "Unregistration success");
+        assertFalse(eventDAO.isStudentRegistered(event.getId(), studentProfileId), "Should not be registered");
     }
 
     @Test
@@ -245,12 +244,12 @@ public class Phase1Verification {
                 .findFirst().orElse(null);
         assertNotNull(event);
 
-        assertTrue("Delete event success", eventDAO.deleteEvent(event.getId()));
+        assertTrue(eventDAO.deleteEvent(event.getId()), "Delete event success");
 
         Event deleted = eventDAO.getAllEvents().stream()
                 .filter(e -> e.getId() == event.getId())
                 .findFirst().orElse(null);
-        assertNull("Event should be gone", deleted);
+        assertNull(deleted, "Event should be gone");
     }
 
     // --- TEST SUITE 2: CLUB MANAGEMENT ---
@@ -265,10 +264,10 @@ public class Phase1Verification {
         club.setPresidentStudentId(studentProfileId); // Use Student PROFILE ID
         club.setStatus("ACTIVE");
 
-        assertTrue("Club creation success", clubDAO.createClub(club));
+        assertTrue(clubDAO.createClub(club), "Club creation success");
 
         List<Club> clubs = clubDAO.getAllClubs();
-        assertTrue("Club found", clubs.stream().anyMatch(c -> c.getName().equals("P1 Test Club")));
+        assertTrue(clubs.stream().anyMatch(c -> c.getName().equals("P1 Test Club")), "Club found");
     }
 
     @Test
@@ -279,7 +278,7 @@ public class Phase1Verification {
         assertNotNull(club);
 
         club.setDescription("Updated Desc");
-        assertTrue("Club update success", clubDAO.updateClub(club));
+        assertTrue(clubDAO.updateClub(club), "Club update success");
 
         Club updated = clubDAO.getAllClubs().stream()
                 .filter(c -> c.getId() == club.getId())
@@ -295,7 +294,7 @@ public class Phase1Verification {
         assertNotNull(club);
 
         // 1. Request Join (using Student PROFILE ID)
-        assertTrue("Join request success", clubDAO.joinClub(club.getId(), studentProfileId));
+        assertTrue(clubDAO.joinClub(club.getId(), studentProfileId), "Join request success");
 
         // 2. Verify PENDING
         List<ClubMembership> members = clubDAO.getPendingMemberships(club.getId());
@@ -306,7 +305,7 @@ public class Phase1Verification {
         assertEquals("PENDING", member.getStatus());
 
         // 3. Approve
-        assertTrue("Approve success", clubDAO.approveMembership(member.getId()));
+        assertTrue(clubDAO.approveMembership(member.getId()), "Approve success");
 
         // 4. Verify APPROVED in Members List
         List<ClubMembership> activeMembers = clubDAO.getClubMembers(club.getId());
@@ -325,11 +324,11 @@ public class Phase1Verification {
                 .findFirst().orElse(null);
         assertNotNull(club);
 
-        assertTrue("Leave club success", clubDAO.leaveClub(club.getId(), studentProfileId));
+        assertTrue(clubDAO.leaveClub(club.getId(), studentProfileId), "Leave club success");
 
         List<ClubMembership> members = clubDAO.getClubMembers(club.getId());
         boolean exists = members.stream().anyMatch(m -> m.getStudentId() == studentProfileId);
-        assertFalse("Member should be removed", exists);
+        assertFalse(exists, "Member should be removed");
     }
 
     @Test
@@ -339,11 +338,11 @@ public class Phase1Verification {
                 .findFirst().orElse(null);
         assertNotNull(club);
 
-        assertTrue("Delete club success", clubDAO.deleteClub(club.getId()));
+        assertTrue(clubDAO.deleteClub(club.getId()), "Delete club success");
 
         Club deleted = clubDAO.getAllClubs().stream()
                 .filter(c -> c.getId() == club.getId())
                 .findFirst().orElse(null);
-        assertNull("Club should be gone", deleted);
+        assertNull(deleted, "Club should be gone");
     }
 }

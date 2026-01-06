@@ -4,11 +4,11 @@ import com.college.dao.*;
 import com.college.models.*;
 import com.college.services.FileUploadService;
 import com.college.utils.DatabaseConnection;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -19,9 +19,9 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class Phase2Verification {
 
     private static SyllabusDAO syllabusDAO;
@@ -34,7 +34,7 @@ public class Phase2Verification {
     private static int courseId;
     private static int categoryId;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         syllabusDAO = new SyllabusDAO();
         resourceDAO = new LearningResourceDAO();
@@ -107,7 +107,7 @@ public class Phase2Verification {
                 .orElse(-1);
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() throws Exception {
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement()) {
@@ -133,8 +133,8 @@ public class Phase2Verification {
 
         String savedPath = fileUploadService.uploadSyllabus(is, originalName, content.length());
 
-        assertNotNull("File path should not be null", savedPath);
-        assertTrue("File should exist", new File(savedPath).exists());
+        assertNotNull(savedPath, "File path should not be null");
+        assertTrue(new File(savedPath).exists(), "File should exist");
 
         // Clean up immediately for this unit test file
         new File(savedPath).delete();
@@ -148,7 +148,7 @@ public class Phase2Verification {
 
         String savedPath = fileUploadService.uploadResource(is, originalName, content.length());
 
-        assertNull("Should block invalid extension", savedPath);
+        assertNull(savedPath, "Should block invalid extension");
     }
 
     @Test
@@ -159,7 +159,7 @@ public class Phase2Verification {
 
         String savedPath = fileUploadService.uploadResource(is, "large.pdf", largeSize);
 
-        assertNull("Should reject file > 50MB", savedPath);
+        assertNull(savedPath, "Should reject file > 50MB");
     }
 
     // --- TEST SUITE 2: SYLLABUS MANAGEMENT ---
@@ -174,11 +174,11 @@ public class Phase2Verification {
         s.setUploadedBy(testFaculty.getId());
         s.setFilePath("uploads/syllabi/mock_p2_syllabus.pdf");
 
-        assertTrue("Add syllabus success", syllabusDAO.addSyllabus(s));
+        assertTrue(syllabusDAO.addSyllabus(s), "Add syllabus success");
 
         List<Syllabus> list = syllabusDAO.getSyllabiByCourse(courseId);
-        assertFalse("List not empty", list.isEmpty());
-        assertTrue("Found syllabus", list.stream().anyMatch(sy -> sy.getTitle().equals("P2 Test Syllabus 1.0")));
+        assertFalse(list.isEmpty(), "List not empty");
+        assertTrue(list.stream().anyMatch(sy -> sy.getTitle().equals("P2 Test Syllabus 1.0")), "Found syllabus");
     }
 
     // --- TEST SUITE 3: LEARNING RESOURCES ---
@@ -196,11 +196,11 @@ public class Phase2Verification {
         r.setUploadedBy(testFaculty.getId());
         r.setPublic(true);
 
-        assertTrue("Add resource success", resourceDAO.addResource(r));
+        assertTrue(resourceDAO.addResource(r), "Add resource success");
 
         List<LearningResource> list = resourceDAO.getResourcesByCourse(courseId);
         boolean found = list.stream().anyMatch(lr -> lr.getTitle().equals("P2 Test Resource Doc"));
-        assertTrue("Resource found by course", found);
+        assertTrue(found, "Resource found by course");
     }
 
     @Test
@@ -215,14 +215,14 @@ public class Phase2Verification {
                 .filter(r -> r.getTitle().contains("Doc"))
                 .count();
 
-        assertTrue("Search should find the resource", count > 0);
+        assertTrue(count > 0, "Search should find the resource");
 
         // Simulate Search "NonExistent"
         long countZero = all.stream()
                 .filter(r -> r.getTitle().contains("NonExistentXYZ"))
                 .count();
 
-        assertEquals("Search should find nothing", 0, countZero);
+        assertEquals(0, countZero, "Search should find nothing");
     }
 
     @Test
@@ -245,6 +245,6 @@ public class Phase2Verification {
                 .orElse(null);
 
         assertNotNull(updated);
-        assertTrue("Download count incremented", updated.getDownloadCount() > r.getDownloadCount());
+        assertTrue(updated.getDownloadCount() > r.getDownloadCount(), "Download count incremented");
     }
 }

@@ -3,11 +3,11 @@ package com.college.tests;
 import com.college.dao.*;
 import com.college.models.*;
 import com.college.utils.DatabaseConnection;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,9 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class PerformanceTest {
 
     private static final Logger logger = Logger.getLogger(PerformanceTest.class.getName());
@@ -31,7 +31,7 @@ public class PerformanceTest {
     private static final int STUDENT_COUNT = 500;
     private static final int EVENT_COUNT = 50;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         eventDAO = new EventDAO();
         studentDAO = new StudentDAO();
@@ -89,7 +89,7 @@ public class PerformanceTest {
                 + " events.");
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() throws Exception {
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement()) {
