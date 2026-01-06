@@ -110,7 +110,7 @@ public class PerformanceTest {
         logger.info("Fetched " + events.size() + " events in " + duration + "ms");
 
         // Expect fetching 50+ events to be under 200ms (generous limit for local DB)
-        assertTrue("Fetching events took too long: " + duration + "ms", duration < 500);
+        assertTrue(duration < 500, "Fetching events took too long: " + duration + "ms");
     }
 
     @Test
@@ -122,7 +122,7 @@ public class PerformanceTest {
         logger.info("Fetched " + students.size() + " students in " + duration + "ms");
 
         // Expect fetching 500 students to be under 500ms
-        assertTrue("Fetching students took too long: " + duration + "ms", duration < 1000);
+        assertTrue(duration < 1000, "Fetching students took too long: " + duration + "ms");
     }
 
     @Test
@@ -153,7 +153,7 @@ public class PerformanceTest {
 
         // 500 inserts. If each takes 10ms, total = 5000ms.
         // We set a threshold of 10 seconds to be safe but expect much faster.
-        assertTrue("Bulk registration took too long: " + duration + "ms", duration < 10000);
+        assertTrue(duration < 10000, "Bulk registration took too long: " + duration + "ms");
     }
 
     @Test
@@ -169,6 +169,6 @@ public class PerformanceTest {
         logger.info("Fetched " + regs.size() + " registrations in " + duration + "ms");
 
         // Fetching 500 rows should be very fast (< 200ms)
-        assertTrue("Fetching registrations took too long: " + duration + "ms", duration < 500);
+        assertTrue(duration < 500, "Fetching registrations took too long: " + duration + "ms");
     }
 }

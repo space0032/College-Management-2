@@ -123,8 +123,7 @@ public class ClubsView {
 
         // Table
         allClubsTable = createClubsTable(true);
-        // TODO: Fix CSS resource loading
-        // allClubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        allClubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(allClubsTable, Priority.ALWAYS);
 
         content.getChildren().addAll(filters, allClubsTable);
@@ -137,8 +136,7 @@ public class ClubsView {
         content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
 
         myClubsTable = createClubsTable(false);
-        // TODO: Fix CSS resource loading
-        // myClubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        myClubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(myClubsTable, Priority.ALWAYS);
 
         content.getChildren().add(myClubsTable);
@@ -381,16 +379,6 @@ public class ClubsView {
         }
 
         allClubsTable.setItems(filtered);
-    }
-
-    private void applyFilter() {
-        String filter = filterCombo.getValue();
-        if (filter.equals("All Clubs")) {
-            allClubsTable.setItems(allClubsData);
-        } else {
-            ObservableList<Club> filtered = allClubsData.filtered(c -> c.getCategory().equals(filter));
-            allClubsTable.setItems(filtered);
-        }
     }
 
     private void joinClub(Club club) {

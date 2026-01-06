@@ -90,8 +90,7 @@ public class ClubManagementView {
         clubsTable = new TableView<>();
         clubsTable.setItems(clubsData);
         clubsTable.setPlaceholder(new Label("No clubs yet.\nClick 'Create Club' to get started."));
-        // TODO: Fix CSS resource loading
-        // clubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        clubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(clubsTable, Priority.ALWAYS);
 
         TableColumn<Club, String> nameCol = new TableColumn<>("Club Name");

@@ -8,7 +8,7 @@ import com.college.models.Course;
 import com.college.models.LearningResource;
 import com.college.models.Student;
 import com.college.models.Syllabus;
-import com.college.models.User;
+
 import com.college.utils.SessionManager;
 
 import javafx.collections.FXCollections;
@@ -25,7 +25,7 @@ public class LearningPortalView {
 
     private final SyllabusDAO syllabusDAO;
     private final LearningResourceDAO resourceDAO;
-    private final CourseDAO courseDAO;
+
     private final StudentDAO studentDAO;
     private Student currentStudent;
 
@@ -34,7 +34,7 @@ public class LearningPortalView {
     public LearningPortalView() {
         this.syllabusDAO = new SyllabusDAO();
         this.resourceDAO = new LearningResourceDAO();
-        this.courseDAO = new CourseDAO();
+
         this.studentDAO = new StudentDAO();
 
         SessionManager session = SessionManager.getInstance();

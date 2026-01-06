@@ -120,8 +120,7 @@ public class EventsView {
 
         // Table
         allEventsTable = createEventsTable(true);
-        // TODO: Fix CSS resource loading
-        // allEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        allEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(allEventsTable, Priority.ALWAYS);
 
         content.getChildren().addAll(filters, allEventsTable);
@@ -134,8 +133,7 @@ public class EventsView {
         content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
 
         myEventsTable = createEventsTable(false);
-        // TODO: Fix CSS resource loading
-        // myEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        myEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(myEventsTable, Priority.ALWAYS);
 
         content.getChildren().add(myEventsTable);

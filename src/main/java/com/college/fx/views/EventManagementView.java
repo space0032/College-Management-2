@@ -92,8 +92,7 @@ public class EventManagementView {
         eventsTable = new TableView<>();
         eventsTable.setItems(eventsData);
         eventsTable.setPlaceholder(new Label("No events yet.\nClick 'Create Event' to get started."));
-        // TODO: Fix CSS resource loading
-        // eventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        eventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(eventsTable, Priority.ALWAYS);
 
         TableColumn<Event, String> nameCol = new TableColumn<>("Event Name");

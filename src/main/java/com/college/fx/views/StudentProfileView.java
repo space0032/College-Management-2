@@ -3,8 +3,7 @@ package com.college.fx.views;
 import com.college.dao.StudentDAO;
 import com.college.models.Student;
 import com.college.services.TranscriptService;
-import com.college.models.Student;
-import com.college.services.TranscriptService;
+
 import com.college.models.Grade;
 import com.college.models.StudentFeedback;
 import com.college.dao.StudentFeedbackDAO;
@@ -290,7 +289,6 @@ public class StudentProfileView {
             summaryBox.getChildren().add(sgpaBox);
         }
 
-        TableView<Grade> gradeTable = new TableView<>();
         // ... (standard table setup for grades, omitting for brevity in this snippet)
 
         Button printTranscriptBtn = new Button("Export Transcript (PDF)");

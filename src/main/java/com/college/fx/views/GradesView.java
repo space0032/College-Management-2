@@ -26,7 +26,7 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.stream.Collectors;
+import javafx.geometry.Insets;
 
 /**
  * JavaFX Grades View
@@ -174,8 +174,6 @@ public class GradesView {
         HBox section = new HBox(15);
         section.setAlignment(Pos.CENTER);
         section.setPadding(new Insets(10));
-
-        SessionManager session = SessionManager.getInstance();
 
         if (SessionManager.getInstance().hasPermission("MANAGE_GRADES")) {
             Button addGradeBtn = createButton("Add Grade", "#22c55e");
