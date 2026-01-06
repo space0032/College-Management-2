@@ -25,7 +25,12 @@ public class AttendanceDAO {
     public boolean markAttendance(Attendance attendance) {
         String sql = "INSERT INTO attendance (student_id, course_id, date, status, remarks, marked_by) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE status=?, remarks=?, updated_at=CURRENT_TIMESTAMP";
+                "ON CONFLICT (student_id, course_id, date) DO UPDATE SET " +
+                "status = EXCLUDED.status, " +
+                "remarks = EXCLUDED.remarks, " +
+                "marked_by = EXCLUDED.marked_by"; // updated_at is auto-handled by trigger slightly later but we can
+                                                  // ignore or set it if needed, but schema doesn't show updated_at
+                                                  // column in V1.
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -35,11 +40,7 @@ public class AttendanceDAO {
             pstmt.setDate(3, new java.sql.Date(attendance.getDate().getTime()));
             pstmt.setString(4, attendance.getStatus());
             pstmt.setString(5, attendance.getRemarks());
-            pstmt.setInt(6, 1); // marked_by user_id (will be dynamic later)
-
-            // For duplicate key update
-            pstmt.setString(7, attendance.getStatus());
-            pstmt.setString(8, attendance.getRemarks());
+            pstmt.setInt(6, 1); // marked_by user_id
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -59,7 +60,10 @@ public class AttendanceDAO {
     public int markBulkAttendance(List<Attendance> attendanceList) {
         String sql = "INSERT INTO attendance (student_id, course_id, date, status, remarks, marked_by) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE status=?, remarks=?, updated_at=CURRENT_TIMESTAMP";
+                "ON CONFLICT (student_id, course_id, date) DO UPDATE SET " +
+                "status = EXCLUDED.status, " +
+                "remarks = EXCLUDED.remarks, " +
+                "marked_by = EXCLUDED.marked_by";
 
         Connection conn = null;
         try {
@@ -76,8 +80,6 @@ public class AttendanceDAO {
                 pstmt.setString(4, attendance.getStatus());
                 pstmt.setString(5, attendance.getRemarks());
                 pstmt.setInt(6, 1);
-                pstmt.setString(7, attendance.getStatus());
-                pstmt.setString(8, attendance.getRemarks());
 
                 pstmt.addBatch();
                 count++;

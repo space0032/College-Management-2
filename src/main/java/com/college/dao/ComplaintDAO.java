@@ -49,7 +49,7 @@ public class ComplaintDAO {
         String sql = "SELECT c.*, u.username as resolved_by_name " +
                 "FROM hostel_complaints c " +
                 "LEFT JOIN users u ON c.resolved_by = u.id " +
-                "WHERE c.student_id = ? ORDER BY c.filed_date DESC";
+                "WHERE c.student_id = ? ORDER BY c.created_at DESC";
         List<Complaint> list = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -71,7 +71,7 @@ public class ComplaintDAO {
                 "FROM hostel_complaints c " +
                 "JOIN students s ON c.student_id = s.id " +
                 "LEFT JOIN users u ON c.resolved_by = u.id " +
-                "ORDER BY CASE WHEN c.status = 'OPEN' THEN 1 ELSE 2 END, c.filed_date DESC";
+                "ORDER BY CASE WHEN c.status = 'OPEN' THEN 1 ELSE 2 END, c.created_at DESC";
         List<Complaint> list = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
@@ -96,7 +96,7 @@ public class ComplaintDAO {
         c.setDescription(rs.getString("description"));
         c.setCategory(rs.getString("category"));
         c.setStatus(rs.getString("status"));
-        c.setFiledDate(rs.getTimestamp("filed_date"));
+        c.setFiledDate(rs.getTimestamp("created_at"));
         c.setResolvedDate(rs.getTimestamp("resolved_date"));
         c.setResolvedBy(rs.getObject("resolved_by") != null ? rs.getInt("resolved_by") : null);
         c.setRemarks(rs.getString("remarks"));

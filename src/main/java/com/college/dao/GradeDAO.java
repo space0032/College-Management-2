@@ -23,9 +23,12 @@ public class GradeDAO {
      * @return true if successful
      */
     public boolean saveGrade(Grade grade) {
-        String sql = "INSERT INTO grades (student_id, course_id, exam_type, marks, grade, semester) " +
+        String sql = "INSERT INTO grades (student_id, course_id, exam_type, marks_obtained, grade, semester) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE marks=?, grade=?, semester=?";
+                "ON CONFLICT (student_id, course_id, exam_type) DO UPDATE SET " +
+                "marks_obtained = EXCLUDED.marks_obtained, " +
+                "grade = EXCLUDED.grade, " +
+                "semester = EXCLUDED.semester";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -36,11 +39,6 @@ public class GradeDAO {
             pstmt.setDouble(4, grade.getMarksObtained());
             pstmt.setString(5, grade.getGrade());
             pstmt.setInt(6, grade.getSemester() != 0 ? grade.getSemester() : 1); // Default semester 1 if not set
-
-            // For duplicate key update
-            pstmt.setDouble(7, grade.getMarksObtained());
-            pstmt.setString(8, grade.getGrade());
-            pstmt.setInt(9, grade.getSemester() != 0 ? grade.getSemester() : 1);
 
             return pstmt.executeUpdate() > 0;
 
@@ -58,7 +56,8 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByStudent(int studentId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+                +
                 "c.name as course_name, c.credits FROM grades g " +
                 "JOIN courses c ON g.course_id = c.id " +
                 "WHERE g.student_id = ? ORDER BY g.exam_type DESC";
@@ -87,7 +86,8 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByCourse(int courseId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+                +
                 "s.name as student_name, c.name as course_name " +
                 "FROM grades g " +
                 "JOIN students s ON g.student_id = s.id " +
@@ -119,7 +119,8 @@ public class GradeDAO {
      */
     public List<Grade> getGrades(int studentId, int courseId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+                +
                 "s.name as student_name, c.name as course_name " +
                 "FROM grades g " +
                 "JOIN students s ON g.student_id = s.id " +
@@ -201,7 +202,8 @@ public class GradeDAO {
      */
     public List<Grade> getAllGrades() {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+                +
                 "s.name as student_name, u.username as enrollment_no, " +
                 "c.name as course_name, c.credits, d.name as dept_name " +
                 "FROM grades g " +
@@ -229,7 +231,8 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByFaculty(int facultyId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks, g.grade, g.semester, " +
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+                +
                 "s.name as student_name, u.username as enrollment_no, " +
                 "c.name as course_name, c.credits, d.name as dept_name " +
                 "FROM grades g " +

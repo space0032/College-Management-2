@@ -51,12 +51,17 @@ public class CourseDAO {
                 "LEFT JOIN faculty f ON c.faculty_id = f.id " +
                 "ORDER BY c.code";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            if (conn == null) {
+                Logger.error("Database connection failed");
+                return courses;
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(sql)) {
 
-            while (rs.next()) {
-                courses.add(extractCourseFromResultSet(rs));
+                while (rs.next()) {
+                    courses.add(extractCourseFromResultSet(rs));
+                }
             }
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
