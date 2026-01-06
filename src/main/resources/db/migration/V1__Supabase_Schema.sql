@@ -433,7 +433,8 @@ INSERT INTO permissions (code, name, category) VALUES
 ('VIEW_RESOURCES', 'View Resources', 'Academic'),
 ('MANAGE_FEES', 'Manage Fees', 'Finance'),
 ('PAY_FEES', 'Pay Fees', 'Student'),
-('MANAGE_HOSTEL', 'Manage Hostel', 'Hostel')
+('MANAGE_HOSTEL', 'Manage Hostel', 'Hostel'),
+('MANAGE_SYSTEM', 'Manage System', 'Admin')
 ON CONFLICT (code) DO NOTHING;
 
 -- Assign ALL permissions to ADMIN

@@ -19,7 +19,16 @@ public class TimetableDAO {
      */
     public List<Timetable> getTimetableByDepartmentAndSemester(String department, int semester) {
         List<Timetable> timetable = new ArrayList<>();
-        String sql = "SELECT * FROM timetable WHERE department = ? AND semester = ? ORDER BY FIELD(day_of_week, 'Monday','Tuesday','Wednesday','Thursday','Friday'), time_slot";
+        String sql = "SELECT * FROM timetable WHERE department = ? AND semester = ? " +
+                "ORDER BY CASE day_of_week " +
+                "WHEN 'Monday' THEN 1 " +
+                "WHEN 'Tuesday' THEN 2 " +
+                "WHEN 'Wednesday' THEN 3 " +
+                "WHEN 'Thursday' THEN 4 " +
+                "WHEN 'Friday' THEN 5 " +
+                "WHEN 'Saturday' THEN 6 " +
+                "WHEN 'Sunday' THEN 7 " +
+                "ELSE 8 END, time_slot";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
