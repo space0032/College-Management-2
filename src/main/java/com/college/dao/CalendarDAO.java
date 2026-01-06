@@ -34,8 +34,9 @@ public class CalendarDAO {
         String sql = "SELECT id, title, event_date, event_type, description FROM calendar_events " +
                 "WHERE MONTH(event_date) = ? AND YEAR(event_date) = ? " +
                 "UNION ALL " +
-                "SELECT id, name as title, start_date as event_date, 'EVENT' as event_type, description FROM events " +
-                "WHERE MONTH(start_date) = ? AND YEAR(start_date) = ? " +
+                "SELECT id, name as title, DATE(start_time) as event_date, 'EVENT' as event_type, description FROM events "
+                +
+                "WHERE MONTH(start_time) = ? AND YEAR(start_time) = ? " +
                 "ORDER BY event_date";
 
         try (Connection conn = DatabaseConnection.getConnection();

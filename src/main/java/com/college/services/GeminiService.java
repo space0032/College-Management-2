@@ -17,8 +17,8 @@ import java.nio.charset.StandardCharsets;
  */
 public class GeminiService {
 
-    private static final String API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // Placeholder
-    private static final String API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="
+    private static final String API_KEY = "AIzaSyANbLqzyw7xKPWwZ_0SmYkGR4pJ5edHtn0"; // Placeholder
+    private static final String API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key="
             + API_KEY;
 
     private final HttpClient httpClient;
@@ -28,9 +28,7 @@ public class GeminiService {
     }
 
     public String sendMessage(String userMessage) {
-        if (API_KEY.equals("YOUR_GEMINI_API_KEY_HERE")) {
-            return "I am a simulated Gemini bot. Please configure my API Key in GeminiService.java to make me real!";
-        }
+        // API Key check removed as user has configured it.
 
         try {
             // Construct JSON Payload
