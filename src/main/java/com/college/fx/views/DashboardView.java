@@ -186,6 +186,19 @@ public class DashboardView {
             addMenuItem(sidebar, "Timetable", "timetable", false);
         }
 
+        // Learning Management (Faculty/Admin)
+        if (session.hasPermission("UPLOAD_SYLLABUS")) {
+            addMenuItem(sidebar, "Syllabus Management", "syllabus_management", false);
+        }
+        if (session.hasPermission("UPLOAD_RESOURCES")) {
+            addMenuItem(sidebar, "Resource Management", "resource_management", false);
+        }
+
+        // Learning Portal (Student)
+        if (session.hasPermission("VIEW_RESOURCES") && session.isStudent()) {
+            addMenuItem(sidebar, "Learning Portal", "learning_portal", false);
+        }
+
         // Academic Calendar (Visible to all)
         addMenuItem(sidebar, "Academic Calendar", "calendar", false);
 
@@ -427,6 +440,15 @@ public class DashboardView {
             case "student_activities":
                 showStudentActivities();
                 break;
+            case "syllabus_management":
+                showSyllabusManagement();
+                break;
+            case "resource_management":
+                showResourceManagement();
+                break;
+            case "learning_portal":
+                showLearningPortal();
+                break;
             default:
                 showHome();
         }
@@ -597,6 +619,21 @@ public class DashboardView {
                 this::showClubs,
                 this::showEventManagement,
                 this::showClubManagement);
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showSyllabusManagement() {
+        SyllabusManagementView view = new SyllabusManagementView();
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showResourceManagement() {
+        ResourceManagementView view = new ResourceManagementView();
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showLearningPortal() {
+        LearningPortalView view = new LearningPortalView();
         contentArea.getChildren().add(view.getView());
     }
 
