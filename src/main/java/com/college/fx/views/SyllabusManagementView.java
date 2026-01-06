@@ -27,8 +27,6 @@ public class SyllabusManagementView {
     private final SyllabusDAO syllabusDAO;
     private final CourseDAO courseDAO;
     private final FileUploadService fileUploadService;
-    // currentUser is not stored as an object here anymore to avoid 'undefined'
-    // error
 
     private ComboBox<Course> courseComboBox;
     private TableView<Syllabus> syllabusTable;
@@ -58,7 +56,7 @@ public class SyllabusManagementView {
         courseComboBox.setOnAction(e -> loadSyllabi());
 
         Button uploadButton = new Button("Upload Syllabus");
-        uploadButton.getStyleClass().add("upload-button"); // Assuming styling exists or default
+        uploadButton.getStyleClass().add("upload-button");
         uploadButton.setOnAction(e -> showUploadDialog());
         uploadButton.disableProperty().bind(courseComboBox.valueProperty().isNull());
 
@@ -93,8 +91,16 @@ public class SyllabusManagementView {
         versionCol.setPrefWidth(80);
 
         TableColumn<Syllabus, String> titleCol = new TableColumn<>("Title");
-        titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
-        titleCol.setPrefWidth(200);
+        titleCol.setCellValueFactory(cellData -> {
+            String path = cellData.getValue().getFilePath();
+            String icon = "📄";
+            if (path != null) {
+                String ext = path.substring(path.lastIndexOf(".") + 1).toLowerCase();
+                icon = getFileIcon(ext);
+            }
+            return new javafx.beans.property.SimpleStringProperty(icon + " " + cellData.getValue().getTitle());
+        });
+        titleCol.setPrefWidth(230);
 
         TableColumn<Syllabus, String> descCol = new TableColumn<>("Description");
         descCol.setCellValueFactory(new PropertyValueFactory<>("description"));
@@ -126,7 +132,6 @@ public class SyllabusManagementView {
                 downloadBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
                 downloadBtn.setOnAction(event -> {
                     Syllabus s = getTableView().getItems().get(getIndex());
-                    // Logic to open/download file would go here
                     Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored at: " + s.getFilePath());
                     alert.show();
                 });
@@ -169,7 +174,17 @@ public class SyllabusManagementView {
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        // Fix padding and column constraints
+        grid.setPadding(new Insets(20, 20, 10, 10));
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
 
         TextField titleField = new TextField();
         titleField.setPromptText("Syllabus Title");
@@ -261,5 +276,23 @@ public class SyllabusManagementView {
             syllabusDAO.deleteSyllabus(syllabus.getId());
             loadSyllabi();
         }
+    }
+
+    private String getFileIcon(String type) {
+        if (type == null)
+            return "📄";
+        if (type.equals("pdf"))
+            return "📕";
+        if (type.contains("doc"))
+            return "📘";
+        if (type.contains("xls"))
+            return "📊";
+        if (type.contains("ppt"))
+            return "📽️";
+        if (type.contains("jpg") || type.contains("png"))
+            return "🖼️";
+        if (type.contains("zip") || type.contains("rar"))
+            return "📦";
+        return "📄";
     }
 }

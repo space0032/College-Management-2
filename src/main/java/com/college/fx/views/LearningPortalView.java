@@ -88,7 +88,15 @@ public class LearningPortalView {
         versionCol.setCellValueFactory(new PropertyValueFactory<>("version"));
 
         TableColumn<Syllabus, String> titleCol = new TableColumn<>("Title");
-        titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
+        titleCol.setCellValueFactory(cellData -> {
+            String path = cellData.getValue().getFilePath();
+            String icon = "📄";
+            if (path != null) {
+                String ext = path.substring(path.lastIndexOf(".") + 1).toLowerCase();
+                icon = getFileIcon(ext);
+            }
+            return new javafx.beans.property.SimpleStringProperty(icon + " " + cellData.getValue().getTitle());
+        });
         titleCol.setPrefWidth(250);
 
         TableColumn<Syllabus, String> dateCol = new TableColumn<>("Date");
@@ -148,7 +156,10 @@ public class LearningPortalView {
         TableView<LearningResource> table = new TableView<>();
 
         TableColumn<LearningResource, String> titleCol = new TableColumn<>("Title");
-        titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
+        titleCol.setCellValueFactory(cellData -> {
+            String icon = getFileIcon(cellData.getValue().getFileType());
+            return new javafx.beans.property.SimpleStringProperty(icon + " " + cellData.getValue().getTitle());
+        });
         titleCol.setPrefWidth(200);
 
         TableColumn<LearningResource, String> catCol = new TableColumn<>("Category");
@@ -219,5 +230,24 @@ public class LearningPortalView {
         content.getChildren().addAll(searchField, table);
         tab.setContent(content);
         return tab;
+    }
+
+    private String getFileIcon(String type) {
+        if (type == null)
+            return "📄";
+        type = type.toLowerCase();
+        if (type.equals("pdf"))
+            return "📕";
+        if (type.contains("doc"))
+            return "📘";
+        if (type.contains("xls"))
+            return "📊";
+        if (type.contains("ppt"))
+            return "📽️";
+        if (type.contains("jpg") || type.contains("png"))
+            return "🖼️";
+        if (type.contains("zip") || type.contains("rar"))
+            return "📦";
+        return "📄";
     }
 }

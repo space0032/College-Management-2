@@ -44,7 +44,7 @@ public class LearningResourceDAO {
                 "JOIN users u ON r.uploaded_by = u.id " +
                 "LEFT JOIN courses co ON r.course_id = co.id " +
                 "WHERE r.course_id = ? OR r.is_public = TRUE " +
-                "ORDER BY r.uploaded_at DESC";
+                "ORDER BY r.created_at DESC";
         return fetchResources(sql, courseId);
     }
 
@@ -54,7 +54,7 @@ public class LearningResourceDAO {
                 "JOIN resource_categories c ON r.category_id = c.id " +
                 "JOIN users u ON r.uploaded_by = u.id " +
                 "LEFT JOIN courses co ON r.course_id = co.id " +
-                "ORDER BY r.uploaded_at DESC";
+                "ORDER BY r.created_at DESC";
         return fetchResources(sql, null);
     }
 
@@ -132,7 +132,7 @@ public class LearningResourceDAO {
         r.setUploadedBy(rs.getInt("uploaded_by"));
         r.setDownloadCount(rs.getInt("download_count"));
         r.setPublic(rs.getBoolean("is_public"));
-        r.setUploadedAt(rs.getTimestamp("uploaded_at").toLocalDateTime());
+        r.setUploadedAt(rs.getTimestamp("created_at").toLocalDateTime());
 
         r.setCategoryName(rs.getString("category_name"));
         r.setUploaderName(rs.getString("uploader_name"));

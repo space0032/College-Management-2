@@ -32,6 +32,7 @@ public class ResourceManagementView {
     private ComboBox<Course> courseComboBox;
     private ComboBox<ResourceCategory> categoryComboBox;
     private TableView<LearningResource> resourceTable;
+    private TextField searchField;
 
     public ResourceManagementView() {
         this.resourceDAO = new LearningResourceDAO();
@@ -107,8 +108,11 @@ public class ResourceManagementView {
 
     private void setupTable() {
         TableColumn<LearningResource, String> titleCol = new TableColumn<>("Title");
-        titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
-        titleCol.setPrefWidth(200);
+        titleCol.setCellValueFactory(cellData -> {
+            String icon = getFileIcon(cellData.getValue().getFileType());
+            return new javafx.beans.property.SimpleStringProperty(icon + " " + cellData.getValue().getTitle());
+        });
+        titleCol.setPrefWidth(230);
 
         TableColumn<LearningResource, String> categoryCol = new TableColumn<>("Category");
         categoryCol.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
@@ -180,6 +184,10 @@ public class ResourceManagementView {
     }
 
     private void loadResources() {
+        loadResources("");
+    }
+
+    private void loadResources(String searchQuery) {
         Course selected = courseComboBox.getValue();
         List<LearningResource> list;
         if (selected != null) {
@@ -187,6 +195,14 @@ public class ResourceManagementView {
         } else {
             list = resourceDAO.getAllResources();
         }
+
+        // Filter by search query
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            final String query = searchQuery.toLowerCase();
+            list.removeIf(r -> !r.getTitle().toLowerCase().contains(query) &&
+                    !(r.getDescription() != null && r.getDescription().toLowerCase().contains(query)));
+        }
+
         resourceTable.setItems(FXCollections.observableArrayList(list));
     }
 
@@ -201,7 +217,17 @@ public class ResourceManagementView {
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        // Fix padding and column constraints
+        grid.setPadding(new Insets(20, 20, 10, 10));
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(100);
+        col1.setPrefWidth(100);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+
+        grid.getColumnConstraints().addAll(col1, col2);
 
         TextField titleField = new TextField();
         titleField.setPromptText("Resource Title");
@@ -311,5 +337,24 @@ public class ResourceManagementView {
             resourceDAO.deleteResource(resource.getId());
             loadResources();
         }
+    }
+
+    private String getFileIcon(String type) {
+        if (type == null)
+            return "📄";
+        type = type.toLowerCase();
+        if (type.equals("pdf"))
+            return "📕";
+        if (type.contains("doc"))
+            return "📘";
+        if (type.contains("xls"))
+            return "📊";
+        if (type.contains("ppt"))
+            return "📽️";
+        if (type.contains("jpg") || type.contains("png"))
+            return "🖼️";
+        if (type.contains("zip") || type.contains("rar"))
+            return "📦";
+        return "📄";
     }
 }
