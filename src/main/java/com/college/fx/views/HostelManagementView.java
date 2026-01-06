@@ -53,6 +53,7 @@ public class HostelManagementView {
     private TableView<HostelAllocation> allocationTable;
     private TableView<Hostel> hostelTable;
     private TableView<Room> roomTable;
+    private TableView<Student> hostelAttendanceTable;
 
     public HostelManagementView(String role, int userId) {
         this.role = role;
@@ -982,7 +983,7 @@ public class HostelManagementView {
             }
         }
 
-        TableView<Student> studentTable = new TableView<>();
+        hostelAttendanceTable = new TableView<>();
         ObservableList<Student> students = FXCollections.observableArrayList();
 
         for (HostelAllocation alloc : hostelAllocs) {
@@ -991,7 +992,7 @@ public class HostelManagementView {
                 students.add(s);
             }
         }
-        studentTable.setItems(students);
+        hostelAttendanceTable.setItems(students);
 
         TableColumn<Student, String> nameCol = new TableColumn<>("Student Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
@@ -1016,11 +1017,82 @@ public class HostelManagementView {
         });
         roomCol.setPrefWidth(100);
 
-        studentTable.getColumns().addAll(nameCol, enrollCol, roomCol);
-        VBox.setVgrow(studentTable, Priority.ALWAYS);
+        TableColumn<Student, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> {
+            // Need efficient lookup.
+            // Ideally we fetch a map once and use it.
+            // But cell factory runs on update.
+            // Let's rely on a property in the item or a map stored in the view.
 
-        tab.getChildren().addAll(header, studentTable);
+            // Allow storing status map in table user data or similar hack, OR better:
+            // Use a wrapper object in the table instead of raw Student.
+            // Converting Table<Student> to Table<HostelAttendanceViewModel> is a larger
+            // refactor.
+            // Quick approach: Fetch single record (cached if possible) or just show "-"
+            // until refresh.
+
+            // To be efficient: changing the table logic to load a Map<Integer, String>
+            // currentStatusMap
+            // into the userData of the table or a local variable if we rebuild.
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<Integer, String> statusMap = (java.util.Map<Integer, String>) hostelAttendanceTable
+                    .getProperties()
+                    .get("statusMap");
+            if (statusMap != null) {
+                String s = statusMap.getOrDefault(data.getValue().getId(), "NOT MARKED");
+                return new SimpleStringProperty(s);
+            }
+            return new SimpleStringProperty("-");
+        });
+        statusCol.setCellFactory(column -> new TableCell<Student, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if (item.equals("PRESENT")) {
+                        setStyle("-fx-text-fill: #22c55e; -fx-font-weight: bold;");
+                    } else if (item.equals("ABSENT")) {
+                        setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                    } else if (item.equals("LEAVE")) {
+                        setStyle("-fx-text-fill: #f59e0b; -fx-font-weight: bold;");
+                    } else if (item.equals("LATE")) {
+                        setStyle("-fx-text-fill: #8b5cf6; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #6b7280;");
+                    }
+                }
+            }
+        });
+        statusCol.setPrefWidth(120);
+
+        hostelAttendanceTable.getColumns().addAll(nameCol, enrollCol, roomCol, statusCol);
+        VBox.setVgrow(hostelAttendanceTable, Priority.ALWAYS);
+
+        // Initial Data Load with Status
+        refreshHostelAttendanceTable();
+
+        tab.getChildren().addAll(header, hostelAttendanceTable);
         return tab;
+    }
+
+    private void refreshHostelAttendanceTable() {
+        if (hostelAttendanceTable == null)
+            return;
+
+        // This runs on FX thread
+        // Fetch current attendance statuses
+        List<HostelAttendance> todayAtt = attendanceDAO.getAttendanceByDate(new java.util.Date());
+        java.util.Map<Integer, String> attMap = new java.util.HashMap<>();
+        for (HostelAttendance ha : todayAtt) {
+            attMap.put(ha.getStudentId(), ha.getStatus());
+        }
+        hostelAttendanceTable.getProperties().put("statusMap", attMap);
+        hostelAttendanceTable.refresh();
     }
 
     private void showMarkHostelAttendanceDialog() {
@@ -1218,9 +1290,10 @@ public class HostelManagementView {
             if (attendanceDAO.markAttendance(ha)) {
                 showAlert("Success", "Attendance Marked: " + ha.getStatus());
                 // remarks.clear(); // Keep attributes visible as per "show marked attendance"
-                // request
                 // Refresh logic to show current state (which is what we just saved)
                 checkExisting.run();
+                // Refresh the main table to show updated status immediately
+                refreshHostelAttendanceTable();
             } else {
                 showAlert("Error", "Failed to mark.");
             }

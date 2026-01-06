@@ -144,4 +144,39 @@ public class HostelAttendanceDAO {
         }
         return null;
     }
+
+    /**
+     * Get all attendance records for a specific date (all hostels)
+     */
+    public List<HostelAttendance> getAttendanceByDate(java.util.Date date) {
+        List<HostelAttendance> records = new ArrayList<>();
+        String sql = "SELECT ha.*, s.name as student_name, u.username as enrollment_id FROM hostel_attendance ha " +
+                "JOIN students s ON ha.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "WHERE ha.date = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setDate(1, new java.sql.Date(date.getTime()));
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                HostelAttendance ha = new HostelAttendance();
+                ha.setId(rs.getInt("id"));
+                ha.setStudentId(rs.getInt("student_id"));
+                ha.setHostelId(rs.getInt("hostel_id"));
+                ha.setDate(rs.getDate("date"));
+                ha.setStatus(rs.getString("status"));
+                ha.setRemarks(rs.getString("remarks"));
+                ha.setMarkedBy(rs.getInt("marked_by"));
+                ha.setStudentName(rs.getString("student_name"));
+                ha.setEnrollmentId(rs.getString("enrollment_id"));
+                records.add(ha);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching all hostel attendance", e);
+        }
+        return records;
+    }
 }
