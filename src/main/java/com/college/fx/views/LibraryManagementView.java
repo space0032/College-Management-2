@@ -48,6 +48,10 @@ public class LibraryManagementView {
     private TableView<BookRequest> requestTable;
     private ObservableList<BookRequest> requestData;
 
+    // Review Requests Tab (for Librarian/Admin)
+    private TableView<BookRequest> reviewTable;
+    private ObservableList<BookRequest> reviewData;
+
     private LibraryDAO libraryDAO;
     private BookIssueDAO bookIssueDAO;
     private BookRequestDAO bookRequestDAO;
@@ -68,6 +72,7 @@ public class LibraryManagementView {
         this.bookData = FXCollections.observableArrayList();
         this.issuedData = FXCollections.observableArrayList();
         this.requestData = FXCollections.observableArrayList();
+        this.reviewData = FXCollections.observableArrayList();
 
         createView();
         refreshData();
@@ -105,6 +110,13 @@ public class LibraryManagementView {
             tabPane.getTabs().add(requestsTab);
         }
 
+        if (SessionManager.getInstance().hasPermission("MANAGE_LIBRARY")) {
+            // 4. Review Requests Tab (Librarian)
+            Tab reviewTab = new Tab("Review Requests");
+            reviewTab.setContent(createReviewRequestsTab());
+            tabPane.getTabs().add(reviewTab);
+        }
+
         root.getChildren().addAll(title, tabPane);
     }
 
@@ -113,6 +125,9 @@ public class LibraryManagementView {
         if ("STUDENT".equals(role)) {
             loadIssuedBooks();
             loadRequests();
+        }
+        if (SessionManager.getInstance().hasPermission("MANAGE_LIBRARY")) {
+            loadPendingRequests();
         }
     }
 
@@ -276,8 +291,99 @@ public class LibraryManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadRequests());
 
+        refreshBtn.setOnAction(e -> loadRequests());
+
         content.getChildren().addAll(requestTable, refreshBtn);
         return content;
+    }
+
+    // --- Review Requests Tab (Librarian) ---
+
+    private VBox createReviewRequestsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(10));
+
+        reviewTable = new TableView<>();
+        reviewTable.setItems(reviewData);
+
+        TableColumn<BookRequest, String> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
+        idCol.setPrefWidth(50);
+
+        TableColumn<BookRequest, String> studentCol = new TableColumn<>("Student");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
+        studentCol.setPrefWidth(150);
+
+        TableColumn<BookRequest, String> bookCol = new TableColumn<>("Book Title");
+        bookCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBookTitle()));
+        bookCol.setPrefWidth(200);
+
+        TableColumn<BookRequest, String> dateCol = new TableColumn<>("Request Date");
+        dateCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRequestDate().toString()));
+
+        TableColumn<BookRequest, String> remarksCol = new TableColumn<>("Remarks");
+        remarksCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRemarks()));
+
+        TableColumn<BookRequest, Void> actionCol = new TableColumn<>("Action");
+        actionCol.setPrefWidth(200);
+        actionCol.setCellFactory(param -> new TableCell<>() {
+            private final Button approveBtn = new Button("Approve");
+            private final Button rejectBtn = new Button("Reject");
+            {
+                approveBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-cursor: hand;");
+                rejectBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand;");
+
+                approveBtn.setOnAction(event -> handleApprove(getTableView().getItems().get(getIndex())));
+                rejectBtn.setOnAction(event -> handleReject(getTableView().getItems().get(getIndex())));
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    HBox pane = new HBox(10, approveBtn, rejectBtn);
+                    pane.setAlignment(Pos.CENTER);
+                    setGraphic(pane);
+                }
+            }
+        });
+
+        reviewTable.getColumns().addAll(idCol, studentCol, bookCol, dateCol, remarksCol, actionCol);
+        VBox.setVgrow(reviewTable, Priority.ALWAYS);
+
+        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        refreshBtn.setOnAction(e -> loadPendingRequests());
+
+        content.getChildren().addAll(reviewTable, refreshBtn);
+        return content;
+    }
+
+    private void handleApprove(BookRequest req) {
+        if (bookRequestDAO.approveRequest(req.getId(), userId)) {
+            showAlert("Success", "Request Approved! Book Issued.");
+            loadPendingRequests();
+            loadBooks(); // refresh availability
+        } else {
+            showAlert("Error", "Failed to approve. Book might be out of stock.");
+        }
+    }
+
+    private void handleReject(BookRequest req) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Reject Request");
+        dialog.setHeaderText("Rejecting Request for: " + req.getBookTitle());
+        dialog.setContentText("Reason for Rejection:");
+
+        dialog.showAndWait().ifPresent(reason -> {
+            if (bookRequestDAO.rejectRequest(req.getId(), userId, reason)) {
+                showAlert("Success", "Request Rejected.");
+                loadPendingRequests();
+            } else {
+                showAlert("Error", "Failed to reject request.");
+            }
+        });
     }
 
     // --- Data Loaders ---
@@ -305,6 +411,13 @@ public class LibraryManagementView {
             requestData.clear();
             requestData.addAll(bookRequestDAO.getRequestsByStudent(s.getId()));
         }
+    }
+
+    private void loadPendingRequests() {
+        if (!SessionManager.getInstance().hasPermission("MANAGE_LIBRARY"))
+            return;
+        reviewData.clear();
+        reviewData.addAll(bookRequestDAO.getPendingRequests());
     }
 
     private void searchBooks() {
