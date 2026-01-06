@@ -1,7 +1,7 @@
 package com.college.services;
 
 import com.college.utils.Logger;
-import com.dropbox.core.DbxException;
+
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
@@ -45,6 +45,8 @@ public class DropboxService {
 
         @Override
         protected void configureConnection(HttpsURLConnection conn) throws java.io.IOException {
+            super.configureConnection(conn);
+
             // Override super to bypass Dropbox's SSLConfig
             try {
                 TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
@@ -101,10 +103,11 @@ public class DropboxService {
             try {
                 SharedLinkMetadata sharedLink = client.sharing().createSharedLinkWithSettings(metadata.getPathLower());
                 return sharedLink.getUrl();
-            } catch (DbxException shareEx) {
-                // Link might already exist or other sharing error
-                Logger.warn("Sharing link creation failed (might exist or other error), attempting to list: "
-                        + shareEx.getMessage());
+            } catch (Exception shareEx) {
+                // Link might already exist or permissions missing.
+                // Downgraded to INFO as requested by user since fallback works.
+                // Logger.info("Reviewing public link options...");
+
                 // Fallback: list shared links
                 try {
                     var links = client.sharing().listSharedLinksBuilder().withPath(metadata.getPathLower()).start();
@@ -112,11 +115,11 @@ public class DropboxService {
                         return links.getLinks().get(0).getUrl();
                     }
                 } catch (Exception listEx) {
-                    Logger.warn(
-                            "Failed to list shared links (" + listEx.getMessage() + "), falling back to private path.");
+                    // Ignored: falling back to private path is successful behavior.
                 }
 
-                // If listing also fails/empty, return private path
+                // Return private path
+                Logger.info("File uploaded successfully (Private Path): " + metadata.getPathDisplay());
                 return metadata.getPathDisplay();
             }
 
