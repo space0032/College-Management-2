@@ -1304,7 +1304,17 @@ public class HostelManagementView {
                 showAlert("Error", "No hostel assigned.");
                 return;
             }
+            if (datePicker.getValue() == null) {
+                showAlert("Error", "Select date first.");
+                return;
+            }
+
             records.clear();
+            Date selectedDate = Date.from(datePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+            // Fetch existing attendance for this date
+            List<HostelAttendance> existingList = attendanceDAO.getAttendanceByDateAndHostel(selectedDate,
+                    warden.getHostelId());
 
             // Fetch all students in this hostel with room numbers
             List<HostelAllocation> allAllocs = hostelDAO.getAllActiveAllocations();
@@ -1316,11 +1326,27 @@ public class HostelManagementView {
                 if (r != null && r.getHostelId() == warden.getHostelId()) {
                     Student s = studentDAO.getStudentById(alloc.getStudentId());
                     if (s != null) {
-                        records.add(new BulkHostelRecord(s.getId(), s.getName(), s.getUsername(), r.getRoomNumber()));
+                        BulkHostelRecord record = new BulkHostelRecord(s.getId(), s.getName(), s.getUsername(),
+                                r.getRoomNumber());
+
+                        // Check if already marked
+                        HostelAttendance existing = existingList.stream()
+                                .filter(ha -> ha.getStudentId() == s.getId())
+                                .findFirst().orElse(null);
+
+                        if (existing != null) {
+                            record.status = existing.getStatus();
+                            record.isExisting = true; // Flag for UI indication if needed
+                        } else {
+                            record.status = "PRESENT"; // Default
+                            record.isExisting = false;
+                        }
+
+                        records.add(record);
                     }
                 }
             }
-            // Sort by room
+            // Sort by room -> Numeric sort
             records.sort((a, b) -> {
                 try {
                     return Integer.compare(Integer.parseInt(a.roomNumber), Integer.parseInt(b.roomNumber));
@@ -1328,6 +1354,14 @@ public class HostelManagementView {
                     return a.roomNumber.compareTo(b.roomNumber);
                 }
             });
+
+            if (!records.isEmpty()) {
+                long markedCount = records.stream().filter(r -> r.isExisting).count();
+                if (markedCount > 0) {
+                    showAlert("Info", "Loaded " + records.size() + " students. " + markedCount
+                            + " already marked for this date.");
+                }
+            }
         });
 
         Button saveBtn = createButton("Save Attendance", "#22c55e");
@@ -1366,6 +1400,7 @@ public class HostelManagementView {
         String enrollmentId;
         String roomNumber;
         String status = "PRESENT";
+        boolean isExisting = false;
 
         public BulkHostelRecord(int sid, String name, String eid, String rno) {
             this.studentId = sid;
