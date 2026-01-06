@@ -6,8 +6,14 @@ import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.sharing.SharedLinkMetadata;
+import com.dropbox.core.http.StandardHttpRequestor;
 
 import java.io.InputStream;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class DropboxService {
 
@@ -24,8 +30,42 @@ public class DropboxService {
             Logger.error("DROPBOX_ACCESS_TOKEN not set and no hardcoded fallback available.");
             this.client = null;
         } else {
-            DbxRequestConfig config = DbxRequestConfig.newBuilder("college-management-system").build();
+            // Use custom UnsafeHttpRequestor to bypass SSL pinning
+            DbxRequestConfig config = DbxRequestConfig.newBuilder("college-management-system")
+                    .withHttpRequestor(new UnsafeHttpRequestor())
+                    .build();
             this.client = new DbxClientV2(config, token);
+        }
+    }
+
+    private static class UnsafeHttpRequestor extends StandardHttpRequestor {
+        public UnsafeHttpRequestor() {
+            super(StandardHttpRequestor.Config.DEFAULT_INSTANCE);
+        }
+
+        @Override
+        protected void configureConnection(HttpsURLConnection conn) throws java.io.IOException {
+            // Override super to bypass Dropbox's SSLConfig
+            try {
+                TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+                } };
+
+                SSLContext sc = SSLContext.getInstance("TLS");
+                sc.init(null, trustAllCerts, new java.security.SecureRandom());
+                conn.setSSLSocketFactory(sc.getSocketFactory());
+                conn.setHostnameVerifier((hostname, session) -> true);
+            } catch (Exception e) {
+                Logger.error("Failed to setup unsafe SSL: " + e.getMessage());
+            }
         }
     }
 
