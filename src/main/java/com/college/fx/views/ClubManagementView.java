@@ -30,10 +30,12 @@ public class ClubManagementView {
     private StudentDAO studentDAO;
     private FacultyDAO facultyDAO;
 
+    private int currentUserId;
     private ObservableList<Club> clubsData;
     private TableView<Club> clubsTable;
 
     public ClubManagementView(int userId) {
+        this.currentUserId = userId;
         this.clubDAO = new ClubDAO();
         this.studentDAO = new StudentDAO();
         this.facultyDAO = new FacultyDAO();
@@ -120,16 +122,20 @@ public class ClubManagementView {
         statusCol.setPrefWidth(100);
 
         TableColumn<Club, Void> actionCol = new TableColumn<>("Actions");
+        actionCol.setPrefWidth(440);
+
         actionCol.setCellFactory(param -> new TableCell<>() {
             private final Button editBtn = new Button("Edit");
             private final Button membersBtn = new Button("Members");
             private final Button approveBtn = new Button("Approvals");
+            private final Button announceBtn = new Button("Announce");
             private final Button deleteBtn = new Button("Delete");
 
             {
                 editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-padding: 5 10;");
                 membersBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-padding: 5 10;");
                 approveBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-padding: 5 10;");
+                announceBtn.setStyle("-fx-background-color: #0d9488; -fx-text-fill: white; -fx-padding: 5 10;");
                 deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-padding: 5 10;");
 
                 editBtn.setOnAction(e -> {
@@ -147,6 +153,11 @@ public class ClubManagementView {
                     showPendingApprovalsDialog(club);
                 });
 
+                announceBtn.setOnAction(e -> {
+                    Club club = getTableView().getItems().get(getIndex());
+                    showAnnouncementsDialog(club);
+                });
+
                 deleteBtn.setOnAction(e -> {
                     Club club = getTableView().getItems().get(getIndex());
                     deleteClub(club);
@@ -159,12 +170,11 @@ public class ClubManagementView {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    HBox buttons = new HBox(5, editBtn, membersBtn, approveBtn, deleteBtn);
+                    HBox buttons = new HBox(5, editBtn, membersBtn, approveBtn, announceBtn, deleteBtn);
                     setGraphic(buttons);
                 }
             }
         });
-        actionCol.setPrefWidth(340);
 
         clubsTable.getColumns().addAll(nameCol, categoryCol, presidentCol, coordinatorCol, membersCol, statusCol,
                 actionCol);
@@ -485,6 +495,119 @@ public class ClubManagementView {
 
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
+    }
+
+    private void showAnnouncementsDialog(Club club) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Club Announcements");
+        dialog.setHeaderText("Announcements by " + club.getName());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(600);
+        content.setPrefHeight(500);
+
+        // Post new announcement area
+        VBox newPostBox = new VBox(10);
+        newPostBox.setStyle(
+                "-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e2e8f0;");
+
+        Label postLabel = new Label("Post New Announcement");
+        postLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+
+        TextField titleField = new TextField();
+        titleField.setPromptText("Title");
+
+        TextArea contentArea = new TextArea();
+        contentArea.setPromptText("Write your announcement here...");
+        contentArea.setPrefRowCount(3);
+
+        Button postBtn = createButton("Post", "#22c55e");
+        postBtn.setOnAction(e -> {
+            String title = titleField.getText();
+            String body = contentArea.getText();
+            if (title.isEmpty() || body.isEmpty()) {
+                showAlert(Alert.AlertType.ERROR, "Error", "Title and content are required.");
+                return;
+            }
+
+            com.college.models.ClubAnnouncement ann = new com.college.models.ClubAnnouncement();
+            ann.setClubId(club.getId());
+            ann.setTitle(title);
+            ann.setContent(body);
+            // Assuming current user is posting (need to pass current userId to View or
+            // fetch from session)
+            // For now, let's use the ID passed to this View's constructor, presuming it's
+            // the logged-in user.
+            // Oh wait, `userId` is not stored as a field in this class except implicitly
+            // via constructor arg.
+            // I need to add `private int currentUserId;` to the class. Let's fix that.
+            // Actually, I can use SessionManager.getInstance().getCurrentUser().getId() if
+            // available,
+            // or I should prompt the user content fix to store it.
+            // Looking at `ClubManagementView` constructor: `public ClubManagementView(int
+            // userId)`
+            // I should store this userId.
+            ann.setPostedBy(currentUserId);
+
+            com.college.dao.ClubAnnouncementDAO annDAO = new com.college.dao.ClubAnnouncementDAO();
+            if (annDAO.createAnnouncement(ann)) {
+                titleField.clear();
+                contentArea.clear();
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Announcement posted!");
+                // Refresh list
+                loadAnnouncements(club, (VBox) content.getChildren().get(1)); // Hacky, better separate method
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to post announcement.");
+            }
+        });
+
+        newPostBox.getChildren().addAll(postLabel, titleField, contentArea, postBtn);
+
+        // List area
+        VBox listArea = new VBox(10);
+        ScrollPane scroll = new ScrollPane(listArea);
+        scroll.setFitToWidth(true);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        // Initial load
+        loadAnnouncements(club, listArea);
+
+        content.getChildren().addAll(newPostBox, new Separator(), scroll);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
+
+    private void loadAnnouncements(Club club, VBox container) {
+        container.getChildren().clear();
+        com.college.dao.ClubAnnouncementDAO dao = new com.college.dao.ClubAnnouncementDAO();
+        List<com.college.models.ClubAnnouncement> list = dao.getAnnouncementsByClub(club.getId());
+
+        if (list.isEmpty()) {
+            Label placeholder = new Label("No announcements yet.");
+            placeholder.setTextFill(Color.GRAY);
+            container.getChildren().add(placeholder);
+        } else {
+            for (com.college.models.ClubAnnouncement a : list) {
+                VBox card = new VBox(5);
+                card.setStyle(
+                        "-fx-background-color: white; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #cbd5e1;");
+
+                Label title = new Label(a.getTitle());
+                title.setFont(Font.font("System", FontWeight.BOLD, 14));
+
+                Label meta = new Label("Posted by " + a.getPosterName() + " on " + a.getPostedAt());
+                meta.setFont(Font.font("System", 10));
+                meta.setTextFill(Color.GRAY);
+
+                Label body = new Label(a.getContent());
+                body.setWrapText(true);
+
+                card.getChildren().addAll(title, meta, body);
+                container.getChildren().add(card);
+            }
+        }
     }
 
     private void removeMember(Club club, ClubMembership membership) {

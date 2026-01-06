@@ -22,7 +22,11 @@ import com.college.models.Course;
 // Already there but safe to include if targeted
 
 import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.stage.FileChooser;
+import java.io.File;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * JavaFX Grades View
@@ -181,6 +185,10 @@ public class GradesView {
             bulkGradeBtn.setOnAction(e -> showBulkGradeDialog());
 
             section.getChildren().addAll(addGradeBtn, bulkGradeBtn);
+
+            Button importBtn = createButton("Import CSV", "#8b5cf6");
+            importBtn.setOnAction(e -> showImportDialog());
+            section.getChildren().add(importBtn);
         }
 
         Button exportBtn = createButton("Export Report", "#64748b");
@@ -460,6 +468,76 @@ public class GradesView {
         });
 
         dialog.showAndWait();
+    }
+
+    private void showImportDialog() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Grades CSV File");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File file = fileChooser.showOpenDialog(root.getScene().getWindow());
+
+        if (file != null) {
+            try {
+                List<String> lines = Files.readAllLines(file.toPath());
+                int success = 0;
+                int fail = 0;
+
+                // Expected format: student_id, course_id, exam_type, marks, max_marks
+                for (String line : lines) {
+                    if (line.trim().isEmpty() || line.startsWith("student_id"))
+                        continue; // Skip header/empty
+
+                    try {
+                        String[] parts = line.split(",");
+                        if (parts.length < 5)
+                            throw new Exception("Invalid format");
+
+                        int sid = Integer.parseInt(parts[0].trim());
+                        int cid = Integer.parseInt(parts[1].trim());
+                        String type = parts[2].trim();
+                        double marks = Double.parseDouble(parts[3].trim());
+                        double max = Double.parseDouble(parts[4].trim());
+
+                        Grade g = new Grade();
+                        g.setStudentId(sid);
+                        g.setCourseId(cid);
+                        g.setExamType(type);
+                        g.setMarksObtained(marks);
+                        g.setMaxMarks(max);
+
+                        // Calculate percentage/grade
+                        double p = (marks / max) * 100;
+                        g.setPercentage(p);
+                        String l = "F";
+                        if (p >= 90)
+                            l = "A+";
+                        else if (p >= 80)
+                            l = "A";
+                        else if (p >= 70)
+                            l = "B";
+                        else if (p >= 60)
+                            l = "C";
+                        else if (p >= 50)
+                            l = "D";
+                        g.setGrade(l);
+
+                        if (gradeDAO.saveGrade(g)) {
+                            success++;
+                        } else {
+                            fail++;
+                        }
+                    } catch (Exception e) {
+                        fail++;
+                    }
+                }
+
+                showAlert("Import Result", "Successfully imported: " + success + "\nFailed: " + fail);
+                loadGrades();
+
+            } catch (Exception e) {
+                showAlert("Error", "Failed to read file: " + e.getMessage());
+            }
+        }
     }
 
     private static class BulkGradeRecord {

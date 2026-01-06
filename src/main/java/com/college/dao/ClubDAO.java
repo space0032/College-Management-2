@@ -374,6 +374,38 @@ public class ClubDAO {
         return clubs;
     }
 
+    public List<ClubMembership> getMyMemberships(int studentId) {
+        List<ClubMembership> memberships = new ArrayList<>();
+        String sql = "SELECT cm.*, c.name as club_name, s.name as student_name " +
+                "FROM club_memberships cm " +
+                "JOIN clubs c ON cm.club_id = c.id " +
+                "JOIN students s ON cm.student_id = s.id " +
+                "WHERE cm.student_id = ? " +
+                "ORDER BY cm.joined_at DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                ClubMembership membership = new ClubMembership();
+                membership.setId(rs.getInt("id"));
+                membership.setClubId(rs.getInt("club_id"));
+                membership.setStudentId(rs.getInt("student_id"));
+                membership.setRole(rs.getString("role"));
+                membership.setStatus(rs.getString("status"));
+                membership.setJoinedAt(rs.getTimestamp("joined_at"));
+                membership.setClubName(rs.getString("club_name"));
+                membership.setStudentName(rs.getString("student_name"));
+                memberships.add(membership);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching my memberships: " + e.getMessage());
+        }
+        return memberships;
+    }
+
     private Club extractClub(ResultSet rs) throws SQLException {
         Club club = new Club();
         club.setId(rs.getInt("id"));

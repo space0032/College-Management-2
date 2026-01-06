@@ -29,8 +29,10 @@ public class ClubsView {
 
     private ObservableList<Club> allClubsData;
     private ObservableList<Club> myClubsData;
+    private ObservableList<ClubMembership> myApplicationsData;
     private TableView<Club> allClubsTable;
     private TableView<Club> myClubsTable;
+    private TableView<ClubMembership> myApplicationsTable;
     private ComboBox<String> filterCombo;
 
     public ClubsView(int userId) {
@@ -39,6 +41,7 @@ public class ClubsView {
         this.currentStudent = studentDAO.getStudentByUserId(userId);
         this.allClubsData = FXCollections.observableArrayList();
         this.myClubsData = FXCollections.observableArrayList();
+        this.myApplicationsData = FXCollections.observableArrayList();
 
         createView();
         loadData();
@@ -62,7 +65,10 @@ public class ClubsView {
         Tab myClubsTab = new Tab("My Clubs");
         myClubsTab.setContent(createMyClubsTab());
 
-        tabPane.getTabs().addAll(browseTab, myClubsTab);
+        Tab applicationsTab = new Tab("My Applications");
+        applicationsTab.setContent(createApplicationsTab());
+
+        tabPane.getTabs().addAll(browseTab, myClubsTab, applicationsTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(header, tabPane);
@@ -248,6 +254,7 @@ public class ClubsView {
             // Add "Leave" button for my clubs
             TableColumn<Club, Void> leaveCol = new TableColumn<>("Actions");
             leaveCol.setCellFactory(param -> new TableCell<>() {
+
                 private final Button leaveBtn = new Button("Leave");
 
                 {
@@ -267,9 +274,80 @@ public class ClubsView {
             });
             leaveCol.setPrefWidth(100);
             table.getColumns().add(leaveCol);
+
+            TableColumn<Club, Void> announceCol = new TableColumn<>("Announcements");
+            announceCol.setCellFactory(param -> new TableCell<>() {
+                private final Button viewBtn = new Button("View");
+                {
+                    viewBtn.setStyle("-fx-background-color: #0d9488; -fx-text-fill: white; -fx-padding: 5 15;");
+                    viewBtn.setOnAction(e -> {
+                        Club club = getTableView().getItems().get(getIndex());
+                        showAnnouncementsDialog(club);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : viewBtn);
+                }
+            });
+            announceCol.setPrefWidth(140);
+            table.getColumns().add(announceCol);
         }
 
         return table;
+    }
+
+    private VBox createApplicationsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
+
+        myApplicationsTable = new TableView<>();
+        myApplicationsTable.setItems(myApplicationsData);
+        myApplicationsTable.setPlaceholder(new Label("No applications found."));
+        VBox.setVgrow(myApplicationsTable, Priority.ALWAYS);
+
+        TableColumn<ClubMembership, String> clubCol = new TableColumn<>("Club Name");
+        clubCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getClubName()));
+        clubCol.setPrefWidth(200);
+
+        TableColumn<ClubMembership, String> roleCol = new TableColumn<>("Role");
+        roleCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRole()));
+        roleCol.setPrefWidth(150);
+
+        TableColumn<ClubMembership, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setCellFactory(column -> new TableCell<ClubMembership, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if (item.equals("APPROVED")) {
+                        setStyle("-fx-text-fill: #16a34a; -fx-font-weight: bold;");
+                    } else if (item.equals("REJECTED")) {
+                        setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #d97706; -fx-font-weight: bold;");
+                    }
+                }
+            }
+        });
+        statusCol.setPrefWidth(120);
+
+        TableColumn<ClubMembership, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(data -> new SimpleStringProperty(
+                new java.text.SimpleDateFormat("MMM dd, yyyy").format(data.getValue().getJoinedAt())));
+        dateCol.setPrefWidth(150);
+
+        myApplicationsTable.getColumns().addAll(clubCol, roleCol, statusCol, dateCol);
+        content.getChildren().add(myApplicationsTable);
+        return content;
     }
 
     private void loadData() {
@@ -281,6 +359,9 @@ public class ClubsView {
             List<Club> myClubs = clubDAO.getStudentClubs(currentStudent.getId());
             myClubsData.setAll(myClubs);
             myClubsTable.setItems(myClubsData);
+
+            List<ClubMembership> myApps = clubDAO.getMyMemberships(currentStudent.getId());
+            myApplicationsData.setAll(myApps);
         }
     }
 
@@ -432,6 +513,58 @@ public class ClubsView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void showAnnouncementsDialog(Club club) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Club Announcements");
+        dialog.setHeaderText("Announcements from " + club.getName());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setPrefWidth(500);
+        content.setPrefHeight(400);
+
+        ScrollPane scroll = new ScrollPane();
+        scroll.setFitToWidth(true);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        VBox listArea = new VBox(10);
+        scroll.setContent(listArea);
+
+        // Load announcements
+        com.college.dao.ClubAnnouncementDAO dao = new com.college.dao.ClubAnnouncementDAO();
+        List<com.college.models.ClubAnnouncement> list = dao.getAnnouncementsByClub(club.getId());
+
+        if (list.isEmpty()) {
+            Label placeholder = new Label("No active announcements.");
+            placeholder.setTextFill(Color.GRAY);
+            listArea.getChildren().add(placeholder);
+        } else {
+            for (com.college.models.ClubAnnouncement a : list) {
+                VBox card = new VBox(5);
+                card.setStyle(
+                        "-fx-background-color: white; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #cbd5e1;");
+
+                Label title = new Label(a.getTitle());
+                title.setFont(Font.font("System", FontWeight.BOLD, 14));
+
+                Label meta = new Label("Posted by " + a.getPosterName() + " on " + a.getPostedAt());
+                meta.setFont(Font.font("System", 10));
+                meta.setTextFill(Color.GRAY);
+
+                Label body = new Label(a.getContent());
+                body.setWrapText(true);
+
+                card.getChildren().addAll(title, meta, body);
+                listArea.getChildren().add(card);
+            }
+        }
+
+        content.getChildren().add(scroll);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
     }
 
     public VBox getView() {

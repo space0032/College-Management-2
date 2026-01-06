@@ -27,6 +27,8 @@ import java.util.List;
 public class EventManagementView {
     private VBox root;
     private EventDAO eventDAO;
+    private com.college.dao.EventDetailsDAO eventDetailsDAO;
+    private com.college.dao.DepartmentDAO departmentDAO;
     private int userId;
 
     private ObservableList<Event> eventsData;
@@ -35,6 +37,8 @@ public class EventManagementView {
     public EventManagementView(int userId) {
         this.userId = userId;
         this.eventDAO = new EventDAO();
+        this.eventDetailsDAO = new com.college.dao.EventDetailsDAO();
+        this.departmentDAO = new com.college.dao.DepartmentDAO();
         this.eventsData = FXCollections.observableArrayList();
 
         createView();
@@ -209,11 +213,33 @@ public class EventManagementView {
         dialog.setTitle("Edit Event");
         dialog.setHeaderText("Edit Event: " + event.getName());
 
-        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
+        ButtonType saveBtn = new ButtonType("Save Overview", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.setPrefWidth(700);
+        tabPane.setPrefHeight(600);
+
+        // Tab 1: Overview
+        Tab overviewTab = new Tab("Overview");
         GridPane grid = createEventForm(event);
-        dialog.getDialogPane().setContent(grid);
+        overviewTab.setContent(grid);
+
+        // Tab 2: Collaboration
+        Tab collabTab = new Tab("Collaboration");
+        collabTab.setContent(createCollaborationTab(event));
+
+        // Tab 3: Resources
+        Tab resourceTab = new Tab("Resources");
+        resourceTab.setContent(createResourcesTab(event));
+
+        // Tab 4: Volunteers
+        Tab volunteerTab = new Tab("Volunteers");
+        volunteerTab.setContent(createVolunteersTab(event));
+
+        tabPane.getTabs().addAll(overviewTab, collabTab, resourceTab, volunteerTab);
+        dialog.getDialogPane().setContent(tabPane);
 
         dialog.setResultConverter(btnType -> {
             if (btnType == saveBtn) {
@@ -230,6 +256,159 @@ public class EventManagementView {
                 showAlert(Alert.AlertType.ERROR, "Error", "Failed to update event.");
             }
         });
+    }
+
+    private VBox createCollaborationTab(Event event) {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        // Add Collaborator Section
+        HBox addBox = new HBox(10);
+        addBox.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<com.college.models.Department> deptCombo = new ComboBox<>();
+        deptCombo.setPromptText("Select Department");
+        deptCombo.setItems(FXCollections.observableArrayList(departmentDAO.getAllDepartments()));
+        // Display department name in ComboBox
+        deptCombo.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(com.college.models.Department object) {
+                return object != null ? object.getName() : "";
+            }
+
+            @Override
+            public com.college.models.Department fromString(String string) {
+                return null;
+            }
+        });
+
+        Button addBtn = new Button("Add Collaborator");
+        addBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;");
+
+        // List Section
+        TableView<com.college.models.EventCollaborator> table = new TableView<>();
+        TableColumn<com.college.models.EventCollaborator, String> deptCol = new TableColumn<>("Department");
+        deptCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDepartmentName()));
+        deptCol.setPrefWidth(200);
+
+        TableColumn<com.college.models.EventCollaborator, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setPrefWidth(120);
+
+        table.getColumns().addAll(deptCol, statusCol);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable loadCollaborators = () -> {
+            table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getCollaborators(event.getId())));
+        };
+        loadCollaborators.run();
+
+        addBtn.setOnAction(e -> {
+            com.college.models.Department dept = deptCombo.getValue();
+            if (dept != null) {
+                if (eventDetailsDAO.addCollaborator(event.getId(), dept.getId())) {
+                    loadCollaborators.run();
+                    deptCombo.getSelectionModel().clearSelection();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to add collaborator.");
+                }
+            }
+        });
+        addBox.getChildren().addAll(deptCombo, addBtn);
+
+        content.getChildren().addAll(new Label("Manage Event Collaborators"), addBox, table);
+        return content;
+    }
+
+    private VBox createResourcesTab(Event event) {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        // Add Resource Section
+        HBox addBox = new HBox(10);
+        addBox.setAlignment(Pos.CENTER_LEFT);
+
+        TextField resNameField = new TextField();
+        resNameField.setPromptText("Resource Name");
+
+        Spinner<Integer> qtySpinner = new Spinner<>(1, 100, 1);
+        qtySpinner.setPrefWidth(80);
+
+        Button addBtn = new Button("Request Resource");
+        addBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white;");
+
+        // List Section
+        TableView<com.college.models.EventResource> table = new TableView<>();
+        TableColumn<com.college.models.EventResource, String> nameCol = new TableColumn<>("Resource");
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getResourceName()));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<com.college.models.EventResource, String> qtyCol = new TableColumn<>("Quantity");
+        qtyCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getQuantity())));
+        qtyCol.setPrefWidth(100);
+
+        TableColumn<com.college.models.EventResource, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setPrefWidth(120);
+
+        table.getColumns().addAll(nameCol, qtyCol, statusCol);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable loadResources = () -> {
+            table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getResources(event.getId())));
+        };
+        loadResources.run();
+
+        addBtn.setOnAction(e -> {
+            String name = resNameField.getText();
+            if (!name.isEmpty()) {
+                com.college.models.EventResource res = new com.college.models.EventResource();
+                res.setEventId(event.getId());
+                res.setResourceName(name);
+                res.setQuantity(qtySpinner.getValue());
+
+                if (eventDetailsDAO.addResource(res)) {
+                    loadResources.run();
+                    resNameField.clear();
+                    qtySpinner.getValueFactory().setValue(1);
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to add resource.");
+                }
+            }
+        });
+        addBox.getChildren().addAll(resNameField, qtySpinner, addBtn);
+
+        content.getChildren().addAll(new Label("Manage Event Resources"), addBox, table);
+        return content;
+    }
+
+    private VBox createVolunteersTab(Event event) {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        // Note: Students usually volunteer themselves, but admins can assign?
+        // For now, let's just View volunteers and their tasks.
+
+        TableView<com.college.models.EventVolunteer> table = new TableView<>();
+        TableColumn<com.college.models.EventVolunteer, String> studentCol = new TableColumn<>("Student");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
+        studentCol.setPrefWidth(150);
+
+        TableColumn<com.college.models.EventVolunteer, String> taskCol = new TableColumn<>("Task");
+        taskCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTaskDescription()));
+        taskCol.setPrefWidth(200);
+
+        TableColumn<com.college.models.EventVolunteer, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setPrefWidth(100);
+
+        table.getColumns().addAll(studentCol, taskCol, statusCol);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getVolunteers(event.getId())));
+
+        content.getChildren().addAll(new Label("Registered Volunteers"), table);
+        return content;
     }
 
     private GridPane createEventForm(Event event) {

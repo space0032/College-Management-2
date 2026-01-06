@@ -10,6 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -24,6 +25,7 @@ import java.util.List;
 public class EventsView {
     private VBox root;
     private EventDAO eventDAO;
+    private com.college.dao.EventDetailsDAO eventDetailsDAO;
     private StudentDAO studentDAO;
     private Student currentStudent;
 
@@ -35,6 +37,7 @@ public class EventsView {
 
     public EventsView(int userId) {
         this.eventDAO = new EventDAO();
+        this.eventDetailsDAO = new com.college.dao.EventDetailsDAO();
         this.studentDAO = new StudentDAO();
         this.currentStudent = studentDAO.getStudentByUserId(userId);
         this.allEventsData = FXCollections.observableArrayList();
@@ -185,17 +188,25 @@ public class EventsView {
             TableColumn<Event, Void> actionCol = new TableColumn<>("Actions");
             actionCol.setCellFactory(param -> new TableCell<>() {
                 private final Button registerBtn = new Button("Register");
+                private final Button volunteerBtn = new Button("Volunteer");
                 private final Button viewBtn = new Button("View");
 
                 {
                     registerBtn.setStyle(
                             "-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5 15;");
+                    volunteerBtn.setStyle(
+                            "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5 15;");
                     viewBtn.setStyle(
                             "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5 15;");
 
                     registerBtn.setOnAction(e -> {
                         Event event = getTableView().getItems().get(getIndex());
                         registerForEvent(event);
+                    });
+
+                    volunteerBtn.setOnAction(e -> {
+                        Event event = getTableView().getItems().get(getIndex());
+                        showVolunteerDialog(event);
                     });
 
                     viewBtn.setOnAction(e -> {
@@ -211,6 +222,8 @@ public class EventsView {
                         setGraphic(null);
                     } else {
                         Event event = getTableView().getItems().get(getIndex());
+
+                        // Register Button Logic
                         if (currentStudent != null
                                 && eventDAO.isStudentRegistered(event.getId(), currentStudent.getId())) {
                             registerBtn.setText("Registered");
@@ -223,12 +236,26 @@ public class EventsView {
                                     "-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold;");
                         }
 
-                        HBox buttons = new HBox(5, viewBtn, registerBtn);
+                        // Volunteer Button Logic
+                        if (currentStudent != null) {
+                            if (eventDetailsDAO.isVolunteer(event.getId(), currentStudent.getId())) {
+                                volunteerBtn.setText("Volunteered");
+                                volunteerBtn.setDisable(true);
+                                volunteerBtn.setStyle("-fx-background-color: #94a3b8; -fx-text-fill: white;");
+                            } else {
+                                volunteerBtn.setText("Volunteer");
+                                volunteerBtn.setDisable(false);
+                                volunteerBtn.setStyle(
+                                        "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold;");
+                            }
+                        }
+
+                        HBox buttons = new HBox(5, viewBtn, registerBtn, volunteerBtn);
                         setGraphic(buttons);
                     }
                 }
             });
-            actionCol.setPrefWidth(180);
+            actionCol.setPrefWidth(280);
             table.getColumns().add(actionCol);
         }
 
@@ -296,6 +323,46 @@ public class EventsView {
                         "Failed to register. You may already be registered or the event is full.");
             }
         }
+    }
+
+    private void showVolunteerDialog(Event event) {
+        if (currentStudent == null) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Student profile not found.");
+            return;
+        }
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Volunteer for Event");
+        dialog.setHeaderText("Volunteer for " + event.getName());
+
+        ButtonType submitBtn = new ButtonType("Submit", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(20));
+
+        TextArea taskArea = new TextArea();
+        taskArea.setPromptText("Describe the task or role you'd like to help with...");
+        taskArea.setPrefRowCount(3);
+
+        content.getChildren().addAll(new Label("Proposed Task/Role:"), taskArea);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btnType -> {
+            if (btnType == submitBtn) {
+                return taskArea.getText();
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(task -> {
+            if (eventDetailsDAO.registerVolunteer(event.getId(), currentStudent.getId(), task)) {
+                showAlert(Alert.AlertType.INFORMATION, "Success", "You have signed up as a volunteer!");
+                loadData();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to sign up.");
+            }
+        });
     }
 
     private void showEventDetails(Event event) {

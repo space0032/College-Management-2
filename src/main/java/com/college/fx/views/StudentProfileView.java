@@ -3,7 +3,12 @@ package com.college.fx.views;
 import com.college.dao.StudentDAO;
 import com.college.models.Student;
 import com.college.services.TranscriptService;
+import com.college.models.Student;
+import com.college.services.TranscriptService;
 import com.college.models.Grade;
+import com.college.models.StudentFeedback;
+import com.college.dao.StudentFeedbackDAO;
+import com.college.utils.SessionManager;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -72,7 +77,10 @@ public class StudentProfileView {
         Tab extracurricularTab = new Tab("Extracurriculars");
         extracurricularTab.setContent(createExtracurricularTab());
 
-        tabPane.getTabs().addAll(personalTab, familyTab, academicTab, extracurricularTab);
+        Tab feedbackTab = new Tab("Feedback & Observations");
+        feedbackTab.setContent(createFeedbackTab());
+
+        tabPane.getTabs().addAll(personalTab, familyTab, academicTab, extracurricularTab, feedbackTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(header, tabPane);
@@ -292,6 +300,111 @@ public class StudentProfileView {
         });
 
         content.getChildren().addAll(new Label("Academic Summary"), summaryBox, new Separator(), printTranscriptBtn);
+        return content;
+    }
+
+    private VBox createFeedbackTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        StudentFeedbackDAO feedbackDAO = new StudentFeedbackDAO();
+        String currentRole = SessionManager.getInstance().isLoggedIn()
+                ? SessionManager.getInstance().getRole()
+                : "STUDENT";
+        int currentUserId = SessionManager.getInstance().isLoggedIn()
+                ? SessionManager.getInstance().getUserId()
+                : 0;
+        boolean canAdd = "FACULTY".equals(currentRole) || "ADMIN".equals(currentRole);
+
+        VBox feedbackList = new VBox(10);
+        Runnable refreshList = () -> {
+            feedbackList.getChildren().clear();
+            for (StudentFeedback sf : feedbackDAO.getFeedbackByStudent(student.getId())) {
+                if (sf.isPrivate() && !canAdd)
+                    continue; // Skip private if not faculty/admin
+
+                VBox card = new VBox(5);
+                card.setPadding(new Insets(10));
+                card.setStyle(
+                        "-fx-background-color: #f1f5f9; -fx-background-radius: 8; -fx-border-color: #e2e8f0; -fx-border-radius: 8;");
+
+                Label catLbl = new Label(sf.getCategory());
+                catLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 10px;");
+
+                Label textLbl = new Label(sf.getFeedbackText());
+                textLbl.setWrapText(true);
+
+                Label metaLbl = new Label("By " + sf.getFacultyName() + " on " + sf.getCreatedAt());
+                metaLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
+
+                if (sf.isPrivate()) {
+                    Label pvtLbl = new Label("PRIVATE");
+                    pvtLbl.setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold; -fx-font-size: 10px;");
+                    card.getChildren().add(pvtLbl);
+                }
+
+                card.getChildren().addAll(catLbl, textLbl, metaLbl);
+                feedbackList.getChildren().add(card);
+            }
+            if (feedbackList.getChildren().isEmpty()) {
+                feedbackList.getChildren().add(new Label("No feedback records found."));
+            }
+        };
+
+        if (canAdd) {
+            VBox addBox = new VBox(10);
+            addBox.setStyle("-fx-background-color: #eff6ff; -fx-padding: 15; -fx-background-radius: 8;");
+
+            Label title = new Label("Add Observation / Feedback");
+            title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+
+            TextArea textArea = new TextArea();
+            textArea.setPromptText("Enter your observation...");
+            textArea.setPrefRowCount(3);
+
+            ComboBox<String> catCombo = new ComboBox<>();
+            catCombo.getItems().addAll("Academic", "Behavioral", "Extracurricular", "General");
+            catCombo.setValue("General");
+
+            CheckBox pvtCheck = new CheckBox("Private (Visible only to Faculty/Admin)");
+            pvtCheck.setSelected(true); // Default private
+
+            Button submitBtn = new Button("Add Feedback");
+            submitBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
+
+            submitBtn.setOnAction(e -> {
+                String text = textArea.getText();
+                if (text.isEmpty())
+                    return;
+
+                StudentFeedback sf = new StudentFeedback();
+                sf.setStudentId(student.getId());
+                sf.setFacultyId(currentUserId);
+                sf.setFeedbackText(text);
+                sf.setCategory(catCombo.getValue());
+                sf.setPrivate(pvtCheck.isSelected());
+
+                if (feedbackDAO.addFeedback(sf)) {
+                    refreshList.run();
+                    textArea.clear();
+                    new Alert(Alert.AlertType.INFORMATION, "Feedback Added").show();
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "Failed to add feedback").show();
+                }
+            });
+
+            addBox.getChildren().addAll(title, textArea, new HBox(10, catCombo, pvtCheck), submitBtn);
+            content.getChildren().add(addBox);
+        }
+
+        refreshList.run();
+
+        ScrollPane scroll = new ScrollPane(feedbackList);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent;");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        content.getChildren().addAll(new Separator(), new Label("History"), scroll);
         return content;
     }
 
