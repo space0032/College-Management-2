@@ -385,7 +385,7 @@ public class EnhancedFeeDAO {
                         "JOIN fee_categories fc ON sf.category_id = fc.id ");
 
         if (keyword != null && !keyword.isEmpty()) {
-            sql.append("WHERE s.name LIKE ? OR fp.receipt_number LIKE ? OR u.username LIKE ? ");
+            sql.append("WHERE s.name ILIKE ? OR fp.receipt_number ILIKE ? OR u.username ILIKE ? ");
         }
 
         sql.append("ORDER BY fp.payment_date DESC");

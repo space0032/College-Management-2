@@ -42,11 +42,11 @@
             <version>2.0.1</version>
         </dependency>
 
-        <!-- MySQL Connector -->
+        <!-- PostgreSQL Driver for Supabase -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <version>8.0.33</version>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.6.0</version>
         </dependency>
         
         <!-- JUnit for Testing -->

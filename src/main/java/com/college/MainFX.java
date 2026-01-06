@@ -15,16 +15,21 @@ public class MainFX extends Application {
     private static Stage primaryStage;
 
     @Override
+    public void init() throws Exception {
+        com.college.utils.DatabaseMigrator.migrate();
+    }
+
+    @Override
     public void start(Stage stage) {
         primaryStage = stage;
-        
+
         // Apply AtlantaFX theme
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
-        
+
         // Create and show login screen
         LoginView loginView = new LoginView();
         Scene scene = new Scene(loginView.getView(), 1000, 650);
-        
+
         stage.setTitle("College Management System");
         stage.setScene(scene);
         stage.setMinWidth(900);

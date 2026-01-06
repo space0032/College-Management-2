@@ -194,7 +194,7 @@ public class AuditLogDAO {
      * Delete old logs (cleanup - keep last 6 months)
      */
     public static int deleteOldLogs(int daysToKeep) {
-        String sql = "DELETE FROM audit_logs WHERE timestamp < DATE_SUB(NOW(), INTERVAL ? DAY)";
+        String sql = "DELETE FROM audit_logs WHERE timestamp < NOW() - (INTERVAL '1 day' * ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

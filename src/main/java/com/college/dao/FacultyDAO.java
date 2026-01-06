@@ -176,7 +176,7 @@ public class FacultyDAO {
                 "FROM faculty f " +
                 "LEFT JOIN users u ON f.user_id = u.id " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
-                "WHERE f.name LIKE ? OR f.email LIKE ? ORDER BY f.name";
+                "WHERE f.name ILIKE ? OR f.email ILIKE ? ORDER BY f.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

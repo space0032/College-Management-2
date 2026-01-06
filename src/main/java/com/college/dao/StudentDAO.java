@@ -233,7 +233,7 @@ public class StudentDAO {
      */
     public List<Student> searchStudents(String keyword) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE s.name LIKE ? OR s.email LIKE ? OR u.username LIKE ? ORDER BY s.name";
+        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE s.name ILIKE ? OR s.email ILIKE ? OR u.username ILIKE ? ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -259,7 +259,7 @@ public class StudentDAO {
      */
     public List<Student> searchHostelStudents(String keyword) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE s.is_hostelite = true AND (s.name LIKE ? OR s.email LIKE ? OR u.username LIKE ?) ORDER BY s.name";
+        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE s.is_hostelite = true AND (s.name ILIKE ? OR s.email ILIKE ? OR u.username ILIKE ?) ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -364,7 +364,7 @@ public class StudentDAO {
     public int getCountByDepartmentAndYear(String deptCode, int year) {
         String sql = "SELECT COUNT(*) as count FROM students s " +
                 "JOIN users u ON s.user_id = u.id " +
-                "WHERE u.username LIKE ? AND YEAR(s.enrollment_date) = ?";
+                "WHERE u.username LIKE ? AND EXTRACT(YEAR FROM s.enrollment_date) = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

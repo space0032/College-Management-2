@@ -11,9 +11,9 @@ import java.sql.SQLException;
 public class DatabaseConnection {
 
     // Database credentials
-    private static String URL = "jdbc:mysql://localhost:3306/college_db";
-    private static String USERNAME = "root";
-    private static String PASSWORD = "";
+    private static String URL = "jdbc:postgresql://localhost:5432/college_db";
+    private static String USERNAME = "postgres";
+    private static String PASSWORD = "password";
 
     static {
         loadEnv();
@@ -70,13 +70,13 @@ public class DatabaseConnection {
      */
     public static Connection getConnection() {
         try {
-            // Load MySQL JDBC Driver
-            Class.forName("com.mysql.cj.jdbc.Driver");
+            // Load PostgreSQL JDBC Driver
+            Class.forName("org.postgresql.Driver");
 
             // Create new connection for each request
             return DriverManager.getConnection(URL, USERNAME, PASSWORD);
         } catch (ClassNotFoundException e) {
-            System.err.println("MySQL JDBC Driver not found: " + e.getMessage());
+            System.err.println("PostgreSQL JDBC Driver not found: " + e.getMessage());
         } catch (SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
         }

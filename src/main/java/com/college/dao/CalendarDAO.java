@@ -32,11 +32,11 @@ public class CalendarDAO {
         List<CalendarEvent> events = new ArrayList<>();
         // Fetch events for the specified month/year
         String sql = "SELECT id, title, event_date, event_type, description FROM calendar_events " +
-                "WHERE MONTH(event_date) = ? AND YEAR(event_date) = ? " +
+                "WHERE EXTRACT(MONTH FROM event_date) = ? AND EXTRACT(YEAR FROM event_date) = ? " +
                 "UNION ALL " +
-                "SELECT id, name as title, DATE(start_time) as event_date, 'EVENT' as event_type, description FROM events "
+                "SELECT id, name as title, CAST(start_time AS DATE) as event_date, 'EVENT' as event_type, description FROM events "
                 +
-                "WHERE MONTH(start_time) = ? AND YEAR(start_time) = ? " +
+                "WHERE EXTRACT(MONTH FROM start_time) = ? AND EXTRACT(YEAR FROM start_time) = ? " +
                 "ORDER BY event_date";
 
         try (Connection conn = DatabaseConnection.getConnection();

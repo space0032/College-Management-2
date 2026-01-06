@@ -205,7 +205,7 @@ public class LoginView {
 
     @SuppressWarnings("deprecation")
     private int authenticateUser(String username, String password) {
-        String sql = "SELECT id FROM users WHERE username=? AND password=?";
+        String sql = "SELECT id, password FROM users WHERE username=?";
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             if (conn == null) {
@@ -215,14 +215,14 @@ public class LoginView {
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, username);
-                pstmt.setString(2, com.college.utils.PasswordUtils.hashPasswordLegacy(password));
-                // We no longer check 'role' column since we want to allow Custom Roles to log
-                // in
-                // The Role is associated via role_id in users table (handled by SessionManager)
 
-                ResultSet rs = pstmt.executeQuery();
-                if (rs.next()) {
-                    return rs.getInt("id");
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        String storedHash = rs.getString("password");
+                        if (com.college.utils.PasswordUtils.verifyPassword(password, storedHash)) {
+                            return rs.getInt("id");
+                        }
+                    }
                 }
             }
             return 0;

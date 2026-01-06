@@ -126,7 +126,7 @@ public class DepartmentDAO {
      */
     public List<Department> searchDepartments(String query) {
         List<Department> departments = new ArrayList<>();
-        String sql = "SELECT * FROM departments WHERE name LIKE ? OR code LIKE ? ORDER BY name";
+        String sql = "SELECT * FROM departments WHERE name ILIKE ? OR code ILIKE ? ORDER BY name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
