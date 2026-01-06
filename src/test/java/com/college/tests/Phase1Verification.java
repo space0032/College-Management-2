@@ -170,7 +170,26 @@ public class Phase1Verification {
     }
 
     @Test
-    public void test02_RegisterForEvent() {
+    public void test02_EditEvent() {
+        Event event = eventDAO.getAllEvents().stream()
+                .filter(e -> e.getName().equals("P1 Test Event"))
+                .findFirst().orElse(null);
+        assertNotNull(event);
+
+        event.setLocation("New Auditorium");
+        event.setMaxParticipants(100);
+
+        assertTrue("Event update success", eventDAO.updateEvent(event));
+
+        Event updated = eventDAO.getAllEvents().stream()
+                .filter(e -> e.getId() == event.getId())
+                .findFirst().orElse(null);
+        assertEquals("New Auditorium", updated.getLocation());
+        assertEquals(Integer.valueOf(100), updated.getMaxParticipants());
+    }
+
+    @Test
+    public void test03_RegisterForEvent() {
         Event event = eventDAO.getAllEvents().stream()
                 .filter(e -> e.getName().equals("P1 Test Event"))
                 .findFirst().orElse(null);
@@ -182,7 +201,7 @@ public class Phase1Verification {
     }
 
     @Test
-    public void test03_MarkAttendance() {
+    public void test04_MarkAttendance() {
         Event event = eventDAO.getAllEvents().stream()
                 .filter(e -> e.getName().equals("P1 Test Event"))
                 .findFirst().orElse(null);
@@ -209,7 +228,7 @@ public class Phase1Verification {
     }
 
     @Test
-    public void test04_UnregisterEvent() {
+    public void test05_UnregisterEvent() {
         Event event = eventDAO.getAllEvents().stream()
                 .filter(e -> e.getName().equals("P1 Test Event"))
                 .findFirst().orElse(null);
@@ -219,10 +238,25 @@ public class Phase1Verification {
         assertFalse("Should not be registered", eventDAO.isStudentRegistered(event.getId(), studentProfileId));
     }
 
+    @Test
+    public void test06_DeleteEvent() {
+        Event event = eventDAO.getAllEvents().stream()
+                .filter(e -> e.getName().equals("P1 Test Event"))
+                .findFirst().orElse(null);
+        assertNotNull(event);
+
+        assertTrue("Delete event success", eventDAO.deleteEvent(event.getId()));
+
+        Event deleted = eventDAO.getAllEvents().stream()
+                .filter(e -> e.getId() == event.getId())
+                .findFirst().orElse(null);
+        assertNull("Event should be gone", deleted);
+    }
+
     // --- TEST SUITE 2: CLUB MANAGEMENT ---
 
     @Test
-    public void test05_CreateClub() {
+    public void test07_CreateClub() {
         Club club = new Club();
         club.setName("P1 Test Club");
         club.setDescription("Desc");
@@ -238,7 +272,23 @@ public class Phase1Verification {
     }
 
     @Test
-    public void test06_ClubJoinWorkflow() {
+    public void test08_EditClub() {
+        Club club = clubDAO.getAllClubs().stream()
+                .filter(c -> c.getName().equals("P1 Test Club"))
+                .findFirst().orElse(null);
+        assertNotNull(club);
+
+        club.setDescription("Updated Desc");
+        assertTrue("Club update success", clubDAO.updateClub(club));
+
+        Club updated = clubDAO.getAllClubs().stream()
+                .filter(c -> c.getId() == club.getId())
+                .findFirst().orElse(null);
+        assertEquals("Updated Desc", updated.getDescription());
+    }
+
+    @Test
+    public void test09_ClubJoinWorkflow() {
         Club club = clubDAO.getAllClubs().stream()
                 .filter(c -> c.getName().equals("P1 Test Club"))
                 .findFirst().orElse(null);
@@ -269,7 +319,7 @@ public class Phase1Verification {
     }
 
     @Test
-    public void test07_RemoveMember() {
+    public void test10_RemoveMember() {
         Club club = clubDAO.getAllClubs().stream()
                 .filter(c -> c.getName().equals("P1 Test Club"))
                 .findFirst().orElse(null);
@@ -280,5 +330,20 @@ public class Phase1Verification {
         List<ClubMembership> members = clubDAO.getClubMembers(club.getId());
         boolean exists = members.stream().anyMatch(m -> m.getStudentId() == studentProfileId);
         assertFalse("Member should be removed", exists);
+    }
+
+    @Test
+    public void test11_DeleteClub() {
+        Club club = clubDAO.getAllClubs().stream()
+                .filter(c -> c.getName().equals("P1 Test Club"))
+                .findFirst().orElse(null);
+        assertNotNull(club);
+
+        assertTrue("Delete club success", clubDAO.deleteClub(club.getId()));
+
+        Club deleted = clubDAO.getAllClubs().stream()
+                .filter(c -> c.getId() == club.getId())
+                .findFirst().orElse(null);
+        assertNull("Club should be gone", deleted);
     }
 }
