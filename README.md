@@ -34,6 +34,11 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
 - **Academic**: Attendance, Grades, Timetables, Assignments.
 - **Hostel**: Room allocation, Warden management, Gate Passes.
 - **Reports**: Visual analytics for Attendance, Fees, and Grades (with CSV export).
+- **Student Activities**: Manage and join Events & Clubs with approval workflows.
+- **Learning Portal**: Course syllabus management and digital learning resources (PDF, DOCX).
+- **AI & Intelligence**: 
+  - **Gemini AI**: Integrated chat assistant for instant support.
+  - **Smart Calendar**: Academic calendar with auto-holiday syncing.
 
 ---
 
@@ -98,7 +103,8 @@ This project follows security best practices:
 - Environment-based configuration
 - Secure credential management
 
-**See [SECURITY.md](SECURITY.md) for detailed security information and best practices.**
+**See [SECURITY.md](SECURITY.md) for detailed security information.**
+**See [PERMISSIONS.md](PERMISSIONS.md) for a guide to roles and access control.**
 
 ---
 
