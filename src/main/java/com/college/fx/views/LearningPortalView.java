@@ -1,6 +1,5 @@
 package com.college.fx.views;
 
-import com.college.dao.CourseDAO;
 import com.college.dao.LearningResourceDAO;
 import com.college.dao.StudentDAO;
 import com.college.dao.SyllabusDAO;
@@ -109,8 +108,29 @@ public class LearningPortalView {
             {
                 btn.setOnAction(e -> {
                     Syllabus s = getTableView().getItems().get(getIndex());
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "File: " + s.getFilePath());
-                    alert.show();
+                    String path = s.getFilePath();
+                    if (path != null && (path.startsWith("http") || path.startsWith("www"))) {
+                        com.college.MainFX.getHostServicesInstance().showDocument(path);
+                    } else if (path != null && path.startsWith("/")) {
+                        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+                        fileChooser.setTitle("Save File");
+                        fileChooser.setInitialFileName(path.substring(path.lastIndexOf("/") + 1));
+                        java.io.File dest = fileChooser.showSaveDialog(getTableView().getScene().getWindow());
+                        if (dest != null) {
+                            try {
+                                new com.college.services.FileUploadService().downloadFile(path, dest);
+                                Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                                        "File downloaded to: " + dest.getAbsolutePath());
+                                alert.show();
+                            } catch (Exception ex) {
+                                Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                alert.show();
+                            }
+                        }
+                    } else {
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        alert.show();
+                    }
                 });
             }
 
@@ -179,8 +199,29 @@ public class LearningPortalView {
                 btn.setOnAction(e -> {
                     LearningResource r = getTableView().getItems().get(getIndex());
                     resourceDAO.incrementDownloadCount(r.getId());
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "File: " + r.getFilePath());
-                    alert.show();
+                    String path = r.getFilePath();
+                    if (path != null && (path.startsWith("http") || path.startsWith("www"))) {
+                        com.college.MainFX.getHostServicesInstance().showDocument(path);
+                    } else if (path != null && path.startsWith("/")) {
+                        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+                        fileChooser.setTitle("Save File");
+                        fileChooser.setInitialFileName(path.substring(path.lastIndexOf("/") + 1));
+                        java.io.File dest = fileChooser.showSaveDialog(getTableView().getScene().getWindow());
+                        if (dest != null) {
+                            try {
+                                new com.college.services.FileUploadService().downloadFile(path, dest);
+                                Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                                        "File downloaded to: " + dest.getAbsolutePath());
+                                alert.show();
+                            } catch (Exception ex) {
+                                Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                alert.show();
+                            }
+                        }
+                    } else {
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        alert.show();
+                    }
                 });
             }
 

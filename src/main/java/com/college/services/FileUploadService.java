@@ -13,6 +13,8 @@ import java.util.UUID;
 
 public class FileUploadService {
 
+    private final DropboxService dropboxService;
+
     private static final String UPLOAD_DIR_SYLLABI = "uploads/syllabi";
     private static final String UPLOAD_DIR_RESOURCES = "uploads/resources";
 
@@ -25,6 +27,7 @@ public class FileUploadService {
     };
 
     public FileUploadService() {
+        this.dropboxService = new DropboxService();
         createDirectories();
     }
 
@@ -75,6 +78,17 @@ public class FileUploadService {
 
         // Generate safe unique filename
         String safeFilename = UUID.randomUUID().toString() + extension;
+
+        // Try Dropbox first
+        if (dropboxService.isConfigured()) {
+            String dropboxUrl = dropboxService.uploadFile(inputStream, safeFilename);
+            if (dropboxUrl != null) {
+                return dropboxUrl;
+            }
+            Logger.warn("Dropbox upload failed, falling back to local storage.");
+        }
+
+        // Fallback to local storage
         Path targetPath = Paths.get(targetDir, safeFilename);
 
         try {
@@ -109,5 +123,53 @@ public class FileUploadService {
             return file;
         }
         return null;
+    }
+
+    public void downloadFile(String path, java.io.File destination) throws java.io.IOException {
+        if (path == null)
+            return;
+
+        // Dropbox Private Path
+        if (path.startsWith("/")) {
+            try {
+                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
+                    dropboxService.downloadFile(path, fos);
+                }
+            } catch (Exception e) {
+                throw new java.io.IOException("Failed to download from Dropbox: " + e.getMessage(), e);
+            }
+        }
+        // Local File
+        else {
+            java.io.File source = new java.io.File(path);
+            if (!source.exists()) {
+                return;
+            }
+            java.nio.file.Files.copy(source.toPath(), destination.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    public void deleteFile(String path) {
+        if (path == null)
+            return;
+
+        try {
+            // Dropbox
+            if (path.startsWith("/")) {
+                dropboxService.deleteFile(path); // dropboxService is final initialized in ctor
+                Logger.info("Deleted file from Dropbox: " + path);
+            }
+            // Local
+            else {
+                java.io.File file = new File(path);
+                if (file.exists()) {
+                    file.delete();
+                    Logger.info("Deleted local file: " + path);
+                }
+            }
+        } catch (Exception e) {
+            Logger.warn("Failed to delete file (" + path + "): " + e.getMessage());
+        }
     }
 }

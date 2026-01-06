@@ -162,8 +162,29 @@ public class SyllabusManagementView {
                 downloadBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
                 downloadBtn.setOnAction(event -> {
                     Syllabus s = getTableView().getItems().get(getIndex());
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored at: " + s.getFilePath());
-                    alert.show();
+                    String path = s.getFilePath();
+                    if (path != null && (path.startsWith("http") || path.startsWith("www"))) {
+                        com.college.MainFX.getHostServicesInstance().showDocument(path);
+                    } else if (path != null && path.startsWith("/")) {
+                        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+                        fileChooser.setTitle("Save File");
+                        fileChooser.setInitialFileName(path.substring(path.lastIndexOf("/") + 1));
+                        java.io.File dest = fileChooser.showSaveDialog(getTableView().getScene().getWindow());
+                        if (dest != null) {
+                            try {
+                                fileUploadService.downloadFile(path, dest);
+                                Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                                        "File downloaded to: " + dest.getAbsolutePath());
+                                alert.show();
+                            } catch (Exception ex) {
+                                Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                alert.show();
+                            }
+                        }
+                    } else {
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        alert.show();
+                    }
                 });
             }
 
@@ -324,6 +345,7 @@ public class SyllabusManagementView {
     private void deleteSyllabus(Syllabus syllabus) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete syllabus version " + syllabus.getVersion() + "?");
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            fileUploadService.deleteFile(syllabus.getFilePath());
             syllabusDAO.deleteSyllabus(syllabus.getId());
             loadSyllabi();
         }

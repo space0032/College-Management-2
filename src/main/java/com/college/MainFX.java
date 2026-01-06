@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 public class MainFX extends Application {
 
     private static Stage primaryStage;
+    private static javafx.application.HostServices hostServices;
 
     @Override
     public void init() throws Exception {
@@ -22,6 +23,7 @@ public class MainFX extends Application {
     @Override
     public void start(Stage stage) {
         primaryStage = stage;
+        hostServices = getHostServices();
 
         // Apply AtlantaFX theme
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
@@ -39,6 +41,10 @@ public class MainFX extends Application {
 
     public static Stage getPrimaryStage() {
         return primaryStage;
+    }
+
+    public static javafx.application.HostServices getHostServicesInstance() {
+        return hostServices;
     }
 
     public static void main(String[] args) {
