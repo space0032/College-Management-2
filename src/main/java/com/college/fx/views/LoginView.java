@@ -162,8 +162,13 @@ public class LoginView {
         int userId = authenticateUser(username, password);
 
         if (userId > 0) {
-            // Initialize session with empty legacy role, will be populated from DB
-            SessionManager.getInstance().initSession(userId, username, "");
+            // Retrieve full user details including legacy role
+            com.college.dao.UserDAO userDAO = new com.college.dao.UserDAO();
+            com.college.models.User user = userDAO.getUserById(userId);
+            String legacyRole = (user != null && user.getRole() != null) ? user.getRole() : "";
+
+            // Initialize session with legacy role string
+            SessionManager.getInstance().initSession(userId, username, legacyRole);
 
             // Get the actual Role object from session to determine Portal
             com.college.models.Role userRole = SessionManager.getInstance().getUserRole();

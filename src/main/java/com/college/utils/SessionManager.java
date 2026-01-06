@@ -55,8 +55,21 @@ public class SessionManager {
         try {
             this.userRole = roleDAO.getRoleForUser(userId);
         } catch (Exception e) {
-            // RBAC tables may not exist yet
+            // RBAC tables may not exist yet or connection error
             this.userRole = null;
+        }
+
+        // Fallback for legacy users who have 'role' string but no 'role_id'
+        if (this.userRole == null && this.role != null && !this.role.isEmpty()) {
+            this.userRole = new Role();
+            this.userRole.setId(0); // Legacy ID
+            this.userRole.setCode(this.role);
+            this.userRole.setName(this.role);
+            this.userRole.setPortalType(this.role);
+            this.userRole.setSystemRole(true);
+
+            // Log this fallback
+            System.out.println("Using legacy role fallback for user: " + username + " -> " + role);
         }
     }
 

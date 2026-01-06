@@ -16,13 +16,33 @@ public class EnrollmentGenerator {
     public static String generateStudentEnrollment(String department) {
         String deptCode = getDepartmentCode(department);
         int year = Calendar.getInstance().get(Calendar.YEAR);
+        String prefix = deptCode + year;
 
-        // Get next sequence number from database
-        StudentDAO studentDAO = new StudentDAO();
-        int count = studentDAO.getCountByDepartmentAndYear(deptCode, year);
+        try (java.sql.Connection conn = DatabaseConnection.getConnection();
+                java.sql.Statement stmt = conn.createStatement()) {
 
-        String seqNum = String.format("%03d", count + 1);
-        return deptCode + year + seqNum;
+            // Find highest sequence number for this Dept + Year prefix
+            String sql = "SELECT username FROM users WHERE username LIKE '" + prefix
+                    + "%' ORDER BY username DESC LIMIT 1";
+            java.sql.ResultSet rs = stmt.executeQuery(sql);
+
+            int nextNum = 1;
+            if (rs.next()) {
+                String lastId = rs.getString("username");
+                if (lastId.length() >= prefix.length() + 3) {
+                    String numPart = lastId.substring(prefix.length());
+                    try {
+                        nextNum = Integer.parseInt(numPart) + 1;
+                    } catch (NumberFormatException e) {
+                        nextNum = 1;
+                    }
+                }
+            }
+            return prefix + String.format("%03d", nextNum);
+        } catch (Exception e) {
+            // Fallback unique ID
+            return prefix + System.currentTimeMillis() % 1000;
+        }
     }
 
     /**

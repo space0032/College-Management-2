@@ -170,4 +170,34 @@ public class UserDAO {
             return true; // Fail safe
         }
     }
+
+    public User getUserById(int userId) {
+        String sql = "SELECT u.*, r.name as role_name FROM users u " +
+                "LEFT JOIN roles r ON u.role_id = r.id " +
+                "WHERE u.id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getInt("id"));
+                    user.setUsername(rs.getString("username"));
+                    user.setRole(rs.getString("role")); // Legacy role
+                    user.setRoleId(rs.getInt("role_id"));
+                    user.setRoleName(rs.getString("role_name"));
+
+                    if (user.getRoleName() == null) {
+                        user.setRoleName(user.getRole());
+                    }
+                    return user;
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching user by id", e);
+        }
+        return null;
+    }
 }
