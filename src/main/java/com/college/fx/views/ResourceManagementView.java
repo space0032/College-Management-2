@@ -5,7 +5,6 @@ import com.college.dao.LearningResourceDAO;
 import com.college.models.Course;
 import com.college.models.LearningResource;
 import com.college.models.ResourceCategory;
-import com.college.models.User;
 import com.college.services.FileUploadService;
 import com.college.utils.SessionManager;
 
@@ -14,7 +13,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
 import java.io.File;
@@ -30,9 +34,9 @@ public class ResourceManagementView {
     private final FileUploadService fileUploadService;
 
     private ComboBox<Course> courseComboBox;
-    private ComboBox<ResourceCategory> categoryComboBox;
     private TableView<LearningResource> resourceTable;
     private TextField searchField;
+    private BorderPane root;
 
     public ResourceManagementView() {
         this.resourceDAO = new LearningResourceDAO();
@@ -41,7 +45,7 @@ public class ResourceManagementView {
     }
 
     public BorderPane getView() {
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
         root.setPadding(new Insets(20));
 
         // Header
@@ -60,6 +64,7 @@ public class ResourceManagementView {
         courseComboBox.setOnAction(e -> loadResources());
 
         Button clearCourseBtn = new Button("X");
+        clearCourseBtn.setTooltip(new Tooltip("Clear Course Filter"));
         clearCourseBtn.setOnAction(e -> {
             courseComboBox.getSelectionModel().clearSelection();
             loadResources();
@@ -67,18 +72,21 @@ public class ResourceManagementView {
 
         // Search Bar
         searchField = new TextField();
-        searchField.setPromptText("Search resources...");
+        searchField.setPromptText("Search resources... (Ctrl+F)");
         searchField.setPrefWidth(200);
         searchField.textProperty().addListener((obs, oldVal, newVal) -> loadResources(newVal));
 
-        Button uploadButton = new Button("Upload Resource");
+        Button uploadButton = new Button("Upload Resource (Ctrl+N)");
         uploadButton.setStyle("-fx-background-color: #14b8a6; -fx-text-fill: white;");
         uploadButton.setOnAction(e -> showUploadDialog());
+
+        Button refreshButton = new Button("Refresh (F5)");
+        refreshButton.setOnAction(e -> loadResources());
 
         controls.getChildren().addAll(
                 new Label("Filter:"), courseComboBox, clearCourseBtn,
                 searchField,
-                new Region(), uploadButton);
+                new Region(), uploadButton, refreshButton);
         HBox.setHgrow(controls.getChildren().get(4), Priority.ALWAYS); // Spacer
 
         // Table
@@ -92,7 +100,26 @@ public class ResourceManagementView {
         VBox.setVgrow(resourceTable, Priority.ALWAYS);
 
         root.setCenter(centerContent);
+
+        // Keyboard Shortcuts
+        setupShortcuts();
+
         return root;
+    }
+
+    private void setupShortcuts() {
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                showUploadDialog();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN).match(event)) {
+                searchField.requestFocus();
+                event.consume();
+            } else if (event.getCode() == KeyCode.F5) {
+                loadResources();
+                event.consume();
+            }
+        });
     }
 
     private void loadCourses() {
@@ -184,7 +211,7 @@ public class ResourceManagementView {
     }
 
     private void loadResources() {
-        loadResources("");
+        loadResources(searchField.getText());
     }
 
     private void loadResources(String searchQuery) {
@@ -210,6 +237,7 @@ public class ResourceManagementView {
         Dialog<LearningResource> dialog = new Dialog<>();
         dialog.setTitle("Upload Resource");
         dialog.setHeaderText("Upload new learning resource");
+        dialog.getDialogPane().setPrefWidth(550);
 
         ButtonType uploadBtnType = new ButtonType("Upload", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(uploadBtnType, ButtonType.CANCEL);
@@ -217,7 +245,6 @@ public class ResourceManagementView {
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        // Fix padding and column constraints
         grid.setPadding(new Insets(20, 20, 10, 10));
 
         ColumnConstraints col1 = new ColumnConstraints();
@@ -234,6 +261,7 @@ public class ResourceManagementView {
 
         TextArea descArea = new TextArea();
         descArea.setPrefRowCount(3);
+        descArea.setWrapText(true);
 
         ComboBox<Course> dialogCourseBox = new ComboBox<>();
         dialogCourseBox.setItems(courseComboBox.getItems());
@@ -242,12 +270,18 @@ public class ResourceManagementView {
 
         ComboBox<ResourceCategory> dialogCategoryBox = new ComboBox<>();
         dialogCategoryBox.setItems(FXCollections.observableArrayList(resourceDAO.getAllCategories()));
+        dialogCategoryBox.setPromptText("Select Category");
 
         CheckBox publicCheck = new CheckBox("Public (Visible to all students?)");
 
         Label fileLabel = new Label("No file selected");
         Button selectFileBtn = new Button("Select File");
         final File[] selectedFile = { null };
+
+        // Inline Error Label
+        Label errorLabel = new Label();
+        errorLabel.setTextFill(Color.RED);
+        errorLabel.setVisible(false);
 
         selectFileBtn.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
@@ -256,8 +290,13 @@ public class ResourceManagementView {
             if (file != null) {
                 selectedFile[0] = file;
                 fileLabel.setText(file.getName());
+                errorLabel.setVisible(false);
             }
         });
+
+        // Validation listeners
+        titleField.textProperty().addListener((obs, old, newVal) -> errorLabel.setVisible(false));
+        dialogCategoryBox.valueProperty().addListener((obs, old, newVal) -> errorLabel.setVisible(false));
 
         grid.add(new Label("Title:"), 0, 0);
         grid.add(titleField, 1, 0);
@@ -271,27 +310,36 @@ public class ResourceManagementView {
         grid.add(selectFileBtn, 1, 4);
         grid.add(fileLabel, 1, 5);
         grid.add(publicCheck, 1, 6);
+        grid.add(errorLabel, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
 
         javafx.scene.Node uploadButton = dialog.getDialogPane().lookupButton(uploadBtnType);
-        uploadButton.setDisable(true);
 
-        selectFileBtn.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
-            File file = fileChooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
-            if (file != null) {
-                selectedFile[0] = file;
-                fileLabel.setText(file.getName());
-                uploadButton.setDisable(false);
+        // Custom validation handler
+        uploadButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            if (titleField.getText().trim().isEmpty()) {
+                errorLabel.setText("Title is required.");
+                errorLabel.setVisible(true);
+                event.consume();
+                return;
+            }
+            if (dialogCategoryBox.getValue() == null) {
+                errorLabel.setText("Please select a category.");
+                errorLabel.setVisible(true);
+                event.consume();
+                return;
+            }
+            if (selectedFile[0] == null) {
+                errorLabel.setText("Please select a file.");
+                errorLabel.setVisible(true);
+                event.consume();
+                return;
             }
         });
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == uploadBtnType) {
-                if (dialogCategoryBox.getValue() == null || titleField.getText().isEmpty()) {
-                    return null; // Should validate better
-                }
                 try {
                     String savedPath = fileUploadService.uploadResource(
                             new FileInputStream(selectedFile[0]),
@@ -325,7 +373,7 @@ public class ResourceManagementView {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Resource uploaded successfully!");
                 alert.show();
             } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload resource.");
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload resource to database.");
                 alert.show();
             }
         });

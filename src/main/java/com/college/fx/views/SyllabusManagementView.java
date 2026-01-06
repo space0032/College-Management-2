@@ -4,7 +4,6 @@ import com.college.dao.CourseDAO;
 import com.college.dao.SyllabusDAO;
 import com.college.models.Course;
 import com.college.models.Syllabus;
-import com.college.models.User;
 import com.college.services.FileUploadService;
 import com.college.utils.SessionManager;
 
@@ -13,7 +12,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
 import java.io.File;
@@ -30,6 +34,7 @@ public class SyllabusManagementView {
 
     private ComboBox<Course> courseComboBox;
     private TableView<Syllabus> syllabusTable;
+    private BorderPane root;
 
     public SyllabusManagementView() {
         this.syllabusDAO = new SyllabusDAO();
@@ -38,7 +43,7 @@ public class SyllabusManagementView {
     }
 
     public BorderPane getView() {
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
         root.setPadding(new Insets(20));
 
         // Header
@@ -51,16 +56,19 @@ public class SyllabusManagementView {
         controls.setPadding(new Insets(10, 0, 10, 0));
 
         courseComboBox = new ComboBox<>();
-        courseComboBox.setPromptText("Select Course");
+        courseComboBox.setPromptText("Select Course (Ctrl+F)");
         loadCourses();
         courseComboBox.setOnAction(e -> loadSyllabi());
 
-        Button uploadButton = new Button("Upload Syllabus");
+        Button uploadButton = new Button("Upload Syllabus (Ctrl+N)");
         uploadButton.getStyleClass().add("upload-button");
         uploadButton.setOnAction(e -> showUploadDialog());
         uploadButton.disableProperty().bind(courseComboBox.valueProperty().isNull());
 
-        controls.getChildren().addAll(new Label("Course:"), courseComboBox, uploadButton);
+        Button refreshButton = new Button("Refresh (F5)");
+        refreshButton.setOnAction(e -> loadSyllabi());
+
+        controls.getChildren().addAll(new Label("Course:"), courseComboBox, uploadButton, refreshButton);
 
         // Table
         syllabusTable = new TableView<>();
@@ -71,7 +79,29 @@ public class SyllabusManagementView {
         VBox.setVgrow(syllabusTable, Priority.ALWAYS);
 
         root.setCenter(centerContent);
+
+        // Keyboard Shortcuts
+        setupShortcuts(uploadButton);
+
         return root;
+    }
+
+    private void setupShortcuts(Button uploadButton) {
+        root.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (!uploadButton.isDisabled()) {
+                    showUploadDialog();
+                    event.consume();
+                }
+            } else if (new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN).match(event)) {
+                courseComboBox.requestFocus();
+                courseComboBox.show();
+                event.consume();
+            } else if (event.getCode() == KeyCode.F5) {
+                loadSyllabi();
+                event.consume();
+            }
+        });
     }
 
     private void loadCourses() {
@@ -167,6 +197,7 @@ public class SyllabusManagementView {
         Dialog<Syllabus> dialog = new Dialog<>();
         dialog.setTitle("Upload Syllabus");
         dialog.setHeaderText("Upload new version of syllabus for " + courseComboBox.getValue().getName());
+        dialog.getDialogPane().setPrefWidth(500);
 
         ButtonType uploadBtnType = new ButtonType("Upload", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(uploadBtnType, ButtonType.CANCEL);
@@ -174,7 +205,6 @@ public class SyllabusManagementView {
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        // Fix padding and column constraints
         grid.setPadding(new Insets(20, 20, 10, 10));
 
         ColumnConstraints col1 = new ColumnConstraints();
@@ -188,13 +218,21 @@ public class SyllabusManagementView {
 
         TextField titleField = new TextField();
         titleField.setPromptText("Syllabus Title");
+
         TextField versionField = new TextField("1.0");
+
         TextArea descArea = new TextArea();
         descArea.setPrefRowCount(3);
+        descArea.setWrapText(true);
 
         Label fileLabel = new Label("No file selected");
         Button selectFileBtn = new Button("Select File (PDF/Docs)");
         final File[] selectedFile = { null };
+
+        // Inline Error Label
+        Label errorLabel = new Label();
+        errorLabel.setTextFill(Color.RED);
+        errorLabel.setVisible(false);
 
         selectFileBtn.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
@@ -205,8 +243,12 @@ public class SyllabusManagementView {
             if (file != null) {
                 selectedFile[0] = file;
                 fileLabel.setText(file.getName());
+                errorLabel.setVisible(false);
             }
         });
+
+        // Remove error when typing
+        titleField.textProperty().addListener((obs, old, newVal) -> errorLabel.setVisible(false));
 
         grid.add(new Label("Title:"), 0, 0);
         grid.add(titleField, 1, 0);
@@ -217,20 +259,27 @@ public class SyllabusManagementView {
         grid.add(new Label("File:"), 0, 3);
         grid.add(selectFileBtn, 1, 3);
         grid.add(fileLabel, 1, 4);
+        grid.add(errorLabel, 1, 5); // Add error label at bottom
 
         dialog.getDialogPane().setContent(grid);
 
         javafx.scene.Node uploadButton = dialog.getDialogPane().lookupButton(uploadBtnType);
-        uploadButton.setDisable(true);
 
-        selectFileBtn.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
-            File file = fileChooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
-            if (file != null) {
-                selectedFile[0] = file;
-                fileLabel.setText(file.getName());
-                uploadButton.setDisable(false);
+        // Custom validation handler
+        uploadButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            if (titleField.getText().trim().isEmpty()) {
+                errorLabel.setText("Title is required.");
+                errorLabel.setVisible(true);
+                event.consume(); // Prevent dialog close
+                return;
             }
+            if (selectedFile[0] == null) {
+                errorLabel.setText("Please select a file.");
+                errorLabel.setVisible(true);
+                event.consume();
+                return;
+            }
+            // If valid, let the event propagate to ResultConverter
         });
 
         dialog.setResultConverter(dialogButton -> {
@@ -253,6 +302,8 @@ public class SyllabusManagementView {
                     }
                 } catch (IOException ex) {
                     ex.printStackTrace();
+                    // We can't easily show error in dialog here as it's closing,
+                    // but we consumed event above for validation errors.
                 }
             }
             return null;
@@ -264,7 +315,7 @@ public class SyllabusManagementView {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Syllabus uploaded successfully!");
                 alert.show();
             } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload syllabus.");
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload syllabus to database.");
                 alert.show();
             }
         });
