@@ -454,103 +454,131 @@ public class DashboardView {
         }
     }
 
+    private Object currentController;
+
     private void showReports() {
         ReportsView view = new ReportsView();
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showHome() {
         HomeView homeView = new HomeView(displayName, role, userId);
+        currentController = homeView;
         contentArea.getChildren().add(homeView.getView());
     }
 
     private void showInstitute() {
         InstituteManagementView view = new InstituteManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showStudents() {
         StudentManagementView view = new StudentManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showFaculty() {
         FacultyManagementView view = new FacultyManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showFacultyWorkload() {
         FacultyWorkloadView view = new FacultyWorkloadView();
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showEmployees() {
         EmployeeManagementView view = new EmployeeManagementView();
+        // EmployeeView is a VBox itself in this case? No, it has view logic.
+        // Checking previous code: view is EmployeeManagementView which IS a VBox/Pane
+        // or has getView?
+        // Let's assume standard pattern. Previous code:
+        // contentArea.getChildren().add(view);
+        // meaning view IS the Node. So it is the controller/view hybrid.
+        currentController = view;
         contentArea.getChildren().add(view);
     }
 
     private void showPayroll() {
         PayrollManagementView view = new PayrollManagementView();
+        currentController = view;
         contentArea.getChildren().add(view);
     }
 
     private void showStudentAffairs() {
         StudentAffairsView view = new StudentAffairsView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showCourses() {
         CourseManagementView view = new CourseManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showAttendance() {
         AttendanceView view = new AttendanceView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showLibrary() {
         LibraryManagementView view = new LibraryManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showFees() {
         FeesView view = new FeesView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showTimetable() {
         TimetableView view = new TimetableView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showCalendar() {
         AcademicCalendarView view = new AcademicCalendarView();
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showGrades() {
         GradesView view = new GradesView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showGatePass() {
         GatePassView view = new GatePassView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showHostel() {
         HostelManagementView view = new HostelManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showAnnouncements() {
         AnnouncementManagementView view = new AnnouncementManagementView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showAssignments() {
         AssignmentsView view = new AssignmentsView(role, userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
@@ -559,25 +587,20 @@ public class DashboardView {
             com.college.dao.StudentDAO sDAO = new com.college.dao.StudentDAO();
             com.college.models.Student student = sDAO.getStudentByUserId(userId);
             if (student != null) {
-                StudentProfileView view = new StudentProfileView(student, false, null); // Students can't edit basic
-                                                                                        // info freely, maybe some?
-                // Actually StudentProfileView handles editability. Let's allowing editing
-                // contact info?
-                // For now, let's keep editable=true for students on their own profile for
-                // Personal/Family tabs
-                // But Academic is read-only. The view handles this.
-                // Re-instantiating with editable=true so they can update phone/email/activities
-                view = new StudentProfileView(student, true, null);
+                StudentProfileView view = new StudentProfileView(student, true, null);
+                currentController = view;
                 contentArea.getChildren().add(view.getView());
                 return;
             }
         }
         ProfileView view = new ProfileView(role, userId, username);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showChangePassword() {
         ChangePasswordView view = new ChangePasswordView(userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
@@ -595,21 +618,25 @@ public class DashboardView {
 
     private void showEvents() {
         EventsView view = new EventsView(userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showEventManagement() {
         EventManagementView view = new EventManagementView(userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showClubs() {
         ClubsView view = new ClubsView(userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showClubManagement() {
         ClubManagementView view = new ClubManagementView(userId);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
@@ -619,21 +646,25 @@ public class DashboardView {
                 this::showClubs,
                 this::showEventManagement,
                 this::showClubManagement);
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showSyllabusManagement() {
         SyllabusManagementView view = new SyllabusManagementView();
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showResourceManagement() {
         ResourceManagementView view = new ResourceManagementView();
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
     private void showLearningPortal() {
         LearningPortalView view = new LearningPortalView();
+        currentController = view;
         contentArea.getChildren().add(view.getView());
     }
 
@@ -645,6 +676,15 @@ public class DashboardView {
 
             // Add ChatBot Overlay
             com.college.fx.components.ChatBotOverlay chatBot = new com.college.fx.components.ChatBotOverlay();
+
+            // Inject Context Provider
+            chatBot.setContextProvider(() -> {
+                if (currentController instanceof com.college.fx.interfaces.ContextAware) {
+                    return ((com.college.fx.interfaces.ContextAware) currentController).getContextData();
+                }
+                return "User is on the " + currentView + " page.";
+            });
+
             mainContainer.getChildren().add(chatBot);
 
             // Ensure chat bot doesn't block interaction with underlying dashboard when

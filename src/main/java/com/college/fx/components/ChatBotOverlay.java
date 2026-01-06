@@ -1,5 +1,6 @@
 package com.college.fx.components;
 
+import com.college.services.GeminiService;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -8,6 +9,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -20,6 +23,7 @@ import javafx.util.Duration;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Supplier;
 
 public class ChatBotOverlay extends VBox {
 
@@ -30,15 +34,21 @@ public class ChatBotOverlay extends VBox {
     private TextField inputField;
     private ScrollPane scrollPane;
 
-    private com.college.services.GeminiService geminiService;
+    private GeminiService geminiService;
+    private Supplier<String> contextProvider;
+    private HBox typingIndicator;
 
     public ChatBotOverlay() {
-        this.geminiService = new com.college.services.GeminiService();
+        this.geminiService = new GeminiService();
         setAlignment(Pos.BOTTOM_RIGHT);
         setPickOnBounds(false); // Allow clicks to pass through transparent areas
         setPadding(new Insets(20));
         setSpacing(15);
         createView();
+    }
+
+    public void setContextProvider(Supplier<String> provider) {
+        this.contextProvider = provider;
     }
 
     private void createView() {
@@ -48,10 +58,38 @@ public class ChatBotOverlay extends VBox {
         chatWindow.setManaged(false);
 
         // Floating Action Button (FAB)
-        fabButton = new Button("AI Help");
+        fabButton = new Button();
         fabButton.setPrefSize(60, 60);
-        fabButton.setStyle(
-                "-fx-background-color: #4f46e5; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 30; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4);");
+
+        // Default Style
+        String fabStyle = "-fx-background-color: #4f46e5; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 30; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4); -fx-cursor: hand;";
+
+        // Try to load custom logo
+        try {
+            java.net.URL imgUrl = getClass().getResource("/com/college/images/bot_logo.png");
+            if (imgUrl != null) {
+                ImageView logoView = new ImageView(new Image(imgUrl.toExternalForm()));
+                logoView.setFitWidth(60);
+                logoView.setFitHeight(60);
+                logoView.setPreserveRatio(true);
+
+                // Circular clip
+                Circle clip = new Circle(30, 30, 30);
+                logoView.setClip(clip);
+
+                fabButton.setGraphic(logoView);
+                fabButton.setPadding(Insets.EMPTY);
+                fabButton.setStyle(
+                        "-fx-background-color: transparent; -fx-background-radius: 30; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4); -fx-cursor: hand;");
+            } else {
+                fabButton.setText("AI Help");
+                fabButton.setStyle(fabStyle);
+            }
+        } catch (Exception e) {
+            fabButton.setText("AI Help");
+            fabButton.setStyle(fabStyle);
+        }
+
         fabButton.setOnAction(e -> toggleChat());
 
         // Add to VBox
@@ -124,7 +162,7 @@ public class ChatBotOverlay extends VBox {
         window.getChildren().addAll(header, scrollPane, inputArea);
 
         // Initial welcome message
-        addMessage("Hello! I am your AI assistant. How can I help you today?", false);
+        addMessage("Hello! I am your AI assistant. I can see what's on your screen. How can I help?", false);
 
         return window;
     }
@@ -152,12 +190,21 @@ public class ChatBotOverlay extends VBox {
         addMessage(text, true);
         inputField.clear();
 
-        // Simulate thinking or call service
         addTypingIndicator();
+
+        // Get Context
+        String context = "No specific context available.";
+        if (contextProvider != null) {
+            String ctx = contextProvider.get();
+            if (ctx != null && !ctx.isEmpty()) {
+                context = ctx;
+            }
+        }
+        final String currentContext = context;
 
         // Call Gemini Service
         new Thread(() -> {
-            String response = geminiService.sendMessage(text);
+            String response = geminiService.sendMessage(text, currentContext);
 
             Platform.runLater(() -> {
                 removeTypingIndicator();
@@ -198,8 +245,6 @@ public class ChatBotOverlay extends VBox {
         scrollToBottom();
     }
 
-    private HBox typingIndicator;
-
     private void addTypingIndicator() {
         typingIndicator = new HBox(5);
         typingIndicator.setAlignment(Pos.CENTER_LEFT);
@@ -210,8 +255,6 @@ public class ChatBotOverlay extends VBox {
         Circle d1 = new Circle(3, Color.GRAY);
         Circle d2 = new Circle(3, Color.GRAY);
         Circle d3 = new Circle(3, Color.GRAY);
-
-        // Simple animation could go here
 
         typingIndicator.getChildren().addAll(d1, d2, d3);
 
@@ -227,12 +270,8 @@ public class ChatBotOverlay extends VBox {
     }
 
     private void scrollToBottom() {
-        // Auto-scroll
         Platform.runLater(() -> {
             scrollPane.setVvalue(1.0);
         });
     }
-
-    // Method to inject service later
-    // public void setGeminiService(...)
 }

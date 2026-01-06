@@ -27,15 +27,21 @@ public class GeminiService {
         this.httpClient = HttpClient.newHttpClient();
     }
 
-    public String sendMessage(String userMessage) {
+    public String sendMessage(String userMessage, String context) {
         // API Key check removed as user has configured it.
 
         try {
             // Construct JSON Payload
-            // { "contents": [{ "parts": [{ "text": "userMessage" }] }] }
+            // System instruction + User Message
+            String finalPrompt = "SYSTEM CONTEXT (READ ONLY - YOU CANNOT EDIT): " + context + "\n\n" +
+                    "USER QUESTION: " + userMessage + "\n\n" +
+                    "INSTRUCTIONS: You are a helpful AI assistant for the College Management System. " +
+                    "You can see the data on the screen provided in 'SYSTEM CONTEXT'. " +
+                    "You cannot edit, delete, or modify any data. You are strictly read-only. " +
+                    "Answer the user's question based on the context provided.";
 
             JsonObject textPart = new JsonObject();
-            textPart.add("text", new JsonPrimitive(userMessage));
+            textPart.add("text", new JsonPrimitive(finalPrompt));
 
             JsonArray parts = new JsonArray();
             parts.add(textPart);

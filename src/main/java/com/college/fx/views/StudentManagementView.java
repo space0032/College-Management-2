@@ -35,7 +35,7 @@ import java.io.File;
  * JavaFX Student Management View
  * Shows student list with CRUD operations
  */
-public class StudentManagementView {
+public class StudentManagementView implements com.college.fx.interfaces.ContextAware {
 
     private VBox root;
     private TableView<Student> tableView;
@@ -570,15 +570,9 @@ public class StudentManagementView {
         ButtonType closeBtn = new ButtonType("Close", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().add(closeBtn);
 
-        // Allow editing if Admin or Faculty with permission (Assuming Fac can edit for
-        // now or just view)
-        // User requested: Faculty can add profile pic? "student can add... and in
-        // faculty add view student button"
-        // Let's assume Faculty can View. Admin can Edit.
-        // Or if role is MANAGE_STUDENTS they can Edit.
+        // Allow editing if Admin or Faculty with permission
         boolean canEdit = SessionManager.getInstance().hasPermission("MANAGE_STUDENTS");
 
-        // However, StudentProfileView handles its own updates.
         StudentProfileView profileView = new StudentProfileView(fullDetails, canEdit, () -> loadStudents());
 
         // Set content size
@@ -634,5 +628,29 @@ public class StudentManagementView {
 
     public VBox getView() {
         return root;
+    }
+
+    @Override
+    public String getContextData() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Current View: Student Management\n");
+        sb.append("Visible Student Data:\n");
+        sb.append("Name, Email, Dept, Batch\n");
+
+        if (studentData != null) {
+            // Limit to top 20 to avoid token limits
+            studentData.stream().limit(20).forEach(s -> {
+                sb.append(String.format("%s, %s, %s, %s\n",
+                        s.getName(), s.getEmail(), s.getDepartment(), s.getBatch()));
+            });
+
+            if (studentData.size() > 20) {
+                sb.append("... (" + (studentData.size() - 20) + " more students not shown)");
+            }
+        } else {
+            sb.append("No data loaded.");
+        }
+
+        return sb.toString();
     }
 }
