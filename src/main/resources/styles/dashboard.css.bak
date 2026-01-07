@@ -191,82 +191,16 @@
     -fx-text-fill: #94a3b8;
 }
 
-/* --- List View Styles --- */
-.list-view {
-    -fx-background-color: transparent;
-    -fx-padding: 0;
-}
-
 .list-cell {
     -fx-background-color: transparent;
-    -fx-padding: 8 0;
+    -fx-text-fill: #cbd5e1;
+    -fx-padding: 5 0;
+}
+
+.list-cell:filled:selected,
+.list-cell:filled:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
     -fx-text-fill: white;
-    -fx-border-color: transparent transparent rgba(148, 163, 184, 0.1) transparent;
-    /* Separator line */
-    -fx-border-width: 0 0 1 0;
-}
-
-.list-cell:empty {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-}
-
-/* User Avatar in Activity */
-.avatar-circle {
-    -fx-background-color: #3b82f6;
-    /* Blue-500 */
-    -fx-background-radius: 50%;
-    -fx-min-width: 32px;
-    -fx-min-height: 32px;
-    -fx-pref-width: 32px;
-    -fx-pref-height: 32px;
-    -fx-alignment: center;
-}
-
-.avatar-text {
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-font-size: 12px;
-}
-
-/* Badges for Announcements */
-.badge-urgent {
-    -fx-background-color: rgba(220, 38, 38, 0.15);
-    /* Red bg faint */
-    -fx-text-fill: #f87171;
-    /* Red text */
-    -fx-background-radius: 4;
-    -fx-padding: 2 8;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-border-color: rgba(220, 38, 38, 0.3);
-    -fx-border-radius: 4;
-}
-
-.badge-news {
-    -fx-background-color: rgba(59, 130, 246, 0.15);
-    /* Blue bg faint */
-    -fx-text-fill: #60a5fa;
-    /* Blue text */
-    -fx-background-radius: 4;
-    -fx-padding: 2 8;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-border-color: rgba(59, 130, 246, 0.3);
-    -fx-border-radius: 4;
-}
-
-.badge-info {
-    -fx-background-color: rgba(100, 116, 139, 0.15);
-    /* Slate bg faint */
-    -fx-text-fill: #94a3b8;
-    /* Slate text */
-    -fx-background-radius: 4;
-    -fx-padding: 2 8;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-border-color: rgba(100, 116, 139, 0.3);
-    -fx-border-radius: 4;
 }
 
 /* Scrollbar Dark Theme */

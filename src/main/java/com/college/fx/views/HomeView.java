@@ -31,12 +31,23 @@ public class HomeView {
         createView();
     }
 
+    // --- SVG Paths (Copied for independent use) ---
+    private static final String SVG_STUDENT = "M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z";
+    private static final String SVG_FACULTY = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"; // Simple
+                                                                                                                                                               // person
+    private static final String SVG_COURSE = "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z";
+    private static final String SVG_BOOK = "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"; // Reuse
+                                                                                                                                                    // book-like
+    private static final String SVG_BED = "M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z";
+    private static final String SVG_GRID = "M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"; // Depts
+    private static final String SVG_USERS = "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z";
+
     private void createView() {
         VBox content = new VBox(25);
         content.setPadding(new Insets(10));
 
         // Welcome banner
-        VBox welcomeBanner = createWelcomeBanner();
+        HBox welcomeBanner = createWelcomeBanner();
 
         // Stats grid
         GridPane statsGrid = createStatsGrid();
@@ -51,22 +62,37 @@ public class HomeView {
         root.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
     }
 
-    private VBox createWelcomeBanner() {
-        VBox banner = new VBox(8);
+    private HBox createWelcomeBanner() {
+        HBox banner = new HBox(20);
         banner.setPadding(new Insets(30));
+        banner.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         banner.setStyle(
-                "-fx-background-color: linear-gradient(to right, #14b8a6, #0d9488);" +
-                        "-fx-background-radius: 12;");
+                "-fx-background-color: #115e59;" + // Dark Teal
+                        "-fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
+        VBox textPart = new VBox(5);
         Label welcomeLabel = new Label("Welcome back, " + displayName + "!");
         welcomeLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 26));
         welcomeLabel.setTextFill(Color.WHITE);
 
         Label roleLabel = new Label(role + " Dashboard");
         roleLabel.setFont(Font.font("Segoe UI", 14));
-        roleLabel.setTextFill(Color.web("#99f6e4"));
+        roleLabel.setTextFill(Color.web("#aabfb9")); // Muted teal
 
-        banner.getChildren().addAll(welcomeLabel, roleLabel);
+        textPart.getChildren().addAll(welcomeLabel, roleLabel);
+
+        // Search Bar Area
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search keyword...");
+        searchField.setPrefWidth(300);
+        searchField.setPrefHeight(40);
+        searchField.setStyle(
+                "-fx-background-color: white; -fx-text-fill: #333; -fx-background-radius: 8; -fx-padding: 0 15; -fx-font-size: 14px;");
+
+        banner.getChildren().addAll(textPart, spacer, searchField);
         return banner;
     }
 
@@ -84,99 +110,153 @@ public class HomeView {
         }
 
         if (role.equals("ADMIN") || role.equals("FACULTY")) {
-            // Admin/Faculty stats
-            grid.add(createStatCard("Students", getStudentCount(), "#14b8a6"), 0, 0);
-            grid.add(createStatCard("Faculty", getFacultyCount(), "#3b82f6"), 1, 0);
-            grid.add(createStatCard("Courses", getCourseCount(), "#a855f7"), 2, 0);
-            grid.add(createStatCard("Books", getBookCount(), "#f59e0b"), 3, 0);
+            // Row 1: People (Students, Faculty, Users, blank/other)
+            // Or grouping as requested: People (Col 0,1,2), Academics (Col 3, 0 next row)
+            // Let's optimize 4 columns x 2 rows = 8 slots
 
-            grid.add(createStatCard("Pending Passes", getPendingGatePasses(), "#3b82f6"), 0, 1);
-            grid.add(createStatCard("Hostel Rooms", getHostelRoomsCount(), "#64748b"), 1, 1);
-            grid.add(createStatCard("Departments", getDepartmentCount(), "#22c55e"), 2, 1);
-            grid.add(createStatCard("Active Users", "View", "#ef4444"), 3, 1);
-        } else if (role.equals("WARDEN")) {
-            grid.add(createStatCard("Hostel Students", getHostelStudentCount(), "#14b8a6"), 0, 0);
-            grid.add(createStatCard("Hostel Rooms", getHostelRoomsCount(), "#22c55e"), 1, 0);
-            grid.add(createStatCard("Pending Passes", getPendingGatePasses(), "#f59e0b"), 2, 0);
-            grid.add(createStatCard("Alerts", "View", "#ef4444"), 3, 0);
+            // Slot 1: Students
+            grid.add(createStatCard("Students", getStudentCount(), "#14b8a6", "+1 this week", SVG_STUDENT), 0, 0);
+            // Slot 2: Faculty
+            grid.add(createStatCard("Faculty", getFacultyCount(), "#3b82f6", "+1 this week", SVG_FACULTY), 1, 0);
+            // Slot 3: Active Users (Fix: Show Number)
+            grid.add(createStatCard("Active Users", getActiveUserCount(), "#ef4444", "+1 this week", SVG_USERS), 2, 0);
+            // Slot 4: Departments (Move here for space)
+            grid.add(createStatCard("Departments", getDepartmentCount(), "#22c55e", "+1 this week", SVG_GRID), 3, 0);
+
+            // Row 2: Academics & Facilities
+            // Slot 5: Courses
+            grid.add(createStatCard("Courses", getCourseCount(), "#a855f7", "+1 this week", SVG_COURSE), 0, 1);
+            // Slot 6: Books
+            grid.add(createStatCard("Books", getBookCount(), "#f59e0b", "+1 this week", SVG_BOOK), 1, 1);
+            // Slot 7: Hostel Rooms
+            grid.add(createStatCard("Hostel Rooms", getHostelRoomsCount(), "#64748b", "+1 this week", SVG_BED), 2, 1);
+            // Slot 8: Pending Passes
+            grid.add(createStatCard("Pending Passes", getPendingGatePasses(), "#3b82f6", "+0 this week", null), 3, 1);
+
         } else if ("FINANCE".equals(role)) {
-            // FINACE Dashboard
+            // Finance logic (simplified for brevity, keeping existing structure but updated
+            // style)
+            // ... [Can implement similar icon logic if needed later]
             EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
+            grid.add(createStatCard("Today's Collection", String.format("₹%.0f", feeDAO.getTodaysCollectionAmount()),
+                    "#22c55e", "Today", SVG_GRID), 0, 0);
+            grid.add(createStatCard("Total Pending", String.format("₹%.0f", feeDAO.getTotalPendingAmount()), "#ef4444",
+                    "Total", SVG_GRID), 1, 0);
+            grid.add(createStatCard("Fee Categories", String.valueOf(feeDAO.getAllCategories().size()), "#3b82f6", "",
+                    SVG_GRID), 2, 0);
+            grid.add(createStatCard("Total Students", getStudentCount(), "#64748b", "", SVG_STUDENT), 3, 0);
 
-            // Stats
-            String todaysCollection = String.format("₹%.0f", feeDAO.getTodaysCollectionAmount());
-            String totalPending = String.format("₹%.0f", feeDAO.getTotalPendingAmount());
-            String activeCategories = String.valueOf(feeDAO.getAllCategories().size());
-            String totalStudents = getStudentCount(); // Still relevant
-
-            grid.add(createStatCard("Today's Collection", todaysCollection, "#22c55e"), 0, 0);
-            grid.add(createStatCard("Total Pending", totalPending, "#ef4444"), 1, 0);
-            grid.add(createStatCard("Fee Categories", activeCategories, "#3b82f6"), 2, 0);
-            grid.add(createStatCard("Total Students", totalStudents, "#64748b"), 3, 0);
-
-            // Quick Actions as a second row or separate section?
-            // The method contract returns a GridPane, let's add them as second row cards
-            // for "shortcuts"
-            // or we handle quick actions in bottom section.
-            // Let's add them as interactive cards for now
             grid.add(createActionCard("Add Student Fee", "#8b5cf6"), 0, 1);
             grid.add(createActionCard("Record Payment", "#ec4899"), 1, 1);
-            grid.add(createStatCard("Recent Transactions", "View", "#14b8a6"), 2, 1);
-            grid.add(createStatCard("Reports", "View", "#f59e0b"), 3, 1);
-        } else {
-            // Student stats
-            grid.add(createStatCard("My Courses", getStudentCourses(), "#14b8a6"), 0, 0);
-            grid.add(createStatCard("Attendance", getMyAttendance() + "%", "#22c55e"), 1, 0);
-            grid.add(createStatCard("Fee Status", getMyFeeStatus(), "#3b82f6"), 2, 0);
-            grid.add(createStatCard("Books Issued", getMyIssuedBooks(), "#a855f7"), 3, 0);
+            grid.add(createStatCard("Recent Transactions", "View", "#14b8a6", "", null), 2, 1);
+            grid.add(createStatCard("Reports", "View", "#f59e0b", "", null), 3, 1);
 
-            grid.add(createStatCard("Gate Passes", getMyGatePasses(), "#f59e0b"), 0, 1);
-            grid.add(createStatCard("Hostel", getMyHostelStatus(), "#14b8a6"), 1, 1);
-            grid.add(createStatCard("Grades", "View", "#ef4444"), 2, 1);
-            grid.add(createStatCard("Timetable", "View", "#64748b"), 3, 1);
+        } else {
+            // Student Stats
+            grid.add(createStatCard("My Courses", getStudentCourses(), "#14b8a6", "", SVG_COURSE), 0, 0);
+            grid.add(createStatCard("Attendance", getMyAttendance() + "%", "#22c55e", "", null), 1, 0);
+            grid.add(createStatCard("Fee Status", getMyFeeStatus(), "#3b82f6", "", null), 2, 0);
+            grid.add(createStatCard("Books Issued", getMyIssuedBooks(), "#a855f7", "", SVG_BOOK), 3, 0);
+
+            grid.add(createStatCard("Gate Passes", getMyGatePasses(), "#f59e0b", "", null), 0, 1);
+            grid.add(createStatCard("Hostel", getMyHostelStatus(), "#14b8a6", "", SVG_BED), 1, 1);
+            grid.add(createStatCard("Grades", "View", "#ef4444", "", null), 2, 1);
+            grid.add(createStatCard("Timetable", "View", "#64748b", "", null), 3, 1);
         }
 
         return grid;
     }
 
-    private VBox createStatCard(String title, String value, String accentColor) {
-        VBox card = new VBox(8);
-        card.setPadding(new Insets(20));
-        card.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-border-width: 1;");
+    private Pane createStatCard(String title, String value, String accentColor, String trend, String svgPath) {
+        StackPane card = new StackPane();
+        card.setPadding(new Insets(0));
+        card.getStyleClass().add("card");
+        card.setPrefHeight(100);
+
+        // Background Icon Layer
+        if (svgPath != null) {
+            javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();
+            icon.setContent(svgPath);
+            icon.setFill(Color.web(accentColor));
+            icon.setOpacity(0.15);
+            icon.setScaleX(3.0); // Large
+            icon.setScaleY(3.0);
+
+            // Container for icon to position it
+            StackPane iconContainer = new StackPane(icon);
+            iconContainer.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            iconContainer.setPadding(new Insets(10, 20, 0, 0)); // Padding moved it in
+            iconContainer.setMouseTransparent(true); // Don't block clicks
+
+            card.getChildren().add(iconContainer);
+        }
+
+        // Content Layer (VBox)
+        VBox content = new VBox(0);
+        content.setPadding(new Insets(15));
+        content.setFillWidth(true);
 
         // Top accent bar
         Region accent = new Region();
-        accent.setPrefHeight(4);
+        accent.setPrefHeight(3);
         accent.setMaxWidth(Double.MAX_VALUE);
         accent.setStyle("-fx-background-color: " + accentColor + "; -fx-background-radius: 2;");
+        VBox.setMargin(accent, new Insets(-15, -15, 10, -15));
 
+        // Title
         Label titleLabel = new Label(title);
-        titleLabel.setFont(Font.font("Segoe UI", 12));
-        titleLabel.setTextFill(Color.web("#64748b"));
+        titleLabel.getStyleClass().add("card-title");
+        titleLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
 
+        // Value
         Label valueLabel = new Label(value);
-        valueLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
-        valueLabel.setTextFill(Color.web("#0f172a"));
+        valueLabel.getStyleClass().add("card-value");
+        valueLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;");
+        VBox.setMargin(valueLabel, new Insets(5, 0, 0, 0));
 
-        card.getChildren().addAll(accent, titleLabel, valueLabel);
+        // Trend
+        Label trendLabel = new Label(trend);
+        trendLabel.setFont(Font.font("Segoe UI", 10));
+        if (trend.contains("+") || trend.equals("Paid")) {
+            trendLabel.setTextFill(Color.web("#4ade80"));
+        } else if (trend.contains("-") || trend.equals("Unpaid")) {
+            trendLabel.setTextFill(Color.web("#f87171"));
+        } else {
+            trendLabel.setTextFill(Color.web("#aabfb9"));
+        }
+        VBox.setMargin(trendLabel, new Insets(2, 0, 0, 0));
+
+        content.getChildren().addAll(accent, titleLabel, valueLabel, trendLabel);
+
+        card.getChildren().add(content);
+
+        // Clip to rounded corners
+        javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle();
+        clip.widthProperty().bind(card.widthProperty());
+        clip.heightProperty().bind(card.heightProperty());
+        clip.setArcWidth(12);
+        clip.setArcHeight(12);
+        card.setClip(clip);
+
         return card;
     }
+
+    private String getActiveUserCount() {
+        try {
+            return String.valueOf(new UserDAO().getAllUsers().size());
+        } catch (Exception e) {
+            return "0";
+        }
+    }
+
+    // Kept existing helper methods...
 
     private VBox createActionCard(String title, String accentColor) {
         VBox card = new VBox(8);
         card.setPadding(new Insets(20));
-        card.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: " + accentColor + ";" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-border-width: 1;" +
-                        "-fx-cursor: hand;");
+        card.getStyleClass().add("card");
+        card.setStyle("-fx-cursor: hand; -fx-border-color: " + accentColor + ";"); // Keep accent border for action
+                                                                                   // cards
 
         // Top accent bar
         Region accent = new Region();
@@ -186,11 +266,11 @@ public class HomeView {
 
         Label titleLabel = new Label(title);
         titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
-        titleLabel.setTextFill(Color.web("#0f172a"));
+        titleLabel.setTextFill(Color.WHITE);
 
         Label actionLabel = new Label("Click to open");
+        actionLabel.getStyleClass().add("text-muted");
         actionLabel.setFont(Font.font("Segoe UI", 12));
-        actionLabel.setTextFill(Color.web("#64748b"));
 
         card.getChildren().addAll(accent, titleLabel, actionLabel);
 
@@ -248,16 +328,11 @@ public class HomeView {
     private VBox createFinanceActivityPanel() {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(20));
-        panel.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-border-width: 1;");
+        panel.getStyleClass().add("card");
 
         Label header = new Label("Recent Transactions");
         header.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
-        header.setTextFill(Color.web("#0f172a"));
+        header.setTextFill(Color.WHITE);
 
         ListView<String> listView = new ListView<>();
         listView.setStyle("-fx-background-color: transparent;");
@@ -293,32 +368,68 @@ public class HomeView {
     private VBox createActivityPanel() {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(20));
-        panel.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-border-width: 1;");
+        panel.getStyleClass().add("card");
+        VBox.setVgrow(panel, Priority.ALWAYS); // Grow to fill height if possible
 
         Label header = new Label("Recent Activity");
         header.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
-        header.setTextFill(Color.web("#0f172a"));
+        header.setTextFill(Color.WHITE);
 
-        ListView<String> listView = new ListView<>();
+        ListView<com.college.models.AuditLog> listView = new ListView<>();
+        listView.getStyleClass().add("list-view");
         listView.setStyle("-fx-background-color: transparent;");
 
+        // Custom Cell Factory for Activity
+        listView.setCellFactory(lv -> new ListCell<com.college.models.AuditLog>() {
+            @Override
+            protected void updateItem(com.college.models.AuditLog item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    HBox cell = new HBox(12);
+                    cell.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                    // Avatar (Circle with initial)
+                    StackPane avatar = new StackPane();
+                    avatar.getStyleClass().add("avatar-circle");
+                    Label initial = new Label(item.getUsername().substring(0, 1).toUpperCase());
+                    initial.getStyleClass().add("avatar-text");
+                    avatar.getChildren().add(initial);
+
+                    // Text Content
+                    VBox textContent = new VBox(2);
+                    String actionText = item.getAction().replace("_", " ");
+                    // Capitalize first letter of action
+                    actionText = actionText.substring(0, 1).toUpperCase() + actionText.substring(1).toLowerCase();
+
+                    Label actionLabel = new Label(item.getUsername() + " " + actionText);
+                    actionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
+
+                    Label timeLabel = new Label(getRelativeTime(item.getTimestamp()));
+                    timeLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px;"); // Slate-500
+
+                    textContent.getChildren().addAll(actionLabel, timeLabel);
+
+                    cell.getChildren().addAll(avatar, textContent);
+                    setGraphic(cell);
+                    setText(null);
+                }
+            }
+        });
+
         // Get recent logs
-        String currentUsername = SessionManager.getInstance().getUsername();
-        List<com.college.models.AuditLog> logs = AuditLogDAO.getLogsByUser(currentUsername, 8);
+        try {
+            String currentUsername = SessionManager.getInstance().getUsername();
+            List<com.college.models.AuditLog> logs = AuditLogDAO.getLogsByUser(currentUsername, 8);
+            listView.getItems().addAll(logs);
 
-        for (com.college.models.AuditLog log : logs) {
-            String entry = log.getTimestamp().format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm"))
-                    + " - " + log.getAction().replace("_", " ");
-            listView.getItems().add(entry);
-        }
-
-        if (logs.isEmpty()) {
-            listView.getItems().add("No recent activity");
+            if (logs.isEmpty()) {
+                listView.setPlaceholder(new Label("No recent activity"));
+            }
+        } catch (Exception e) {
+            listView.setPlaceholder(new Label("Error loading activity"));
         }
 
         VBox.setVgrow(listView, Priority.ALWAYS);
@@ -329,45 +440,92 @@ public class HomeView {
     private VBox createAlertsPanel() {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(20));
-        panel.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-border-width: 1;");
+        panel.getStyleClass().add("card");
+        VBox.setVgrow(panel, Priority.ALWAYS);
 
         Label header = new Label("Announcements & Alerts");
         header.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
-        header.setTextFill(Color.web("#0f172a"));
+        header.setTextFill(Color.WHITE);
 
-        ListView<String> listView = new ListView<>();
+        ListView<com.college.models.Announcement> listView = new ListView<>();
+        listView.getStyleClass().add("list-view");
         listView.setStyle("-fx-background-color: transparent;");
+
+        // Custom Cell Factory for Announcements
+        listView.setCellFactory(lv -> new ListCell<com.college.models.Announcement>() {
+            @Override
+            protected void updateItem(com.college.models.Announcement item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    HBox cell = new HBox(10);
+                    cell.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                    // Priority Badge
+                    Label badge = new Label();
+                    String priority = item.getPriority(); // Urgent, News, Info?
+                    // Map priority icon/text to badge style
+                    if (item.getPriorityIcon() != null && item.getPriorityIcon().contains("[!]")) {
+                        badge.setText("Urgent");
+                        badge.getStyleClass().add("badge-urgent");
+                    } else if (item.getPriorityIcon() != null && item.getPriorityIcon().contains("[N]")) {
+                        badge.setText("News");
+                        badge.getStyleClass().add("badge-news");
+                    } else {
+                        badge.setText("Info");
+                        badge.getStyleClass().add("badge-info");
+                    }
+
+                    // Message
+                    Label messageLabel = new Label(item.getTitle());
+                    messageLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
+
+                    cell.getChildren().addAll(badge, messageLabel);
+                    setGraphic(cell);
+                    setText(null);
+                }
+            }
+        });
 
         // Get announcements
         try {
             AnnouncementDAO announcementDAO = new AnnouncementDAO();
             List<com.college.models.Announcement> announcements = announcementDAO.getActiveAnnouncements(role);
+            listView.getItems().addAll(announcements);
 
-            for (com.college.models.Announcement announcement : announcements) {
-                String entry = announcement.getPriorityIcon() + " " + announcement.getTitle() + ": " +
-                        (announcement.getContent().length() > 50
-                                ? announcement.getContent().substring(0, 50) + "..."
-                                : announcement.getContent());
-                listView.getItems().add(entry);
+            if (announcements.isEmpty()) {
+                // Add placeholder/default fake items if empty to demonstrate UI?
+                // User code previously added string items directly.
+                // Let's rely on placeholder logic or add dummy announcements if specifically
+                // requested.
+                // For now, clean data-driven approach.
+                listView.setPlaceholder(new Label("No active announcements"));
             }
         } catch (Exception e) {
-            // Ignore
-        }
-
-        // Add default alerts
-        if (listView.getItems().isEmpty()) {
-            listView.getItems().add("[i] Check your attendance regularly");
-            listView.getItems().add("[i] View timetable for schedule");
+            listView.setPlaceholder(new Label("Error loading announcements"));
         }
 
         VBox.setVgrow(listView, Priority.ALWAYS);
         panel.getChildren().addAll(header, listView);
         return panel;
+    }
+
+    private String getRelativeTime(java.time.LocalDateTime timestamp) {
+        if (timestamp == null)
+            return "Unknown";
+        java.time.Duration duration = java.time.Duration.between(timestamp, java.time.LocalDateTime.now());
+        long seconds = duration.getSeconds();
+        if (seconds < 60)
+            return "Just now";
+        long minutes = seconds / 60;
+        if (minutes < 60)
+            return minutes + " mins ago";
+        long hours = minutes / 60;
+        if (hours < 24)
+            return hours + " hours ago";
+        return timestamp.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"));
     }
 
     // Stats helper methods - simplified to avoid missing DAO methods

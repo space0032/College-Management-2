@@ -54,7 +54,7 @@ public class DashboardView {
 
         // Create content area
         contentArea = new StackPane();
-        contentArea.setStyle("-fx-background-color: #f1f5f9;"); // Light grey bg for content
+        contentArea.setStyle("-fx-background-color: #0f172a;"); // Dark Slate bg
         contentArea.setPadding(new Insets(20));
 
         // Show home by default
@@ -141,6 +141,26 @@ public class DashboardView {
     private static final String SVG_PROFILE = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z";
     private static final String SVG_SEARCH = "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z";
 
+    private static final String SVG_EVENT = "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"; // Calendar
+                                                                                                                                                                                        // style
+    private static final String SVG_CLUB = "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"; // Group
+                                                                                                                                                                                                                                                                                                                                                // style
+    private static final String SVG_LEARNING = "M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72l5 2.73 5-2.73v3.72z"; // Mortarboard
+
+    // New Icons
+    private static final String SVG_COURSE = "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z";
+    private static final String SVG_ATTENDANCE = "M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z";
+    private static final String SVG_LIBRARY = "M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z";
+
+    private static final String SVG_GRADES = "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z";
+    private static final String SVG_ASSIGNMENT = "M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm6 12H6v-1h12v1zm0-3H6v-1h12v1zm0-3H6V8h12v1z";
+    private static final String SVG_HOSTEL = "M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z";
+    private static final String SVG_GATEPASS = "M22 10V6c0-1.11-.9-2-2-2H4c-1.1 0-1.99.89-1.99 2v4c1.1 0 1.99.9 1.99 2s-.89 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2zm-9 7.5h-2v-2h2v2zm0-4.5h-2v-2h2v2zm0-4.5h-2v-2h2v2z";
+    private static final String SVG_WORKLOAD = "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"; // Bar
+                                                                                                                                                                            // chart
+                                                                                                                                                                            // style
+    private static final String SVG_VOLUNTEER = "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"; // Heart
+
     private javafx.scene.shape.SVGPath createIcon(String pathContent) {
         javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();
         icon.setContent(pathContent);
@@ -201,13 +221,51 @@ public class DashboardView {
             hasManagement = true;
         }
         if (session.hasPermission("UPLOAD_RESOURCES")) {
-            addMenuItem(managementContent, "Resource", "resource_management", SVG_RESOURCE);
+            addMenuItem(managementContent, "Resources", "resource_management", SVG_RESOURCE);
+            hasManagement = true;
+        }
+        if (session.hasPermission("MANAGE_EVENTS")) {
+            addMenuItem(managementContent, "Events", "event_management", SVG_EVENT);
+            hasManagement = true;
+        }
+        if (session.hasPermission("MANAGE_CLUBS")) {
+            addMenuItem(managementContent, "Clubs", "club_management", SVG_CLUB);
             hasManagement = true;
         }
         if ((session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS"))
                 && !session.isStudent()) {
-            addMenuItem(managementContent, "Student", "students", SVG_STUDENT);
+            addMenuItem(managementContent, "Students", "students", SVG_STUDENT);
             hasManagement = true;
+        }
+
+        if (session.hasPermission("MANAGE_FACULTY") || session.hasPermission("MANAGE_COURSES")) {
+            addMenuItem(managementContent, "Faculty Workload", "faculty_workload", SVG_WORKLOAD);
+            hasManagement = true;
+        }
+
+        // Add Faculty/Admin Management Items
+        if (session.hasPermission("MANAGE_COURSES")
+                || (!session.isStudent() && session.hasPermission("VIEW_COURSES"))) {
+            addMenuItem(managementContent, "Courses", "courses", SVG_COURSE);
+            hasManagement = true;
+        }
+        if (session.hasPermission("MANAGE_ATTENDANCE")) {
+            addMenuItem(managementContent, "Attendance", "attendance", SVG_ATTENDANCE);
+            hasManagement = true;
+        }
+        if (session.hasPermission("MANAGE_GRADES")) {
+            addMenuItem(managementContent, "Grades", "grades", SVG_GRADES);
+            hasManagement = true;
+        }
+        if (session.hasPermission("MANAGE_ASSIGNMENTS")) {
+            addMenuItem(managementContent, "Assignments", "assignments", SVG_ASSIGNMENT);
+            hasManagement = true;
+        }
+        if (session.hasPermission("MANAGE_LIBRARY")) {
+            // If manage library is separate from just viewing
+            // addMenuItem(managementContent, "Library", "library", SVG_LIBRARY);
+            // Let's put Library in Campus/Services or Academic usually
+            // But for Librarian?
         }
 
         if (hasManagement) {
@@ -221,27 +279,68 @@ public class DashboardView {
         addMenuItem(academicContent, "Calendar", "calendar", SVG_CALENDAR);
         hasAcademic = true;
 
-        if (session.isStudent() || session.hasPermission("VIEW_EVENTS")) {
+        if (session.isStudent()) {
+            addMenuItem(academicContent, "Learning Portal", "learning_portal", SVG_LEARNING);
+            addMenuItem(academicContent, "My Courses", "courses", SVG_COURSE);
+            addMenuItem(academicContent, "Attendance", "attendance", SVG_ATTENDANCE);
+            addMenuItem(academicContent, "Grades", "grades", SVG_GRADES);
+            addMenuItem(academicContent, "Assignments", "assignments", SVG_ASSIGNMENT);
+            addMenuItem(academicContent, "Timetable", "timetable", SVG_TIMETABLE);
+            addMenuItem(academicContent, "Leave", "student_leave", SVG_LEAVE);
+            addMenuItem(academicContent, "Volunteer Tasks", "volunteer_tasks", SVG_VOLUNTEER);
+            // Activities already there?
             addMenuItem(academicContent, "Activities", "student_activities", SVG_ACTIVITIES);
             hasAcademic = true;
+        } else {
+            // Non-student Academic
+            if (session.hasPermission("VIEW_EVENTS")) {
+                addMenuItem(academicContent, "Activities", "student_activities", SVG_ACTIVITIES);
+                hasAcademic = true;
+            }
+            addMenuItem(academicContent, "Leave", "staff_leave", SVG_LEAVE);
+            if (session.hasPermission("VIEW_TIMETABLE")) {
+                addMenuItem(academicContent, "Timetable", "timetable", SVG_TIMETABLE);
+                hasAcademic = true;
+            }
         }
 
-        // Leave
-        if (session.isStudent()) {
-            addMenuItem(academicContent, "Leave", "student_leave", SVG_LEAVE);
-        } else {
-            addMenuItem(academicContent, "Leave", "staff_leave", SVG_LEAVE);
-        }
         // Leave Approvals
         if (session.hasPermission("APPROVE_LEAVE")) {
             addMenuItem(academicContent, "Leave Approvals", "leave_approval", SVG_LEAVE);
-        }
-        // Timetable
-        if (session.hasPermission("VIEW_TIMETABLE")) {
-            addMenuItem(academicContent, "Timetable", "timetable", SVG_TIMETABLE);
+            hasAcademic = true;
         }
 
-        sectionsContainer.getChildren().add(createSection("Academic", academicContent));
+        if (hasAcademic) {
+            sectionsContainer.getChildren().add(createSection("Academic", academicContent));
+        }
+
+        // --- Campus & Services ---
+        VBox campusContent = new VBox(5);
+        boolean hasCampus = false;
+
+        if (session.hasPermission("VIEW_LIBRARY") || session.hasPermission("MANAGE_LIBRARY")) {
+            addMenuItem(campusContent, "Library", "library", SVG_LIBRARY);
+            hasCampus = true;
+        }
+        if (session.hasPermission("VIEW_HOSTEL") || session.hasPermission("MANAGE_HOSTEL") || session.isStudent()) {
+            addMenuItem(campusContent, "Hostel", "hostel", SVG_HOSTEL);
+            hasCampus = true;
+        }
+        if (session.hasPermission("VIEW_GATEPASS") || session.hasPermission("MANAGE_GATEPASS") || session.isStudent()) {
+            addMenuItem(campusContent, "Gate Pass", "gatepass", SVG_GATEPASS);
+            hasCampus = true;
+        }
+
+        // General Campus Browsing (Events, Clubs, Activities)
+        // Available to everyone (Students, Faculty, Admin, Staff)
+        addMenuItem(campusContent, "Events", "events", SVG_EVENT);
+        addMenuItem(campusContent, "Clubs", "clubs", SVG_CLUB);
+        addMenuItem(campusContent, "Activities", "student_activities", SVG_ACTIVITIES);
+        hasCampus = true;
+
+        if (hasCampus) {
+            sectionsContainer.getChildren().add(createSection("Campus", campusContent));
+        }
 
         // --- Finance & News ---
         VBox financeContent = new VBox(5);

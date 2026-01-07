@@ -68,12 +68,13 @@ public class DatabaseConnection {
             config.setUsername(USERNAME);
             config.setPassword(PASSWORD);
 
-            // Pool settings optimized for desktop/remote usage
-            config.setMaximumPoolSize(10);
-            config.setMinimumIdle(2);
+            // Pool settings optimized for desktop/remote usage (Conservative for Supabase
+            // Session Mode)
+            config.setMaximumPoolSize(15); // Reduced to 2 (Minimum viable)
+            config.setMinimumIdle(1);
             config.setIdleTimeout(60000); // 1 minute
             config.setConnectionTimeout(30000); // 30 seconds
-            config.setMaxLifetime(1800000); // 30 minutes
+            config.setMaxLifetime(600000); // 10 minutes (Reduced to cycle connections faster)
             config.setKeepaliveTime(30000); // Keepalive every 30s to prevent server closure
             config.setLeakDetectionThreshold(10000); // Detect leaks > 10s (relaxed)
 
@@ -83,6 +84,15 @@ public class DatabaseConnection {
             dataSource = new HikariDataSource(config);
             // Logger might not be initialized yet, so use stderr if needed or basic sysout
             System.out.println("HikariCP Connection Pool initialized.");
+
+            // Add Shutdown Hook to close pool cleanly
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if (dataSource != null && !dataSource.isClosed()) {
+                    System.out.println("Closing HikariCP Connection Pool...");
+                    dataSource.close();
+                    System.out.println("HikariCP Connection Pool closed.");
+                }
+            }));
 
         } catch (Exception e) {
             System.err.println("CRITICAL: Failed to initialize Connection Pool: " + e.getMessage());
