@@ -1489,12 +1489,30 @@ public class HostelManagementView {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
 
+        // Detect room info
+        Student currentStudent = studentDAO.getStudentByUserId(userId);
+        String detectedRoom = "Not Allocated";
+        String roomInfoForDesc = "";
+
+        if (currentStudent != null) {
+            for (HostelAllocation ha : hostelDAO.getAllocationsByStudent(currentStudent.getId())) {
+                if ("ACTIVE".equalsIgnoreCase(ha.getStatus())) {
+                    detectedRoom = "Room " + ha.getRoomNumber() + ", " + ha.getHostelName();
+                    roomInfoForDesc = "\n\n[Location: " + detectedRoom + "]";
+                    break;
+                }
+            }
+        }
+
         // Form to file new complaint
         VBox form = new VBox(10);
         form.setStyle(
                 "-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e2e8f0; -fx-border-radius: 8;");
         Label formTitle = new Label("File a New Complaint");
         formTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
+
+        Label roomLabel = new Label("Your Location: " + detectedRoom);
+        roomLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748b;");
 
         TextField titleField = new TextField();
         titleField.setPromptText("Complaint Title (e.g., Leaking Tap)");
@@ -1509,6 +1527,8 @@ public class HostelManagementView {
         descArea.setPrefHeight(80);
 
         Button fileBtn = createButton("Submit Complaint", "#ef4444");
+        final String finalRoomInfo = roomInfoForDesc;
+
         fileBtn.setOnAction(e -> {
             String t = titleField.getText().trim();
             String d = descArea.getText().trim();
@@ -1520,7 +1540,11 @@ public class HostelManagementView {
             if (s == null)
                 return;
 
-            com.college.models.Complaint c = new com.college.models.Complaint(s.getId(), t, d, typeCombo.getValue());
+            // Append room info to description
+            String fullDescription = d + finalRoomInfo;
+
+            com.college.models.Complaint c = new com.college.models.Complaint(s.getId(), t, fullDescription,
+                    typeCombo.getValue());
             com.college.dao.ComplaintDAO cDAO = new com.college.dao.ComplaintDAO();
             if (cDAO.createComplaint(c)) {
                 showAlert("Success", "Complaint filed successfully.");
@@ -1535,7 +1559,7 @@ public class HostelManagementView {
             }
         });
 
-        form.getChildren().addAll(formTitle, titleField, typeCombo, descArea, fileBtn);
+        form.getChildren().addAll(formTitle, roomLabel, titleField, typeCombo, descArea, fileBtn);
 
         // List of my complaints
         TableView<com.college.models.Complaint> myComplaintsTable = new TableView<>();
