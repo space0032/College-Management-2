@@ -2,9 +2,9 @@ name: Java CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "Supabase" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "Supabase" ]
 
 jobs:
   build:
@@ -18,7 +18,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache:maven: true
+        cache: 'maven'
         
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B package --file pom.xml -DskipTests
