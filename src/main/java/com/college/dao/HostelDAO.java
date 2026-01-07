@@ -234,6 +234,21 @@ public class HostelDAO {
     }
 
     /**
+     * Check if student has an active allocation
+     */
+    public boolean hasActiveAllocation(int studentId) {
+        String sql = "SELECT 1 FROM hostel_allocations WHERE student_id = ? AND status = 'ACTIVE'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            return pstmt.executeQuery().next();
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    /**
      * Update room occupancy
      */
     private void updateRoomOccupancy(int roomId, int change) {

@@ -18,6 +18,14 @@ public class GatePassDAO {
      * Create a new gate pass request
      */
     public static boolean createRequest(GatePass gatePass) {
+        // Validation: Check if student has active hostel allocation
+        HostelDAO hostelDAO = new HostelDAO();
+        if (!hostelDAO.hasActiveAllocation(gatePass.getStudentId())) {
+            Logger.error("Gate Pass Creation Failed: Student " + gatePass.getStudentId()
+                    + " does not have an active hostel allocation.");
+            return false;
+        }
+
         String sql = "INSERT INTO gate_passes (student_id, from_date, to_date, reason, " +
                 "destination, parent_contact) VALUES (?, ?, ?, ?, ?, ?)";
 

@@ -11,6 +11,14 @@ import java.util.List;
 public class ComplaintDAO {
 
     public boolean createComplaint(Complaint c) {
+        // Validation: Check if student has active hostel allocation
+        HostelDAO hostelDAO = new HostelDAO();
+        if (!hostelDAO.hasActiveAllocation(c.getStudentId())) {
+            Logger.error("Complaint Creation Failed: Student " + c.getStudentId()
+                    + " does not have an active hostel allocation.");
+            return false;
+        }
+
         String sql = "INSERT INTO hostel_complaints (student_id, title, description, category, status) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

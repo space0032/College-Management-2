@@ -208,15 +208,45 @@ public class DashboardView {
             addMenuItem(sidebar, "Student Activities", "student_activities", false);
         }
 
+        // Check hostel allocation for students
+        boolean hasHostelAllocation = false;
+        if (session.isStudent()) {
+            com.college.dao.StudentDAO sDao = new com.college.dao.StudentDAO();
+            com.college.models.Student st = sDao.getStudentByUserId(userId);
+            if (st != null) {
+                com.college.dao.HostelDAO hDao = new com.college.dao.HostelDAO();
+                hasHostelAllocation = hDao.hasActiveAllocation(st.getId());
+            }
+        }
+
         // Gate Pass (Wardens have their own section)
-        if ((session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
-                && !session.hasPermission("MANAGE_SYSTEM") && !role.equals("WARDEN")) {
+        // Students: Only if allocated.
+        // Others: Existing logic.
+        boolean showGatePass = false;
+        if (session.isStudent()) {
+            showGatePass = hasHostelAllocation
+                    && (session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"));
+        } else {
+            showGatePass = (session.hasPermission("REQUEST_GATE_PASS") || session.hasPermission("APPROVE_GATE_PASS"))
+                    && !session.hasPermission("MANAGE_SYSTEM") && !role.equals("WARDEN");
+        }
+
+        if (showGatePass) {
             addMenuItem(sidebar, "Gate Pass", "gatepass", false);
         }
 
         // Hostel (Wardens have their own section)
-        if ((session.hasPermission("MANAGE_HOSTEL") || session.isStudent())
-                && !session.hasPermission("MANAGE_SYSTEM") && !role.equals("WARDEN")) {
+        // Students: Only if allocated.
+        // Others: Existing logic.
+        boolean showHostel = false;
+        if (session.isStudent()) {
+            showHostel = hasHostelAllocation; // Implicitly has permission or isStudent check covers it
+        } else {
+            showHostel = (session.hasPermission("MANAGE_HOSTEL"))
+                    && !session.hasPermission("MANAGE_SYSTEM") && !role.equals("WARDEN");
+        }
+
+        if (showHostel) {
             addMenuItem(sidebar, "Hostel", "hostel", false);
         }
 

@@ -98,7 +98,14 @@ public class TimetableView {
         Label deptLabel = new Label("Department:");
         deptLabel.setFont(Font.font("Segoe UI", 13));
         departmentCombo = new ComboBox<>();
-        departmentCombo.getItems().addAll(timetableDAO.getAllDepartments());
+
+        // Use DepartmentDAO to get complete list of departments
+        com.college.dao.DepartmentDAO deptDAO = new com.college.dao.DepartmentDAO();
+        List<com.college.models.Department> depts = deptDAO.getAllDepartments();
+        for (com.college.models.Department d : depts) {
+            departmentCombo.getItems().add(d.getName());
+        }
+
         if (!departmentCombo.getItems().isEmpty()) {
             departmentCombo.setValue(departmentCombo.getItems().get(0));
         }

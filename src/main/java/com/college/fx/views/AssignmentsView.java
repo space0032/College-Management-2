@@ -341,13 +341,44 @@ public class AssignmentsView {
 
         dialog.getDialogPane().setContent(grid);
 
+        // Define the button conversion
+        // We need to handle the upload logic potentially before converting, or inside.
+        // Dialog conversion is synchronous, so it blocks UI, which is acceptable for
+        // simple apps but ideally async.
+        // For this context, blocking is okay.
+
         dialog.setResultConverter(btn -> {
             if (btn == submitBtnType) {
+                String finalPath = filePathField.getText();
+
+                // Dropbox Upload
+                if (finalPath != null && !finalPath.isEmpty() && !finalPath.startsWith("http")) {
+                    java.io.File file = new java.io.File(finalPath);
+                    if (file.exists()) {
+                        com.college.services.DropboxService dbService = new com.college.services.DropboxService();
+                        if (dbService.isConfigured()) {
+                            try (java.io.InputStream is = new java.io.FileInputStream(file)) {
+                                String fileName = "submission_" + student.getId() + "_" + selected.getId() + "_"
+                                        + file.getName();
+                                String sharableLink = dbService.uploadFile(is, fileName);
+                                if (sharableLink != null) {
+                                    finalPath = sharableLink;
+                                    System.out.println("File uploaded to Dropbox: " + finalPath);
+                                } else {
+                                    System.err.println("Dropbox upload failed, falling back to local path.");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+
                 Submission s = new Submission();
                 s.setAssignmentId(selected.getId());
                 s.setStudentId(student.getId());
                 s.setSubmissionText(contentArea.getText());
-                s.setFilePath(filePathField.getText().isEmpty() ? "" : filePathField.getText());
+                s.setFilePath(finalPath);
                 submissionDAO.submitAssignment(s);
                 return s;
             }
@@ -355,7 +386,7 @@ public class AssignmentsView {
         });
 
         dialog.showAndWait().ifPresent(s -> {
-            loadAssignments(); // Refresh to update status
+            loadAssignments();
             showAlert("Success", "Assignment submitted!");
         });
     }
@@ -373,7 +404,7 @@ public class AssignmentsView {
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
         TableView<Submission> submissionTable = new TableView<>();
-        submissionTable.setPrefWidth(800);
+        submissionTable.setPrefWidth(900);
         submissionTable.setPrefHeight(400);
 
         TableColumn<Submission, String> studentCol = new TableColumn<>("Student");
@@ -424,7 +455,57 @@ public class AssignmentsView {
                 data.getValue().getGrade() != null ? String.valueOf(data.getValue().getGrade()) : "-"));
         gradeCol.setPrefWidth(80);
 
-        submissionTable.getColumns().addAll(studentCol, dateCol, plagCol, statusCol, gradeCol);
+        // Action Column for Viewed File
+        TableColumn<Submission, Void> fileCol = new TableColumn<>("File");
+        fileCol.setPrefWidth(100);
+        fileCol.setCellFactory(param -> new TableCell<>() {
+            private final Button openBtn = new Button("View");
+
+            {
+                openBtn.setStyle("-fx-background-color: #0ea5e9; -fx-text-fill: white; -fx-font-size: 10px;");
+                openBtn.setOnAction(event -> {
+                    Submission s = getTableView().getItems().get(getIndex());
+                    String path = s.getFilePath();
+                    if (path != null && !path.isEmpty()) {
+                        if (path.startsWith("http")) {
+                            com.college.MainFX.getHostServicesInstance().showDocument(path);
+                        } else {
+                            // Try to open local file if possible
+                            try {
+                                java.io.File f = new java.io.File(path);
+                                if (f.exists()) {
+                                    com.college.MainFX.getHostServicesInstance().showDocument(f.toURI().toString());
+                                } else {
+                                    Alert a = new Alert(Alert.AlertType.ERROR);
+                                    a.setTitle("File Not Found");
+                                    a.setContentText("Local file not found: " + path);
+                                    a.show();
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    Submission s = getTableView().getItems().get(getIndex());
+                    if (s.getFilePath() != null && !s.getFilePath().isEmpty()) {
+                        setGraphic(openBtn);
+                    } else {
+                        setGraphic(null);
+                    }
+                }
+            }
+        });
+
+        submissionTable.getColumns().addAll(studentCol, dateCol, plagCol, statusCol, gradeCol, fileCol);
 
         // Load data
         List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(selected.getId());
@@ -482,10 +563,31 @@ public class AssignmentsView {
         grid.add(contentArea, 1, 0);
 
         if (submission.getFilePath() != null && !submission.getFilePath().isEmpty()) {
+            HBox fileBox = new HBox(10);
             TextField fileField = new TextField(submission.getFilePath());
             fileField.setEditable(false);
+            fileField.setPrefWidth(200);
+
+            Button openBtn = new Button("Open");
+            openBtn.setOnAction(e -> {
+                if (submission.getFilePath().startsWith("http")) {
+                    com.college.MainFX.getHostServicesInstance().showDocument(submission.getFilePath());
+                } else {
+                    // local
+                    try {
+                        java.io.File f = new java.io.File(submission.getFilePath());
+                        if (f.exists()) {
+                            com.college.MainFX.getHostServicesInstance().showDocument(f.toURI().toString());
+                        }
+                    } catch (Exception ex) {
+                    }
+                }
+            });
+
+            fileBox.getChildren().addAll(fileField, openBtn);
+
             grid.add(new Label("Attached File:"), 0, 1);
-            grid.add(fileField, 1, 1);
+            grid.add(fileBox, 1, 1);
         }
 
         grid.add(new Label("Marks:"), 0, 2);

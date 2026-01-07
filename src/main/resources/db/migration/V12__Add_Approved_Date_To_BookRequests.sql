@@ -1,0 +1,1 @@
+ALTER TABLE book_requests ADD COLUMN IF NOT EXISTS approved_date TIMESTAMP;

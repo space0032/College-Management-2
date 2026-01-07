@@ -93,6 +93,32 @@ public class DatabaseMigrator {
                         System.err.println("V10 Migration file not found!");
                     }
                 }
+
+                // Execute V11 Fix Club Membership Status
+                String v11Path = "/db/migration/V11__Fix_Club_Membership_Status.sql";
+                try (InputStream v11is = DatabaseMigrator.class.getResourceAsStream(v11Path)) {
+                    if (v11is != null) {
+                        String v11sql = new BufferedReader(new InputStreamReader(v11is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v11sql);
+                        System.out.println("V11 Fix Club Membership Status Migration executed successfully!");
+                    } else {
+                        System.err.println("V11 Migration file not found!");
+                    }
+                }
+
+                // Execute V12 Add Approved Date to BookRequests
+                String v12Path = "/db/migration/V12__Add_Approved_Date_To_BookRequests.sql";
+                try (InputStream v12is = DatabaseMigrator.class.getResourceAsStream(v12Path)) {
+                    if (v12is != null) {
+                        String v12sql = new BufferedReader(new InputStreamReader(v12is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v12sql);
+                        System.out.println("V12 Add Approved Date Migration executed successfully!");
+                    } else {
+                        System.err.println("V12 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {

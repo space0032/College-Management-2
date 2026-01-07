@@ -357,36 +357,83 @@ public class CourseRegistrationDAO {
      */
     public List<com.college.models.Student> getEnrolledStudents(int courseId) {
         List<com.college.models.Student> students = new ArrayList<>();
-        String sql = "SELECT s.* FROM students s " +
-                "JOIN course_registrations cr ON s.id = cr.student_id " +
-                "WHERE cr.course_id = ? AND (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED') " +
+        // Query checks BOTH course_registrations (requests) AND student_courses (direct
+        // enrollment/legacy)
+        String sql = "SELECT DISTINCT s.* FROM students s " +
+                "LEFT JOIN course_registrations cr ON s.id = cr.student_id AND cr.course_id = ? " +
+                "LEFT JOIN student_courses sc ON s.id = sc.student_id AND sc.course_id = ? " +
+                "WHERE (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED') " +
+                "OR (sc.status = 'ENROLLED' OR sc.status = 'REGISTERED') " +
                 "ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, courseId);
+            pstmt.setInt(2, courseId);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                // Reuse extraction logic if possible, or just fetch essential
-                // For safety and completeness, let's use StudentDAO's extraction if visible or
-                // just map manually
-                // Since extractStudentFromResultSet is likely private, we'll rely on
-                // StudentDAO.getStudentById
-                // but that's N+1. Better to map essential fields here or make extraction
-                // public.
-                // Checking StudentDAO... for now, let's just map ID and Name as that's what we
-                // need for grading.
-                // Wait, StudentDAO is in same package. check visibility.
-
-                // Better approach: use StudentDAO.extractStudentFromResultSet if
-                // package-private.
-                // Assuming it's private. Let's map manually what we need.
                 com.college.models.Student s = new com.college.models.Student();
                 s.setId(rs.getInt("id"));
                 s.setName(rs.getString("name"));
-                // s.setRollNumber(rs.getString("roll_number"));
+
+                try {
+                    // Try to get username/enrollment if available
+                    // Note: The query selects * from students. Username is usually joined from
+                    // users table.
+                    // This specific query selects s.*. So username might not be there unless we
+                    // join users.
+                    // Let's rely on standard StudentDAO extraction if possible, or just ignore
+                    // username if not needed
+                    // GradesView uses "Name (Username)". We need username.
+
+                    // But we can't easily join users table here without ambiguous column names if
+                    // not careful.
+                    // Let's modify query to join users to get enrollment id (username).
+                } catch (Exception e) {
+                }
+
+                students.add(s);
+            }
+
+            // Re-fetch to get complete details including username?
+            // Better: Update the SQL above to join users.
+
+        } catch (SQLException e) {
+            Logger.error("Fetch enrolled students failed", e);
+        }
+
+        // Refined implementation with Users Join
+        return getEnrolledStudentsWithDetails(courseId);
+    }
+
+    private List<com.college.models.Student> getEnrolledStudentsWithDetails(int courseId) {
+        List<com.college.models.Student> students = new ArrayList<>();
+        String sql = "SELECT DISTINCT s.*, u.username FROM students s " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "LEFT JOIN course_registrations cr ON s.id = cr.student_id AND cr.course_id = ? " +
+                "LEFT JOIN student_courses sc ON s.id = sc.student_id AND sc.course_id = ? " +
+                "WHERE (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED') " +
+                "OR (sc.status = 'ENROLLED' OR sc.status = 'REGISTERED') " +
+                "ORDER BY s.name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, courseId);
+            pstmt.setInt(2, courseId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                com.college.models.Student s = new com.college.models.Student();
+                s.setId(rs.getInt("id"));
+                s.setName(rs.getString("name"));
+                try {
+                    s.setUsername(rs.getString("username"));
+                } catch (SQLException e) {
+                    /* Ignore */ }
+
                 students.add(s);
             }
 
