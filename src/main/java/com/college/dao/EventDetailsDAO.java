@@ -170,4 +170,18 @@ public class EventDetailsDAO {
             return false;
         }
     }
+
+    public boolean updateVolunteerTask(int volunteerId, String task, String status) {
+        String sql = "UPDATE event_volunteers SET task_description = ?, status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, task);
+            pstmt.setString(2, status);
+            pstmt.setInt(3, volunteerId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error updating volunteer task: " + e.getMessage());
+            return false;
+        }
+    }
 }
