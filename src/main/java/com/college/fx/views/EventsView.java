@@ -291,16 +291,6 @@ public class EventsView {
         allEventsTable.setItems(filtered);
     }
 
-    private void applyFilter() {
-        String filter = filterCombo.getValue();
-        if (filter.equals("All Events")) {
-            allEventsTable.setItems(allEventsData);
-        } else {
-            ObservableList<Event> filtered = allEventsData.filtered(e -> e.getEventType().equals(filter));
-            allEventsTable.setItems(filtered);
-        }
-    }
-
     private void registerForEvent(Event event) {
         if (currentStudent == null) {
             showAlert(Alert.AlertType.ERROR, "Error", "Student profile not found.");

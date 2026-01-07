@@ -138,11 +138,6 @@ public class DashboardView {
             addMenuItem(sidebar, "Employees (HR)", "employees", false);
         }
 
-        // Payroll Management
-        if (session.hasPermission("MANAGE_PAYROLL") || session.hasPermission("VIEW_PAYROLL")) {
-            addMenuItem(sidebar, "Payroll", "payroll", false);
-        }
-
         // Course Management - Students should always see their courses
         if (session.isStudent()) {
             addMenuItem(sidebar, "My Courses", "courses", false);
@@ -253,8 +248,17 @@ public class DashboardView {
         // Leave Management
         if (session.isStudent()) {
             addMenuItem(sidebar, "Leave Application", "student_leave", false);
-        } else if (session.hasPermission("APPROVE_LEAVE") || session.isAdmin() || "WARDEN".equals(role)) {
+            addMenuItem(sidebar, "Volunteer Tasks", "volunteer_tasks", false);
+        } else if (session.isFaculty() || session.isWarden()) {
+            addMenuItem(sidebar, "My Leave", "staff_leave", false);
+        }
+
+        if (session.hasPermission("APPROVE_LEAVE") || session.isAdmin() || "WARDEN".equals(role)) {
             addMenuItem(sidebar, "Leave Approvals", "leave_approval", false);
+        }
+
+        if (session.isAdmin() || session.hasPermission("MANAGE_PAYROLL")) {
+            addMenuItem(sidebar, "Payroll Management", "payroll", false);
         }
 
         // Announcements (Everyone except students)
@@ -299,15 +303,6 @@ public class DashboardView {
         addMenuItem(sidebar, "Change Password", "password", false);
 
         return sidebar;
-    }
-
-    private void addCategoryHeader(VBox sidebar, String headerText) {
-        Label categoryLabel = new Label(headerText);
-        categoryLabel.setStyle("-fx-text-fill: #64748b; " +
-                "-fx-font-size: 11px; " +
-                "-fx-font-weight: bold; " +
-                "-fx-padding: 15 15 5 15;");
-        sidebar.getChildren().add(categoryLabel);
     }
 
     private void addMenuItem(VBox sidebar, String text, String viewName, boolean isActive) {
@@ -453,14 +448,21 @@ public class DashboardView {
             case "employees":
                 showEmployees();
                 break;
-            case "payroll":
-                showPayroll();
-                break;
+
             case "student_leave":
                 showStudentLeave();
                 break;
             case "leave_approval":
                 showLeaveApprovals();
+                break;
+            case "volunteer_tasks":
+                showVolunteerTasks();
+                break;
+            case "staff_leave":
+                showStaffLeave();
+                break;
+            case "payroll":
+                showPayrollManagement();
                 break;
             case "student_affairs":
                 showStudentAffairs();
@@ -543,12 +545,6 @@ public class DashboardView {
         // Let's assume standard pattern. Previous code:
         // contentArea.getChildren().add(view);
         // meaning view IS the Node. So it is the controller/view hybrid.
-        currentController = view;
-        contentArea.getChildren().add(view);
-    }
-
-    private void showPayroll() {
-        PayrollManagementView view = new PayrollManagementView();
         currentController = view;
         contentArea.getChildren().add(view);
     }
@@ -717,8 +713,26 @@ public class DashboardView {
         contentArea.getChildren().add(view.getView());
     }
 
+    private void showVolunteerTasks() {
+        VolunteerTasksView view = new VolunteerTasksView();
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showStaffLeave() {
+        StaffLeaveView view = new StaffLeaveView();
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
     private void showLeaveApprovals() {
         LeaveApprovalView view = new LeaveApprovalView();
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showPayrollManagement() {
+        PayrollManagementView view = new PayrollManagementView();
         currentController = view;
         contentArea.getChildren().add(view.getView());
     }

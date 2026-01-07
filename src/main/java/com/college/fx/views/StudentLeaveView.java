@@ -2,8 +2,8 @@ package com.college.fx.views;
 
 import com.college.dao.StudentLeaveDAO;
 import com.college.models.StudentLeave;
-import com.college.models.User;
 import com.college.utils.SessionManager;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -11,7 +11,6 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import java.sql.Date;
-import java.time.LocalDate;
 
 public class StudentLeaveView {
 

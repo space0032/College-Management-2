@@ -130,6 +130,35 @@ public class EventDetailsDAO {
         return list;
     }
 
+    public List<EventVolunteer> getVolunteersByStudent(int studentId) {
+        List<EventVolunteer> list = new ArrayList<>();
+        String sql = "SELECT ev.*, s.name as student_name, e.name as event_name " +
+                "FROM event_volunteers ev " +
+                "JOIN students s ON ev.student_id = s.id " +
+                "JOIN events e ON ev.event_id = e.id " +
+                "WHERE ev.student_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                EventVolunteer ev = new EventVolunteer();
+                ev.setId(rs.getInt("id"));
+                ev.setEventId(rs.getInt("event_id"));
+                ev.setStudentId(rs.getInt("student_id"));
+                ev.setTaskDescription(rs.getString("task_description"));
+                ev.setStatus(rs.getString("status"));
+                ev.setHoursLogged(rs.getFloat("hours_logged"));
+                ev.setStudentName(rs.getString("student_name"));
+                ev.setEventName(rs.getString("event_name"));
+                list.add(ev);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching volunteer tasks: " + e.getMessage());
+        }
+        return list;
+    }
+
     public boolean isVolunteer(int eventId, int studentId) {
         String sql = "SELECT 1 FROM event_volunteers WHERE event_id = ? AND student_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();

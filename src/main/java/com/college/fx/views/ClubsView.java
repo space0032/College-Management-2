@@ -349,18 +349,48 @@ public class ClubsView {
     }
 
     private void loadData() {
-        List<Club> allClubs = clubDAO.getAllClubs();
-        allClubsData.setAll(allClubs);
-        allClubsTable.setItems(allClubsData);
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                // Fetch data in background thread
+                List<Club> allClubs = clubDAO.getAllClubs();
 
-        if (currentStudent != null) {
-            List<Club> myClubs = clubDAO.getStudentClubs(currentStudent.getId());
-            myClubsData.setAll(myClubs);
-            myClubsTable.setItems(myClubsData);
+                List<Club> myClubs = java.util.Collections.emptyList();
+                List<ClubMembership> myApps = java.util.Collections.emptyList();
 
-            List<ClubMembership> myApps = clubDAO.getMyMemberships(currentStudent.getId());
-            myApplicationsData.setAll(myApps);
-        }
+                if (currentStudent != null) {
+                    myClubs = clubDAO.getStudentClubs(currentStudent.getId());
+                    myApps = clubDAO.getMyMemberships(currentStudent.getId());
+                }
+
+                final List<Club> finalAllClubs = allClubs;
+                final List<Club> finalMyClubs = myClubs;
+                final List<ClubMembership> finalApps = myApps;
+
+                // Update UI on JavaFX Application Thread
+                javafx.application.Platform.runLater(() -> {
+                    allClubsData.setAll(finalAllClubs);
+                    allClubsTable.setItems(allClubsData);
+
+                    if (currentStudent != null) {
+                        myClubsData.setAll(finalMyClubs);
+                        myClubsTable.setItems(myClubsData);
+                        myApplicationsData.setAll(finalApps);
+                    }
+                });
+                return null;
+            }
+        };
+
+        task.setOnFailed(e -> {
+            Throwable ex = task.getException();
+            if (ex != null)
+                ex.printStackTrace();
+            javafx.application.Platform
+                    .runLater(() -> showAlert(Alert.AlertType.ERROR, "Error", "Failed to load club data."));
+        });
+
+        new Thread(task).start();
     }
 
     private void applySearchAndFilter(String searchText, String categoryFilter) {

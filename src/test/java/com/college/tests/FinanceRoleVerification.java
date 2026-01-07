@@ -1,9 +1,6 @@
 package com.college.tests;
 
-import com.college.dao.PermissionDAO;
 import com.college.dao.RoleDAO;
-import com.college.dao.UserDAO;
-import com.college.models.Permission;
 import com.college.models.Role;
 import com.college.utils.DatabaseConnection;
 

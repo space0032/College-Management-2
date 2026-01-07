@@ -34,11 +34,6 @@ public class DatabaseMigrator {
             try (Connection conn = DatabaseConnection.getConnection();
                     Statement stmt = conn.createStatement()) {
 
-                if (conn == null) {
-                    System.err.println("Cannot run migration: No connection.");
-                    return;
-                }
-
                 stmt.execute(sql);
                 System.out.println("V1 Migration executed successfully!");
 
@@ -130,6 +125,32 @@ public class DatabaseMigrator {
                         System.out.println("V34 Add Student Leaves Migration executed successfully!");
                     } else {
                         System.err.println("V34 Migration file not found!");
+                    }
+                }
+
+                // Execute V35 Add Staff Leaves
+                String v35Path = "/db/migration/V35__Add_Staff_Leaves.sql";
+                try (InputStream v35is = DatabaseMigrator.class.getResourceAsStream(v35Path)) {
+                    if (v35is != null) {
+                        String v35sql = new BufferedReader(new InputStreamReader(v35is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v35sql);
+                        System.out.println("V35 Add Staff Leaves Migration executed successfully!");
+                    } else {
+                        System.err.println("V35 Migration file not found!");
+                    }
+                }
+
+                // Execute V36 Add Payroll Permission
+                String v36Path = "/db/migration/V36__Add_Payroll_Permission.sql";
+                try (InputStream v36is = DatabaseMigrator.class.getResourceAsStream(v36Path)) {
+                    if (v36is != null) {
+                        String v36sql = new BufferedReader(new InputStreamReader(v36is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v36sql);
+                        System.out.println("V36 Add Payroll Permission Migration executed successfully!");
+                    } else {
+                        System.err.println("V36 Migration file not found!");
                     }
                 }
             }

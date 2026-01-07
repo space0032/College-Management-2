@@ -278,16 +278,6 @@ public class RoleDAO {
         return false;
     }
 
-    // Overload for backward compatibility/internal use if needed, but best to force
-    // connection passing
-    private void loadPermissionsForRole(Role role) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            loadPermissionsForRole(conn, role);
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-        }
-    }
-
     private void loadPermissionsForRole(Connection conn, Role role) {
         String sql = "SELECT p.* FROM permissions p " +
                 "INNER JOIN role_permissions rp ON rp.permission_id = p.id " +

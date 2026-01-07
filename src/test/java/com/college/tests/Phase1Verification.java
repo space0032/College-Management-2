@@ -28,8 +28,6 @@ public class Phase1Verification {
     private static FacultyDAO facultyDAO;
 
     private static User testAdmin;
-    private static User testStudentUser;
-    private static User testFacultyUser;
 
     // Profile IDs (not User IDs)
     private static int studentProfileId;
@@ -58,7 +56,6 @@ public class Phase1Verification {
         if (studentUserId == -1 && userDAO.isUsernameTaken("p1_student")) {
             studentUserId = getUserId("p1_student");
         }
-        testStudentUser = new User(studentUserId, "p1_student", "STUDENT");
 
         // Check if student profile exists, if not create
         Student s = studentDAO.getStudentByUserId(studentUserId);
@@ -92,7 +89,6 @@ public class Phase1Verification {
         if (facultyUserId == -1 && userDAO.isUsernameTaken("p1_faculty")) {
             facultyUserId = getUserId("p1_faculty");
         }
-        testFacultyUser = new User(facultyUserId, "p1_faculty", "FACULTY");
 
         Faculty f = facultyDAO.getFacultyByUserId(facultyUserId);
         if (f == null) {

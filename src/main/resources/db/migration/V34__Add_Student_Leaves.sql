@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS student_leaves (
     CONSTRAINT check_dates CHECK (end_date >= start_date)
 );
 
-CREATE INDEX idx_student_leaves_student_id ON student_leaves(student_id);
-CREATE INDEX idx_student_leaves_status ON student_leaves(status);
+CREATE INDEX IF NOT EXISTS idx_student_leaves_student_id ON student_leaves(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_leaves_status ON student_leaves(status);

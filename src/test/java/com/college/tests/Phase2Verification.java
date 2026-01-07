@@ -26,7 +26,7 @@ public class Phase2Verification {
 
     private static SyllabusDAO syllabusDAO;
     private static LearningResourceDAO resourceDAO;
-    private static CourseDAO courseDAO;
+
     private static UserDAO userDAO;
     private static FileUploadService fileUploadService;
 
@@ -38,7 +38,7 @@ public class Phase2Verification {
     public static void setup() throws Exception {
         syllabusDAO = new SyllabusDAO();
         resourceDAO = new LearningResourceDAO();
-        courseDAO = new CourseDAO();
+
         userDAO = new UserDAO();
         fileUploadService = new FileUploadService();
 

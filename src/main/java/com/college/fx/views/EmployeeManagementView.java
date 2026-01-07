@@ -46,15 +46,10 @@ public class EmployeeManagementView extends VBox {
         btnPayroll.setOnAction(e -> handleGeneratePayroll());
         btnPayroll.setDisable(!canManage);
 
-        Button btnBulkPayroll = new Button("Bulk Generate Payroll");
-        btnBulkPayroll.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white;");
-        btnBulkPayroll.setOnAction(e -> handleBulkPayroll());
-        btnBulkPayroll.setDisable(!canManage);
-
         Button btnRefresh = new Button("Refresh");
         btnRefresh.setOnAction(e -> refreshTable());
 
-        actions.getChildren().addAll(btnAdd, btnEdit, btnPayroll, btnBulkPayroll, btnRefresh);
+        actions.getChildren().addAll(btnAdd, btnEdit, btnPayroll, btnRefresh);
 
         setupTable();
         refreshTable();
@@ -299,74 +294,6 @@ public class EmployeeManagementView extends VBox {
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Failed to generate payroll. Check logs.");
         }
-    }
-
-    private void handleBulkPayroll() {
-        int month = LocalDate.now().getMonthValue();
-        int year = LocalDate.now().getYear();
-        String monthName = java.time.Month.of(month).toString();
-
-        // Confirmation dialog
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Bulk Payroll Generation");
-        confirm.setHeaderText("Generate Payroll for All Employees");
-        confirm.setContentText("Generate payroll for " + monthName + " " + year + "?\n\n" +
-                "This will create payroll entries for all employees with valid salary configurations.");
-
-        Optional<ButtonType> confirmResult = confirm.showAndWait();
-        if (confirmResult.isEmpty() || confirmResult.get() != ButtonType.OK) {
-            return; // User cancelled
-        }
-
-        int count = 0;
-        int skipped = 0;
-
-        // Check existing for this month to avoid duplicates (naive check: just try
-        // insert or skip)
-        // Usually PayrollDAO doesn't enforce unique (month, year, employee) unless DB
-        // has constraint.
-        // We will just try to create for valid employees.
-
-        for (Employee emp : table.getItems()) {
-            if (emp.getId() == 0 || emp.getSalary() == null || emp.getSalary().compareTo(BigDecimal.ZERO) <= 0) {
-                skipped++;
-                continue;
-            }
-
-            // Check if payroll already exists for this employee this month
-            // We can query DAO or just try. To be safe/clean, we assume DAO doesn't dedupe,
-            // so we should check.
-            // But doing N queries is slow.
-            // Let's assume the user knows what they are doing or rely on DB constraint.
-            // Better: Get all payrolls for this month once
-            // List<PayrollEntry> existing = payrollDAO.getPayrollEntriesByMonthYear(month,
-            // year);
-            // ... filtering ...
-            // For now, simple implementation:
-
-            PayrollEntry entry = new PayrollEntry(
-                    emp.getId(),
-                    month,
-                    year,
-                    emp.getSalary());
-
-            if (payrollDAO.createPayrollEntry(entry)) {
-                count++;
-            } else {
-                // Duplicate or error
-                skipped++;
-            }
-        }
-
-        // Completion dialog
-        Alert completion = new Alert(Alert.AlertType.INFORMATION);
-        completion.setTitle("Payroll Generation Complete");
-        completion.setHeaderText("Bulk Payroll for " + monthName + " " + year);
-        completion.setContentText(
-                "✓ Successfully generated: " + count + " payroll entries\n" +
-                        "⊘ Skipped/Failed: " + skipped + "\n\n" +
-                        "Employees must have a valid profile and salary to generate payroll.");
-        completion.showAndWait();
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {

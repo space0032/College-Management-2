@@ -1,9 +1,6 @@
 package com.college.tests;
 
 import com.college.dao.EnhancedFeeDAO;
-import com.college.models.StudentFee;
-import java.sql.Date;
-import java.time.LocalDate;
 
 public class FinanceFeatureVerification {
 

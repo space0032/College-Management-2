@@ -44,6 +44,7 @@ public class DropboxService {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         protected void configureConnection(HttpsURLConnection conn) throws java.io.IOException {
             super.configureConnection(conn);
 

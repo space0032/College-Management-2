@@ -75,7 +75,6 @@ public class FinanceRoleSetup {
     private static void setupRole() {
         System.out.println("Checking role...");
         RoleDAO roleDAO = new RoleDAO();
-        PermissionDAO permissionDAO = new PermissionDAO();
 
         Role financeRole = roleDAO.getRoleByCode(ROLE_CODE);
         if (financeRole == null) {

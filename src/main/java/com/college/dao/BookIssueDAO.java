@@ -224,4 +224,52 @@ public class BookIssueDAO {
 
         return issue;
     }
+
+    /**
+     * Update fines for a specific student's overdue books
+     */
+    public void updateFinesForStudent(int studentId) {
+        String sql = "UPDATE book_issues SET fine_amount = " +
+                "CASE WHEN CURRENT_DATE > due_date THEN (CURRENT_DATE - due_date) * ? ELSE 0 END " +
+                "WHERE student_id = ? AND status = 'ISSUED'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setDouble(1, FINE_PER_DAY);
+            pstmt.setInt(2, studentId);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            Logger.error("Failed to update fines", e);
+        }
+    }
+
+    /**
+     * Get total fine amount for a student (including returned books if we tracked
+     * unpaid,
+     * but currently usually returned implies paid or we just sum all fines)
+     * For detailed tracking, we might want just currrently active fines or total
+     * history.
+     * Let's assume this returns total fine involved in ISSUED books for now
+     * (pending fines).
+     */
+    public double getPendingFines(int studentId) {
+        // First ensure they are up to date
+        updateFinesForStudent(studentId);
+
+        String sql = "SELECT SUM(fine_amount) as total FROM book_issues WHERE student_id = ? AND status = 'ISSUED'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("total");
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to fetch pending fines", e);
+        }
+        return 0.0;
+    }
 }

@@ -68,6 +68,21 @@ public class PayrollDAO {
         }
     }
 
+    public boolean markMonthAsPaid(int month, int year) {
+        String sql = "UPDATE payroll_entries SET status = 'PAID', payment_date = ? WHERE month = ? AND year = ? AND status != 'PAID'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setDate(1, Date.valueOf(LocalDate.now()));
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            return pstmt.executeUpdate() >= 0; // Return true even if 0 rows updated (no error)
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
+
     public List<PayrollEntry> getAllPayrollEntries() {
         List<PayrollEntry> list = new ArrayList<>();
         String sql = "SELECT * FROM payroll_entries ORDER BY year DESC, month DESC, employee_id";

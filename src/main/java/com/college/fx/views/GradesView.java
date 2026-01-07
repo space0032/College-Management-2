@@ -26,7 +26,6 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
-import javafx.geometry.Insets;
 
 /**
  * JavaFX Grades View

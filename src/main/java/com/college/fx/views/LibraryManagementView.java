@@ -241,9 +241,18 @@ public class LibraryManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadIssuedBooks());
 
-        content.getChildren().addAll(issuedTable, refreshBtn);
+        totalFineLabel = new Label("Total Pending Fine: Rs. 0.00");
+        totalFineLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+        totalFineLabel.setTextFill(Color.RED);
+
+        HBox bottomBox = new HBox(10, refreshBtn, totalFineLabel);
+        bottomBox.setAlignment(Pos.CENTER_LEFT);
+
+        content.getChildren().addAll(issuedTable, bottomBox);
         return content;
     }
+
+    private Label totalFineLabel;
 
     // --- My Requests Tab ---
 
@@ -398,8 +407,14 @@ public class LibraryManagementView {
             return;
         Student s = studentDAO.getStudentByUserId(userId);
         if (s != null) {
+            bookIssueDAO.updateFinesForStudent(s.getId()); // Update fines first
             issuedData.clear();
             issuedData.addAll(bookIssueDAO.getIssuedBooksByStudent(s.getId()));
+
+            double totalFine = bookIssueDAO.getPendingFines(s.getId());
+            if (totalFineLabel != null) {
+                totalFineLabel.setText(String.format("Total Pending Fine: Rs. %.2f", totalFine));
+            }
         }
     }
 
@@ -728,7 +743,13 @@ public class LibraryManagementView {
         });
         dialog.showAndWait().ifPresent(i -> {
             loadBooks();
-            showAlert("Success", "Book Returned!");
+            BookIssue processed = issueCombo.getValue();
+            double fine = processed.calculateFine(5.0);
+            if (fine > 0) {
+                showAlert("Success", "Book Returned!\nPlease collect Fine: Rs. " + String.format("%.2f", fine));
+            } else {
+                showAlert("Success", "Book Returned!");
+            }
         });
     }
 
@@ -753,12 +774,6 @@ public class LibraryManagementView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-
-    private void exportData() {
-        // Default export catalog, assuming that's what user usually wants
-        // Can be improved to export active tab
-        com.college.utils.FxTableExporter.exportWithDialog(catalogTable, root.getScene().getWindow());
     }
 
     public VBox getView() {
