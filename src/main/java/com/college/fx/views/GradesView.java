@@ -52,8 +52,8 @@ public class GradesView {
 
     private void createView() {
         root = new VBox(20);
-        root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane");
 
         HBox header = createHeader();
         VBox tableSection = createTableSection();
@@ -66,21 +66,15 @@ public class GradesView {
     private HBox createHeader() {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
 
         Label title = new Label(role.equals("STUDENT") ? "My Grades" : "Grade Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
+        refreshBtn.getStyleClass().add("icon-button");
         refreshBtn.setOnAction(e -> loadGrades());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -90,14 +84,11 @@ public class GradesView {
     @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
-        section.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        section.getStyleClass().add("glass-card");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(gradeData);
 
         // Columns definitions
@@ -144,14 +135,14 @@ public class GradesView {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
-                    setStyle("");
+                    setGraphic(null);
                 } else {
                     setText(item);
-                    setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a;");
+                    setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
                     if (item.startsWith("A"))
-                        setStyle("-fx-font-weight: bold; -fx-text-fill: #16a34a;");
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #22c55e;");
                     else if (item.startsWith("F"))
-                        setStyle("-fx-font-weight: bold; -fx-text-fill: #dc2626;");
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #ef4444;");
                 }
             }
         });
@@ -175,35 +166,32 @@ public class GradesView {
         section.setPadding(new Insets(10));
 
         if (SessionManager.getInstance().hasPermission("MANAGE_GRADES")) {
-            Button addGradeBtn = createButton("Add Grade", "#22c55e");
+            Button addGradeBtn = createButton("Add Grade");
+            addGradeBtn.getStyleClass().add("accent-button");
             addGradeBtn.setOnAction(e -> showAddGradeDialog());
 
-            Button bulkGradeBtn = createButton("Bulk Grade Entry", "#3b82f6");
+            Button bulkGradeBtn = createButton("Bulk Grade Entry");
+            bulkGradeBtn.getStyleClass().add("accent-button");
             bulkGradeBtn.setOnAction(e -> showBulkGradeDialog());
 
             section.getChildren().addAll(addGradeBtn, bulkGradeBtn);
 
-            Button importBtn = createButton("Import CSV", "#8b5cf6");
+            Button importBtn = createButton("Import CSV");
+            importBtn.getStyleClass().add("accent-button");
             importBtn.setOnAction(e -> showImportDialog());
             section.getChildren().add(importBtn);
         }
 
-        Button exportBtn = createButton("Export Report", "#64748b");
+        Button exportBtn = createButton("Export Report");
+        exportBtn.getStyleClass().add("icon-button");
         section.getChildren().add(exportBtn);
 
         return section;
     }
 
-    private Button createButton(String text, String color) {
+    private Button createButton(String text) {
         Button btn = new Button(text);
-        btn.setPrefWidth(160);
-        btn.setPrefHeight(40);
-        btn.setStyle(
-                "-fx-background-color: " + color + ";" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
+        // Style classes are added by caller
         return btn;
     }
 
@@ -381,7 +369,8 @@ public class GradesView {
         selectionGrid.add(new Label("Max Marks:"), 0, 2);
         selectionGrid.add(maxMarksField, 1, 2);
 
-        Button loadBtn = createButton("Load Students", "#3b82f6");
+        Button loadBtn = createButton("Load Students");
+        loadBtn.getStyleClass().add("accent-button");
 
         TableView<BulkGradeRecord> gradeTable = new TableView<>();
         gradeTable.setPrefHeight(300);

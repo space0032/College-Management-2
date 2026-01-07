@@ -285,3 +285,163 @@
 .scroll-bar:horizontal .thumb:hover {
     -fx-background-color: #475569;
 }
+
+/* --- Glassmorphism & Modern UI - Phase 5 Updates --- */
+
+.glass-pane {
+    -fx-background-color: #0f172a;
+    /* Slate-900 */
+}
+
+.glass-card {
+    -fx-background-color: rgba(30, 41, 59, 0.7);
+    /* Slate-800 with opacity */
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 10, 0, 0, 5);
+}
+
+.section-title {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 2, 0, 0, 1);
+}
+
+/* Button Styles */
+.accent-button {
+    -fx-background-color: linear-gradient(to right, #14b8a6, #0d9488);
+    /* Teal-500 to Teal-600 */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(20, 184, 166, 0.3), 5, 0, 0, 2);
+}
+
+.accent-button:hover {
+    -fx-background-color: linear-gradient(to right, #2dd4bf, #14b8a6);
+    -fx-effect: dropshadow(three-pass-box, rgba(20, 184, 166, 0.5), 8, 0, 0, 2);
+}
+
+.icon-button {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-text-fill: #cbd5e1;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 8;
+}
+
+.icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+}
+
+.small-button {
+    -fx-font-size: 11px;
+    -fx-padding: 4 8;
+}
+
+/* Form Fields */
+.search-field,
+.text-field,
+.combo-box {
+    -fx-background-color: rgba(15, 23, 42, 0.6);
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: #64748b;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 8;
+}
+
+.search-field:focused,
+.text-field:focused,
+.combo-box:focused {
+    -fx-border-color: #14b8a6;
+    -fx-background-color: rgba(15, 23, 42, 0.8);
+}
+
+.combo-box .cell {
+    -fx-text-fill: white;
+}
+
+.combo-box .list-view {
+    -fx-background-color: #1e293b;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Glass Table View */
+.glass-table {
+    -fx-background-color: transparent;
+}
+
+.glass-table .column-header-background {
+    -fx-background-color: transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+}
+
+.glass-table .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 40px;
+}
+
+.glass-table .column-header .label {
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.glass-table .table-row-cell {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.05) transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.glass-table .table-row-cell:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+}
+
+.glass-table .table-row-cell:selected {
+    -fx-background-color: rgba(20, 184, 166, 0.1);
+}
+
+.glass-table .table-cell {
+    -fx-text-fill: #e2e8f0;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.glass-table .placeholder .label {
+    -fx-text-fill: #64748b;
+}
+
+/* Floating Tabs */
+.floating .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.floating .tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-padding: 10 20;
+}
+
+.floating .tab:selected {
+    -fx-border-color: transparent transparent #14b8a6 transparent;
+}
+
+.floating .tab .tab-label {
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.floating .tab:selected .tab-label {
+    -fx-text-fill: white;
+}

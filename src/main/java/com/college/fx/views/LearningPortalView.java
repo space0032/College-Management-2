@@ -45,13 +45,15 @@ public class LearningPortalView {
     public BorderPane getView() {
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane"); // Dark background
 
         Label header = new Label("Learning Portal");
-        header.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        header.getStyleClass().add("section-title");
         root.setTop(header);
+        BorderPane.setMargin(header, new Insets(0, 0, 20, 0)); // Add spacing below header
 
         tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("floating"); // Floating tab style
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         tabPane.getTabs().add(createSyllabusTab());
@@ -166,36 +168,43 @@ public class LearningPortalView {
     private Tab createResourcesTab() {
         Tab tab = new Tab("Learning Resources");
 
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(15));
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.getStyleClass().add("glass-card");
 
         TextField searchField = new TextField();
         searchField.setPromptText("Search resources by title or course...");
-        searchField.setMaxWidth(300);
+        searchField.setMaxWidth(400);
+        searchField.getStyleClass().add("search-field"); // Use styled search field
 
         TableView<LearningResource> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
 
         TableColumn<LearningResource, String> titleCol = new TableColumn<>("Title");
         titleCol.setCellValueFactory(cellData -> {
             String icon = getFileIcon(cellData.getValue().getFileType());
             return new javafx.beans.property.SimpleStringProperty(icon + " " + cellData.getValue().getTitle());
         });
-        titleCol.setPrefWidth(200);
+        titleCol.setPrefWidth(250);
 
         TableColumn<LearningResource, String> catCol = new TableColumn<>("Category");
         catCol.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
+        catCol.setPrefWidth(120);
 
         TableColumn<LearningResource, String> courseCol = new TableColumn<>("Course");
         courseCol.setCellValueFactory(new PropertyValueFactory<>("courseName"));
+        courseCol.setPrefWidth(150);
 
         TableColumn<LearningResource, String> sizeCol = new TableColumn<>("Size");
         sizeCol.setCellValueFactory(
                 cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getFormattedSize()));
+        sizeCol.setPrefWidth(80);
 
         TableColumn<LearningResource, Void> actionCol = new TableColumn<>("Action");
         actionCol.setCellFactory(param -> new TableCell<>() {
             private final Button btn = new Button("Download");
             {
+                btn.getStyleClass().addAll("accent-button", "small-button");
                 btn.setOnAction(e -> {
                     LearningResource r = getTableView().getItems().get(getIndex());
                     resourceDAO.incrementDownloadCount(r.getId());
@@ -229,6 +238,7 @@ public class LearningPortalView {
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(empty ? null : btn);
+                setAlignment(javafx.geometry.Pos.CENTER);
             }
         });
 

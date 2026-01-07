@@ -29,6 +29,9 @@ import java.util.List;
 
 public class ResourceManagementView {
 
+    private static final String SVG_UPLOAD = "M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z";
+    private static final String SVG_REFRESH = "M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z";
+
     private final LearningResourceDAO resourceDAO;
     private final CourseDAO courseDAO;
     private final FileUploadService fileUploadService;
@@ -47,23 +50,27 @@ public class ResourceManagementView {
     public BorderPane getView() {
         root = new BorderPane();
         root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane");
 
         // Header
         Label headerLabel = new Label("Resource Management");
-        headerLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        headerLabel.getStyleClass().add("section-title");
 
         // Controls
         HBox controls = new HBox(15);
         controls.setAlignment(Pos.CENTER_LEFT);
-        controls.setPadding(new Insets(10, 0, 10, 0));
+        controls.setPadding(new Insets(15));
+        controls.getStyleClass().add("glass-card");
 
         // Filter by Course
         courseComboBox = new ComboBox<>();
         courseComboBox.setPromptText("All Courses");
+        courseComboBox.setPrefWidth(200);
         loadCourses();
         courseComboBox.setOnAction(e -> loadResources());
 
         Button clearCourseBtn = new Button("X");
+        clearCourseBtn.getStyleClass().add("small-button");
         clearCourseBtn.setTooltip(new Tooltip("Clear Course Filter"));
         clearCourseBtn.setOnAction(e -> {
             courseComboBox.getSelectionModel().clearSelection();
@@ -73,29 +80,36 @@ public class ResourceManagementView {
         // Search Bar
         searchField = new TextField();
         searchField.setPromptText("Search resources... (Ctrl+F)");
-        searchField.setPrefWidth(200);
+        searchField.setPrefWidth(250);
+        searchField.getStyleClass().add("search-field");
         searchField.textProperty().addListener((obs, oldVal, newVal) -> loadResources(newVal));
 
-        Button uploadButton = new Button("Upload Resource (Ctrl+N)");
-        uploadButton.setStyle("-fx-background-color: #14b8a6; -fx-text-fill: white;");
+        Button uploadButton = new Button("Upload Resource");
+        uploadButton.setGraphic(createIcon(SVG_UPLOAD));
+        uploadButton.getStyleClass().addAll("accent-button", "icon-button");
         uploadButton.setOnAction(e -> showUploadDialog());
 
-        Button refreshButton = new Button("Refresh (F5)");
+        Button refreshButton = new Button("Refresh");
+        refreshButton.setGraphic(createIcon(SVG_REFRESH));
+        refreshButton.getStyleClass().add("icon-button");
         refreshButton.setOnAction(e -> loadResources());
 
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
         controls.getChildren().addAll(
-                new Label("Filter:"), courseComboBox, clearCourseBtn,
+                courseComboBox, clearCourseBtn,
                 searchField,
-                new Region(), uploadButton, refreshButton);
-        HBox.setHgrow(controls.getChildren().get(4), Priority.ALWAYS); // Spacer
+                spacer, refreshButton, uploadButton);
 
         // Table
         resourceTable = new TableView<>();
+        resourceTable.getStyleClass().add("glass-table");
         setupTable();
 
         loadResources(); // Initial load
 
-        VBox centerContent = new VBox(15);
+        VBox centerContent = new VBox(20);
         centerContent.getChildren().addAll(headerLabel, controls, resourceTable);
         VBox.setVgrow(resourceTable, Priority.ALWAYS);
 
@@ -105,6 +119,15 @@ public class ResourceManagementView {
         setupShortcuts();
 
         return root;
+    }
+
+    private javafx.scene.shape.SVGPath createIcon(String pathContent) {
+        javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();
+        icon.setContent(pathContent);
+        icon.setFill(Color.WHITE);
+        icon.setScaleX(0.9);
+        icon.setScaleY(0.9);
+        return icon;
     }
 
     private void setupShortcuts() {

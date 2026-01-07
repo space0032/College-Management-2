@@ -28,6 +28,9 @@ import java.util.List;
 
 public class SyllabusManagementView {
 
+    private static final String SVG_UPLOAD = "M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z";
+    private static final String SVG_REFRESH = "M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z";
+
     private final SyllabusDAO syllabusDAO;
     private final CourseDAO courseDAO;
     private final FileUploadService fileUploadService;
@@ -45,38 +48,48 @@ public class SyllabusManagementView {
     public BorderPane getView() {
         root = new BorderPane();
         root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane"); // Glassmorphism background
 
         // Header
         Label headerLabel = new Label("Syllabus Management");
-        headerLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        headerLabel.getStyleClass().add("section-title"); // Use styled class
 
         // Controls
         HBox controls = new HBox(15);
         controls.setAlignment(Pos.CENTER_LEFT);
-        controls.setPadding(new Insets(10, 0, 10, 0));
+        controls.setPadding(new Insets(15));
+        controls.getStyleClass().add("glass-card"); // Card style for controls
 
         courseComboBox = new ComboBox<>();
         courseComboBox.setPromptText("Select Course (Ctrl+F)");
+        courseComboBox.setPrefWidth(250);
         loadCourses();
         courseComboBox.setOnAction(e -> loadSyllabi());
 
-        Button uploadButton = new Button("Upload Syllabus (Ctrl+N)");
-        uploadButton.getStyleClass().add("upload-button");
+        Button uploadButton = new Button("Upload Syllabus");
+        uploadButton.setGraphic(createIcon(SVG_UPLOAD));
+        uploadButton.getStyleClass().addAll("accent-button", "icon-button");
         uploadButton.setOnAction(e -> showUploadDialog());
         uploadButton.disableProperty().bind(courseComboBox.valueProperty().isNull());
 
-        Button refreshButton = new Button("Refresh (F5)");
+        Button refreshButton = new Button("Refresh");
+        refreshButton.setGraphic(createIcon(SVG_REFRESH));
+        refreshButton.getStyleClass().add("icon-button");
         refreshButton.setOnAction(e -> loadSyllabi());
 
-        controls.getChildren().addAll(new Label("Course:"), courseComboBox, uploadButton, refreshButton);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        controls.getChildren().addAll(courseComboBox, spacer, refreshButton, uploadButton);
 
         // Table
         syllabusTable = new TableView<>();
+        syllabusTable.getStyleClass().add("glass-table"); // Ensure glass styling
+        VBox.setVgrow(syllabusTable, Priority.ALWAYS);
         setupTable();
 
-        VBox centerContent = new VBox(15);
+        VBox centerContent = new VBox(20); // More spacing
         centerContent.getChildren().addAll(headerLabel, controls, syllabusTable);
-        VBox.setVgrow(syllabusTable, Priority.ALWAYS);
 
         root.setCenter(centerContent);
 
@@ -84,6 +97,15 @@ public class SyllabusManagementView {
         setupShortcuts(uploadButton);
 
         return root;
+    }
+
+    private javafx.scene.shape.SVGPath createIcon(String pathContent) {
+        javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();
+        icon.setContent(pathContent);
+        icon.setFill(Color.WHITE);
+        icon.setScaleX(0.9);
+        icon.setScaleY(0.9);
+        return icon;
     }
 
     private void setupShortcuts(Button uploadButton) {

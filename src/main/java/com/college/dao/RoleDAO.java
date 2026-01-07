@@ -27,7 +27,7 @@ public class RoleDAO {
                 roles.add(role);
             }
 
-            // Allow reusing connection for permissions
+            // Load permissions while connection is still open
             for (Role role : roles) {
                 loadPermissionsForRole(conn, role);
             }
@@ -284,18 +284,18 @@ public class RoleDAO {
                 "WHERE rp.role_id = ?";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, role.getId());
-            ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) {
-                Permission p = new Permission();
-                p.setId(rs.getInt("id"));
-                p.setCode(rs.getString("code"));
-                p.setName(rs.getString("name"));
-                p.setCategory(rs.getString("category"));
-                p.setDescription(rs.getString("description"));
-                role.addPermission(p);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Permission p = new Permission();
+                    p.setId(rs.getInt("id"));
+                    p.setCode(rs.getString("code"));
+                    p.setName(rs.getString("name"));
+                    p.setCategory(rs.getString("category"));
+                    p.setDescription(rs.getString("description"));
+                    role.addPermission(p);
+                }
             }
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);

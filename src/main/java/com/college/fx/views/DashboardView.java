@@ -335,7 +335,9 @@ public class DashboardView {
         // Available to everyone (Students, Faculty, Admin, Staff)
         addMenuItem(campusContent, "Events", "events", SVG_EVENT);
         addMenuItem(campusContent, "Clubs", "clubs", SVG_CLUB);
-        addMenuItem(campusContent, "Activities", "student_activities", SVG_ACTIVITIES);
+        if (!session.isAdmin()) {
+            addMenuItem(campusContent, "Activities", "student_activities", SVG_ACTIVITIES);
+        }
         hasCampus = true;
 
         if (hasCampus) {
