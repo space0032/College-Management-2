@@ -16,20 +16,43 @@ public class RoleDAO {
 
     public List<Role> getAllRoles() {
         List<Role> roles = new ArrayList<>();
-        String sql = "SELECT * FROM roles ORDER BY name";
+
+        // Use LEFT JOIN to fetch all roles with their permissions in one query
+        String sql = "SELECT r.*, p.id as perm_id, p.code as perm_code, p.name as perm_name, " +
+                "p.category as perm_category, p.description as perm_description " +
+                "FROM roles r " +
+                "LEFT JOIN role_permissions rp ON rp.role_id = r.id " +
+                "LEFT JOIN permissions p ON p.id = rp.permission_id " +
+                "ORDER BY r.name, p.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
 
-            while (rs.next()) {
-                Role role = extractRoleFromResultSet(rs);
-                roles.add(role);
-            }
+            Role currentRole = null;
+            int currentRoleId = -1;
 
-            // Load permissions while connection is still open
-            for (Role role : roles) {
-                loadPermissionsForRole(conn, role);
+            while (rs.next()) {
+                int roleId = rs.getInt("id");
+
+                // New role encountered
+                if (roleId != currentRoleId) {
+                    currentRole = extractRoleFromResultSet(rs);
+                    roles.add(currentRole);
+                    currentRoleId = roleId;
+                }
+
+                // Add permission if it exists (LEFT JOIN may have nulls)
+                int permId = rs.getInt("perm_id");
+                if (!rs.wasNull() && permId > 0 && currentRole != null) {
+                    Permission p = new Permission();
+                    p.setId(permId);
+                    p.setCode(rs.getString("perm_code"));
+                    p.setName(rs.getString("perm_name"));
+                    p.setCategory(rs.getString("perm_category"));
+                    p.setDescription(rs.getString("perm_description"));
+                    currentRole.addPermission(p);
+                }
             }
 
         } catch (SQLException e) {
