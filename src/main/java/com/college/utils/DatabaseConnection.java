@@ -1,14 +1,18 @@
 package com.college.utils;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
  * Utility class for managing database connections
- * Provides database connection instances with environment-based configuration
+ * Uses HikariCP for high-performance connection pooling
  */
 public class DatabaseConnection {
+
+    private static HikariDataSource dataSource;
 
     // Database credentials
     private static String URL = "jdbc:postgresql://localhost:5432/college_db";
@@ -17,6 +21,7 @@ public class DatabaseConnection {
 
     static {
         loadEnv();
+        initDataSource();
     }
 
     private static void loadEnv() {
@@ -56,6 +61,33 @@ public class DatabaseConnection {
         }
     }
 
+    private static void initDataSource() {
+        try {
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(URL);
+            config.setUsername(USERNAME);
+            config.setPassword(PASSWORD);
+
+            // Pool settings optimized for desktop/remote usage
+            config.setMaximumPoolSize(10);
+            config.setMinimumIdle(2);
+            config.setIdleTimeout(30000); // 30 seconds
+            config.setConnectionTimeout(30000); // 30 seconds
+            config.setLeakDetectionThreshold(2000); // Detect leaks > 2s
+
+            // Driver
+            config.setDriverClassName("org.postgresql.Driver");
+
+            dataSource = new HikariDataSource(config);
+            // Logger might not be initialized yet, so use stderr if needed or basic sysout
+            System.out.println("HikariCP Connection Pool initialized.");
+
+        } catch (Exception e) {
+            System.err.println("CRITICAL: Failed to initialize Connection Pool: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Private constructor to prevent instantiation
      */
@@ -63,24 +95,15 @@ public class DatabaseConnection {
     }
 
     /**
-     * Get database connection instance
-     * Creates a new connection for each request to avoid concurrency issues
+     * Get database connection from the pool
      * 
      * @return Connection object
      */
-    public static Connection getConnection() {
-        try {
-            // Load PostgreSQL JDBC Driver
-            Class.forName("org.postgresql.Driver");
-
-            // Create new connection for each request
-            return DriverManager.getConnection(URL, USERNAME, PASSWORD);
-        } catch (ClassNotFoundException e) {
-            System.err.println("PostgreSQL JDBC Driver not found: " + e.getMessage());
-        } catch (SQLException e) {
-            System.err.println("Failed to connect to database: " + e.getMessage());
+    public static Connection getConnection() throws SQLException {
+        if (dataSource == null) {
+            throw new SQLException("DataSource is not initialized. Check logs for startup errors.");
         }
-        return null;
+        return dataSource.getConnection();
     }
 
     /**
@@ -89,23 +112,20 @@ public class DatabaseConnection {
      * @return true if connection successful, false otherwise
      */
     public static boolean testConnection() {
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            if (conn != null) {
-                return !conn.isClosed();
-            }
-            return false;
+        try (Connection conn = getConnection()) {
+            return conn != null && !conn.isClosed();
         } catch (SQLException e) {
+            System.err.println("Test connection failed: " + e.getMessage());
             return false;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    // Ignore close errors
-                }
-            }
+        }
+    }
+
+    /**
+     * Shutdown the pool
+     */
+    public static void shutdown() {
+        if (dataSource != null) {
+            dataSource.close();
         }
     }
 }

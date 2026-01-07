@@ -16,8 +16,9 @@ public class SubmissionDAO {
     public boolean submitAssignment(Submission submission) {
         String sql = "INSERT INTO submissions (assignment_id, student_id, submission_text, file_path, status, plagiarism_score) "
                 + "VALUES (?, ?, ?, ?, ?, ?) "
-                + "ON DUPLICATE KEY UPDATE submission_text=VALUES(submission_text), file_path=VALUES(file_path), "
-                + "status='SUBMITTED', submitted_at=CURRENT_TIMESTAMP, plagiarism_score=VALUES(plagiarism_score)";
+                + "ON CONFLICT (assignment_id, student_id) DO UPDATE SET "
+                + "submission_text=EXCLUDED.submission_text, file_path=EXCLUDED.file_path, "
+                + "status='SUBMITTED', submitted_at=CURRENT_TIMESTAMP, plagiarism_score=EXCLUDED.plagiarism_score";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

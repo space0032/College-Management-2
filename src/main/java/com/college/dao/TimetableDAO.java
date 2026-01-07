@@ -54,7 +54,10 @@ public class TimetableDAO {
         String sql = "INSERT INTO timetable (department, semester, day_of_week, time_slot, subject, faculty_name, room_number) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE subject = ?, faculty_name = ?, room_number = ?";
+                "ON CONFLICT (department, semester, day_of_week, time_slot) DO UPDATE SET " +
+                "subject = EXCLUDED.subject, " +
+                "faculty_name = EXCLUDED.faculty_name, " +
+                "room_number = EXCLUDED.room_number";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -66,10 +69,7 @@ public class TimetableDAO {
             pstmt.setString(5, entry.getSubject());
             pstmt.setString(6, entry.getFacultyName());
             pstmt.setString(7, entry.getRoomNumber());
-            // For ON DUPLICATE KEY UPDATE
-            pstmt.setString(8, entry.getSubject());
-            pstmt.setString(9, entry.getFacultyName());
-            pstmt.setString(10, entry.getRoomNumber());
+            // Params 8-10 removed because EXCLUDED accesses VALUES(?,...) automatically
 
             return pstmt.executeUpdate() > 0;
 

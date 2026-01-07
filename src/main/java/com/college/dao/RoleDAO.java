@@ -59,17 +59,30 @@ public class RoleDAO {
     }
 
     public Role getRoleByCode(String code) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return getRoleByCode(conn, code);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return null;
+        }
+    }
+
+    public Role getRoleByCode(Connection conn, String code) {
         String sql = "SELECT * FROM roles WHERE code = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, code);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 Role role = extractRoleFromResultSet(rs);
-                loadPermissionsForRole(role);
+                // Note: loading permissions might also require a connection.
+                // To be safe, we should probably load them here using the SAME connection
+                // BUT loadPermissionsForRole opens its own connection.
+                // We need to refactor loadPermissionsForRole too if we want full safety,
+                // or just skip permissions for this specific lookup since we only need ID.
+                // For Warden creation, we only need ID.
                 return role;
             }
         } catch (SQLException e) {

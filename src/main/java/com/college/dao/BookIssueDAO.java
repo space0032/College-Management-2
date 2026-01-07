@@ -50,7 +50,7 @@ public class BookIssueDAO {
      * Return a book from student
      */
     public boolean returnBook(int issueId, int returnedTo) {
-        String sql = "UPDATE book_issues SET return_date = CURDATE(), returned_to = ?, " +
+        String sql = "UPDATE book_issues SET return_date = CURRENT_DATE, returned_to = ?, " +
                 "fine_amount = ?, status = 'RETURNED' WHERE id = ?";
 
         // Get issue details to calculate fine BEFORE opening connection

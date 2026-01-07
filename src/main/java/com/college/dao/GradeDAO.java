@@ -22,13 +22,19 @@ public class GradeDAO {
      * @param grade Grade object
      * @return true if successful
      */
+    /**
+     * Add or update a grade
+     * 
+     * @param grade Grade object
+     * @return true if successful
+     */
     public boolean saveGrade(Grade grade) {
-        String sql = "INSERT INTO grades (student_id, course_id, exam_type, marks_obtained, grade, semester) " +
-                "VALUES (?, ?, ?, ?, ?, ?) " +
+        // Removed 'semester' from queries as it is not in the grades table schema
+        String sql = "INSERT INTO grades (student_id, course_id, exam_type, marks_obtained, grade) " +
+                "VALUES (?, ?, ?, ?, ?) " +
                 "ON CONFLICT (student_id, course_id, exam_type) DO UPDATE SET " +
                 "marks_obtained = EXCLUDED.marks_obtained, " +
-                "grade = EXCLUDED.grade, " +
-                "semester = EXCLUDED.semester";
+                "grade = EXCLUDED.grade";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -38,7 +44,7 @@ public class GradeDAO {
             pstmt.setString(3, grade.getExamType());
             pstmt.setDouble(4, grade.getMarksObtained());
             pstmt.setString(5, grade.getGrade());
-            pstmt.setInt(6, grade.getSemester() != 0 ? grade.getSemester() : 1); // Default semester 1 if not set
+            // Semester is inferred from Course/Student, not stored in grades
 
             return pstmt.executeUpdate() > 0;
 
@@ -56,7 +62,8 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByStudent(int studentId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+        // Changed g.semester to c.semester
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
                 +
                 "c.name as course_name, c.credits FROM grades g " +
                 "JOIN courses c ON g.course_id = c.id " +
@@ -86,7 +93,8 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByCourse(int courseId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+        // Changed g.semester to c.semester
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, c.name as course_name " +
                 "FROM grades g " +
@@ -119,7 +127,8 @@ public class GradeDAO {
      */
     public List<Grade> getGrades(int studentId, int courseId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+        // Changed g.semester to c.semester
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, c.name as course_name " +
                 "FROM grades g " +
@@ -151,7 +160,8 @@ public class GradeDAO {
      * @return CGPA (0-10 scale)
      */
     public double calculateCGPA(int studentId) {
-        String sql = "SELECT AVG(percentage) as avg_percentage FROM grades WHERE student_id = ?";
+        String sql = "SELECT AVG(marks_obtained) as avg_marks FROM grades WHERE student_id = ?"; // percentage ->
+                                                                                                 // marks_obtained
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -160,7 +170,7 @@ public class GradeDAO {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                double avgPercentage = rs.getDouble("avg_percentage");
+                double avgPercentage = rs.getDouble("avg_marks");
                 return (avgPercentage / 100) * 10; // Convert to 10-point scale
             }
 
@@ -202,7 +212,8 @@ public class GradeDAO {
      */
     public List<Grade> getAllGrades() {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+        // Changed g.semester to c.semester
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, u.username as enrollment_no, " +
                 "c.name as course_name, c.credits, d.name as dept_name " +
@@ -231,7 +242,8 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByFaculty(int facultyId) {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, g.semester, "
+        // Changed g.semester to c.semester
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, u.username as enrollment_no, " +
                 "c.name as course_name, c.credits, d.name as dept_name " +

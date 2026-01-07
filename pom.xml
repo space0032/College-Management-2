@@ -84,6 +84,13 @@
             <artifactId>dropbox-core-sdk</artifactId>
             <version>5.4.4</version>
         </dependency>
+
+        <!-- HikariCP for Connection Pooling -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

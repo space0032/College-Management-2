@@ -327,7 +327,7 @@ public class EnhancedFeeDAO {
      * Generate receipt number
      */
     private String generateReceiptNumber() {
-        String sql = "SELECT MAX(CAST(SUBSTRING(receipt_number, 5) AS UNSIGNED)) as max_num " +
+        String sql = "SELECT MAX(CAST(SUBSTRING(receipt_number, 5) AS INTEGER)) as max_num " +
                 "FROM fee_payments WHERE receipt_number LIKE 'RCP%'";
 
         try (Connection conn = DatabaseConnection.getConnection();

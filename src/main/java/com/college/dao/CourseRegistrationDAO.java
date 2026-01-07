@@ -116,7 +116,7 @@ public class CourseRegistrationDAO {
             }
 
             // 2. Insert as PENDING
-            String insertSql = "INSERT INTO course_registrations (student_id, course_id, registration_date, status) VALUES (?, ?, CURDATE(), 'PENDING')";
+            String insertSql = "INSERT INTO course_registrations (student_id, course_id, registration_date, status) VALUES (?, ?, CURRENT_DATE, 'PENDING')";
             try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
                 pstmt.setInt(1, studentId);
                 pstmt.setInt(2, courseId);

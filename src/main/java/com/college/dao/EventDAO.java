@@ -22,7 +22,7 @@ public class EventDAO {
                 "FROM events e " +
                 "LEFT JOIN users u ON e.created_by = u.id " +
                 "LEFT JOIN event_registrations er ON e.id = er.event_id " +
-                "GROUP BY e.id " +
+                "GROUP BY e.id, u.username " +
                 "ORDER BY e.start_time DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -47,7 +47,7 @@ public class EventDAO {
                 "LEFT JOIN users u ON e.created_by = u.id " +
                 "LEFT JOIN event_registrations er ON e.id = er.event_id " +
                 "WHERE e.status IN ('UPCOMING', 'ONGOING') " +
-                "GROUP BY e.id " +
+                "GROUP BY e.id, u.username " +
                 "ORDER BY e.start_time ASC";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -71,7 +71,7 @@ public class EventDAO {
                 "LEFT JOIN users u ON e.created_by = u.id " +
                 "LEFT JOIN event_registrations er ON e.id = er.event_id " +
                 "WHERE e.id = ? " +
-                "GROUP BY e.id";
+                "GROUP BY e.id, u.username";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -275,7 +275,7 @@ public class EventDAO {
                 "LEFT JOIN users u ON e.created_by = u.id " +
                 "LEFT JOIN event_registrations er2 ON e.id = er2.event_id " +
                 "WHERE er.student_id = ? " +
-                "GROUP BY e.id " +
+                "GROUP BY e.id, u.username " +
                 "ORDER BY e.start_time DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();

@@ -157,7 +157,7 @@ public class HostelDAO {
             return false;
         }
 
-        String sql = "UPDATE hostel_allocations SET status = 'VACATED', check_out_date = CURDATE() WHERE id = ?";
+        String sql = "UPDATE hostel_allocations SET status = 'VACATED', check_out_date = CURRENT_DATE WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

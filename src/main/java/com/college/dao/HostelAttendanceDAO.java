@@ -19,7 +19,10 @@ public class HostelAttendanceDAO {
     public boolean markAttendance(HostelAttendance attendance) {
         String sql = "INSERT INTO hostel_attendance (student_id, hostel_id, date, status, remarks, marked_by) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE status = ?, remarks = ?, marked_by = ?";
+                "ON CONFLICT (student_id, date) DO UPDATE SET " +
+                "status = EXCLUDED.status, " +
+                "remarks = EXCLUDED.remarks, " +
+                "marked_by = EXCLUDED.marked_by";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -34,15 +37,7 @@ public class HostelAttendanceDAO {
             } else {
                 pstmt.setNull(6, Types.INTEGER);
             }
-
-            // Update part
-            pstmt.setString(7, attendance.getStatus());
-            pstmt.setString(8, attendance.getRemarks());
-            if (attendance.getMarkedBy() > 0) {
-                pstmt.setInt(9, attendance.getMarkedBy());
-            } else {
-                pstmt.setNull(9, Types.INTEGER);
-            }
+            // Removed redundant params 7-9 as EXCLUDED uses the VALUES
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

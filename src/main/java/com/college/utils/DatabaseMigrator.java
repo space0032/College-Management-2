@@ -40,7 +40,20 @@ public class DatabaseMigrator {
                 }
 
                 stmt.execute(sql);
-                System.out.println("Migration executed successfully!");
+                System.out.println("V1 Migration executed successfully!");
+
+                // Execute V7 Fix
+                String v7Path = "/db/migration/V7__Fix_Schema_And_Constraints.sql";
+                try (InputStream v7is = DatabaseMigrator.class.getResourceAsStream(v7Path)) {
+                    if (v7is != null) {
+                        String v7sql = new BufferedReader(new InputStreamReader(v7is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v7sql);
+                        System.out.println("V7 Fix Migration executed successfully!");
+                    } else {
+                        System.err.println("V7 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {
