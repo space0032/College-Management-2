@@ -2,6 +2,9 @@
 set -e
 
 # Configuration
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
 OUT_DIR="target/classes"
 LIB_DIR="lib"
 MAIN_CLASS="com.college.Launcher"
