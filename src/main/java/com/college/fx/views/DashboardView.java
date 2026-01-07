@@ -1,5 +1,7 @@
 package com.college.fx.views;
 
+import com.college.MainFX;
+import com.college.fx.components.ChatBotOverlay;
 import com.college.utils.SessionManager;
 import com.college.utils.UserDisplayNameUtil;
 import javafx.geometry.Insets;
@@ -755,11 +757,11 @@ public class DashboardView {
         SessionManager.getInstance().clearSession();
 
         LoginView loginView = new LoginView();
-        com.college.MainFX.getPrimaryStage().getScene().setRoot(loginView.getView());
-        com.college.MainFX.getPrimaryStage().setMaximized(false);
-        com.college.MainFX.getPrimaryStage().setWidth(1000);
-        com.college.MainFX.getPrimaryStage().setHeight(650);
-        com.college.MainFX.getPrimaryStage().centerOnScreen();
+        MainFX.getPrimaryStage().getScene().setRoot(loginView.getView());
+        MainFX.getPrimaryStage().setMaximized(false);
+        MainFX.getPrimaryStage().setWidth(1000);
+        MainFX.getPrimaryStage().setHeight(650);
+        MainFX.getPrimaryStage().centerOnScreen();
     }
 
     private void showEvents() {
@@ -803,7 +805,7 @@ public class DashboardView {
             mainContainer = new StackPane(root);
 
             // Add ChatBot Overlay
-            com.college.fx.components.ChatBotOverlay chatBot = new com.college.fx.components.ChatBotOverlay();
+            ChatBotOverlay chatBot = new ChatBotOverlay();
 
             // Inject Context Provider
             chatBot.setContextProvider(() -> {
