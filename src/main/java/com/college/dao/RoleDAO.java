@@ -26,13 +26,14 @@ public class RoleDAO {
                 Role role = extractRoleFromResultSet(rs);
                 roles.add(role);
             }
+
+            // Allow reusing connection for permissions
+            for (Role role : roles) {
+                loadPermissionsForRole(conn, role);
+            }
+
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
-        }
-
-        // Load permissions after closing the roles ResultSet
-        for (Role role : roles) {
-            loadPermissionsForRole(role);
         }
 
         return roles;
@@ -49,7 +50,7 @@ public class RoleDAO {
 
             if (rs.next()) {
                 Role role = extractRoleFromResultSet(rs);
-                loadPermissionsForRole(role);
+                loadPermissionsForRole(conn, role);
                 return role;
             }
         } catch (SQLException e) {
@@ -77,12 +78,10 @@ public class RoleDAO {
 
             if (rs.next()) {
                 Role role = extractRoleFromResultSet(rs);
-                // Note: loading permissions might also require a connection.
-                // To be safe, we should probably load them here using the SAME connection
-                // BUT loadPermissionsForRole opens its own connection.
-                // We need to refactor loadPermissionsForRole too if we want full safety,
-                // or just skip permissions for this specific lookup since we only need ID.
-                // For Warden creation, we only need ID.
+                // For code lookup, we typically don't need full permissions unless needed
+                // But let's load them to be consistent if using this generally
+                // Using passed connection
+                loadPermissionsForRole(conn, role);
                 return role;
             }
         } catch (SQLException e) {
@@ -104,7 +103,7 @@ public class RoleDAO {
 
             if (rs.next()) {
                 Role role = extractRoleFromResultSet(rs);
-                loadPermissionsForRole(role);
+                loadPermissionsForRole(conn, role);
                 return role;
             }
         } catch (SQLException e) {
@@ -279,13 +278,22 @@ public class RoleDAO {
         return false;
     }
 
+    // Overload for backward compatibility/internal use if needed, but best to force
+    // connection passing
     private void loadPermissionsForRole(Role role) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            loadPermissionsForRole(conn, role);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+    }
+
+    private void loadPermissionsForRole(Connection conn, Role role) {
         String sql = "SELECT p.* FROM permissions p " +
                 "INNER JOIN role_permissions rp ON rp.permission_id = p.id " +
                 "WHERE rp.role_id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, role.getId());
             ResultSet rs = stmt.executeQuery();
@@ -314,8 +322,7 @@ public class RoleDAO {
         try {
             role.setPortalType(rs.getString("portal_type"));
         } catch (SQLException e) {
-            // backward compatibility if column doesn't exist yet (shouldn't happen with
-            // V21)
+            // backward compatibility if column doesn't exist yet
             role.setPortalType("STUDENT");
         }
         return role;
