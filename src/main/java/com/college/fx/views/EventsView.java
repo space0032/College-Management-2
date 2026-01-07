@@ -50,13 +50,14 @@ public class EventsView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(20));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         // Header
         HBox header = createHeader();
 
         // Tab Pane
         TabPane tabPane = new TabPane();
+        tabPane.getStyleClass().add("floating");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         Tab browseTab = new Tab("Browse Events");
@@ -74,18 +75,15 @@ public class EventsView {
     private HBox createHeader() {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12;");
 
         Label title = new Label("College Events");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
+        refreshBtn.getStyleClass().add("icon-button");
         refreshBtn.setOnAction(e -> loadData());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -95,7 +93,7 @@ public class EventsView {
     private VBox createBrowseTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
+        content.getStyleClass().add("glass-card");
 
         // Filters
         HBox filters = new HBox(10);
@@ -103,6 +101,7 @@ public class EventsView {
 
         // Search field
         TextField searchField = new TextField();
+        searchField.getStyleClass().add("search-field");
         searchField.setPromptText("Search events...");
         searchField.setPrefWidth(250);
         searchField.textProperty()
@@ -120,7 +119,7 @@ public class EventsView {
 
         // Table
         allEventsTable = createEventsTable(true);
-        allEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        allEventsTable.getStyleClass().add("glass-table");
         VBox.setVgrow(allEventsTable, Priority.ALWAYS);
 
         content.getChildren().addAll(filters, allEventsTable);
@@ -130,10 +129,10 @@ public class EventsView {
     private VBox createMyEventsTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
+        content.getStyleClass().add("glass-card");
 
         myEventsTable = createEventsTable(false);
-        myEventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        myEventsTable.getStyleClass().add("glass-table");
         VBox.setVgrow(myEventsTable, Priority.ALWAYS);
 
         content.getChildren().add(myEventsTable);
@@ -380,12 +379,9 @@ public class EventsView {
         dialog.showAndWait();
     }
 
-    private Button createButton(String text, String color) {
+    private Button createButton(String text) {
         Button btn = new Button(text);
-        btn.setPrefWidth(120);
-        btn.setPrefHeight(35);
-        btn.setStyle("-fx-background-color: " + color
-                + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;");
+        // Style classes are added by caller
         return btn;
     }
 

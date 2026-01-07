@@ -58,8 +58,8 @@ public class AssignmentsView {
 
     private void createView() {
         root = new VBox(20);
-        root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane");
 
         HBox header = createHeader();
         VBox tableSection = createTableSection();
@@ -72,21 +72,15 @@ public class AssignmentsView {
     private HBox createHeader() {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
 
         Label title = new Label("Assignments");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
+        refreshBtn.getStyleClass().add("icon-button");
         refreshBtn.setOnAction(e -> loadAssignments());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -96,14 +90,11 @@ public class AssignmentsView {
     @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
-        section.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        section.getStyleClass().add("glass-card");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(assignmentData);
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -163,15 +154,18 @@ public class AssignmentsView {
         SessionManager session = SessionManager.getInstance();
 
         if (session.hasPermission("MANAGE_ASSIGNMENTS")) {
-            Button addBtn = createButton("New Assignment", "#22c55e");
+            Button addBtn = createButton("New Assignment");
+            addBtn.getStyleClass().add("accent-button");
             addBtn.setOnAction(e -> showAddAssignmentDialog());
 
-            Button reviewBtn = createButton("Review Submissions", "#8b5cf6");
+            Button reviewBtn = createButton("Review Submissions");
+            reviewBtn.getStyleClass().add("accent-button");
             reviewBtn.setOnAction(e -> showReviewSubmissionsDialog());
 
             section.getChildren().addAll(addBtn, reviewBtn);
         } else if (role.equals("STUDENT")) {
-            Button submitBtn = createButton("Submit Assignment", "#14b8a6");
+            Button submitBtn = createButton("Submit Assignment");
+            submitBtn.getStyleClass().add("accent-button");
             submitBtn.setOnAction(e -> showSubmitAssignmentDialog());
             section.getChildren().add(submitBtn);
         }
@@ -179,16 +173,9 @@ public class AssignmentsView {
         return section;
     }
 
-    private Button createButton(String text, String color) {
+    private Button createButton(String text) {
         Button btn = new Button(text);
-        btn.setPrefWidth(160);
-        btn.setPrefHeight(40);
-        btn.setStyle(
-                "-fx-background-color: " + color + ";" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
+        // Style classes are added by caller
         return btn;
     }
 
