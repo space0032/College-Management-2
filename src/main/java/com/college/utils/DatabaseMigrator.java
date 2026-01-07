@@ -80,6 +80,19 @@ public class DatabaseMigrator {
                         System.err.println("V9 Migration file not found!");
                     }
                 }
+
+                // Execute V10 Fix Attendance Column
+                String v10Path = "/db/migration/V10__Fix_Attendance_Column.sql";
+                try (InputStream v10is = DatabaseMigrator.class.getResourceAsStream(v10Path)) {
+                    if (v10is != null) {
+                        String v10sql = new BufferedReader(new InputStreamReader(v10is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v10sql);
+                        System.out.println("V10 Fix Attendance Column Migration executed successfully!");
+                    } else {
+                        System.err.println("V10 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {

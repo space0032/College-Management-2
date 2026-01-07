@@ -45,7 +45,17 @@ public class FacultyDAO {
                 // Get the generated faculty ID
                 ResultSet generatedKeys = pstmt.getGeneratedKeys();
                 if (generatedKeys.next()) {
-                    return generatedKeys.getInt(1);
+                    int facultyId = generatedKeys.getInt(1);
+
+                    // AUTO-CREATE EMPLOYEE RECORD WITH SALARY
+                    try {
+                        createEmployeeRecord(faculty, userId);
+                    } catch (Exception e) {
+                        Logger.error("Failed to auto-create employee record", e);
+                        // Don't fail the whole operation, just log
+                    }
+
+                    return facultyId;
                 }
             }
 
@@ -270,5 +280,52 @@ public class FacultyDAO {
             Logger.error("Database operation failed", e);
         }
         return 0;
+    }
+
+    /**
+     * Helper to create an employee record for payroll
+     */
+    private void createEmployeeRecord(Faculty faculty, int userId) {
+        UserDAO userDAO = new UserDAO();
+        com.college.models.User user = userDAO.getUserById(userId);
+        if (user == null)
+            return;
+
+        EmployeeDAO employeeDAO = new EmployeeDAO();
+        com.college.models.Employee emp = new com.college.models.Employee();
+
+        emp.setEmployeeId(user.getUsername());
+        emp.setFirstName(faculty.getName());
+        emp.setLastName(""); // Store full name in first name
+        emp.setEmail(faculty.getEmail());
+        emp.setPhone(faculty.getPhone());
+        emp.setStatus(com.college.models.Employee.Status.ACTIVE);
+
+        // Set Join Date
+        if (faculty.getJoinDate() != null) {
+            // Convert Util Date to SQL Date or LocalDate
+            // Faculty model uses java.util.Date. Employee uses LocalDate.
+            java.util.Date utilDate = faculty.getJoinDate();
+            java.time.LocalDate localDate = utilDate.toInstant()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate();
+            emp.setJoinDate(localDate);
+        } else {
+            emp.setJoinDate(java.time.LocalDate.now());
+        }
+
+        // Determine Salary based on Role
+        String role = user.getRole().toUpperCase();
+        emp.setDesignation(role);
+
+        if (role.contains("HOD")) {
+            emp.setSalary(new java.math.BigDecimal("50000"));
+        } else if (role.contains("FACULTY")) {
+            emp.setSalary(new java.math.BigDecimal("25000"));
+        } else {
+            emp.setSalary(new java.math.BigDecimal("20000")); // Default
+        }
+
+        employeeDAO.addEmployee(emp);
     }
 }

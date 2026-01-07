@@ -76,6 +76,15 @@ public class WardenDAO {
                             if (generatedKeys.next()) {
                                 int wardenId = generatedKeys.getInt(1);
                                 conn.commit(); // Commit transaction
+
+                                // AUTO-CREATE EMPLOYEE RECORD WITH SALARY
+                                try {
+                                    createEmployeeRecord(warden, userId);
+                                } catch (Exception e) {
+                                    Logger.error("Failed to auto-create employee for warden", e);
+                                    // Don't fail the operation
+                                }
+
                                 return wardenId;
                             }
                         }
@@ -267,5 +276,37 @@ public class WardenDAO {
         }
 
         return warden;
+    }
+
+    private void createEmployeeRecord(Warden warden, int userId) {
+        if (userId <= 0)
+            return;
+
+        UserDAO userDAO = new UserDAO();
+        com.college.models.User user = userDAO.getUserById(userId);
+
+        EmployeeDAO employeeDAO = new EmployeeDAO();
+        com.college.models.Employee emp = new com.college.models.Employee();
+
+        // Use username if available, otherwise fetch from user
+        String username = warden.getUsername();
+        if (username == null || username.isEmpty()) {
+            if (user != null)
+                username = user.getUsername();
+            else
+                return;
+        }
+
+        emp.setEmployeeId(username);
+        emp.setFirstName(warden.getName());
+        emp.setLastName("");
+        emp.setEmail(warden.getEmail());
+        emp.setPhone(warden.getPhone());
+        emp.setDesignation("WARDEN");
+        emp.setSalary(new java.math.BigDecimal("40000")); // Warden Salary
+        emp.setStatus(com.college.models.Employee.Status.ACTIVE);
+        emp.setJoinDate(java.time.LocalDate.now());
+
+        employeeDAO.addEmployee(emp);
     }
 }

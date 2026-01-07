@@ -26,7 +26,5 @@ ALTER TABLE hostel_attendance DROP CONSTRAINT IF EXISTS hostel_attendance_studen
 ALTER TABLE hostel_attendance ADD CONSTRAINT hostel_attendance_student_id_fkey 
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;
 
--- 6. Exam Results (if exists, usually linked to student)
-ALTER TABLE exam_results DROP CONSTRAINT IF EXISTS exam_results_student_id_fkey;
-ALTER TABLE exam_results ADD CONSTRAINT exam_results_student_id_fkey 
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;
+-- 6. Exam Results (Skipped as table does not exist)
+-- ALTER TABLE exam_results ...

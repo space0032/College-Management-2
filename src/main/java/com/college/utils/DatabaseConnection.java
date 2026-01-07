@@ -71,9 +71,11 @@ public class DatabaseConnection {
             // Pool settings optimized for desktop/remote usage
             config.setMaximumPoolSize(10);
             config.setMinimumIdle(2);
-            config.setIdleTimeout(30000); // 30 seconds
+            config.setIdleTimeout(60000); // 1 minute
             config.setConnectionTimeout(30000); // 30 seconds
-            config.setLeakDetectionThreshold(5000); // Detect leaks > 5s
+            config.setMaxLifetime(1800000); // 30 minutes
+            config.setKeepaliveTime(30000); // Keepalive every 30s to prevent server closure
+            config.setLeakDetectionThreshold(10000); // Detect leaks > 10s (relaxed)
 
             // Driver
             config.setDriverClassName("org.postgresql.Driver");
