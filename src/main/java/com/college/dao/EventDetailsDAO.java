@@ -178,9 +178,71 @@ public class EventDetailsDAO {
             pstmt.setString(1, task);
             pstmt.setString(2, status);
             pstmt.setInt(3, volunteerId);
-            return pstmt.executeUpdate() > 0;
+
+            boolean success = pstmt.executeUpdate() > 0;
+            if (success && "APPROVED".equals(status)) {
+                // Fetch student ID for notification
+                String fetchSql = "SELECT student_id, e.name FROM event_volunteers ev JOIN events e ON ev.event_id = e.id WHERE ev.id = ?";
+                try (PreparedStatement fetchStmt = conn.prepareStatement(fetchSql)) {
+                    fetchStmt.setInt(1, volunteerId);
+                    ResultSet rs = fetchStmt.executeQuery();
+                    if (rs.next()) {
+                        int studentId = rs.getInt("student_id");
+                        String eventName = rs.getString("name");
+
+                        String userSql = "SELECT user_id FROM students WHERE id = ?";
+                        try (PreparedStatement uStmt = conn.prepareStatement(userSql)) {
+                            uStmt.setInt(1, studentId);
+                            ResultSet uRs = uStmt.executeQuery();
+                            if (uRs.next()) {
+                                int userId = uRs.getInt("user_id");
+                                Notification note = new Notification();
+                                note.setRecipientUserId(userId);
+                                note.setRecipientContact("");
+                                note.setType(Notification.Type.SYSTEM);
+                                note.setSubject("New Volunteer Task Assigned");
+                                note.setMessage("You have been assigned a task for event '" + eventName + "': " + task);
+                                note.setStatus(Notification.Status.PENDING);
+                                note.setCreatedAt(java.time.LocalDateTime.now());
+
+                                new NotificationDAO().createNotification(note);
+                            }
+                        }
+                    }
+                } catch (SQLException ex) {
+                    Logger.error("Error sending notification: " + ex.getMessage());
+                }
+            }
+            return success;
         } catch (SQLException e) {
             Logger.error("Error updating volunteer task: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateVolunteerHours(int volunteerId, float hours, String status) {
+        String sql = "UPDATE event_volunteers SET hours_logged = ?, status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setFloat(1, hours);
+            pstmt.setString(2, status);
+            pstmt.setInt(3, volunteerId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error updating volunteer hours: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateResourceStatus(int resourceId, String status) {
+        String sql = "UPDATE event_resources SET status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, status);
+            pstmt.setInt(2, resourceId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error updating resource status: " + e.getMessage());
             return false;
         }
     }

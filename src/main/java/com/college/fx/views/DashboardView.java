@@ -87,6 +87,12 @@ public class DashboardView {
 
         userInfo.getChildren().addAll(welcomeLabel, roleLabel);
 
+        // Notifications Button
+        Button notifBtn = new Button("Notifications");
+        notifBtn.setStyle(
+                "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+        notifBtn.setOnAction(e -> NotificationView.showDialog());
+
         // Logout button
         Button logoutBtn = new Button("Logout");
         logoutBtn.setStyle(
@@ -98,7 +104,7 @@ public class DashboardView {
                         "-fx-cursor: hand;");
         logoutBtn.setOnAction(e -> handleLogout());
 
-        topBar.getChildren().addAll(titleLabel, spacer, userInfo, logoutBtn);
+        topBar.getChildren().addAll(titleLabel, spacer, notifBtn, userInfo, logoutBtn);
         return topBar;
     }
 
@@ -390,122 +396,155 @@ public class DashboardView {
         updateActiveState(viewName);
         contentArea.getChildren().clear();
 
-        switch (viewName) {
-            case "home":
-                showHome();
-                break;
-            case "institute":
-                showInstitute();
-                break;
-            case "students":
-                showStudents();
-                break;
-            case "courses":
-                showCourses();
-                break;
-            case "attendance":
-                showAttendance();
-                break;
-            case "library":
-                showLibrary();
-                break;
-            case "fees":
-                showFees();
-                break;
-            case "timetable":
-                showTimetable();
-                break;
-            case "calendar":
-                showCalendar();
-                break;
-            case "grades":
-                showGrades();
-                break;
-            case "gatepass":
-                showGatePass();
-                break;
-            case "hostel":
-                showHostel();
-                break;
-            case "announcements":
-                showAnnouncements();
-                break;
-            case "assignments":
-                showAssignments();
-                break;
-            case "profile":
-                showProfile();
-                break;
-            case "password":
-                showChangePassword();
-                break;
-            case "faculty":
-                showFaculty();
-                break;
-            case "faculty_workload":
-                showFacultyWorkload();
-                break;
-            case "employees":
-                showEmployees();
-                break;
+        try {
+            switch (viewName) {
+                case "home":
+                    showHome();
+                    break;
+                case "institute":
+                    showInstitute();
+                    break;
+                case "students":
+                    showStudents();
+                    break;
+                case "courses":
+                    showCourses();
+                    break;
+                case "attendance":
+                    showAttendance();
+                    break;
+                case "library":
+                    showLibrary();
+                    break;
+                case "fees":
+                    showFees();
+                    break;
+                case "timetable":
+                    showTimetable();
+                    break;
+                case "calendar":
+                    showCalendar();
+                    break;
+                case "grades":
+                    showGrades();
+                    break;
+                case "gatepass":
+                    showGatePass();
+                    break;
+                case "hostel":
+                    showHostel();
+                    break;
+                case "announcements":
+                    loadViewReflectively("com.college.fx.views.AnnouncementManagementView", role, userId);
+                    break;
+                case "assignments":
+                    showAssignments();
+                    break;
+                case "profile":
+                    showProfile();
+                    break;
+                case "password":
+                    showChangePassword();
+                    break;
+                case "faculty":
+                    showFaculty();
+                    break;
+                case "faculty_workload":
+                    showFacultyWorkload();
+                    break;
+                case "employees":
+                    showEmployees();
+                    break;
+                case "student_leave":
+                    loadViewReflectively("com.college.fx.views.StudentLeaveView");
+                    break;
+                case "leave_approval":
+                    loadViewReflectively("com.college.fx.views.LeaveApprovalView");
+                    break;
+                case "volunteer_tasks":
+                    loadViewReflectively("com.college.fx.views.VolunteerTasksView");
+                    break;
+                case "staff_leave":
+                    loadViewReflectively("com.college.fx.views.StaffLeaveView");
+                    break;
+                case "payroll":
+                    loadViewReflectively("com.college.fx.views.PayrollManagementView");
+                    break;
+                case "student_affairs":
+                    loadViewReflectively("com.college.fx.views.StudentAffairsView", role, userId);
+                    break;
+                case "reports":
+                    loadViewReflectively("com.college.fx.views.ReportsView");
+                    break;
+                case "events":
+                    showEvents();
+                    break;
+                case "event_management":
+                    showEventManagement();
+                    break;
+                case "clubs":
+                    showClubs();
+                    break;
+                case "club_management":
+                    showClubManagement();
+                    break;
+                case "student_activities":
+                    showStudentActivities();
+                    break;
+                case "syllabus_management":
+                    loadViewReflectively("com.college.fx.views.SyllabusManagementView");
+                    break;
+                case "resource_management":
+                    loadViewReflectively("com.college.fx.views.ResourceManagementView");
+                    break;
+                case "learning_portal":
+                    loadViewReflectively("com.college.fx.views.LearningPortalView");
+                    break;
+                default:
+                    showHome();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Navigation Error");
+            alert.setHeaderText("Failed to load view: " + viewName);
+            alert.setContentText(e.toString());
+            alert.showAndWait();
+        }
+    }
 
-            case "student_leave":
-                showStudentLeave();
-                break;
-            case "leave_approval":
-                showLeaveApprovals();
-                break;
-            case "volunteer_tasks":
-                showVolunteerTasks();
-                break;
-            case "staff_leave":
-                showStaffLeave();
-                break;
-            case "payroll":
-                showPayrollManagement();
-                break;
-            case "student_affairs":
-                showStudentAffairs();
-                break;
-            case "reports":
-                showReports();
-                break;
-            case "events":
-                showEvents();
-                break;
-            case "event_management":
-                showEventManagement();
-                break;
-            case "clubs":
-                showClubs();
-                break;
-            case "club_management":
-                showClubManagement();
-                break;
-            case "student_activities":
-                showStudentActivities();
-                break;
-            case "syllabus_management":
-                showSyllabusManagement();
-                break;
-            case "resource_management":
-                showResourceManagement();
-                break;
-            case "learning_portal":
-                showLearningPortal();
-                break;
-            default:
-                showHome();
+    private void loadViewReflectively(String className, Object... args) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            Object viewInstance;
+
+            if (args.length == 0) {
+                viewInstance = clazz.getDeclaredConstructor().newInstance();
+            } else {
+                Class<?>[] paramTypes = new Class[args.length];
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i] instanceof Integer)
+                        paramTypes[i] = int.class;
+                    else if (args[i] instanceof String)
+                        paramTypes[i] = String.class;
+                    else
+                        paramTypes[i] = args[i].getClass();
+                }
+                // Simple matching, might be fragile for interfaces, but okay for int/String
+                viewInstance = clazz.getDeclaredConstructor(paramTypes).newInstance(args);
+            }
+
+            currentController = viewInstance;
+            java.lang.reflect.Method getViewMethod = clazz.getMethod("getView");
+            javafx.scene.Node node = (javafx.scene.Node) getViewMethod.invoke(viewInstance);
+            contentArea.getChildren().add(node);
+        } catch (Exception e) {
+            e.printStackTrace(); // Print full trace
+            throw new RuntimeException("Reflective load failed for " + className + ": " + e.getMessage(), e);
         }
     }
 
     private Object currentController;
-
-    private void showReports() {
-        ReportsView view = new ReportsView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
 
     private void showHome() {
         HomeView homeView = new HomeView(displayName, role, userId);
@@ -547,12 +586,6 @@ public class DashboardView {
         // meaning view IS the Node. So it is the controller/view hybrid.
         currentController = view;
         contentArea.getChildren().add(view);
-    }
-
-    private void showStudentAffairs() {
-        StudentAffairsView view = new StudentAffairsView(role, userId);
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
     }
 
     private void showCourses() {
@@ -605,12 +638,6 @@ public class DashboardView {
 
     private void showHostel() {
         HostelManagementView view = new HostelManagementView(role, userId);
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showAnnouncements() {
-        AnnouncementManagementView view = new AnnouncementManagementView(role, userId);
         currentController = view;
         contentArea.getChildren().add(view.getView());
     }
@@ -685,54 +712,6 @@ public class DashboardView {
                 this::showClubs,
                 this::showEventManagement,
                 this::showClubManagement);
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showSyllabusManagement() {
-        SyllabusManagementView view = new SyllabusManagementView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showResourceManagement() {
-        ResourceManagementView view = new ResourceManagementView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showLearningPortal() {
-        LearningPortalView view = new LearningPortalView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showStudentLeave() {
-        StudentLeaveView view = new StudentLeaveView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showVolunteerTasks() {
-        VolunteerTasksView view = new VolunteerTasksView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showStaffLeave() {
-        StaffLeaveView view = new StaffLeaveView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showLeaveApprovals() {
-        LeaveApprovalView view = new LeaveApprovalView();
-        currentController = view;
-        contentArea.getChildren().add(view.getView());
-    }
-
-    private void showPayrollManagement() {
-        PayrollManagementView view = new PayrollManagementView();
         currentController = view;
         contentArea.getChildren().add(view.getView());
     }

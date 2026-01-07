@@ -312,4 +312,22 @@ public class EventDAO {
         event.setRegistrationCount(rs.getInt("registration_count"));
         return event;
     }
+
+    public void updateEventStatuses() {
+        String ongoingSql = "UPDATE events SET status = 'ONGOING' " +
+                "WHERE status = 'UPCOMING' AND start_time <= NOW() AND end_time > NOW()";
+        String completedSql = "UPDATE events SET status = 'COMPLETED' " +
+                "WHERE (status = 'UPCOMING' OR status = 'ONGOING') AND end_time <= NOW()";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement()) {
+
+            stmt.addBatch(ongoingSql);
+            stmt.addBatch(completedSql);
+            stmt.executeBatch();
+
+        } catch (SQLException e) {
+            Logger.error("Error auto-updating event statuses: " + e.getMessage());
+        }
+    }
 }

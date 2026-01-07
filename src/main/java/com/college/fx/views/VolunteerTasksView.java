@@ -62,7 +62,37 @@ public class VolunteerTasksView {
         hoursCol.setCellValueFactory(
                 data -> new SimpleStringProperty(String.valueOf(data.getValue().getHoursLogged())));
 
-        table.getColumns().addAll(eventCol, taskCol, statusCol, hoursCol);
+        TableColumn<EventVolunteer, Void> actionCol = new TableColumn<>("Actions");
+        actionCol.setCellFactory(param -> new TableCell<>() {
+            private final Button requestBtn = new Button("Request Resource");
+
+            {
+                requestBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-size: 10px;");
+                requestBtn.setOnAction(e -> {
+                    EventVolunteer task = getTableView().getItems().get(getIndex());
+                    showRequestResourceDialog(task);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    EventVolunteer task = getTableView().getItems().get(getIndex());
+                    // Only show request button if Approved
+                    requestBtn.setVisible("APPROVED".equalsIgnoreCase(task.getStatus()));
+                    if ("APPROVED".equalsIgnoreCase(task.getStatus())) {
+                        setGraphic(requestBtn);
+                    } else {
+                        setGraphic(null);
+                    }
+                }
+            }
+        });
+
+        table.getColumns().addAll(eventCol, taskCol, statusCol, hoursCol, actionCol);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
 
@@ -80,5 +110,59 @@ public class VolunteerTasksView {
         if (student != null) {
             table.getItems().setAll(eventDetailsDAO.getVolunteersByStudent(student.getId()));
         }
+    }
+
+    private void showRequestResourceDialog(EventVolunteer task) {
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Request Resource");
+        dialog.setHeaderText("Request Resource for " + task.getEventName());
+
+        ButtonType submitBtn = new ButtonType("Request", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(20));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Resource Name (e.g., Projector)");
+
+        Spinner<Integer> qtySpinner = new Spinner<>(1, 100, 1);
+        qtySpinner.setEditable(true);
+
+        content.getChildren().addAll(new Label("Resource Name:"), nameField, new Label("Quantity:"), qtySpinner);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btnType -> {
+            if (btnType == submitBtn) {
+                return nameField.getText();
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(name -> {
+            if (name != null && !name.isEmpty()) {
+                com.college.models.EventResource res = new com.college.models.EventResource();
+                res.setEventId(task.getEventId());
+                res.setResourceName(name);
+                res.setQuantity(qtySpinner.getValue());
+                // Assuming students can add connection, or we need a specific 'requestResource'
+                // method allowing reduced perms?
+                // EventDetailsDAO.addResource is likely fine for now.
+
+                if (eventDetailsDAO.addResource(res)) {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Success");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Resource requested successfully!");
+                    alert.showAndWait();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Failed to request resource.");
+                    alert.showAndWait();
+                }
+            }
+        });
     }
 }

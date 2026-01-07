@@ -130,23 +130,23 @@ public class EventManagementView {
 
         TableColumn<Event, Void> actionCol = new TableColumn<>("Actions");
         actionCol.setCellFactory(param -> new TableCell<>() {
-            private final Button editBtn = new Button("Edit");
-            private final Button registrationsBtn = new Button("Registrations");
+            private final Button editBtn = new Button("Edit Details");
+            private final Button manageBtn = new Button("Manage");
             private final Button deleteBtn = new Button("Delete");
 
             {
                 editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-padding: 5 10;");
-                registrationsBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-padding: 5 10;");
+                manageBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-padding: 5 10;");
                 deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-padding: 5 10;");
 
                 editBtn.setOnAction(e -> {
                     Event event = getTableView().getItems().get(getIndex());
-                    showEditEventDialog(event);
+                    EventManagementView.this.showEditDetailsDialog(event);
                 });
 
-                registrationsBtn.setOnAction(e -> {
+                manageBtn.setOnAction(e -> {
                     Event event = getTableView().getItems().get(getIndex());
-                    showRegistrationsDialog(event);
+                    EventManagementView.this.showManageEventDialog(event);
                 });
 
                 deleteBtn.setOnAction(e -> {
@@ -161,12 +161,12 @@ public class EventManagementView {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    HBox buttons = new HBox(5, editBtn, registrationsBtn, deleteBtn);
+                    HBox buttons = new HBox(5, editBtn, manageBtn, deleteBtn);
                     setGraphic(buttons);
                 }
             }
         });
-        actionCol.setPrefWidth(280);
+        actionCol.setPrefWidth(300);
 
         eventsTable.getColumns().addAll(nameCol, typeCol, dateCol, locationCol, registrationsCol, statusCol, actionCol);
         section.getChildren().add(eventsTable);
@@ -174,6 +174,7 @@ public class EventManagementView {
     }
 
     private void loadEvents() {
+        eventDAO.updateEventStatuses();
         List<Event> events = eventDAO.getAllEvents();
         eventsData.setAll(events);
     }
@@ -207,38 +208,16 @@ public class EventManagementView {
         });
     }
 
-    private void showEditEventDialog(Event event) {
+    private void showEditDetailsDialog(Event event) {
         Dialog<Event> dialog = new Dialog<>();
-        dialog.setTitle("Edit Event");
+        dialog.setTitle("Edit Event Details");
         dialog.setHeaderText("Edit Event: " + event.getName());
 
-        ButtonType saveBtn = new ButtonType("Save Overview", ButtonData.OK_DONE);
+        ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
-        TabPane tabPane = new TabPane();
-        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setPrefWidth(700);
-        tabPane.setPrefHeight(600);
-
-        // Tab 1: Overview
-        Tab overviewTab = new Tab("Overview");
         GridPane grid = createEventForm(event);
-        overviewTab.setContent(grid);
-
-        // Tab 2: Collaboration
-        Tab collabTab = new Tab("Collaboration");
-        collabTab.setContent(createCollaborationTab(event));
-
-        // Tab 3: Resources
-        Tab resourceTab = new Tab("Resources");
-        resourceTab.setContent(createResourcesTab(event));
-
-        // Tab 4: Volunteers
-        Tab volunteerTab = new Tab("Volunteers");
-        volunteerTab.setContent(createVolunteersTab(event));
-
-        tabPane.getTabs().addAll(overviewTab, collabTab, resourceTab, volunteerTab);
-        dialog.getDialogPane().setContent(tabPane);
+        dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btnType -> {
             if (btnType == saveBtn) {
@@ -255,6 +234,95 @@ public class EventManagementView {
                 showAlert(Alert.AlertType.ERROR, "Error", "Failed to update event.");
             }
         });
+    }
+
+    private void showManageEventDialog(Event event) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Manage Event");
+        dialog.setHeaderText("Manage Event: " + event.getName());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.setPrefWidth(700);
+        tabPane.setPrefHeight(600);
+
+        // Tab 1: Collaboration
+        Tab collabTab = new Tab("Collaboration");
+        collabTab.setContent(createCollaborationTab(event));
+
+        // Tab 2: Resources
+        Tab resourceTab = new Tab("Resources");
+        resourceTab.setContent(createResourcesTab(event));
+
+        // Tab 3: Volunteers
+        Tab volunteerTab = new Tab("Volunteers");
+        volunteerTab.setContent(createVolunteersTab(event));
+
+        // Tab 4: Registrations (Moved from separate dialog for consolidation)
+        Tab regTab = new Tab("Registrations");
+        regTab.setContent(createRegistrationsContent(event));
+
+        tabPane.getTabs().addAll(collabTab, resourceTab, volunteerTab, regTab);
+        dialog.getDialogPane().setContent(tabPane);
+        dialog.showAndWait();
+    }
+
+    private VBox createRegistrationsContent(Event event) {
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(10));
+
+        TableView<EventRegistration> regTable = new TableView<>();
+        TableColumn<EventRegistration, String> studentCol = new TableColumn<>("Student");
+        studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
+        studentCol.setPrefWidth(200);
+
+        TableColumn<EventRegistration, String> dateCol = new TableColumn<>("Registered On");
+        dateCol.setCellValueFactory(data -> new SimpleStringProperty(
+                new SimpleDateFormat("MMM dd, yyyy").format(data.getValue().getRegisteredAt())));
+        dateCol.setPrefWidth(150);
+
+        TableColumn<EventRegistration, String> statusCol = new TableColumn<>("Attendance");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getAttendanceStatus()));
+        statusCol.setPrefWidth(120);
+
+        TableColumn<EventRegistration, Void> actionCol = new TableColumn<>("Mark");
+        actionCol.setCellFactory(param -> new TableCell<>() {
+            private final ComboBox<String> statusCombo = new ComboBox<>();
+            {
+                statusCombo.getItems().addAll("REGISTERED", "ATTENDED", "ABSENT");
+                statusCombo.setOnAction(e -> {
+                    EventRegistration reg = getTableView().getItems().get(getIndex());
+                    String newStatus = statusCombo.getValue();
+                    if (eventDAO.markAttendance(reg.getId(), newStatus)) {
+                        reg.setAttendanceStatus(newStatus);
+                        getTableView().refresh();
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    EventRegistration reg = getTableView().getItems().get(getIndex());
+                    statusCombo.setValue(reg.getAttendanceStatus());
+                    setGraphic(statusCombo);
+                }
+            }
+        });
+        actionCol.setPrefWidth(130);
+
+        regTable.getColumns().addAll(studentCol, dateCol, statusCol, actionCol);
+
+        List<EventRegistration> registrations = eventDAO.getEventRegistrations(event.getId());
+        regTable.setItems(FXCollections.observableArrayList(registrations));
+        VBox.setVgrow(regTable, Priority.ALWAYS);
+
+        content.getChildren().add(regTable);
+        return content;
     }
 
     private VBox createCollaborationTab(Event event) {
@@ -350,7 +418,53 @@ public class EventManagementView {
         statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
         statusCol.setPrefWidth(120);
 
-        table.getColumns().addAll(nameCol, qtyCol, statusCol);
+        TableColumn<com.college.models.EventResource, Void> actionCol = new TableColumn<>("Actions");
+        actionCol.setCellFactory(param -> new TableCell<>() {
+            private final Button approveBtn = new Button("Approve");
+            private final Button issueBtn = new Button("Issue");
+            private final Button returnBtn = new Button("Return");
+            private final HBox pane = new HBox(5, approveBtn, issueBtn, returnBtn);
+
+            {
+                approveBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-size: 10px;");
+                issueBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-size: 10px;");
+                returnBtn.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; -fx-font-size: 10px;");
+
+                approveBtn.setOnAction(e -> updateStatus("APPROVED"));
+                issueBtn.setOnAction(e -> updateStatus("ISSUED"));
+                returnBtn.setOnAction(e -> updateStatus("RETURNED"));
+            }
+
+            private void updateStatus(String status) {
+                com.college.models.EventResource item = getTableView().getItems().get(getIndex());
+                if (eventDetailsDAO.updateResourceStatus(item.getId(), status)) {
+                    item.setStatus(status);
+                    getTableView().refresh();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to update status.");
+                }
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    com.college.models.EventResource row = getTableView().getItems().get(getIndex());
+                    String status = row.getStatus();
+
+                    approveBtn.setVisible("REQUESTED".equals(status));
+                    issueBtn.setVisible("APPROVED".equals(status));
+                    returnBtn.setVisible("ISSUED".equals(status));
+
+                    setGraphic(pane);
+                }
+            }
+        });
+        actionCol.setPrefWidth(200);
+
+        table.getColumns().addAll(nameCol, qtyCol, statusCol, actionCol);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Runnable loadResources = () -> {
@@ -401,9 +515,15 @@ public class EventManagementView {
         statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
         statusCol.setPrefWidth(100);
 
+        TableColumn<com.college.models.EventVolunteer, String> hoursCol = new TableColumn<>("Hours");
+        hoursCol.setCellValueFactory(
+                data -> new SimpleStringProperty(String.valueOf(data.getValue().getHoursLogged())));
+        hoursCol.setPrefWidth(80);
+
         TableColumn<com.college.models.EventVolunteer, Void> actionCol = new TableColumn<>("Actions");
         actionCol.setCellFactory(param -> new TableCell<>() {
             private final Button assignBtn = new Button("Assign Task");
+            private final Button hoursBtn = new Button("Log Hours");
 
             {
                 assignBtn.setStyle(
@@ -411,6 +531,13 @@ public class EventManagementView {
                 assignBtn.setOnAction(e -> {
                     com.college.models.EventVolunteer volunteer = getTableView().getItems().get(getIndex());
                     showAssignTaskDialog(volunteer);
+                });
+
+                hoursBtn.setStyle(
+                        "-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5 10;");
+                hoursBtn.setOnAction(e -> {
+                    com.college.models.EventVolunteer volunteer = getTableView().getItems().get(getIndex());
+                    showLogHoursDialog(volunteer);
                 });
             }
 
@@ -420,13 +547,14 @@ public class EventManagementView {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(assignBtn);
+                    HBox buttons = new HBox(5, assignBtn, hoursBtn);
+                    setGraphic(buttons);
                 }
             }
         });
-        actionCol.setPrefWidth(120);
+        actionCol.setPrefWidth(220);
 
-        table.getColumns().addAll(studentCol, taskCol, statusCol, actionCol);
+        table.getColumns().addAll(studentCol, taskCol, statusCol, hoursCol, actionCol);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getVolunteers(event.getId())));
@@ -633,72 +761,6 @@ public class EventManagementView {
         return event;
     }
 
-    @SuppressWarnings("unchecked")
-    private void showRegistrationsDialog(Event event) {
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Event Registrations");
-        dialog.setHeaderText("Registrations for " + event.getName());
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(20));
-        content.setPrefWidth(600);
-        content.setPrefHeight(500);
-
-        TableView<EventRegistration> regTable = new TableView<>();
-        TableColumn<EventRegistration, String> studentCol = new TableColumn<>("Student");
-        studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
-        studentCol.setPrefWidth(200);
-
-        TableColumn<EventRegistration, String> dateCol = new TableColumn<>("Registered On");
-        dateCol.setCellValueFactory(data -> new SimpleStringProperty(
-                new SimpleDateFormat("MMM dd, yyyy").format(data.getValue().getRegisteredAt())));
-        dateCol.setPrefWidth(150);
-
-        TableColumn<EventRegistration, String> statusCol = new TableColumn<>("Attendance");
-        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getAttendanceStatus()));
-        statusCol.setPrefWidth(120);
-
-        TableColumn<EventRegistration, Void> actionCol = new TableColumn<>("Mark");
-        actionCol.setCellFactory(param -> new TableCell<>() {
-            private final ComboBox<String> statusCombo = new ComboBox<>();
-            {
-                statusCombo.getItems().addAll("REGISTERED", "ATTENDED", "ABSENT");
-                statusCombo.setOnAction(e -> {
-                    EventRegistration reg = getTableView().getItems().get(getIndex());
-                    String newStatus = statusCombo.getValue();
-                    if (eventDAO.markAttendance(reg.getId(), newStatus)) {
-                        reg.setAttendanceStatus(newStatus);
-                        getTableView().refresh();
-                    }
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    EventRegistration reg = getTableView().getItems().get(getIndex());
-                    statusCombo.setValue(reg.getAttendanceStatus());
-                    setGraphic(statusCombo);
-                }
-            }
-        });
-        actionCol.setPrefWidth(130);
-
-        regTable.getColumns().addAll(studentCol, dateCol, statusCol, actionCol);
-
-        List<EventRegistration> registrations = eventDAO.getEventRegistrations(event.getId());
-        regTable.setItems(FXCollections.observableArrayList(registrations));
-        VBox.setVgrow(regTable, Priority.ALWAYS);
-
-        content.getChildren().add(regTable);
-        dialog.getDialogPane().setContent(content);
-        dialog.showAndWait();
-    }
-
     private void deleteEvent(Event event) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Event");
@@ -767,6 +829,40 @@ public class EventManagementView {
                 // changes or we can trigger a refresh if we had access.
             } else {
                 showAlert(Alert.AlertType.ERROR, "Error", "Failed to assign task.");
+            }
+        });
+    }
+
+    private void showLogHoursDialog(com.college.models.EventVolunteer volunteer) {
+        Dialog<Float> dialog = new Dialog<>();
+        dialog.setTitle("Log Hours");
+        dialog.setHeaderText("Log Hours for " + volunteer.getStudentName());
+
+        ButtonType saveBtn = new ButtonType("Save & Complete", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(20));
+
+        Spinner<Double> hoursSpinner = new Spinner<>(0.0, 100.0,
+                volunteer.getHoursLogged() > 0 ? (double) volunteer.getHoursLogged() : 0.0, 0.5);
+        hoursSpinner.setEditable(true);
+
+        content.getChildren().addAll(new Label("Hours Worked:"), hoursSpinner);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btnType -> {
+            if (btnType == saveBtn) {
+                return hoursSpinner.getValue().floatValue();
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(hours -> {
+            if (eventDetailsDAO.updateVolunteerHours(volunteer.getId(), hours, "COMPLETED")) {
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Hours logged and task marked as completed!");
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to update volunteer record.");
             }
         });
     }

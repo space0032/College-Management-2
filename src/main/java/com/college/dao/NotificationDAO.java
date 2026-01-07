@@ -31,6 +31,23 @@ public class NotificationDAO {
         }
     }
 
+    public List<Notification> getPendingNotifications(int userId) {
+        List<Notification> list = new ArrayList<>();
+        String sql = "SELECT * FROM notifications WHERE status = 'PENDING' AND recipient_user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return list;
+    }
+
     public List<Notification> getPendingNotifications() {
         List<Notification> list = new ArrayList<>();
         String sql = "SELECT * FROM notifications WHERE status = 'PENDING'";
