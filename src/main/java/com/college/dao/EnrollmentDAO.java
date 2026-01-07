@@ -39,7 +39,7 @@ public class EnrollmentDAO {
             student.setUsername(enrollmentNumber);
 
             // 2. Create User Account with Role ID
-            com.college.models.Role studentRole = roleDAO.getRoleByCode("STUDENT");
+            com.college.models.Role studentRole = roleDAO.getRoleByCode(conn, "STUDENT");
             int roleId = (studentRole != null) ? studentRole.getId() : 0;
 
             // Validate role found
@@ -71,7 +71,7 @@ public class EnrollmentDAO {
             student.setId(studentId);
 
             // 4. Auto-Assign Fees
-            assignAutoFees(studentId, student, feeDAO);
+            assignAutoFees(conn, studentId, student, feeDAO);
 
             // 5. Auto-Register Core Courses
             assignCoreCourses(conn, studentId, student);
@@ -134,7 +134,7 @@ public class EnrollmentDAO {
         }
     }
 
-    private void assignAutoFees(int studentId, Student student, EnhancedFeeDAO feeDAO) {
+    private void assignAutoFees(Connection conn, int studentId, Student student, EnhancedFeeDAO feeDAO) {
         try {
             List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories();
             java.sql.Date dueDate = java.sql.Date.valueOf(java.time.LocalDate.now().plusMonths(1)); // Due in 30 days
@@ -145,7 +145,7 @@ public class EnrollmentDAO {
                             || "Tuition Fee".equalsIgnoreCase(c.getCategoryName()))
                     .findFirst()
                     .ifPresent(c -> {
-                        feeDAO.addStudentFee(studentId, c.getId(), c.getBaseAmount(), dueDate);
+                        feeDAO.addStudentFee(conn, studentId, c.getId(), c.getBaseAmount(), dueDate);
                     });
 
             // 2. Hostel Fees (If hostelite)
@@ -155,7 +155,7 @@ public class EnrollmentDAO {
                                 || "Hostel Fee".equalsIgnoreCase(c.getCategoryName()))
                         .findFirst()
                         .ifPresent(c -> {
-                            feeDAO.addStudentFee(studentId, c.getId(), c.getBaseAmount(), dueDate);
+                            feeDAO.addStudentFee(conn, studentId, c.getId(), c.getBaseAmount(), dueDate);
                         });
             }
 

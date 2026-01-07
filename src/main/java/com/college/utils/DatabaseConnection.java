@@ -73,7 +73,7 @@ public class DatabaseConnection {
             config.setMinimumIdle(2);
             config.setIdleTimeout(30000); // 30 seconds
             config.setConnectionTimeout(30000); // 30 seconds
-            config.setLeakDetectionThreshold(2000); // Detect leaks > 2s
+            config.setLeakDetectionThreshold(5000); // Detect leaks > 5s
 
             // Driver
             config.setDriverClassName("org.postgresql.Driver");

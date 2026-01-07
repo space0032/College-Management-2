@@ -33,8 +33,8 @@ public class StudentDAO {
     public int addStudent(Connection conn, Student student, int userId) throws SQLException {
         String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite, "
                 +
-                "dob, gender, blood_group, category, nationality, father_name, mother_name, guardian_contact, previous_school, tenth_percentage, twelfth_percentage, extracurricular_activities, profile_photo_path, user_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "dob, gender, blood_group, category, nationality, father_name, mother_name, guardian_contact, previous_school, tenth_percentage, twelfth_percentage, extracurricular_activities, profile_photo_path, user_id, enrollment_id) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, student.getName());
@@ -68,6 +68,8 @@ public class StudentDAO {
             } else {
                 pstmt.setNull(24, Types.INTEGER);
             }
+            // 25. Enrollment ID (from username field)
+            pstmt.setString(25, student.getUsername());
 
             int rowsAffected = pstmt.executeUpdate();
 

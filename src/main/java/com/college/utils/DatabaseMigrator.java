@@ -54,6 +54,32 @@ public class DatabaseMigrator {
                         System.err.println("V7 Migration file not found!");
                     }
                 }
+
+                // Execute V8 Add Enrollment ID
+                String v8Path = "/db/migration/V8__Add_Enrollment_Id.sql";
+                try (InputStream v8is = DatabaseMigrator.class.getResourceAsStream(v8Path)) {
+                    if (v8is != null) {
+                        String v8sql = new BufferedReader(new InputStreamReader(v8is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v8sql);
+                        System.out.println("V8 Add Enrollment ID Migration executed successfully!");
+                    } else {
+                        System.err.println("V8 Migration file not found!");
+                    }
+                }
+
+                // Execute V9 Cascade Delete
+                String v9Path = "/db/migration/V9__Cascade_Delete_Constraints.sql";
+                try (InputStream v9is = DatabaseMigrator.class.getResourceAsStream(v9Path)) {
+                    if (v9is != null) {
+                        String v9sql = new BufferedReader(new InputStreamReader(v9is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v9sql);
+                        System.out.println("V9 Cascade Delete Migration executed successfully!");
+                    } else {
+                        System.err.println("V9 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {

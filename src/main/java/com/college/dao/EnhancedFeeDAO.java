@@ -47,11 +47,18 @@ public class EnhancedFeeDAO {
      * Assign fee to student
      */
     public boolean assignFeeToStudent(StudentFee studentFee) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return assignFeeToStudent(conn, studentFee);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    public boolean assignFeeToStudent(Connection conn, StudentFee studentFee) {
         String sql = "INSERT INTO student_fees (student_id, category_id, academic_year, total_amount, due_date) " +
                 "VALUES (?, ?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentFee.getStudentId());
             pstmt.setInt(2, studentFee.getCategoryId());
@@ -75,13 +82,22 @@ public class EnhancedFeeDAO {
      * Add student fee (Convenience method)
      */
     public boolean addStudentFee(int studentId, int categoryId, double amount, Date dueDate) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return addStudentFee(conn, studentId, categoryId, amount, dueDate);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    public boolean addStudentFee(Connection conn, int studentId, int categoryId, double amount, Date dueDate) {
         StudentFee fee = new StudentFee();
         fee.setStudentId(studentId);
         fee.setCategoryId(categoryId);
         fee.setTotalAmount(amount);
         fee.setDueDate(dueDate);
         fee.setAcademicYear(java.time.Year.now().toString()); // Default to current year
-        return assignFeeToStudent(fee);
+        return assignFeeToStudent(conn, fee);
     }
 
     /**

@@ -59,11 +59,32 @@ ALTER TABLE hostel_attendance DROP CONSTRAINT IF EXISTS unique_hostel_attendance
 ALTER TABLE hostel_attendance ADD CONSTRAINT unique_hostel_attendance UNIQUE (student_id, date);
 
 -- 6. Seed Fee Categories to prevent FK errors
+
+-- 6. Seed Fee Categories to prevent FK errors
 INSERT INTO fee_categories (id, category_name, base_amount, description) VALUES
-(1, 'Tuition Fee', 50000.00, 'Semester Tuition Fee'),
-(2, 'Hostel Fee', 25000.00, 'Semester Hostel Fee'),
+(1, 'Tuition Fee', 75000.00, 'Semester Tuition Fee'),
+(2, 'Hostel Fee', 50000.00, 'Semester Hostel Fee'),
 (3, 'Bus Fee', 15000.00, 'Semester Bus/Transport Fee'),
 (4, 'Exam Fee', 2000.00, 'Semester Examination Fee')
+ON CONFLICT (id) DO NOTHING;
+
+-- 7. Seed Dummy Users and Students for Testing
+-- Default Student User
+INSERT INTO users (username, password, role, role_id) 
+SELECT 'student1', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'STUDENT', id FROM roles WHERE code='STUDENT'
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO users (username, password, role, role_id) 
+SELECT 'student2', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'STUDENT', id FROM roles WHERE code='STUDENT'
+ON CONFLICT (username) DO NOTHING;
+
+-- Default Students linked to Users
+INSERT INTO students (id, user_id, name, email, department, semester) 
+SELECT 1, id, 'Boby Student', 'boby@college.edu', 'CSE', 1 FROM users WHERE username='student1'
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO students (id, user_id, name, email, department, semester)
+SELECT 2, id, 'Alice Student', 'alice@college.edu', 'ECE', 3 FROM users WHERE username='student2'
 ON CONFLICT (id) DO NOTHING;
 
 -- 7. Add indexes for performance if they don't exist (IF NOT EXISTS is not standard in all PG versions for INDEX, so wrapping or ignoring error)
