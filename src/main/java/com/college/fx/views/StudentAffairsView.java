@@ -6,10 +6,20 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import com.college.fx.views.CourseManagementView;
+import com.college.fx.views.AttendanceView;
+import com.college.fx.views.GradesView;
+import com.college.fx.views.TimetableView;
+import com.college.fx.views.LibraryManagementView;
+import com.college.fx.views.HostelManagementView;
+import com.college.fx.views.GatePassView;
+import com.college.fx.views.FeesView;
+import com.college.fx.views.AssignmentsView;
 
 /**
  * Student Affairs View (Consolidated "Student Management")
- * Contains: Courses, Attendance, Grades, Library, Timetable, Gate Pass, Hostel, Assignments
+ * Contains: Courses, Attendance, Grades, Library, Timetable, Gate Pass, Hostel,
+ * Assignments
  */
 public class StudentAffairsView {
 
@@ -83,9 +93,8 @@ public class StudentAffairsView {
         feesTab.setContent(feesView.getView());
 
         tabPane.getTabs().addAll(
-            courseTab, attTab, gradeTab, assignTab, 
-            timeTab, libTab, hostelTab, gateTab, feesTab
-        );
+                courseTab, attTab, gradeTab, assignTab,
+                timeTab, libTab, hostelTab, gateTab, feesTab);
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         root.getChildren().addAll(title, tabPane);

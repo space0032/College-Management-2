@@ -1,0 +1,154 @@
+/* Icons */
+.menu-icon {
+    -fx-fill: #94a3b8;
+    /* Default inactive color */
+}
+
+.menu-item:hover .menu-icon,
+.menu-item:hover .vector-icon {
+    /* Fallback name */
+    -fx-fill: white;
+}
+
+.menu-item-active .menu-icon {
+    -fx-fill: white;
+}
+
+
+/* Sidebar Container */
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #0f172a, #1e293b);
+    -fx-padding: 20;
+    -fx-spacing: 15;
+}
+
+/* App Title */
+.sidebar-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 0 0 10 0;
+}
+
+.search-icon {
+    -fx-fill: white;
+    -fx-cursor: hand;
+}
+
+/* Home Button (Pill Shape) */
+.home-button {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-background-radius: 30;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 10 20;
+    -fx-cursor: hand;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-radius: 30;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 10, 0, 0, 5);
+}
+
+.home-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-effect: dropshadow(three-pass-box, rgba(20, 184, 166, 0.4), 15, 0, 0, 5);
+}
+
+/* Section Containers (Glassy) */
+.sidebar-section {
+    -fx-background-color: rgba(30, 41, 59, 0.6);
+    -fx-background-radius: 15;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-border-radius: 15;
+    -fx-padding: 0;
+}
+
+/* TitledPane Styling to look like collapsible headers */
+/* TitledPane Styling to look like collapsible headers */
+.sidebar-section>.title {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    /* Force white */
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 15;
+    -fx-border-width: 0;
+}
+
+.sidebar-section>.title>.text {
+    -fx-fill: white;
+    /* Explicitly target the text node */
+}
+
+.sidebar-section>.title:hover {
+    -fx-text-fill: #14b8a6;
+    /* Teal on hover */
+}
+
+.sidebar-section>.title:hover>.text {
+    -fx-fill: #14b8a6;
+}
+
+.sidebar-section>.title>.arrow-button {
+    -fx-background-color: transparent;
+}
+
+.sidebar-section>.title>.arrow-button .arrow {
+    -fx-background-color: white;
+    /* White arrow */
+}
+
+.sidebar-section>.title:hover>.arrow-button .arrow {
+    -fx-background-color: #14b8a6;
+}
+
+.sidebar-section .content {
+    -fx-background-color: transparent;
+    -fx-padding: 0 10 10 10;
+    -fx-border-width: 0;
+}
+
+/* Menu Items inside sections */
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cbd5e1;
+    -fx-font-size: 14px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 8 10;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.menu-item:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: white;
+}
+
+.menu-item-active {
+    -fx-background-color: linear-gradient(to right, #14b8a6, #0d9488);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(20, 184, 166, 0.4), 8, 0, 0, 2);
+}
+
+/* User Account Section at Bottom */
+.user-account-section {
+    -fx-background-color: rgba(30, 41, 59, 0.8);
+    -fx-background-radius: 20;
+    -fx-padding: 15;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 20;
+}
+
+.user-name {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.user-role {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 12px;
+}
