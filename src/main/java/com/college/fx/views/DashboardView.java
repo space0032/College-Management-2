@@ -250,6 +250,13 @@ public class DashboardView {
             addMenuItem(sidebar, "Hostel", "hostel", false);
         }
 
+        // Leave Management
+        if (session.isStudent()) {
+            addMenuItem(sidebar, "Leave Application", "student_leave", false);
+        } else if (session.hasPermission("APPROVE_LEAVE") || session.isAdmin() || "WARDEN".equals(role)) {
+            addMenuItem(sidebar, "Leave Approvals", "leave_approval", false);
+        }
+
         // Announcements (Everyone except students)
         if (!role.equals("STUDENT")) {
             addMenuItem(sidebar, "Announcements", "announcements", false);
@@ -448,6 +455,12 @@ public class DashboardView {
                 break;
             case "payroll":
                 showPayroll();
+                break;
+            case "student_leave":
+                showStudentLeave();
+                break;
+            case "leave_approval":
+                showLeaveApprovals();
                 break;
             case "student_affairs":
                 showStudentAffairs();
@@ -694,6 +707,18 @@ public class DashboardView {
 
     private void showLearningPortal() {
         LearningPortalView view = new LearningPortalView();
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showStudentLeave() {
+        StudentLeaveView view = new StudentLeaveView();
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showLeaveApprovals() {
+        LeaveApprovalView view = new LeaveApprovalView();
         currentController = view;
         contentArea.getChildren().add(view.getView());
     }

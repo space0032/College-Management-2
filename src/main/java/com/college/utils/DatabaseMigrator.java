@@ -119,6 +119,19 @@ public class DatabaseMigrator {
                         System.err.println("V12 Migration file not found!");
                     }
                 }
+
+                // Execute V34 Add Student Leaves
+                String v34Path = "/db/migration/V34__Add_Student_Leaves.sql";
+                try (InputStream v34is = DatabaseMigrator.class.getResourceAsStream(v34Path)) {
+                    if (v34is != null) {
+                        String v34sql = new BufferedReader(new InputStreamReader(v34is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v34sql);
+                        System.out.println("V34 Add Student Leaves Migration executed successfully!");
+                    } else {
+                        System.err.println("V34 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {
