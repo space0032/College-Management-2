@@ -11,8 +11,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -83,7 +81,7 @@ public class AcademicCalendarView {
         String[] days = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
         for (int i = 0; i < 7; i++) {
             Label dayName = new Label(days[i]);
-            dayName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+            dayName.getStyleClass().add("calendar-day-header");
             dayName.setMinWidth(100);
             dayName.setAlignment(Pos.CENTER);
             calendarGrid.add(dayName, i, 0);
@@ -126,19 +124,19 @@ public class AcademicCalendarView {
         VBox cell = new VBox(5);
         cell.setPrefSize(100, 100);
         cell.setPadding(new Insets(5));
-        cell.getStyleClass().add("glass-card");
+        cell.getStyleClass().add("calendar-cell");
 
         // Highlight today
         if (date.equals(LocalDate.now())) {
-            cell.setStyle("-fx-border-color: #3b82f6; -fx-background-color: #eff6ff; -fx-border-width: 2;");
+            cell.getStyleClass().add("calendar-cell-today");
         } else if (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
                 || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
             // Highlight Weekends (Holidays)
-            cell.setStyle("-fx-border-color: #e2e8f0; -fx-background-color: #fef2f2;"); // Light red background
+            cell.getStyleClass().add("calendar-cell-weekend");
         }
 
         Label dateLbl = new Label(String.valueOf(date.getDayOfMonth()));
-        dateLbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        dateLbl.getStyleClass().add("calendar-date-label");
         cell.getChildren().add(dateLbl);
 
         // Filter events for this day
@@ -148,7 +146,7 @@ public class AcademicCalendarView {
 
         for (CalendarEvent e : dayEvents) {
             Label eventLbl = new Label(e.getTitle());
-            eventLbl.setFont(Font.font("Segoe UI", 10));
+            eventLbl.getStyleClass().add("small-button"); // Reusing small button font size
             eventLbl.setWrapText(true);
             eventLbl.setTextFill(Color.WHITE);
             eventLbl.setPadding(new Insets(2));
@@ -162,6 +160,10 @@ public class AcademicCalendarView {
             else if (e.getEventType() == EventType.EVENT)
                 color = "#3b82f6";
 
+            // Should properly move these colors to CSS classes too, but dynamic colors are
+            // tricky without many classes
+            // For now, inline background color for event pills is acceptable as they are
+            // content-driven colors
             eventLbl.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 4;");
 
             // Tooltip

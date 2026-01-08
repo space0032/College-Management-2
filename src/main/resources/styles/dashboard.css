@@ -537,3 +537,77 @@ AnchorPane {
 .pill-tab-pane .tab:selected .tab-label {
     -fx-text-fill: white;
 }
+
+/* --- Academic Calendar --- */
+.calendar-day-header {
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.calendar-cell {
+    -fx-background-color: rgba(30, 41, 59, 0.4);
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-border-radius: 8;
+}
+
+.calendar-cell-today {
+    -fx-background-color: rgba(59, 130, 246, 0.15);
+    -fx-border-color: #3b82f6;
+    -fx-border-width: 1;
+}
+
+.calendar-cell-weekend {
+    -fx-background-color: rgba(239, 68, 68, 0.1);
+    -fx-border-color: rgba(239, 68, 68, 0.2);
+}
+
+.calendar-date-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+/* --- Weekly Timetable --- */
+.timetable-header {
+    -fx-background-color: rgba(20, 184, 166, 0.2);
+    -fx-border-color: rgba(20, 184, 166, 0.4);
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #2dd4bf;
+    -fx-alignment: center;
+    -fx-padding: 10;
+}
+
+.timetable-time-cell {
+    -fx-background-color: rgba(30, 41, 59, 0.8);
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #cbd5e1;
+    -fx-alignment: center;
+    -fx-padding: 8;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.timetable-cell-empty {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-border-style: dashed;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #64748b;
+    -fx-alignment: center;
+}
+
+.timetable-cell-filled {
+    -fx-background-color: rgba(16, 185, 129, 0.15);
+    -fx-border-color: #10b981;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: white;
+    -fx-alignment: center;
+    -fx-padding: 5;
+}

@@ -10,9 +10,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import java.util.List;
 
 /**
@@ -87,8 +84,7 @@ public class TimetableView {
 
         // Department selector
         Label deptLabel = new Label("Department:");
-        deptLabel.setFont(Font.font("Segoe UI", 13));
-        deptLabel.setStyle("-fx-text-fill: white;");
+        deptLabel.getStyleClass().add("text-white");
         departmentCombo = new ComboBox<>();
 
         // Use DepartmentDAO to get complete list of departments
@@ -104,8 +100,7 @@ public class TimetableView {
 
         // Semester selector
         Label semLabel = new Label("Semester:");
-        semLabel.setFont(Font.font("Segoe UI", 13));
-        semLabel.setStyle("-fx-text-fill: white;");
+        semLabel.getStyleClass().add("text-white");
         semesterCombo = new ComboBox<>();
         for (int i = 1; i <= 8; i++) {
             semesterCombo.getItems().add(i);
@@ -243,46 +238,34 @@ public class TimetableView {
 
     private Label createHeaderCell(String text) {
         Label label = new Label(text);
-        label.setFont(Font.font("Segoe UI", FontWeight.BOLD, 13));
-        label.setTextFill(Color.WHITE);
-        label.setAlignment(Pos.CENTER);
+        label.getStyleClass().add("timetable-header");
         label.setPrefWidth(120);
         label.setPrefHeight(45);
-        label.setStyle("-fx-background-color: #14b8a6; -fx-padding: 10;");
         return label;
     }
 
     private Label createTimeCell(String text) {
         Label label = new Label(text);
-        label.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
-        // label.setTextFill(Color.web("#475569"));
-        label.setAlignment(Pos.CENTER);
+        label.getStyleClass().add("timetable-time-cell");
         label.setPrefWidth(100);
         label.setPrefHeight(60);
-        label.setStyle("-fx-background-color: #f1f5f9; -fx-padding: 10;");
         return label;
     }
 
     private Label createEmptyCell() {
         Label label = new Label("-");
-        label.setFont(Font.font("Segoe UI", 12));
-        label.setTextFill(Color.web("#94a3b8"));
-        label.setAlignment(Pos.CENTER);
+        label.getStyleClass().add("timetable-cell-empty");
         label.setPrefWidth(120);
         label.setPrefHeight(60);
-        label.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-padding: 5;");
         return label;
     }
 
     private Label createFilledCell(String subject, String room) {
         Label label = new Label(subject + "\n" + room);
-        label.setFont(Font.font("Segoe UI", 11));
-        // label.setTextFill(Color.web("#0f172a"));
-        label.setAlignment(Pos.CENTER);
+        label.getStyleClass().add("timetable-cell-filled");
         label.setWrapText(true);
         label.setPrefWidth(120);
         label.setPrefHeight(60);
-        label.setStyle("-fx-background-color: #ecfdf5; -fx-border-color: #14b8a6; -fx-padding: 5;");
         return label;
     }
 
