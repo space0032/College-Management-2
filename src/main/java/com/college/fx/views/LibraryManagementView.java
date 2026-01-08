@@ -82,6 +82,7 @@ public class LibraryManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label(role.equals("STUDENT") ? "Library" : "Library Management");
         title.getStyleClass().add("section-title");

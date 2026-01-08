@@ -67,6 +67,7 @@ public class CourseManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(10));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         HBox header = createHeader();
 
@@ -168,6 +169,7 @@ public class CourseManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(10));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("My Academics");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -336,11 +338,7 @@ public class CourseManagementView {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        header.getStyleClass().add("glass-card");
 
         Label title = new Label(role.equals("STUDENT") ? "My Courses" : "Course Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -367,11 +365,7 @@ public class CourseManagementView {
     @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
-        section.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        section.getStyleClass().add("glass-card");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();

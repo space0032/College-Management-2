@@ -89,8 +89,7 @@ public class HomeView {
         searchField.setPromptText("Search keyword...");
         searchField.setPrefWidth(300);
         searchField.setPrefHeight(40);
-        searchField.setStyle(
-                "-fx-background-color: white; -fx-text-fill: #333; -fx-background-radius: 8; -fx-padding: 0 15; -fx-font-size: 14px;");
+        searchField.getStyleClass().add("glass-card");
 
         banner.getChildren().addAll(textPart, spacer, searchField);
         return banner;

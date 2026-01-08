@@ -21,6 +21,7 @@ public class StudentLeaveView {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(25));
         mainLayout.getStyleClass().add("glass-pane");
+        mainLayout.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
         Label title = new Label("Leave Application");
@@ -39,8 +40,7 @@ public class StudentLeaveView {
 
     private VBox createApplicationForm() {
         VBox box = new VBox(15);
-        box.setStyle(
-                "-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 5);");
+        box.getStyleClass().add("glass-card");
 
         Label formTitle = new Label("Apply for Leave");
         formTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));

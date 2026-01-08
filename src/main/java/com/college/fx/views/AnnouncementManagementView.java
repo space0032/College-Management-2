@@ -39,6 +39,7 @@ public class AnnouncementManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(10));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         HBox header = createHeader();
         VBox tableSection = createTableSection();
@@ -52,11 +53,7 @@ public class AnnouncementManagementView {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        header.getStyleClass().add("glass-card");
 
         Label title = new Label("Announcement Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
@@ -75,11 +72,7 @@ public class AnnouncementManagementView {
     @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
-        section.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        section.getStyleClass().add("glass-card");
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();

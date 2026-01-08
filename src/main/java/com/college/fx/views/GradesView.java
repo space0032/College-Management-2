@@ -54,6 +54,7 @@ public class GradesView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         HBox header = createHeader();
         VBox tableSection = createTableSection();

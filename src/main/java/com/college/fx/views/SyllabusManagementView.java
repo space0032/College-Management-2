@@ -49,6 +49,7 @@ public class SyllabusManagementView {
         root = new BorderPane();
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane"); // Glassmorphism background
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
         Label headerLabel = new Label("Syllabus Management");

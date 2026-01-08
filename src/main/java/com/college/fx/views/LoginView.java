@@ -40,10 +40,7 @@ public class LoginView {
         centerBox.setAlignment(Pos.CENTER);
         centerBox.setPadding(new Insets(40));
         centerBox.setMaxWidth(420);
-        centerBox.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 16;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 20, 0, 0, 8);");
+        centerBox.getStyleClass().add("glass-card");
 
         // Logo/Title section
         VBox titleBox = new VBox(8);

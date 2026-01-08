@@ -46,6 +46,7 @@ public class LearningPortalView {
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane"); // Dark background
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label header = new Label("Learning Portal");
         header.getStyleClass().add("section-title");

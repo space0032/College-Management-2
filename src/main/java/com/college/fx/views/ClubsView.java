@@ -51,6 +51,7 @@ public class ClubsView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
         HBox header = createHeader();
@@ -299,7 +300,7 @@ public class ClubsView {
     private VBox createApplicationsTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
+        content.getStyleClass().add("glass-card");
 
         myApplicationsTable = new TableView<>();
         myApplicationsTable.setItems(myApplicationsData);
@@ -558,8 +559,7 @@ public class ClubsView {
         } else {
             for (com.college.models.ClubAnnouncement a : list) {
                 VBox card = new VBox(5);
-                card.setStyle(
-                        "-fx-background-color: white; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #cbd5e1;");
+                card.getStyleClass().add("glass-card");
 
                 Label title = new Label(a.getTitle());
                 title.setFont(Font.font("System", FontWeight.BOLD, 14));

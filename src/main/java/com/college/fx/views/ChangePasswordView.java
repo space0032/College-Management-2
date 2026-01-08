@@ -35,18 +35,14 @@ public class ChangePasswordView {
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Form card
         VBox formCard = new VBox(25);
         formCard.setPadding(new Insets(40));
         formCard.setMaxWidth(450);
         formCard.setAlignment(Pos.CENTER);
-        formCard.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 16;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 16;" +
-                        "-fx-border-width: 1;");
+        formCard.getStyleClass().add("glass-card");
 
         // Title
         Label title = new Label("Change Password");

@@ -49,6 +49,7 @@ public class ClubManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         HBox header = createHeader();
         VBox tableSection = createTableSection();
@@ -60,8 +61,7 @@ public class ClubManagementView {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12;");
+        header.getStyleClass().add("glass-card");
 
         Label title = new Label("Club Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
@@ -84,7 +84,7 @@ public class ClubManagementView {
     private VBox createTableSection() {
         VBox section = new VBox(15);
         section.setPadding(new Insets(20));
-        section.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
+        section.getStyleClass().add("glass-card");
         VBox.setVgrow(section, Priority.ALWAYS);
 
         clubsTable = new TableView<>();
@@ -509,8 +509,7 @@ public class ClubManagementView {
 
         // Post new announcement area
         VBox newPostBox = new VBox(10);
-        newPostBox.setStyle(
-                "-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e2e8f0;");
+        newPostBox.getStyleClass().add("glass-card");
 
         Label postLabel = new Label("Post New Announcement");
         postLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
@@ -590,8 +589,7 @@ public class ClubManagementView {
         } else {
             for (com.college.models.ClubAnnouncement a : list) {
                 VBox card = new VBox(5);
-                card.setStyle(
-                        "-fx-background-color: white; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #cbd5e1;");
+                card.getStyleClass().add("glass-card");
 
                 Label title = new Label(a.getTitle());
                 title.setFont(Font.font("System", FontWeight.BOLD, 14));

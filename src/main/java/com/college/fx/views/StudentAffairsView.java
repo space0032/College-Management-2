@@ -37,6 +37,7 @@ public class StudentAffairsView {
         root = new VBox(20);
         root.setPadding(new Insets(10));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Student Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));

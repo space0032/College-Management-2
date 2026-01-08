@@ -27,6 +27,7 @@ public class ReportsView {
         root = new BorderPane();
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
         HBox header = new HBox();

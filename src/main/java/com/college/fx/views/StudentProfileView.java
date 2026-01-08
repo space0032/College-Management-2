@@ -54,7 +54,7 @@ public class StudentProfileView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(20));
-        root.setStyle("-fx-background-color: white;");
+        root.getStyleClass().add("glass-card");
 
         // Header Section
         HBox header = createHeader();

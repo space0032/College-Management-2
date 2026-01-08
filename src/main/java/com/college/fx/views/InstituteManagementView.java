@@ -87,6 +87,7 @@ public class InstituteManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(10));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Institute Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
@@ -136,7 +137,7 @@ public class InstituteManagementView {
     private VBox createDepartmentTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 0 0 12 12;");
+        content.getStyleClass().add("glass-card");
 
         // Toolbar
         HBox toolbar = new HBox(15);
@@ -321,7 +322,7 @@ public class InstituteManagementView {
     private HBox createRoleTab() {
         HBox content = new HBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 0 0 12 12;");
+        content.getStyleClass().add("glass-card");
 
         // LEFT: Role List
         VBox leftPane = new VBox(10);
@@ -788,7 +789,7 @@ public class InstituteManagementView {
     private VBox createAuditTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 0 0 12 12;");
+        content.getStyleClass().add("glass-card");
 
         HBox toolbar = new HBox(15);
         Button refreshBtn = createButton("Refresh Logs", "#3b82f6");
@@ -833,7 +834,7 @@ public class InstituteManagementView {
     private VBox createUsersTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 0 0 12 12;");
+        content.getStyleClass().add("glass-card");
 
         HBox toolbar = new HBox(15);
 

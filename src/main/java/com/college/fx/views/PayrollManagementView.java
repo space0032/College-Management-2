@@ -45,6 +45,7 @@ public class PayrollManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Payroll Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));

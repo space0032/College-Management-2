@@ -75,6 +75,7 @@ public class HostelManagementView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Hostel Management");
         title.getStyleClass().add("section-title");
@@ -179,8 +180,7 @@ public class HostelManagementView {
                     VBox card = new VBox(15);
                     card.setMaxWidth(500);
                     card.setPadding(new Insets(30));
-                    card.setStyle(
-                            "-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);");
+                    card.getStyleClass().add("glass-card");
 
                     Label statusTitle = new Label("Current Accommodation");
                     statusTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
@@ -1500,8 +1500,8 @@ public class HostelManagementView {
 
         // Form to file new complaint
         VBox form = new VBox(10);
-        form.setStyle(
-                "-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e2e8f0; -fx-border-radius: 8;");
+        form.getStyleClass().add("glass-card");
+        form.setStyle("-fx-padding: 15;");
         Label formTitle = new Label("File a New Complaint");
         formTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
 

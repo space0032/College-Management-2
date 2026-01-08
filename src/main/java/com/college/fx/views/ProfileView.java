@@ -36,18 +36,14 @@ public class ProfileView {
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Profile card
         VBox profileCard = new VBox(20);
         profileCard.setPadding(new Insets(40));
         profileCard.setMaxWidth(600);
         profileCard.setAlignment(Pos.CENTER);
-        profileCard.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 16;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 16;" +
-                        "-fx-border-width: 1;");
+        profileCard.getStyleClass().add("glass-card");
 
         // Avatar placeholder
         Label avatar = new Label(getInitials());

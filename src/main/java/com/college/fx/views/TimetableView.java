@@ -52,6 +52,7 @@ public class TimetableView {
         root = new VBox(20);
         root.setPadding(new Insets(10));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header with controls
         HBox header = createHeader();
@@ -63,11 +64,7 @@ public class TimetableView {
 
         VBox gridContainer = new VBox(15);
         gridContainer.setPadding(new Insets(20));
-        gridContainer.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        gridContainer.getStyleClass().add("glass-card");
 
         timetableGrid = createTimetableGrid();
         gridContainer.getChildren().add(timetableGrid);
@@ -81,11 +78,7 @@ public class TimetableView {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
-        header.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-radius: 12;");
+        header.getStyleClass().add("glass-card");
 
         Label title = new Label("Weekly Timetable");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));

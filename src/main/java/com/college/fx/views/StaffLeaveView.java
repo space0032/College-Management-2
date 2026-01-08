@@ -32,6 +32,7 @@ public class StaffLeaveView {
         root = new VBox(20);
         root.setPadding(new Insets(20));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Staff Leave Application");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
@@ -44,8 +45,7 @@ public class StaffLeaveView {
         grid.setHgap(15);
         grid.setVgap(15);
         grid.setPadding(new Insets(20));
-        grid.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+        grid.getStyleClass().add("glass-card");
 
         ComboBox<String> typeCombo = new ComboBox<>();
         typeCombo.getItems().addAll("Casual Leave", "Sick Leave", "Earned Leave", "Duty Leave");

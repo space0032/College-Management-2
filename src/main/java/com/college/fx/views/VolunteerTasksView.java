@@ -22,6 +22,7 @@ public class VolunteerTasksView {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(25));
         mainLayout.getStyleClass().add("glass-pane");
+        mainLayout.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
         Label title = new Label("My Volunteer Tasks");

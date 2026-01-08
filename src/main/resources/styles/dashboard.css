@@ -286,15 +286,15 @@
     -fx-background-color: #475569;
 }
 
-/* --- Glassmorphism & Modern UI - Phase 5 Updates --- */
+/* Glassmorphism & Modern UI - Phase 5 Updates */
 
 .glass-pane {
-    -fx-background-color: #0f172a;
+    -fx-background-color: #0f172a !important;
     /* Slate-900 */
 }
 
 .glass-card {
-    -fx-background-color: rgba(30, 41, 59, 0.7);
+    -fx-background-color: rgba(30, 41, 59, 0.7) !important;
     /* Slate-800 with opacity */
     -fx-background-radius: 12;
     -fx-border-color: rgba(255, 255, 255, 0.08);
@@ -303,7 +303,7 @@
 }
 
 .section-title {
-    -fx-text-fill: white;
+    -fx-text-fill: white !important;
     -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 2, 0, 0, 1);
@@ -377,7 +377,7 @@
 
 /* Glass Table View */
 .glass-table {
-    -fx-background-color: transparent;
+    -fx-background-color: transparent !important;
 }
 
 .glass-table .column-header-background {
@@ -444,4 +444,21 @@
 
 .floating .tab:selected .tab-label {
     -fx-text-fill: white;
+}
+
+/* Override ANY white backgrounds in VBox, HBox, etc */
+VBox,
+HBox,
+BorderPane,
+GridPane,
+TilePane,
+FlowPane,
+StackPane,
+AnchorPane {
+    -fx-background-color: transparent;
+}
+
+/* Override Label text colors to be visible */
+Label {
+    -fx-text-fill: #e2e8f0;
 }

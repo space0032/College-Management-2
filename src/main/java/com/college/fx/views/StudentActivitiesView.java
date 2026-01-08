@@ -31,6 +31,7 @@ public class StudentActivitiesView {
         root = new VBox(20);
         root.setPadding(new Insets(30));
         root.getStyleClass().add("glass-pane");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
         Label header = new Label("Student Activities");
@@ -95,12 +96,7 @@ public class StudentActivitiesView {
         tile.setPrefHeight(180);
         tile.setPadding(new Insets(25));
         tile.setAlignment(Pos.TOP_LEFT);
-        tile.setStyle("-fx-background-color: white; " +
-                "-fx-background-radius: 12; " +
-                "-fx-border-color: #e2e8f0; " +
-                "-fx-border-width: 1; " +
-                "-fx-border-radius: 12; " +
-                "-fx-cursor: hand;");
+        tile.getStyleClass().add("glass-card");
 
         // Icon/Color bar
         Region colorBar = new Region();
@@ -139,12 +135,7 @@ public class StudentActivitiesView {
         });
 
         tile.setOnMouseExited(e -> {
-            tile.setStyle("-fx-background-color: white; " +
-                    "-fx-background-radius: 12; " +
-                    "-fx-border-color: #e2e8f0; " +
-                    "-fx-border-width: 1; " +
-                    "-fx-border-radius: 12; " +
-                    "-fx-cursor: hand;");
+            tile.getStyleClass().add("glass-card");
         });
 
         tile.setOnMouseClicked(e -> action.run());
