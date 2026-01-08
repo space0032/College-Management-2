@@ -64,7 +64,7 @@ public class GatePassView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label(role.equals("STUDENT") ? "My Gate Passes" : "Gate Pass Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.getStyleClass().add("section-title");
         // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();

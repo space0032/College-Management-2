@@ -9,8 +9,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 public class LeaveApprovalView {
 
@@ -27,8 +25,7 @@ public class LeaveApprovalView {
 
         // Header
         Label title = new Label("Leave Approvals");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setStyle("-fx-text-fill: #e2e8f0;");
+        title.getStyleClass().add("section-title");
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);

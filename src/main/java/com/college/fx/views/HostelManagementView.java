@@ -203,7 +203,7 @@ public class HostelManagementView {
 
         Label noAllocLabel = new Label("No hostel room allocated assigned.");
         noAllocLabel.setFont(Font.font("Segoe UI", 16));
-        // noAllocLabel.setTextFill(Color.web("#64748b"));
+        noAllocLabel.setStyle("-fx-text-fill: #94a3b8;");
         content.getChildren().add(noAllocLabel);
 
         return content;
@@ -212,11 +212,11 @@ public class HostelManagementView {
     private void addDetailRow(GridPane grid, String label, String value, int row) {
         Label lbl = new Label(label);
         lbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
-        // lbl.setTextFill(Color.web("#64748b"));
+        lbl.setStyle("-fx-text-fill: #94a3b8;");
 
         Label val = new Label(value);
         val.setFont(Font.font("Segoe UI", 14));
-        // val.setTextFill(Color.web("#0f172a"));
+        val.setStyle("-fx-text-fill: white;");
 
         grid.add(lbl, 0, row);
         grid.add(val, 1, row);

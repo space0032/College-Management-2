@@ -258,15 +258,29 @@ public class GradesView {
         TextField maxMarksField = new TextField();
         maxMarksField.setPromptText("Max Marks");
 
-        grid.add(new Label("Course:"), 0, 0);
+        Label courseLbl = new Label("Course:");
+        courseLbl.setStyle("-fx-text-fill: white;");
+        grid.add(courseLbl, 0, 0);
         grid.add(courseCombo, 1, 0);
-        grid.add(new Label("Student:"), 0, 1);
+
+        Label studentLbl = new Label("Student:");
+        studentLbl.setStyle("-fx-text-fill: white;");
+        grid.add(studentLbl, 0, 1);
         grid.add(studentSelector, 1, 1);
-        grid.add(new Label("Exam:"), 0, 2);
+
+        Label examLbl = new Label("Exam:");
+        examLbl.setStyle("-fx-text-fill: white;");
+        grid.add(examLbl, 0, 2);
         grid.add(examTypeCombo, 1, 2);
-        grid.add(new Label("Marks:"), 0, 3);
+
+        Label marksLbl = new Label("Marks:");
+        marksLbl.setStyle("-fx-text-fill: white;");
+        grid.add(marksLbl, 0, 3);
         grid.add(marksField, 1, 3);
-        grid.add(new Label("Max Marks:"), 0, 4);
+
+        Label maxMarksLbl = new Label("Max Marks:");
+        maxMarksLbl.setStyle("-fx-text-fill: white;");
+        grid.add(maxMarksLbl, 0, 4);
         grid.add(maxMarksField, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
@@ -362,11 +376,19 @@ public class GradesView {
 
         TextField maxMarksField = new TextField("100");
 
-        selectionGrid.add(new Label("Course:"), 0, 0);
+        Label courseVal = new Label("Course:");
+        courseVal.setStyle("-fx-text-fill: white;");
+        selectionGrid.add(courseVal, 0, 0);
         selectionGrid.add(courseCombo, 1, 0);
-        selectionGrid.add(new Label("Exam Type:"), 0, 1);
+
+        Label examVal = new Label("Exam Type:");
+        examVal.setStyle("-fx-text-fill: white;");
+        selectionGrid.add(examVal, 0, 1);
         selectionGrid.add(examTypeCombo, 1, 1);
-        selectionGrid.add(new Label("Max Marks:"), 0, 2);
+
+        Label maxVal = new Label("Max Marks:");
+        maxVal.setStyle("-fx-text-fill: white;");
+        selectionGrid.add(maxVal, 0, 2);
         selectionGrid.add(maxMarksField, 1, 2);
 
         Button loadBtn = createButton("Load Students");

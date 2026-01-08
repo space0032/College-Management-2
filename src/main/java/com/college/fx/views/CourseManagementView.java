@@ -13,9 +13,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-
 import com.college.dao.DepartmentDAO;
 import com.college.models.Department;
 import com.college.dao.FacultyDAO;
@@ -173,7 +170,7 @@ public class CourseManagementView {
         root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("My Academics");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.getStyleClass().add("section-title");
 
         TabPane tabPane = new TabPane();
         tabPane.getStyleClass().add("floating");
@@ -343,8 +340,7 @@ public class CourseManagementView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label(role.equals("STUDENT") ? "My Courses" : "Course Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);

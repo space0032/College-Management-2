@@ -13,7 +13,6 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-
 import java.util.List;
 
 /**
@@ -81,8 +80,7 @@ public class TimetableView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label("Weekly Timetable");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -90,6 +88,7 @@ public class TimetableView {
         // Department selector
         Label deptLabel = new Label("Department:");
         deptLabel.setFont(Font.font("Segoe UI", 13));
+        deptLabel.setStyle("-fx-text-fill: white;");
         departmentCombo = new ComboBox<>();
 
         // Use DepartmentDAO to get complete list of departments
@@ -106,6 +105,7 @@ public class TimetableView {
         // Semester selector
         Label semLabel = new Label("Semester:");
         semLabel.setFont(Font.font("Segoe UI", 13));
+        semLabel.setStyle("-fx-text-fill: white;");
         semesterCombo = new ComboBox<>();
         for (int i = 1; i <= 8; i++) {
             semesterCombo.getItems().add(i);

@@ -32,7 +32,7 @@ public class NotificationView {
         view.setPrefHeight(500);
 
         Label title = new Label("Notifications");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+        title.getStyleClass().add("section-title");
 
         ListView<Notification> listView = new ListView<>();
         listView.setCellFactory(param -> new ListCell<>() {

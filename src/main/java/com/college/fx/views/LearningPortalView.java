@@ -159,7 +159,9 @@ public class LearningPortalView {
             courseFilter.fireEvent(new javafx.event.ActionEvent());
         }
 
-        content.getChildren().addAll(new Label("Filter by Course:"), courseFilter, table);
+        Label filterLabel = new Label("Filter by Course:");
+        filterLabel.setStyle("-fx-text-fill: white;");
+        content.getChildren().addAll(filterLabel, courseFilter, table);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         tab.setContent(content);

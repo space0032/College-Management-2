@@ -58,8 +58,7 @@ public class ProfileView {
         // Name
         String displayName = UserDisplayNameUtil.getDisplayName(userId, role, username);
         Label nameLabel = new Label(displayName);
-        nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        // nameLabel.setTextFill(Color.web("#0f172a"));
+        nameLabel.getStyleClass().add("section-title");
 
         // Role badge
         Label roleBadge = new Label(role);

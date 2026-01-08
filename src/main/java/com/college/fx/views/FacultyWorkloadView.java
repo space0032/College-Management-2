@@ -11,9 +11,6 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,8 +37,7 @@ public class FacultyWorkloadView {
         root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Faculty Workload Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         HBox toolbar = new HBox(10);
         Button refreshBtn = createButton("Refresh", "#3b82f6");

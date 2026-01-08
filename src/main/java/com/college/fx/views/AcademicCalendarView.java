@@ -51,7 +51,7 @@ public class AcademicCalendarView {
         });
 
         monthYearLabel = new Label();
-        monthYearLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+        monthYearLabel.getStyleClass().add("section-title");
 
         Button nextBtn = new Button(">");
         nextBtn.setOnAction(e -> {

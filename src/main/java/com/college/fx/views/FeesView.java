@@ -66,7 +66,7 @@ public class FeesView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label(role.equals("STUDENT") ? "My Fees" : "Fee Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.getStyleClass().add("section-title");
         // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();

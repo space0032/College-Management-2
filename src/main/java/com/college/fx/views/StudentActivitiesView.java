@@ -35,7 +35,7 @@ public class StudentActivitiesView {
 
         // Header
         Label header = new Label("Student Activities");
-        header.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+        header.getStyleClass().add("section-title");
 
         Label subtitle = new Label("Explore campus events and join student clubs");
         subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");

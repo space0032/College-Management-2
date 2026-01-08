@@ -11,9 +11,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-
 import java.util.List;
 
 /**
@@ -56,7 +53,7 @@ public class AnnouncementManagementView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label("Announcement Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.getStyleClass().add("section-title");
         // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();

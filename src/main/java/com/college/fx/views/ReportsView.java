@@ -12,9 +12,6 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-
 public class ReportsView {
 
     private BorderPane root;
@@ -35,8 +32,7 @@ public class ReportsView {
         header.setPadding(new Insets(0, 0, 20, 0));
 
         Label title = new Label("Reports & Analytics");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         header.getChildren().add(title);
         root.setTop(header);

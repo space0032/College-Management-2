@@ -12,9 +12,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -64,8 +61,7 @@ public class EventManagementView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label("Event Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);

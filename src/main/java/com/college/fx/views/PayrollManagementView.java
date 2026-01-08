@@ -12,8 +12,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,7 +46,7 @@ public class PayrollManagementView {
         root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Payroll Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+        title.getStyleClass().add("section-title");
 
         HBox controls = createControls();
         payrollTable = createTable();
