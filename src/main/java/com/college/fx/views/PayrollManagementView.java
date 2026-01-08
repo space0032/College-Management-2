@@ -4,6 +4,7 @@ import com.college.dao.EmployeeDAO;
 import com.college.dao.PayrollDAO;
 import com.college.models.Employee;
 import com.college.models.PayrollEntry;
+import com.college.utils.DialogUtils;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -191,6 +192,7 @@ public class PayrollManagementView {
 
     private void showEditDialog(PayrollEntry entry) {
         Dialog<PayrollEntry> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Payroll");
         dialog.setHeaderText("Edit Deductions/Bonuses");
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -233,6 +235,7 @@ public class PayrollManagementView {
     private void markAsPaid(PayrollEntry entry) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Mark this entry as PAID?", ButtonType.YES,
                 ButtonType.NO);
+        DialogUtils.styleDialog(alert);
         alert.showAndWait().ifPresent(resp -> {
             if (resp == ButtonType.YES) {
                 if (payrollDAO.markAsPaid(entry.getId())) {
@@ -260,6 +263,7 @@ public class PayrollManagementView {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
                 "Mark all " + pendingCount + " pending entries for " + monthCombo.getValue() + " " + year + " as PAID?",
                 ButtonType.YES, ButtonType.NO);
+        DialogUtils.styleDialog(alert);
 
         alert.showAndWait().ifPresent(resp -> {
             if (resp == ButtonType.YES) {
@@ -275,6 +279,7 @@ public class PayrollManagementView {
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setContentText(content);
         alert.show();

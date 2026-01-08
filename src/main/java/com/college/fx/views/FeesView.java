@@ -6,6 +6,7 @@ import com.college.models.StudentFee;
 import com.college.models.Student;
 import com.college.models.FeePayment;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -90,7 +91,6 @@ public class FeesView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -155,8 +155,9 @@ public class FeesView {
             }
         });
 
-        tableView.getColumns().addAll(idCol, studentNameCol, enrollmentCol, categoryCol, amountCol,
-                paidCol, dueCol, statusCol);
+        tableView.getColumns()
+                .addAll(java.util.Arrays.asList(idCol, studentNameCol, enrollmentCol, categoryCol, amountCol,
+                        paidCol, dueCol, statusCol));
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -256,6 +257,7 @@ public class FeesView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -283,6 +285,7 @@ public class FeesView {
 
     private void showAddFeeDialog() {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Fee Record");
         dialog.setHeaderText("Assign Fee to Student");
 
@@ -367,6 +370,7 @@ public class FeesView {
 
         StudentFee selectedFee = tableView.getSelectionModel().getSelectedItem();
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Record Payment");
         dialog.setHeaderText("Record payment for: " + selectedFee.getStudentName());
 
@@ -449,6 +453,7 @@ public class FeesView {
 
     private void showReceiptDialog(StudentFee fee) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Fee Receipt");
         dialog.setHeaderText(null);
 

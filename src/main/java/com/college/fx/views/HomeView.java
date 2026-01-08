@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.*;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.geometry.Insets;
 
 import javafx.scene.control.*;
@@ -297,6 +298,7 @@ public class HomeView {
 
     private void showAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);

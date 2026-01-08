@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.StudentDAO;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import com.college.utils.CSVImporter;
 import javafx.stage.FileChooser;
@@ -15,9 +16,6 @@ import javafx.application.Platform;
 import javafx.scene.control.*;
 
 import javafx.scene.layout.*;
-
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import com.college.dao.DepartmentDAO;
 import com.college.models.Department;
@@ -244,6 +242,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
 
     private void showAddStudentDialog() {
         Dialog<Student> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Student");
         dialog.setHeaderText("Create New Student Profile");
 
@@ -296,50 +295,15 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Password (optional, default: 123)");
 
-        Label nameLbl = new Label("Name:");
-        nameLbl.setStyle("-fx-text-fill: white;");
-        grid.add(nameLbl, 0, 0);
-        grid.add(nameField, 1, 0);
-
-        Label emailLbl = new Label("Email:");
-        emailLbl.setStyle("-fx-text-fill: white;");
-        grid.add(emailLbl, 0, 1);
-        grid.add(emailField, 1, 1);
-
-        Label phoneLbl = new Label("Phone:");
-        phoneLbl.setStyle("-fx-text-fill: white;");
-        grid.add(phoneLbl, 0, 2);
-        grid.add(phoneField, 1, 2);
-
-        Label addressLbl = new Label("Address:");
-        addressLbl.setStyle("-fx-text-fill: white;");
-        grid.add(addressLbl, 0, 3);
-        grid.add(addressField, 1, 3);
-
-        Label deptLbl = new Label("Department:");
-        deptLbl.setStyle("-fx-text-fill: white;");
-        grid.add(deptLbl, 0, 4);
-        grid.add(deptCombo, 1, 4);
-
-        Label courseLbl = new Label("Course:");
-        courseLbl.setStyle("-fx-text-fill: white;");
-        grid.add(courseLbl, 0, 5);
-        grid.add(courseCombo, 1, 5);
-
-        Label batchLbl = new Label("Batch:");
-        batchLbl.setStyle("-fx-text-fill: white;");
-        grid.add(batchLbl, 0, 6);
-        grid.add(batchField, 1, 6);
-
-        Label semLbl = new Label("Semester:");
-        semLbl.setStyle("-fx-text-fill: white;");
-        grid.add(semLbl, 0, 7);
-        grid.add(semSpinner, 1, 7);
-
-        Label enrollLbl = new Label("Enrollment:");
-        enrollLbl.setStyle("-fx-text-fill: white;");
-        grid.add(enrollLbl, 0, 8);
-        grid.add(enrollDate, 1, 8);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Email:", emailField, 1);
+        DialogUtils.addFormRow(grid, "Phone:", phoneField, 2);
+        DialogUtils.addFormRow(grid, "Address:", addressField, 3);
+        DialogUtils.addFormRow(grid, "Department:", deptCombo, 4);
+        DialogUtils.addFormRow(grid, "Course:", courseCombo, 5);
+        DialogUtils.addFormRow(grid, "Batch:", batchField, 6);
+        DialogUtils.addFormRow(grid, "Semester:", semSpinner, 7);
+        DialogUtils.addFormRow(grid, "Enrollment:", enrollDate, 8);
         grid.add(hosteliteCheck, 1, 9);
 
         grid.add(sep, 0, 10, 2, 1);
@@ -474,6 +438,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         }
 
         Dialog<Student> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Student");
         dialog.setHeaderText("Edit: " + selected.getName());
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -549,6 +514,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Student");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete student: " + selected.getName() + "?");
@@ -575,6 +541,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -594,6 +561,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
             fullDetails = selected;
 
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Student Profile");
         dialog.setHeaderText("Profile: " + fullDetails.getName());
 
@@ -624,6 +592,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         if (file != null) {
             // Show progress
             Alert progressAlert = new Alert(Alert.AlertType.INFORMATION);
+            DialogUtils.styleDialog(progressAlert);
             progressAlert.setTitle("Importing");
             progressAlert.setHeaderText("Importing students from CSV...");
             progressAlert.setContentText("Please wait...");
@@ -639,6 +608,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
                     loadStudents(); // Refresh table
 
                     Alert resultAlert = new Alert(Alert.AlertType.INFORMATION);
+                    DialogUtils.styleDialog(resultAlert);
                     resultAlert.setTitle("Import Complete");
                     resultAlert.setHeaderText(null);
                     resultAlert.setContentText(result.getSummary());

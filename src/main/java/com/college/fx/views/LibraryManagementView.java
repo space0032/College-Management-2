@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.LibraryDAO;
 import com.college.models.Book;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -387,6 +388,7 @@ public class LibraryManagementView {
 
     private void handleReject(BookRequest req) {
         TextInputDialog dialog = new TextInputDialog();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Reject Request");
         dialog.setHeaderText("Rejecting Request for: " + req.getBookTitle());
         dialog.setContentText("Reason for Rejection:");
@@ -477,6 +479,7 @@ public class LibraryManagementView {
         }
 
         TextInputDialog dialog = new TextInputDialog();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Request Book");
         dialog.setHeaderText("Requesting: " + selected.getTitle());
         dialog.setContentText("Remarks (Optional):");
@@ -499,6 +502,7 @@ public class LibraryManagementView {
 
     private void showAddBookDialog() {
         Dialog<Book> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Book");
         dialog.setHeaderText("Add New Book to Library");
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -552,6 +556,7 @@ public class LibraryManagementView {
         }
 
         Dialog<Book> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Book");
         dialog.setHeaderText("Edit Book: " + selected.getTitle());
         ButtonType saveBtn = new ButtonType("Update", ButtonData.OK_DONE);
@@ -603,6 +608,7 @@ public class LibraryManagementView {
 
     private void showIssueBookDialog() {
         Dialog<BookIssue> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Issue Book");
         dialog.setHeaderText("Issue Book to Student");
         ButtonType issueBtn = new ButtonType("Issue", ButtonData.OK_DONE);
@@ -682,6 +688,7 @@ public class LibraryManagementView {
 
     private void showReturnBookDialog() {
         Dialog<BookIssue> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Return Book");
         dialog.setHeaderText("Select Book to Return");
         ButtonType returnBtn = new ButtonType("Return", ButtonData.OK_DONE);
@@ -776,6 +783,7 @@ public class LibraryManagementView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

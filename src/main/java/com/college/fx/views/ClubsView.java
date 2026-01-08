@@ -5,6 +5,7 @@ import com.college.dao.StudentDAO;
 import com.college.models.Club;
 import com.college.models.ClubMembership;
 import com.college.models.Student;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -418,6 +419,7 @@ public class ClubsView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Join Club");
         confirm.setHeaderText("Join " + club.getName() + "?");
         confirm.setContentText("Your join request will be sent to the club president/coordinator for approval.");
@@ -441,6 +443,7 @@ public class ClubsView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Leave Club");
         confirm.setHeaderText("Leave " + club.getName() + "?");
         confirm.setContentText("Are you sure you want to leave this club?");
@@ -457,6 +460,7 @@ public class ClubsView {
 
     private void showClubDetails(Club club) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle(club.getName());
         dialog.setHeaderText(club.getCategory() + " Club");
 
@@ -487,6 +491,7 @@ public class ClubsView {
 
     private void showClubMembers(Club club) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Members of " + club.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
@@ -523,6 +528,7 @@ public class ClubsView {
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -531,6 +537,7 @@ public class ClubsView {
 
     private void showAnnouncementsDialog(Club club) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Club Announcements");
         dialog.setHeaderText("Announcements from " + club.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);

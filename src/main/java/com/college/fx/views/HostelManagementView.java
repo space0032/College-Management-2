@@ -13,6 +13,7 @@ import com.college.dao.HostelAttendanceDAO;
 import com.college.models.HostelAttendance;
 import com.college.utils.SearchableStudentComboBox;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -220,6 +221,8 @@ public class HostelManagementView {
 
         grid.add(lbl, 0, row);
         grid.add(val, 1, row);
+        GridPane.setValignment(lbl, javafx.geometry.VPos.CENTER);
+        GridPane.setValignment(val, javafx.geometry.VPos.CENTER);
     }
 
     // ==================== ALLOCATIONS TAB ====================
@@ -421,6 +424,7 @@ public class HostelManagementView {
 
     private void showAllocationDialog() {
         Dialog<HostelAllocation> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("New Allocation");
         dialog.setHeaderText("Allocate Room to Student");
         ButtonType allocBtn = new ButtonType("Allocate", ButtonData.OK_DONE);
@@ -482,6 +486,7 @@ public class HostelManagementView {
             loadData();
             // Show alert
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            DialogUtils.styleDialog(alert);
             alert.setTitle("Success");
             alert.setHeaderText(null);
             alert.setContentText("Room allocated successfully!");
@@ -491,6 +496,7 @@ public class HostelManagementView {
 
     private void vacateRoom(HostelAllocation allocation) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle("Vacate Room");
         alert.setHeaderText("Vacate " + allocation.getStudentName() + "?");
 
@@ -503,6 +509,7 @@ public class HostelManagementView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -517,6 +524,7 @@ public class HostelManagementView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Hostel");
         confirm.setHeaderText("Delete hostel: " + selected.getName() + "?");
         confirm.setContentText("This action cannot be undone.");
@@ -537,6 +545,7 @@ public class HostelManagementView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Room");
         confirm.setHeaderText("Delete room: " + selected.getRoomNumber() + "?");
         confirm.setContentText("This action cannot be undone.");
@@ -560,6 +569,7 @@ public class HostelManagementView {
 
     private void showHostelDialog(Hostel hostel) {
         Dialog<Hostel> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle(hostel == null ? "Add Hostel" : "Edit Hostel");
         dialog.setHeaderText(hostel == null ? "Create New Hostel" : "Edit Hostel Details");
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -650,6 +660,7 @@ public class HostelManagementView {
 
     private void showAddRoomDialog() {
         Dialog<Room> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Room");
         dialog.setHeaderText("Create New Room");
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -763,6 +774,7 @@ public class HostelManagementView {
 
     private void showAddWardenDialog() {
         Dialog<Warden> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Warden");
         dialog.setHeaderText("Create New Warden");
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);

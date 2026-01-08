@@ -4,6 +4,7 @@ import com.college.dao.CourseDAO;
 import com.college.dao.GradeDAO;
 import com.college.models.Course;
 import com.college.utils.ReportGenerator;
+import com.college.utils.DialogUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -90,7 +91,7 @@ public class GradesReportTab {
         gradeCol.setCellValueFactory(
                 data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getGrade()));
 
-        gradeTable.getColumns().addAll(studentCol, examCol, marksCol, gradeCol);
+        gradeTable.getColumns().addAll(java.util.Arrays.asList(studentCol, examCol, marksCol, gradeCol));
 
         tableBox.getChildren().add(new Label("Detailed Performance"));
         tableBox.getChildren().add(gradeTable);
@@ -131,6 +132,7 @@ public class GradesReportTab {
         List<com.college.models.Grade> items = gradeTable.getItems();
         if (items.isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
+            DialogUtils.styleDialog(alert);
             alert.setTitle("No Data");
             alert.setContentText("No data to export.");
             alert.showAndWait();
@@ -159,11 +161,13 @@ public class GradesReportTab {
 
             if (success) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                DialogUtils.styleDialog(alert);
                 alert.setTitle("Success");
                 alert.setContentText("Report exported successfully!");
                 alert.showAndWait();
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
+                DialogUtils.styleDialog(alert);
                 alert.setTitle("Error");
                 alert.setContentText("Failed to export report.");
                 alert.showAndWait();

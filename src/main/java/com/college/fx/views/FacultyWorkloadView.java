@@ -4,6 +4,7 @@ import com.college.dao.CourseDAO;
 import com.college.dao.FacultyDAO;
 import com.college.models.Course;
 import com.college.models.Faculty;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -95,6 +96,7 @@ public class FacultyWorkloadView {
 
     private void manageAssignments(Faculty faculty) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Manage Assignments: " + faculty.getName());
         dialog.setHeaderText("Assign/Unassign Courses for " + faculty.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);

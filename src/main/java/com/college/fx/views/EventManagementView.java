@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.EventDAO;
 import com.college.models.Event;
 import com.college.models.EventRegistration;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -178,6 +179,7 @@ public class EventManagementView {
 
     private void showCreateEventDialog() {
         Dialog<Event> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Create Event");
         dialog.setHeaderText("Create New Event");
 
@@ -207,6 +209,7 @@ public class EventManagementView {
 
     private void showEditDetailsDialog(Event event) {
         Dialog<Event> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Event Details");
         dialog.setHeaderText("Edit Event: " + event.getName());
 
@@ -235,6 +238,7 @@ public class EventManagementView {
 
     private void showManageEventDialog(Event event) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Manage Event");
         dialog.setHeaderText("Manage Event: " + event.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -764,6 +768,7 @@ public class EventManagementView {
 
     private void deleteEvent(Event event) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Event");
         confirm.setHeaderText("Delete " + event.getName() + "?");
         confirm.setContentText("This will remove all registrations. This action cannot be undone.");
@@ -789,6 +794,7 @@ public class EventManagementView {
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -797,6 +803,7 @@ public class EventManagementView {
 
     private void showAssignTaskDialog(com.college.models.EventVolunteer volunteer) {
         Dialog<String> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Assign Task");
         dialog.setHeaderText("Assign Task to " + volunteer.getStudentName());
 

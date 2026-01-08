@@ -5,6 +5,7 @@ import com.college.dao.StudentDAO;
 import com.college.models.GatePass;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -211,6 +212,7 @@ public class GatePassView {
     private void requestGatePass() {
         // Create the custom dialog.
         Dialog<GatePass> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("New Gate Pass Request");
         dialog.setHeaderText("Please fill in the details for your gate pass request.");
 
@@ -334,6 +336,7 @@ public class GatePassView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

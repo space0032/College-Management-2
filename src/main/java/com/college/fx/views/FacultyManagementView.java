@@ -4,6 +4,7 @@ import com.college.dao.FacultyDAO;
 import com.college.models.Faculty;
 import com.college.utils.SessionManager;
 import com.college.utils.EnrollmentGenerator;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -13,8 +14,6 @@ import javafx.application.Platform;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.util.StringConverter;
 
 import com.college.dao.RoleDAO;
@@ -93,7 +92,6 @@ public class FacultyManagementView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -135,7 +133,8 @@ public class FacultyManagementView {
                 data.getValue().getRoleName() != null ? data.getValue().getRoleName() : "N/A"));
         roleCol.setPrefWidth(100);
 
-        tableView.getColumns().addAll(facultyIdCol, nameCol, emailCol, phoneCol, deptCol, qualificationCol, roleCol);
+        tableView.getColumns().addAll(
+                java.util.Arrays.asList(facultyIdCol, nameCol, emailCol, phoneCol, deptCol, qualificationCol, roleCol));
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -214,6 +213,7 @@ public class FacultyManagementView {
         }
 
         Dialog<Faculty> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Faculty");
         dialog.setHeaderText("Edit: " + selected.getName());
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -230,16 +230,11 @@ public class FacultyManagementView {
         TextField deptField = new TextField(selected.getDepartment());
         TextField qualField = new TextField(selected.getQualification());
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Email:"), 0, 1);
-        grid.add(emailField, 1, 1);
-        grid.add(new Label("Phone:"), 0, 2);
-        grid.add(phoneField, 1, 2);
-        grid.add(new Label("Department:"), 0, 3);
-        grid.add(deptField, 1, 3);
-        grid.add(new Label("Qualification:"), 0, 4);
-        grid.add(qualField, 1, 4);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Email:", emailField, 1);
+        DialogUtils.addFormRow(grid, "Phone:", phoneField, 2);
+        DialogUtils.addFormRow(grid, "Department:", deptField, 3);
+        DialogUtils.addFormRow(grid, "Qualification:", qualField, 4);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -272,6 +267,7 @@ public class FacultyManagementView {
         }
 
         Dialog<Role> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Assign Role");
         dialog.setHeaderText("Assign Role to: " + selected.getName());
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -336,6 +332,7 @@ public class FacultyManagementView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Faculty");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete faculty: " + selected.getName() + "?");
@@ -354,6 +351,7 @@ public class FacultyManagementView {
 
     private void showAddFacultyDialog() {
         Dialog<Faculty> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Faculty");
         dialog.setHeaderText("Create New Faculty Profile");
 
@@ -515,6 +513,7 @@ public class FacultyManagementView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

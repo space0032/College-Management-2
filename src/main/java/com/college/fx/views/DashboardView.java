@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.MainFX;
 import com.college.fx.components.ChatBotOverlay;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import com.college.utils.UserDisplayNameUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -588,6 +589,7 @@ public class DashboardView {
         } catch (Throwable e) {
             e.printStackTrace();
             Alert alert = new Alert(Alert.AlertType.ERROR);
+            DialogUtils.styleDialog(alert);
             alert.setTitle("Navigation Error");
             alert.setHeaderText("Failed to load view: " + viewName);
             alert.setContentText(e.toString());

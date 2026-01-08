@@ -4,6 +4,7 @@ import com.college.dao.EventDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.Event;
 import com.college.models.Student;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -140,7 +141,6 @@ public class EventsView {
         return content;
     }
 
-    @SuppressWarnings("unchecked")
     private TableView<Event> createEventsTable(boolean includeActions) {
         TableView<Event> table = new TableView<>();
 
@@ -180,7 +180,7 @@ public class EventsView {
         statusCol.setPrefWidth(100);
         statusCol.setSortable(true);
 
-        table.getColumns().addAll(nameCol, typeCol, dateCol, locationCol, statusCol);
+        table.getColumns().addAll(java.util.Arrays.asList(nameCol, typeCol, dateCol, locationCol, statusCol));
 
         if (includeActions) {
             TableColumn<Event, Void> actionCol = new TableColumn<>("Actions");
@@ -298,6 +298,7 @@ public class EventsView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Confirm Registration");
         confirm.setHeaderText("Register for " + event.getName() + "?");
         confirm.setContentText("You will be registered for this event.");
@@ -320,6 +321,7 @@ public class EventsView {
         }
 
         Dialog<String> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Volunteer for Event");
         dialog.setHeaderText("Volunteer for " + event.getName());
 
@@ -355,6 +357,7 @@ public class EventsView {
 
     private void showEventDetails(Event event) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle(event.getName());
         dialog.setHeaderText(event.getEventType() + " Event");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -388,6 +391,7 @@ public class EventsView {
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

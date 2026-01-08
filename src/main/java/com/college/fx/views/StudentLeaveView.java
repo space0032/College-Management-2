@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.StudentLeaveDAO;
 import com.college.models.StudentLeave;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -174,6 +175,7 @@ public class StudentLeaveView {
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);

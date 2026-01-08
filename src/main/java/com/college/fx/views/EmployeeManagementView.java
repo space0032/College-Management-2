@@ -11,6 +11,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -96,6 +97,7 @@ public class EmployeeManagementView extends VBox {
 
     private void showAddDialog() {
         Dialog<Employee> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add New Employee");
         dialog.setHeaderText("Enter Employee Details");
 
@@ -302,6 +304,7 @@ public class EmployeeManagementView extends VBox {
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);

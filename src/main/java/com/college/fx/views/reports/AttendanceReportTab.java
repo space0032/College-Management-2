@@ -6,6 +6,7 @@ import com.college.dao.StudentDAO;
 import com.college.models.Course;
 import com.college.models.Student;
 import com.college.utils.ReportGenerator;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -109,7 +110,7 @@ public class AttendanceReportTab {
             }
         });
 
-        tableView.getColumns().addAll(nameCol, percentCol);
+        tableView.getColumns().addAll(java.util.Arrays.asList(nameCol, percentCol));
 
         content.getChildren().addAll(controls, tableView);
     }
@@ -138,6 +139,7 @@ public class AttendanceReportTab {
     private void exportReport() {
         if (filteredData.isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
+            DialogUtils.styleDialog(alert);
             alert.setTitle("No Data");
             alert.setContentText("No data to export.");
             alert.showAndWait();
@@ -161,11 +163,13 @@ public class AttendanceReportTab {
 
             if (success) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                DialogUtils.styleDialog(alert);
                 alert.setTitle("Success");
                 alert.setContentText("Report exported successfully!");
                 alert.showAndWait();
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
+                DialogUtils.styleDialog(alert);
                 alert.setTitle("Error");
                 alert.setContentText("Failed to export report.");
                 alert.showAndWait();

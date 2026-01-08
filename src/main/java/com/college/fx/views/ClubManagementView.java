@@ -7,6 +7,7 @@ import com.college.models.Club;
 import com.college.models.ClubMembership;
 import com.college.models.Student;
 import com.college.models.Faculty;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -77,7 +78,6 @@ public class ClubManagementView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox(15);
         section.setPadding(new Insets(20));
@@ -173,8 +173,10 @@ public class ClubManagementView {
             }
         });
 
-        clubsTable.getColumns().addAll(nameCol, categoryCol, presidentCol, coordinatorCol, membersCol, statusCol,
-                actionCol);
+        clubsTable.getColumns()
+                .addAll(java.util.Arrays.asList(nameCol, categoryCol, presidentCol, coordinatorCol, membersCol,
+                        statusCol,
+                        actionCol));
         section.getChildren().add(clubsTable);
         return section;
     }
@@ -186,6 +188,7 @@ public class ClubManagementView {
 
     private void showCreateClubDialog() {
         Dialog<Club> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Create Club");
         dialog.setHeaderText("Create New Club");
 
@@ -214,6 +217,7 @@ public class ClubManagementView {
 
     private void showEditClubDialog(Club club) {
         Dialog<Club> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Club");
         dialog.setHeaderText("Edit Club: " + club.getName());
 
@@ -301,23 +305,12 @@ public class ClubManagementView {
         statusCombo.setUserData("status");
 
         int row = 0;
-        grid.add(new Label("Club Name:"), 0, row);
-        grid.add(nameField, 1, row++);
-
-        grid.add(new Label("Description:"), 0, row);
-        grid.add(descArea, 1, row++);
-
-        grid.add(new Label("Category:"), 0, row);
-        grid.add(categoryCombo, 1, row++);
-
-        grid.add(new Label("President:"), 0, row);
-        grid.add(presidentCombo, 1, row++);
-
-        grid.add(new Label("Coordinator:"), 0, row);
-        grid.add(coordinatorCombo, 1, row++);
-
-        grid.add(new Label("Status:"), 0, row);
-        grid.add(statusCombo, 1, row++);
+        DialogUtils.addFormRow(grid, "Club Name:", nameField, row++);
+        DialogUtils.addFormRow(grid, "Description:", descArea, row++);
+        DialogUtils.addFormRow(grid, "Category:", categoryCombo, row++);
+        DialogUtils.addFormRow(grid, "President:", presidentCombo, row++);
+        DialogUtils.addFormRow(grid, "Coordinator:", coordinatorCombo, row++);
+        DialogUtils.addFormRow(grid, "Status:", statusCombo, row++);
 
         return grid;
     }
@@ -358,9 +351,9 @@ public class ClubManagementView {
         return club;
     }
 
-    @SuppressWarnings("unchecked")
     private void showMembersDialog(Club club) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Club Members");
         dialog.setHeaderText("Members of " + club.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -402,7 +395,7 @@ public class ClubManagementView {
         });
         actionCol.setPrefWidth(100);
 
-        memberTable.getColumns().addAll(nameCol, roleCol, actionCol);
+        memberTable.getColumns().addAll(java.util.Arrays.asList(nameCol, roleCol, actionCol));
 
         List<ClubMembership> members = clubDAO.getClubMembers(club.getId());
         memberTable.setItems(FXCollections.observableArrayList(members));
@@ -413,9 +406,9 @@ public class ClubManagementView {
         dialog.showAndWait();
     }
 
-    @SuppressWarnings("unchecked")
     private void showPendingApprovalsDialog(Club club) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Pending Join Requests");
         dialog.setHeaderText("Approve or Reject Join Requests for " + club.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -479,7 +472,7 @@ public class ClubManagementView {
         });
         actionCol.setPrefWidth(200);
 
-        pendingTable.getColumns().addAll(nameCol, dateCol, actionCol);
+        pendingTable.getColumns().addAll(java.util.Arrays.asList(nameCol, dateCol, actionCol));
 
         List<ClubMembership> pending = clubDAO.getPendingMemberships(club.getId());
         if (pending.isEmpty()) {
@@ -498,6 +491,7 @@ public class ClubManagementView {
 
     private void showAnnouncementsDialog(Club club) {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Club Announcements");
         dialog.setHeaderText("Announcements by " + club.getName());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -609,6 +603,7 @@ public class ClubManagementView {
 
     private void removeMember(Club club, ClubMembership membership) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Remove Member");
         confirm.setHeaderText("Remove " + membership.getStudentName() + "?");
         confirm.setContentText("Remove this student from the club?");
@@ -624,6 +619,7 @@ public class ClubManagementView {
 
     private void deleteClub(Club club) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Club");
         confirm.setHeaderText("Delete " + club.getName() + "?");
         confirm.setContentText("This will remove all memberships. This action cannot be undone.");
@@ -649,6 +645,7 @@ public class ClubManagementView {
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

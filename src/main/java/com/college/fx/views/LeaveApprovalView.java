@@ -5,6 +5,7 @@ import com.college.dao.StaffLeaveDAO;
 import com.college.models.StudentLeave;
 import com.college.models.StaffLeave;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -174,6 +175,7 @@ public class LeaveApprovalView {
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);

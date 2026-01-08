@@ -4,6 +4,7 @@ import com.college.dao.AssignmentDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.Assignment;
 import com.college.models.Student;
+import com.college.utils.DialogUtils;
 import com.college.utils.SessionManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -178,6 +179,7 @@ public class AssignmentsView {
 
     private void showAddAssignmentDialog() {
         Dialog<Assignment> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("New Assignment");
         dialog.setHeaderText("Create New Assignment");
         ButtonType saveBtn = new ButtonType("Create", ButtonData.OK_DONE);
@@ -275,6 +277,7 @@ public class AssignmentsView {
         }
 
         Dialog<Submission> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Submit Assignment");
         dialog.setHeaderText("Submit: " + selected.getTitle());
         ButtonType submitBtnType = new ButtonType("Submit", ButtonData.OK_DONE);
@@ -385,6 +388,7 @@ public class AssignmentsView {
         }
 
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Review Submissions");
         dialog.setHeaderText("Submissions for: " + selected.getTitle());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -463,6 +467,7 @@ public class AssignmentsView {
                                     com.college.MainFX.getHostServicesInstance().showDocument(f.toURI().toString());
                                 } else {
                                     Alert a = new Alert(Alert.AlertType.ERROR);
+                                    DialogUtils.styleDialog(a);
                                     a.setTitle("File Not Found");
                                     a.setContentText("Local file not found: " + path);
                                     a.show();
@@ -491,7 +496,8 @@ public class AssignmentsView {
             }
         });
 
-        submissionTable.getColumns().addAll(studentCol, dateCol, plagCol, statusCol, gradeCol, fileCol);
+        submissionTable.getColumns()
+                .addAll(java.util.Arrays.asList(studentCol, dateCol, plagCol, statusCol, gradeCol, fileCol));
 
         // Load data
         List<Submission> submissions = submissionDAO.getSubmissionsByAssignment(selected.getId());
@@ -523,6 +529,7 @@ public class AssignmentsView {
 
     private void showGradeDialog(Submission submission, Runnable onGraded) {
         Dialog<Boolean> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Grade Submission");
         dialog.setHeaderText("Grade submission from " + submission.getStudentName());
         ButtonType saveBtn = new ButtonType("Save Grade", ButtonData.OK_DONE);
@@ -625,6 +632,7 @@ public class AssignmentsView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

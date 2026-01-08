@@ -9,6 +9,7 @@ import com.college.models.Student;
 import com.college.models.Syllabus;
 
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -124,14 +125,18 @@ public class LearningPortalView {
                                 new com.college.services.FileUploadService().downloadFile(path, dest);
                                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
                                         "File downloaded to: " + dest.getAbsolutePath());
+                                DialogUtils.styleDialog(alert);
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             } catch (Exception ex) {
                                 Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             }
                         }
                     } else {
                         Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        DialogUtils.styleDialog(alert);
                         alert.show();
                     }
                 });
@@ -224,14 +229,18 @@ public class LearningPortalView {
                                 new com.college.services.FileUploadService().downloadFile(path, dest);
                                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
                                         "File downloaded to: " + dest.getAbsolutePath());
+                                DialogUtils.styleDialog(alert);
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             } catch (Exception ex) {
                                 Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             }
                         }
                     } else {
                         Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        DialogUtils.styleDialog(alert);
                         alert.show();
                     }
                 });

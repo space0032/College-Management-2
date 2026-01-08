@@ -5,6 +5,7 @@ import com.college.dao.StudentDAO;
 import com.college.models.EventVolunteer;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -116,6 +117,7 @@ public class VolunteerTasksView {
 
     private void showRequestResourceDialog(EventVolunteer task) {
         Dialog<String> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Request Resource");
         dialog.setHeaderText("Request Resource for " + task.getEventName());
 
@@ -153,12 +155,14 @@ public class VolunteerTasksView {
 
                 if (eventDetailsDAO.addResource(res)) {
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    DialogUtils.styleDialog(alert);
                     alert.setTitle("Success");
                     alert.setHeaderText(null);
                     alert.setContentText("Resource requested successfully!");
                     alert.showAndWait();
                 } else {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
+                    DialogUtils.styleDialog(alert);
                     alert.setTitle("Error");
                     alert.setHeaderText(null);
                     alert.setContentText("Failed to request resource.");

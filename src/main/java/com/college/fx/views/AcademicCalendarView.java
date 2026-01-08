@@ -5,6 +5,7 @@ import com.college.models.CalendarEvent;
 import com.college.models.CalendarEvent.EventType;
 import com.college.services.GoogleCalendarService;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -199,6 +200,7 @@ public class AcademicCalendarView {
 
     private void showAddEventDialog(LocalDate date) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Event");
         dialog.setHeaderText("Add Event for " + date);
 
@@ -252,7 +254,9 @@ public class AcademicCalendarView {
                 if (calendarDAO.addEvent(event)) {
                     updateCalendar();
                 } else {
-                    new Alert(Alert.AlertType.ERROR, "Failed to add event").show();
+                    Alert a = new Alert(Alert.AlertType.ERROR, "Failed to add event");
+                    DialogUtils.styleDialog(a);
+                    a.show();
                 }
             }
             return null;

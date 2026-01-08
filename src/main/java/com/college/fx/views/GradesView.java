@@ -6,6 +6,7 @@ import com.college.models.Grade;
 import com.college.models.Student;
 import com.college.utils.SearchableStudentComboBox;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -213,6 +214,7 @@ public class GradesView {
 
     private void showAddGradeDialog() {
         Dialog<Grade> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add/Edit Grades");
         dialog.setHeaderText("Enter Grade Details");
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -336,6 +338,7 @@ public class GradesView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -344,6 +347,7 @@ public class GradesView {
 
     private void showBulkGradeDialog() {
         Dialog<Boolean> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Bulk Grade Entry");
         dialog.setHeaderText("Enter Grades for Entire Class");
         ButtonType saveBtn = new ButtonType("Save All", ButtonData.OK_DONE);

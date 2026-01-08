@@ -5,6 +5,7 @@ import com.college.dao.PermissionDAO;
 import com.college.dao.RoleDAO;
 import com.college.dao.UserDAO; // Added
 import com.college.dao.AuditLogDAO;
+import com.college.utils.DialogUtils;
 import com.college.models.Department;
 import com.college.models.Permission;
 import com.college.models.Role;
@@ -204,6 +205,7 @@ public class InstituteManagementView {
 
     private void showDepartmentDialog(Department dept) {
         Dialog<Department> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle(dept == null ? "Add Department" : "Edit Department");
         dialog.setHeaderText(null);
 
@@ -242,25 +244,10 @@ public class InstituteManagementView {
             descArea.setText(dept.getDescription());
         }
 
-        Label codeLabel = new Label("Code:");
-        codeLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(codeLabel, 0, 0);
-        grid.add(codeField, 1, 0);
-
-        Label nameLabel = new Label("Name:");
-        nameLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(nameLabel, 0, 1);
-        grid.add(nameField, 1, 1);
-
-        Label headLabel = new Label("Head:");
-        headLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(headLabel, 0, 2);
-        grid.add(headField, 1, 2);
-
-        Label descLabel = new Label("Description:");
-        descLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(descLabel, 0, 3);
-        grid.add(descArea, 1, 3);
+        DialogUtils.addFormRow(grid, "Code:", codeField, 0);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 1);
+        DialogUtils.addFormRow(grid, "Head:", headField, 2);
+        DialogUtils.addFormRow(grid, "Description:", descArea, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -301,6 +288,7 @@ public class InstituteManagementView {
         }
 
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle("Delete Department");
         alert.setHeaderText("Delete " + dept.getName() + "?");
         alert.setContentText("Are you sure you want to delete this department? This action cannot be undone.");
@@ -422,6 +410,7 @@ public class InstituteManagementView {
 
     private void showRoleDialog(Role role) {
         Dialog<Role> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle(role == null ? "Add Role" : "Edit Role");
         dialog.setHeaderText(null);
 
@@ -467,25 +456,10 @@ public class InstituteManagementView {
             }
         }
 
-        Label codeLabel = new Label("Code:");
-        codeLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(codeLabel, 0, 0);
-        grid.add(codeField, 1, 0);
-
-        Label nameLabel = new Label("Name:");
-        nameLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(nameLabel, 0, 1);
-        grid.add(nameField, 1, 1);
-
-        Label descLabel = new Label("Description:");
-        descLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(descLabel, 0, 2);
-        grid.add(descArea, 1, 2);
-
-        Label portalLabel = new Label("Portal Type:");
-        portalLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(portalLabel, 0, 3);
-        grid.add(portalCombo, 1, 3);
+        DialogUtils.addFormRow(grid, "Code:", codeField, 0);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 1);
+        DialogUtils.addFormRow(grid, "Description:", descArea, 2);
+        DialogUtils.addFormRow(grid, "Portal Type:", portalCombo, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -532,6 +506,7 @@ public class InstituteManagementView {
         }
 
         Dialog<List<Integer>> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Manage Permissions: " + selectedRole.getName());
         dialog.setHeaderText("Select permissions for this role");
         dialog.setResizable(true);
@@ -604,7 +579,7 @@ public class InstituteManagementView {
             // Category Container
             VBox catContainer = new VBox(5);
             catContainer.setStyle(
-                    "-fx-border-color: #e2e8f0; -fx-border-radius: 5; -fx-padding: 10; -fx-background-color: white;");
+                    "-fx-border-color: rgba(255, 255, 255, 0.1); -fx-border-radius: 5; -fx-padding: 10; -fx-background-color: rgba(255, 255, 255, 0.05);");
 
             // Store reference
             categoryContainers.put(category, catContainer);
@@ -612,7 +587,8 @@ public class InstituteManagementView {
             // Header: Select All + Label
             HBox header = new HBox(10);
             header.setAlignment(Pos.CENTER_LEFT);
-            header.setStyle("-fx-background-color: #f1f5f9; -fx-padding: 8; -fx-background-radius: 4;");
+            header.setStyle(
+                    "-fx-background-color: rgba(255, 255, 255, 0.1); -fx-padding: 8; -fx-background-radius: 4;");
 
             CheckBox selectAllCat = new CheckBox();
             Label catLabel = new Label(category);
@@ -768,6 +744,7 @@ public class InstituteManagementView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Role");
         confirm.setHeaderText("Delete role: " + selected.getName() + "?");
         confirm.setContentText("This action cannot be undone. Users with this role may lose access.");

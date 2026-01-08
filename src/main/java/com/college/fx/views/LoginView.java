@@ -8,9 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -159,7 +156,7 @@ public class LoginView {
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
-        String roleSelection = roleComboBox.getValue();
+        // String roleSelection = roleComboBox.getValue();
 
         if (username.isEmpty() || password.isEmpty()) {
             messageLabel.setText("Please enter username and password.");

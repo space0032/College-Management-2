@@ -4,8 +4,6 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 /**
  * Student Affairs View (Consolidated "Student Management")

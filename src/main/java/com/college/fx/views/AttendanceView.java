@@ -8,6 +8,7 @@ import com.college.models.Course;
 import com.college.models.Student;
 import com.college.utils.SearchableStudentComboBox;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -189,6 +190,7 @@ public class AttendanceView {
 
     private void showMarkAttendanceDialog() {
         Dialog<Attendance> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Mark Attendance");
         dialog.setHeaderText("Mark Student Attendance");
         ButtonType markBtnType = new ButtonType("Mark", ButtonData.OK_DONE);
@@ -247,6 +249,7 @@ public class AttendanceView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -255,6 +258,7 @@ public class AttendanceView {
 
     private void showBulkAttendanceDialog() {
         Dialog<Boolean> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Bulk Attendance Marking");
         dialog.setHeaderText("Mark Attendance for Entire Class");
         ButtonType saveBtn = new ButtonType("Save All", ButtonData.OK_DONE);
@@ -321,7 +325,7 @@ public class AttendanceView {
         });
         statusCol.setPrefWidth(140);
 
-        attendanceTable.getColumns().addAll(nameCol, statusCol);
+        attendanceTable.getColumns().addAll(java.util.Arrays.asList(nameCol, statusCol));
 
         loadBtn.setOnAction(e -> {
             if (courseCombo.getValue() == null) {

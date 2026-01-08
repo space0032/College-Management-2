@@ -7,6 +7,7 @@ import com.college.services.TranscriptService;
 import com.college.models.StudentFeedback;
 import com.college.dao.StudentFeedbackDAO;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -88,7 +89,8 @@ public class StudentProfileView {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(10));
-        header.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 10;");
+        header.setStyle(
+                "-fx-background-color: rgba(30, 41, 59, 0.5); -fx-background-radius: 10; -fx-border-color: rgba(255, 255, 255, 0.1); -fx-border-radius: 10;");
 
         // Profile Image
         profileImageView = new ImageView();
@@ -263,14 +265,15 @@ public class StudentProfileView {
         TranscriptService.TranscriptSummary summary = ts.generateTranscript(student);
 
         HBox summaryBox = new HBox(30);
-        summaryBox.setStyle("-fx-background-color: #f0f9ff; -fx-padding: 15; -fx-background-radius: 8;");
+        summaryBox.setStyle(
+                "-fx-background-color: rgba(255, 255, 255, 0.05); -fx-padding: 15; -fx-background-radius: 8;");
 
         VBox cgpaBox = new VBox(5);
         Label cgpaLbl = new Label("CGPA");
         // cgpaLbl.setTextFill(Color.GRAY);
         Label cgpaVal = new Label(String.format("%.2f", summary.getCgpa()));
         cgpaVal.setFont(Font.font("Segoe UI", FontWeight.BOLD, 32));
-        cgpaVal.setTextFill(Color.web("#0284c7"));
+        cgpaVal.setTextFill(Color.web("#38bdf8")); // Lighter blue for dark mode
         cgpaBox.getChildren().addAll(cgpaLbl, cgpaVal);
         cgpaBox.setAlignment(Pos.CENTER);
 
@@ -293,6 +296,7 @@ public class StudentProfileView {
         Button printTranscriptBtn = new Button("Export Transcript (PDF)");
         printTranscriptBtn.setOnAction(e -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "PDF Export feature coming soon!");
+            DialogUtils.styleDialog(alert);
             alert.show();
         });
 
@@ -323,7 +327,7 @@ public class StudentProfileView {
                 VBox card = new VBox(5);
                 card.setPadding(new Insets(10));
                 card.setStyle(
-                        "-fx-background-color: #f1f5f9; -fx-background-radius: 8; -fx-border-color: #e2e8f0; -fx-border-radius: 8;");
+                        "-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 8; -fx-border-color: rgba(255, 255, 255, 0.1); -fx-border-radius: 8;");
 
                 Label catLbl = new Label(sf.getCategory());
                 catLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
@@ -350,7 +354,8 @@ public class StudentProfileView {
 
         if (canAdd) {
             VBox addBox = new VBox(10);
-            addBox.setStyle("-fx-background-color: #eff6ff; -fx-padding: 15; -fx-background-radius: 8;");
+            addBox.setStyle(
+                    "-fx-background-color: rgba(255, 255, 255, 0.05); -fx-padding: 15; -fx-background-radius: 8;");
 
             Label title = new Label("Add Observation / Feedback");
             title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
@@ -384,9 +389,13 @@ public class StudentProfileView {
                 if (feedbackDAO.addFeedback(sf)) {
                     refreshList.run();
                     textArea.clear();
-                    new Alert(Alert.AlertType.INFORMATION, "Feedback Added").show();
+                    Alert a = new Alert(Alert.AlertType.INFORMATION, "Feedback Added");
+                    DialogUtils.styleDialog(a);
+                    a.show();
                 } else {
-                    new Alert(Alert.AlertType.ERROR, "Failed to add feedback").show();
+                    Alert a = new Alert(Alert.AlertType.ERROR, "Failed to add feedback");
+                    DialogUtils.styleDialog(a);
+                    a.show();
                 }
             });
 
@@ -405,10 +414,8 @@ public class StudentProfileView {
         return content;
     }
 
-    // Helper methods
     private void addFormRow(GridPane grid, String label, Control field, int row) {
-        grid.add(new Label(label), 0, row);
-        grid.add(field, 1, row);
+        DialogUtils.addFormRow(grid, label, field, row);
     }
 
     private void disableInputs(Control... controls) {
@@ -444,7 +451,9 @@ public class StudentProfileView {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                new Alert(Alert.AlertType.ERROR, "Failed to upload image.").show();
+                Alert a = new Alert(Alert.AlertType.ERROR, "Failed to upload image.");
+                DialogUtils.styleDialog(a);
+                a.show();
             }
         }
     }
@@ -464,11 +473,15 @@ public class StudentProfileView {
 
     private void updateStudent() {
         if (studentDAO.updateStudent(student)) {
-            new Alert(Alert.AlertType.INFORMATION, "Profile Updated Successfully!").show();
+            Alert a = new Alert(Alert.AlertType.INFORMATION, "Profile Updated Successfully!");
+            DialogUtils.styleDialog(a);
+            a.show();
             if (onUpdateCallback != null)
                 onUpdateCallback.run();
         } else {
-            new Alert(Alert.AlertType.ERROR, "Failed to update profile.").show();
+            Alert a = new Alert(Alert.AlertType.ERROR, "Failed to update profile.");
+            DialogUtils.styleDialog(a);
+            a.show();
         }
     }
 

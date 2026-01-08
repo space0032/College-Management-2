@@ -3,6 +3,7 @@ package com.college.fx.views;
 import com.college.dao.NotificationDAO;
 import com.college.models.Notification;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.geometry.Insets;
 
 import javafx.scene.control.*;
@@ -89,6 +90,7 @@ public class NotificationView {
 
     public static void showDialog() {
         Dialog<Void> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Notifications");
         dialog.getDialogPane().setContent(new NotificationView().getView());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);

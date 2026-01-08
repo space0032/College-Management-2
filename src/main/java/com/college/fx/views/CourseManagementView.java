@@ -5,6 +5,7 @@ import com.college.dao.StudentDAO;
 import com.college.models.Course;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -523,6 +524,7 @@ public class CourseManagementView {
         }
 
         Dialog<Course> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Course");
         dialog.setHeaderText("Edit: " + selected.getName());
         ButtonType saveBtn = new ButtonType("Save", ButtonData.OK_DONE);
@@ -544,11 +546,6 @@ public class CourseManagementView {
 
         TextField capacityField = new TextField(String.valueOf(selected.getCapacity()));
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Code:"), 0, 1);
-        grid.add(codeField, 1, 1);
-
         ComboBox<Department> deptCombo = new ComboBox<>();
         try {
             DepartmentDAO deptDAO = new DepartmentDAO();
@@ -569,17 +566,6 @@ public class CourseManagementView {
         } catch (Exception e) {
             // Ignore
         }
-        grid.add(new Label("Department:"), 0, 2);
-        grid.add(deptCombo, 1, 2);
-
-        grid.add(new Label("Credits:"), 0, 3);
-        grid.add(creditsField, 1, 3);
-        grid.add(new Label("Semester:"), 0, 4);
-        grid.add(semesterField, 1, 4);
-        grid.add(new Label("Type:"), 0, 5);
-        grid.add(typeCombo, 1, 5);
-        grid.add(new Label("Capacity:"), 0, 6);
-        grid.add(capacityField, 1, 6);
 
         ComboBox<Faculty> facultyCombo = new ComboBox<>();
         List<Faculty> allFaculty = facultyDAO.getAllFaculty();
@@ -588,8 +574,15 @@ public class CourseManagementView {
             allFaculty.stream().filter(f -> f.getId() == selected.getFacultyId()).findFirst()
                     .ifPresent(facultyCombo::setValue);
         }
-        grid.add(new Label("Instructor:"), 0, 7);
-        grid.add(facultyCombo, 1, 7);
+
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Code:", codeField, 1);
+        DialogUtils.addFormRow(grid, "Department:", deptCombo, 2);
+        DialogUtils.addFormRow(grid, "Credits:", creditsField, 3);
+        DialogUtils.addFormRow(grid, "Semester:", semesterField, 4);
+        DialogUtils.addFormRow(grid, "Type:", typeCombo, 5);
+        DialogUtils.addFormRow(grid, "Capacity:", capacityField, 6);
+        DialogUtils.addFormRow(grid, "Instructor:", facultyCombo, 7);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -647,6 +640,7 @@ public class CourseManagementView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Course");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete course: " + selected.getName() + "?");
@@ -665,6 +659,7 @@ public class CourseManagementView {
 
     private void showAddCourseDialog() {
         Dialog<Course> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add Course");
         dialog.setHeaderText("Create New Course");
 
@@ -771,6 +766,7 @@ public class CourseManagementView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

@@ -3,6 +3,7 @@ package com.college.fx.views.reports;
 import com.college.dao.EnhancedFeeDAO;
 import com.college.models.StudentFee;
 import com.college.utils.ReportGenerator;
+import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -107,7 +108,7 @@ public class FeesReportTab {
             }
         });
 
-        tableView.getColumns().addAll(nameCol, categoryCol, totalCol, paidCol, statusCol);
+        tableView.getColumns().addAll(java.util.Arrays.asList(nameCol, categoryCol, totalCol, paidCol, statusCol));
         tableBox.getChildren().add(tableView);
 
         splitPane.getItems().addAll(chartBox, tableBox);
@@ -168,6 +169,7 @@ public class FeesReportTab {
     private void exportReport() {
         if (tableData.isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
+            DialogUtils.styleDialog(alert);
             alert.setTitle("No Data");
             alert.setContentText("No data to export.");
             alert.showAndWait();
@@ -197,11 +199,13 @@ public class FeesReportTab {
 
             if (success) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                DialogUtils.styleDialog(alert);
                 alert.setTitle("Success");
                 alert.setContentText("Report exported successfully!");
                 alert.showAndWait();
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
+                DialogUtils.styleDialog(alert);
                 alert.setTitle("Error");
                 alert.setContentText("Failed to export report.");
                 alert.showAndWait();

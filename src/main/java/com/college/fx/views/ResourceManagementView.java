@@ -7,6 +7,7 @@ import com.college.models.LearningResource;
 import com.college.models.ResourceCategory;
 import com.college.services.FileUploadService;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -226,14 +227,17 @@ public class ResourceManagementView {
                                 fileUploadService.downloadFile(path, dest);
                                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
                                         "File downloaded to: " + dest.getAbsolutePath());
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             } catch (Exception ex) {
                                 Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             }
                         }
                     } else {
                         Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        DialogUtils.styleDialog(alert);
                         alert.show();
                     }
                 });
@@ -281,6 +285,7 @@ public class ResourceManagementView {
 
     private void showUploadDialog() {
         Dialog<LearningResource> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Upload Resource");
         dialog.setHeaderText("Upload new learning resource");
         dialog.getDialogPane().setPrefWidth(550);
@@ -417,9 +422,11 @@ public class ResourceManagementView {
             if (resourceDAO.addResource(resource)) {
                 loadResources();
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Resource uploaded successfully!");
+                DialogUtils.styleDialog(alert);
                 alert.show();
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload resource to database.");
+                DialogUtils.styleDialog(alert);
                 alert.show();
             }
         });
@@ -427,6 +434,7 @@ public class ResourceManagementView {
 
     private void deleteResource(LearningResource resource) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete resource '" + resource.getTitle() + "'?");
+        DialogUtils.styleDialog(alert);
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             fileUploadService.deleteFile(resource.getFilePath());
             resourceDAO.deleteResource(resource.getId());

@@ -2,6 +2,7 @@ package com.college.fx.views;
 
 import com.college.dao.AnnouncementDAO;
 import com.college.models.Announcement;
+import com.college.utils.DialogUtils;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -66,7 +67,6 @@ public class AnnouncementManagementView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -103,7 +103,8 @@ public class AnnouncementManagementView {
         authorCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCreatedByName()));
         authorCol.setPrefWidth(120);
 
-        tableView.getColumns().addAll(priorityCol, titleCol, contentCol, targetCol, authorCol, activeCol);
+        tableView.getColumns()
+                .addAll(java.util.Arrays.asList(priorityCol, titleCol, contentCol, targetCol, authorCol, activeCol));
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
@@ -168,6 +169,7 @@ public class AnnouncementManagementView {
 
     private void showAnnouncementDialog(Announcement announcement) {
         Dialog<Announcement> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle(announcement == null ? "Add Announcement" : "Edit Announcement");
         dialog.setHeaderText(null);
 
@@ -285,6 +287,7 @@ public class AnnouncementManagementView {
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(confirm);
         confirm.setTitle("Delete Announcement");
         confirm.setHeaderText("Are you sure?");
         confirm.setContentText("Delete announcement: " + selected.getTitle() + "?");
@@ -303,6 +306,7 @@ public class AnnouncementManagementView {
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

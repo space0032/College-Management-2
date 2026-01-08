@@ -101,7 +101,7 @@ public class ChatBotOverlay extends VBox {
         window.setPrefSize(350, 450);
         window.setMaxSize(350, 450);
         window.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 0, 5); -fx-border-color: #e5e7eb; -fx-border-radius: 12; -fx-border-width: 1;");
+                "-fx-background-color: #1e293b; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 15, 0, 0, 5); -fx-border-color: #334155; -fx-border-radius: 12; -fx-border-width: 1;");
 
         // Header
         HBox header = new HBox(10);
@@ -126,21 +126,21 @@ public class ChatBotOverlay extends VBox {
         // Messages Area
         messagesBox = new VBox(10);
         messagesBox.setPadding(new Insets(15));
-        messagesBox.setStyle("-fx-background-color: #f9fafb;");
+        messagesBox.setStyle("-fx-background-color: #0f172a;");
 
         scrollPane = new ScrollPane(messagesBox);
         scrollPane.setFitToWidth(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
-        scrollPane.setStyle("-fx-background: #f9fafb; -fx-border-color: transparent;");
+        scrollPane.setStyle("-fx-background: #0f172a; -fx-border-color: transparent;");
 
         // Input Area
         HBox inputArea = new HBox(10);
         inputArea.setPadding(new Insets(15));
         inputArea.setAlignment(Pos.CENTER_LEFT);
         inputArea.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 0 0 12 12; -fx-border-color: #e5e7eb; -fx-border-width: 1 0 0 0;");
+                "-fx-background-color: #1e293b; -fx-background-radius: 0 0 12 12; -fx-border-color: #334155; -fx-border-width: 1 0 0 0;");
 
         inputField = new TextField();
         inputField.setPromptText("Type a message...");
@@ -219,7 +219,7 @@ public class ChatBotOverlay extends VBox {
 
         TextFlow msgFlow = new TextFlow();
         Text textNode = new Text(text);
-        textNode.setFill(isUser ? Color.WHITE : Color.web("#1f2937"));
+        textNode.setFill(Color.WHITE);
         textNode.setFont(Font.font("Segoe UI", 13));
         msgFlow.getChildren().add(textNode);
 
@@ -227,7 +227,7 @@ public class ChatBotOverlay extends VBox {
         msgFlow.setPadding(new Insets(10, 15, 10, 15));
         msgFlow.setStyle(isUser
                 ? "-fx-background-color: #4f46e5; -fx-background-radius: 15 15 0 15;"
-                : "-fx-background-color: #e5e7eb; -fx-background-radius: 15 15 15 0;");
+                : "-fx-background-color: #334155; -fx-background-radius: 15 15 15 0;");
 
         // Timestamp
         Label timestamp = new Label(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
@@ -249,7 +249,7 @@ public class ChatBotOverlay extends VBox {
         typingIndicator = new HBox(5);
         typingIndicator.setAlignment(Pos.CENTER_LEFT);
         typingIndicator.setPadding(new Insets(10));
-        typingIndicator.setStyle("-fx-background-color: #e5e7eb; -fx-background-radius: 15 15 15 0;");
+        typingIndicator.setStyle("-fx-background-color: #334155; -fx-background-radius: 15 15 15 0;");
         typingIndicator.setMaxWidth(60);
 
         Circle d1 = new Circle(3, Color.GRAY);

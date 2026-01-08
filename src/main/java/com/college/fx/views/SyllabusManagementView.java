@@ -6,6 +6,7 @@ import com.college.models.Course;
 import com.college.models.Syllabus;
 import com.college.services.FileUploadService;
 import com.college.utils.SessionManager;
+import com.college.utils.DialogUtils;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -198,14 +199,17 @@ public class SyllabusManagementView {
                                 fileUploadService.downloadFile(path, dest);
                                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
                                         "File downloaded to: " + dest.getAbsolutePath());
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             } catch (Exception ex) {
                                 Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                                DialogUtils.styleDialog(alert);
                                 alert.show();
                             }
                         }
                     } else {
                         Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
+                        DialogUtils.styleDialog(alert);
                         alert.show();
                     }
                 });
@@ -240,6 +244,7 @@ public class SyllabusManagementView {
 
     private void showUploadDialog() {
         Dialog<Syllabus> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Upload Syllabus");
         dialog.setHeaderText("Upload new version of syllabus for " + courseComboBox.getValue().getName());
         dialog.getDialogPane().setPrefWidth(500);
@@ -358,9 +363,11 @@ public class SyllabusManagementView {
             if (syllabusDAO.addSyllabus(syllabus)) {
                 loadSyllabi();
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Syllabus uploaded successfully!");
+                DialogUtils.styleDialog(alert);
                 alert.show();
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload syllabus to database.");
+                DialogUtils.styleDialog(alert);
                 alert.show();
             }
         });
@@ -368,6 +375,7 @@ public class SyllabusManagementView {
 
     private void deleteSyllabus(Syllabus syllabus) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete syllabus version " + syllabus.getVersion() + "?");
+        DialogUtils.styleDialog(alert);
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             fileUploadService.deleteFile(syllabus.getFilePath());
             syllabusDAO.deleteSyllabus(syllabus.getId());
