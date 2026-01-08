@@ -611,3 +611,111 @@ AnchorPane {
     -fx-alignment: center;
     -fx-padding: 5;
 }
+
+/* --- Login Page Redesign --- */
+.login-root {
+    -fx-background-color: linear-gradient(to bottom right, #0a0e17, #111827);
+    /* Deep dark blue/black */
+}
+
+.login-glass-card {
+    -fx-background-color: rgba(30, 41, 59, 0.4);
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 16;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.4), 20, 0, 0, 10);
+    -fx-padding: 40;
+}
+
+.login-title {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.login-subtitle {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 16px;
+    -fx-font-weight: normal;
+}
+
+.login-label {
+    -fx-text-fill: #cbd5e1;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.login-input-container {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 10;
+    -fx-min-height: 45px;
+    -fx-pref-height: 45px;
+}
+
+.login-field-icon {
+    -fx-fill: #64748b;
+    -fx-cursor: text;
+}
+
+.login-input-field {
+    -fx-background-color: transparent !important;
+    -fx-text-fill: #334155 !important;
+    /* Dark text on white bg */
+    -fx-prompt-text-fill: #94a3b8 !important;
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 0 10;
+    /* Space between icon and text */
+}
+
+.login-input-field:focused {
+    -fx-background-color: transparent !important;
+    -fx-border-width: 0 !important;
+}
+
+.login-btn {
+    -fx-background-color: linear-gradient(to right, #14b8a6, #0d9488);
+    /* Teal gradient */
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 30;
+    /* Pill shape */
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(20, 184, 166, 0.4), 10, 0, 0, 4);
+    -fx-min-height: 45px;
+}
+
+.login-btn:hover {
+    -fx-background-color: linear-gradient(to right, #2dd4bf, #14b8a6);
+    -fx-effect: dropshadow(three-pass-box, rgba(20, 184, 166, 0.6), 15, 0, 0, 5);
+}
+
+.login-combo-box {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-min-height: 45px;
+    -fx-padding: 2 10;
+}
+
+.login-combo-box .cell {
+    -fx-text-fill: #334155 !important;
+}
+
+.login-combo-box .arrow {
+    -fx-background-color: #64748b;
+}
+
+.login-combo-box .list-view {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+}
+
+.login-combo-box .list-cell {
+    -fx-text-fill: #334155;
+}
+
+.login-combo-box .list-cell:hover {
+    -fx-background-color: #f1f5f9;
+}

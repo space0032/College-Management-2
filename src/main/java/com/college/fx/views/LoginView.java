@@ -7,6 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -27,122 +28,130 @@ public class LoginView {
     private ComboBox<String> roleComboBox;
     private Label messageLabel;
 
+    // SVG Paths
+    private static final String USER_ICON = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z";
+    private static final String LOCK_ICON = "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z";
+    private static final String LOGO_ICON = "M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z";
+
     public LoginView() {
         createView();
     }
 
     private void createView() {
         root = new BorderPane();
-        root.setStyle("-fx-background-color: linear-gradient(to bottom right, #0f172a, #1e293b);");
+        root.getStyleClass().add("login-root");
+        root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
-        // Center content
-        VBox centerBox = new VBox(25);
-        centerBox.setAlignment(Pos.CENTER);
-        centerBox.setPadding(new Insets(40));
-        centerBox.setMaxWidth(420);
-        centerBox.getStyleClass().add("glass-card");
+        // Glass Card Container
+        VBox card = new VBox(25);
+        card.getStyleClass().add("login-glass-card");
+        card.setMaxWidth(400); // Standard width for login card
+        card.setAlignment(Pos.CENTER);
 
-        // Logo/Title section
-        VBox titleBox = new VBox(8);
-        titleBox.setAlignment(Pos.CENTER);
+        // Logo Section
+        SVGPath logoIcon = new SVGPath();
+        logoIcon.setContent(LOGO_ICON);
+        logoIcon.setFill(Color.web("#2dd4bf")); // Teal/Cyan
+        logoIcon.setScaleX(2.5);
+        logoIcon.setScaleY(2.5);
 
-        Text titleText = new Text("College Management");
-        titleText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
-        titleText.setFill(Color.web("#0f172a"));
+        StackPane logoContainer = new StackPane(logoIcon);
+        logoContainer.setMinSize(60, 60);
+        logoContainer.setPrefSize(60, 60);
+        logoContainer.setMaxSize(60, 60);
+        logoContainer.setStyle("-fx-background-color: rgba(45, 212, 191, 0.1); -fx-background-radius: 50%;");
 
-        Text subtitleText = new Text("System");
-        subtitleText.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 20));
-        subtitleText.setFill(Color.web("#64748b"));
+        Label title = new Label("College Management");
+        title.getStyleClass().add("login-title");
 
-        Text welcomeText = new Text("Welcome back! Please sign in.");
-        welcomeText.setFont(Font.font("Segoe UI", 14));
-        welcomeText.setFill(Color.web("#94a3b8"));
+        Label subtitle = new Label("System");
+        subtitle.getStyleClass().add("login-subtitle");
 
-        titleBox.getChildren().addAll(titleText, subtitleText, welcomeText);
+        VBox header = new VBox(10, logoContainer, title, subtitle);
+        header.setAlignment(Pos.CENTER);
+        header.setPadding(new Insets(0, 0, 20, 0));
 
-        // Form fields
-        VBox formBox = new VBox(18);
-        formBox.setAlignment(Pos.CENTER);
+        // Form Section
+        VBox form = new VBox(20);
+        form.setAlignment(Pos.CENTER_LEFT);
 
-        // Username field
-        VBox usernameBox = new VBox(6);
-        Label usernameLabel = new Label("Username");
-        usernameLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0; -fx-font-weight: bold;");
+        // Username Field
+        Label userLabel = new Label("Username");
+        userLabel.getStyleClass().add("login-label");
+
+        HBox userInputGroup = new HBox(10);
+        userInputGroup.getStyleClass().add("login-input-container");
+        userInputGroup.setAlignment(Pos.CENTER_LEFT);
+
+        SVGPath userIcon = new SVGPath();
+        userIcon.setContent(USER_ICON);
+        userIcon.getStyleClass().add("login-field-icon");
+
         usernameField = new TextField();
-        usernameField.setPromptText("Enter your username");
-        usernameField.setPrefHeight(45);
-        usernameField.setStyle(
-                "-fx-background-radius: 8;" +
-                        "-fx-border-radius: 8;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-width: 1;" +
-                        "-fx-font-size: 14px;");
-        usernameBox.getChildren().addAll(usernameLabel, usernameField);
+        usernameField.setPromptText("Username");
+        usernameField.getStyleClass().add("login-input-field");
+        HBox.setHgrow(usernameField, Priority.ALWAYS);
 
-        // Password field
-        VBox passwordBox = new VBox(6);
-        Label passwordLabel = new Label("Password");
-        passwordLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0; -fx-font-weight: bold;");
+        userInputGroup.getChildren().addAll(userIcon, usernameField);
+        VBox userBox = new VBox(8, userLabel, userInputGroup);
+
+        // Password Field
+        Label passLabel = new Label("Password");
+        passLabel.getStyleClass().add("login-label");
+
+        HBox passInputGroup = new HBox(10);
+        passInputGroup.getStyleClass().add("login-input-container");
+        passInputGroup.setAlignment(Pos.CENTER_LEFT);
+
+        SVGPath lockIcon = new SVGPath();
+        lockIcon.setContent(LOCK_ICON);
+        lockIcon.getStyleClass().add("login-field-icon");
+
         passwordField = new PasswordField();
-        passwordField.setPromptText("Enter your password");
-        passwordField.setPrefHeight(45);
-        passwordField.setStyle(
-                "-fx-background-radius: 8;" +
-                        "-fx-border-radius: 8;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-width: 1;" +
-                        "-fx-font-size: 14px;");
-        passwordBox.getChildren().addAll(passwordLabel, passwordField);
+        passwordField.setPromptText("Password");
+        passwordField.getStyleClass().add("login-input-field");
+        HBox.setHgrow(passwordField, Priority.ALWAYS);
 
-        // Role dropdown
-        VBox roleBox = new VBox(6);
+        passInputGroup.getChildren().addAll(lockIcon, passwordField);
+        VBox passBox = new VBox(8, passLabel, passInputGroup);
+
+        // Role Selector
         Label roleLabel = new Label("Login As");
-        roleLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0; -fx-font-weight: bold;");
+        roleLabel.getStyleClass().add("login-label");
+
         roleComboBox = new ComboBox<>();
-        roleComboBox.getItems().addAll("ADMIN", "FACULTY", "STUDENT", "WARDEN", "FINANCE");
-        // We will update this to show PORTAL types, which map to Role logic
-        roleComboBox.setValue("ADMIN");
-        roleComboBox.setPrefHeight(45);
+        roleComboBox.getItems().addAll("Select", "ADMIN", "FACULTY", "STUDENT", "WARDEN", "FINANCE");
+        roleComboBox.setValue("Select");
         roleComboBox.setMaxWidth(Double.MAX_VALUE);
-        roleComboBox.setStyle(
-                "-fx-background-radius: 8;" +
-                        "-fx-border-radius: 8;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-font-size: 14px;");
-        roleBox.getChildren().addAll(roleLabel, roleComboBox);
+        roleComboBox.getStyleClass().add("login-combo-box");
 
-        // Login button
-        Button loginButton = new Button("Sign In");
-        loginButton.setPrefHeight(48);
-        loginButton.setPrefWidth(Double.MAX_VALUE);
-        loginButton.setStyle(
-                "-fx-background-color: #14b8a6;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-size: 15px;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
-        loginButton.setOnMouseEntered(e -> loginButton.setStyle(loginButton.getStyle().replace("#14b8a6", "#0d9488")));
-        loginButton.setOnMouseExited(e -> loginButton.setStyle(loginButton.getStyle().replace("#0d9488", "#14b8a6")));
-        loginButton.setOnAction(e -> handleLogin());
+        VBox roleBox = new VBox(8, roleLabel, roleComboBox);
 
-        // Message label for errors
+        // Sign In Button
+        Button loginBtn = new Button("Sign In");
+        loginBtn.getStyleClass().add("login-btn");
+        loginBtn.setMaxWidth(Double.MAX_VALUE);
+        loginBtn.setOnAction(e -> handleLogin());
+
+        // Error Message
         messageLabel = new Label();
-        messageLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 13px;");
+        messageLabel.setTextFill(Color.web("#ef4444"));
         messageLabel.setWrapText(true);
+        messageLabel.setAlignment(Pos.CENTER);
 
-        formBox.getChildren().addAll(usernameBox, passwordBox, roleBox, loginButton, messageLabel);
+        form.getChildren().addAll(userBox, passBox, roleBox, loginBtn, messageLabel);
 
-        // Add all to center box
-        centerBox.getChildren().addAll(titleBox, formBox);
+        card.getChildren().addAll(header, form);
 
-        // Wrap in a StackPane for centering
-        StackPane centerWrapper = new StackPane(centerBox);
+        // Center Wrapper
+        StackPane centerWrapper = new StackPane(card);
         centerWrapper.setAlignment(Pos.CENTER);
 
         root.setCenter(centerWrapper);
 
-        // Enter key handler
+        // Decoration (Optional - subtle corner glow can be added via CSS on root)
+
+        // Key Handlers
         passwordField.setOnAction(e -> handleLogin());
         usernameField.setOnAction(e -> passwordField.requestFocus());
     }
@@ -150,11 +159,22 @@ public class LoginView {
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
+        String roleSelection = roleComboBox.getValue();
 
         if (username.isEmpty() || password.isEmpty()) {
-            messageLabel.setText("Please enter both username and password.");
+            messageLabel.setText("Please enter username and password.");
             return;
         }
+
+        // Add role check if "Select" is chosen? Or just ignore for now as requested
+        // design has "Select"
+        // Ideally we should enforce selection if it's not "Select".
+        // Current logic doesn't strictly depend on UI role selection for auth (it gets
+        // role from DB),
+        // but UI shows it. Let's assume user might not select it if they are just
+        // logging in.
+        // However, standard flow implies selecting it.
+        // PROCEED with standard auth logic.
 
         int userId = authenticateUser(username, password);
 
@@ -162,18 +182,19 @@ public class LoginView {
             // Retrieve full user details including legacy role
             com.college.dao.UserDAO userDAO = new com.college.dao.UserDAO();
             com.college.models.User user = userDAO.getUserById(userId);
-            String legacyRole = (user != null && user.getRole() != null) ? user.getRole() : "";
+
+            // ... (Rest of login logic remains same) ...
 
             // Initialize session with legacy role string
-            SessionManager.getInstance().initSession(userId, username, legacyRole);
+            SessionManager.getInstance().initSession(userId, username,
+                    (user != null && user.getRole() != null) ? user.getRole() : "");
 
             // Get the actual Role object from session to determine Portal
             com.college.models.Role userRole = SessionManager.getInstance().getUserRole();
 
             if (userRole == null) {
-                // Critical system error: User authenticated but has no valid Role assigned
                 com.college.utils.Logger.error("Login successful but no role assigned for user: " + username);
-                messageLabel.setText("Login failed: Account configuration error (No Role).");
+                messageLabel.setText("Login failed: Account configuration error.");
                 return;
             }
 
@@ -182,8 +203,7 @@ public class LoginView {
                 portalType = "STUDENT"; // Default fallback
             }
 
-            // Re-initialize session with the resolved Portal Type as the legacy role string
-            // This ensures logic like session.isAdmin() works correctly for UI filtering
+            // Re-initialize session with the resolved Portal Type
             SessionManager.getInstance().initSession(userId, username, portalType);
 
             // Log login
@@ -195,7 +215,7 @@ public class LoginView {
             com.college.MainFX.getPrimaryStage().getScene().setRoot(dashboardView.getView());
             com.college.MainFX.getPrimaryStage().setMaximized(true);
         } else {
-            messageLabel.setText("Invalid username or password.");
+            messageLabel.setText("Invalid credentials.");
             passwordField.clear();
         }
     }
