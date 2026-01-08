@@ -90,13 +90,12 @@ public class InstituteManagementView {
         root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label title = new Label("Institute Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
         title.setPadding(new Insets(0, 0, 10, 10));
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
 
         Tab deptTab = new Tab("Departments");
         deptTab.setContent(createDepartmentsSection());
@@ -108,7 +107,7 @@ public class InstituteManagementView {
         auditTab.setContent(createAuditSection());
 
         // Student & Faculty Tabs (Integrated)
-        Tab studentTab = new Tab("Students");
+        Tab studentTab = new Tab("Institute");
         StudentManagementView studentView = new StudentManagementView(userRole, userId);
         studentTab.setContent(studentView.getView());
 

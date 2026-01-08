@@ -498,6 +498,42 @@ AnchorPane {
 }
 
 /* Ensure default background is dark if transparency fails */
+/* Ensure default background is dark if transparency fails */
 .root {
     -fx-background-color: #0f172a;
+}
+
+/* --- Pill Tab Pane (Institute Management Style) --- */
+.pill-tab-pane .tab-header-area .tab-header-background,
+.pill-tab-pane .tab-header-area .headers-region {
+    -fx-background-color: transparent !important;
+}
+
+.pill-tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-border-color: #10b981;
+    /* Emerald-500 */
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-border-width: 1;
+    -fx-padding: 6 16;
+    -fx-margin: 5;
+    /* Spacing */
+    -fx-cursor: hand;
+}
+
+.pill-tab-pane .tab:selected {
+    -fx-background-color: #10b981;
+    -fx-border-color: #10b981;
+}
+
+.pill-tab-pane .tab .tab-label {
+    -fx-text-fill: #10b981;
+    /* Text color matches border when inactive */
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.pill-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: white;
 }

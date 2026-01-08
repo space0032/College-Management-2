@@ -73,8 +73,7 @@ public class FacultyManagementView {
         header.getStyleClass().add("glass-card");
 
         Label title = new Label("Faculty Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        // title.setTextFill(Color.web("#0f172a"));
+        title.getStyleClass().add("section-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
