@@ -86,7 +86,7 @@ public class InstituteManagementView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         Label title = new Label("Institute Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
@@ -95,7 +95,7 @@ public class InstituteManagementView {
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setStyle("-fx-background-color: transparent;");
+        tabPane.getStyleClass().add("floating");
 
         Tab deptTab = new Tab("Departments");
         deptTab.setContent(createDepartmentTab());

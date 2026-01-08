@@ -80,17 +80,16 @@ public class LibraryManagementView {
 
     private void createView() {
         root = new VBox(20);
-        root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane");
 
         Label title = new Label(role.equals("STUDENT") ? "Library" : "Library Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
-        title.setPadding(new Insets(0, 0, 10, 10));
+        title.getStyleClass().add("section-title");
+        title.setPadding(new Insets(0, 0, 10, 0));
 
         TabPane tabPane = new TabPane();
+        tabPane.getStyleClass().add("floating");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setStyle("-fx-background-color: transparent;");
 
         // 1. Catalog Tab (All Books)
         Tab catalogTab = new Tab("Book Catalog");

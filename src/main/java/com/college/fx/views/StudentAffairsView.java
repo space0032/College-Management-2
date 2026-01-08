@@ -36,7 +36,7 @@ public class StudentAffairsView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         Label title = new Label("Student Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
@@ -45,7 +45,7 @@ public class StudentAffairsView {
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setStyle("-fx-background-color: transparent;");
+        tabPane.getStyleClass().add("floating");
 
         // 1. Courses
         Tab courseTab = new Tab("Courses");

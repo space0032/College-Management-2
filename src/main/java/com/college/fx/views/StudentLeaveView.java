@@ -20,7 +20,7 @@ public class StudentLeaveView {
     public VBox getView() {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(25));
-        mainLayout.setStyle("-fx-background-color: #f8fafc;");
+        mainLayout.getStyleClass().add("glass-pane");
 
         // Header
         Label title = new Label("Leave Application");

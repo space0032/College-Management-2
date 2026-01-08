@@ -34,7 +34,7 @@ public class ChangePasswordView {
         root = new VBox(25);
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         // Form card
         VBox formCard = new VBox(25);

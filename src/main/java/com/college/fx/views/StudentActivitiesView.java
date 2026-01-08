@@ -30,7 +30,7 @@ public class StudentActivitiesView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(30));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         // Header
         Label header = new Label("Student Activities");

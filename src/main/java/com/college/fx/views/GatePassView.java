@@ -46,7 +46,7 @@ public class GatePassView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         HBox header = createHeader();
         VBox tableSection = createTableSection();

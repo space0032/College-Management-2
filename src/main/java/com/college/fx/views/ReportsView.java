@@ -26,7 +26,7 @@ public class ReportsView {
     private void createView() {
         root = new BorderPane();
         root.setPadding(new Insets(20));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         // Header
         HBox header = new HBox();
@@ -42,7 +42,7 @@ public class ReportsView {
 
         // TabPane
         TabPane tabPane = new TabPane();
-        tabPane.setStyle("-fx-background-color: transparent;");
+        tabPane.getStyleClass().add("floating");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         // Attendance Tab

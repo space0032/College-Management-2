@@ -35,7 +35,7 @@ public class ProfileView {
         root = new VBox(25);
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         // Profile card
         VBox profileCard = new VBox(20);

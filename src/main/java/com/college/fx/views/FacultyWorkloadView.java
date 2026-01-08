@@ -36,7 +36,7 @@ public class FacultyWorkloadView {
     private void createView() {
         root = new VBox(20);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         Label title = new Label("Faculty Workload Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));

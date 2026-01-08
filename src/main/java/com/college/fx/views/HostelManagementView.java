@@ -73,17 +73,16 @@ public class HostelManagementView {
 
     private void createView() {
         root = new VBox(20);
-        root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.setPadding(new Insets(20));
+        root.getStyleClass().add("glass-pane");
 
         Label title = new Label("Hostel Management");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
-        title.setPadding(new Insets(0, 0, 10, 10));
+        title.getStyleClass().add("section-title");
+        title.setPadding(new Insets(0, 0, 10, 0));
 
         TabPane tabPane = new TabPane();
+        tabPane.getStyleClass().add("floating");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setStyle("-fx-background-color: transparent;");
 
         if (role.equals("STUDENT")) {
             // Student view - show only their allocation
@@ -228,13 +227,13 @@ public class HostelManagementView {
     private VBox createAllocationTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white; -fx-background-radius: 0 0 12 12;");
+        content.getStyleClass().add("glass-card");
 
         HBox toolbar = new HBox(15);
-        Button allocateBtn = createButton("New Allocation", "#22c55e");
+        Button allocateBtn = createButton("New Allocation");
         allocateBtn.setOnAction(e -> showAllocationDialog());
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
         refreshBtn.setOnAction(e -> loadData());
 
         toolbar.getChildren().addAll(allocateBtn, refreshBtn);
@@ -286,19 +285,19 @@ public class HostelManagementView {
     private VBox createHostelTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white;");
+        content.getStyleClass().add("glass-card");
 
         HBox toolbar = new HBox(15);
-        Button addHostelBtn = createButton("Add Hostel", "#22c55e");
+        Button addHostelBtn = createButton("Add Hostel");
         addHostelBtn.setOnAction(e -> showHostelDialog(null));
 
-        Button editHostelBtn = createButton("Edit Hostel", "#3b82f6");
+        Button editHostelBtn = createButton("Edit Hostel");
         editHostelBtn.setOnAction(e -> editHostel());
 
-        Button deleteHostelBtn = createButton("Delete Hostel", "#ef4444");
+        Button deleteHostelBtn = createButton("Delete Hostel");
         deleteHostelBtn.setOnAction(e -> deleteHostel());
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
         refreshBtn.setOnAction(e -> loadData());
 
         toolbar.getChildren().addAll(addHostelBtn, editHostelBtn, deleteHostelBtn, refreshBtn);
@@ -325,16 +324,16 @@ public class HostelManagementView {
     private VBox createRoomTab() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setStyle("-fx-background-color: white;");
+        content.getStyleClass().add("glass-card");
 
         HBox toolbar = new HBox(15);
-        Button addRoomBtn = createButton("Add Room", "#22c55e");
+        Button addRoomBtn = createButton("Add Room");
         addRoomBtn.setOnAction(e -> showAddRoomDialog());
 
-        Button deleteRoomBtn = createButton("Delete Room", "#ef4444");
+        Button deleteRoomBtn = createButton("Delete Room");
         deleteRoomBtn.setOnAction(e -> deleteRoom());
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
         refreshBtn.setOnAction(e -> loadData());
 
         toolbar.getChildren().addAll(addRoomBtn, deleteRoomBtn, refreshBtn);
@@ -697,14 +696,9 @@ public class HostelManagementView {
         });
     }
 
-    private Button createButton(String text, String color) {
+    private Button createButton(String text) {
         Button btn = new Button(text);
-        btn.setStyle(
-                "-fx-background-color: " + color + ";" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 6;" +
-                        "-fx-cursor: hand;");
+        // Style classes are added by caller
         return btn;
     }
 
@@ -747,13 +741,13 @@ public class HostelManagementView {
         controls.setAlignment(Pos.CENTER_LEFT);
         controls.setPadding(new Insets(10, 0, 0, 0));
 
-        Button addWardenBtn = createButton("Add Warden", "#22c55e");
+        Button addWardenBtn = createButton("Add Warden");
         addWardenBtn.setOnAction(e -> showAddWardenDialog());
 
-        Button editWardenBtn = createButton("Edit Warden", "#3b82f6");
+        Button editWardenBtn = createButton("Edit Warden");
         editWardenBtn.setOnAction(e -> showEditWardenDialog(wardenTable));
 
-        Button deleteWardenBtn = createButton("Delete Warden", "#ef4444");
+        Button deleteWardenBtn = createButton("Delete Warden");
         deleteWardenBtn.setOnAction(e -> deleteWarden(wardenTable));
 
         controls.getChildren().addAll(addWardenBtn, editWardenBtn, deleteWardenBtn);
@@ -939,10 +933,10 @@ public class HostelManagementView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button markBtn = createButton("Mark Attendance", "#22c55e");
+        Button markBtn = createButton("Mark Attendance");
         markBtn.setOnAction(e -> showMarkHostelAttendanceDialog());
 
-        Button bulkBtn = createButton("Bulk Attendance", "#3b82f6");
+        Button bulkBtn = createButton("Bulk Attendance");
         bulkBtn.setOnAction(e -> showBulkHostelAttendanceDialog());
 
         header.getChildren().addAll(title, spacer, markBtn, bulkBtn);
@@ -1191,7 +1185,7 @@ public class HostelManagementView {
         grid.add(new Label("Remarks:"), 0, 3);
         grid.add(remarks, 1, 3);
 
-        Button saveBtn = createButton("Mark", "#22c55e"); // avoid clash with dialog button
+        Button saveBtn = createButton("Mark"); // avoid clash with dialog button
         final int finalHostelId = currentHostelId;
 
         // Listener to check existing attendance
@@ -1316,7 +1310,7 @@ public class HostelManagementView {
         content.setPrefHeight(600);
 
         DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
-        Button loadBtn = createButton("Load Students", "#3b82f6");
+        Button loadBtn = createButton("Load Students");
 
         HBox top = new HBox(10, new Label("Date:"), datePicker, loadBtn);
         top.setAlignment(Pos.CENTER_LEFT);
@@ -1437,7 +1431,7 @@ public class HostelManagementView {
             }
         });
 
-        Button saveBtn = createButton("Save Attendance", "#22c55e");
+        Button saveBtn = createButton("Save Attendance");
         saveBtn.setOnAction(e -> {
             if (records.isEmpty())
                 return;
@@ -1526,7 +1520,7 @@ public class HostelManagementView {
         descArea.setPromptText("Describe the issue in detail...");
         descArea.setPrefHeight(80);
 
-        Button fileBtn = createButton("Submit Complaint", "#ef4444");
+        Button fileBtn = createButton("Submit Complaint");
         final String finalRoomInfo = roomInfoForDesc;
 
         fileBtn.setOnAction(e -> {
@@ -1585,7 +1579,7 @@ public class HostelManagementView {
         VBox.setVgrow(myComplaintsTable, Priority.ALWAYS);
 
         // Load data button
-        Button refreshBtn = createButton("Refresh History", "#3b82f6");
+        Button refreshBtn = createButton("Refresh History");
         refreshBtn.setOnAction(e -> {
             Student s = studentDAO.getStudentByUserId(userId);
             if (s != null) {
@@ -1634,14 +1628,14 @@ public class HostelManagementView {
         table.getColumns().addAll(colId, colStudent, colHostel, colCat, colStatus, colDate);
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        Button refreshBtn = createButton("Refresh");
         refreshBtn.setOnAction(e -> {
             // Should filter by warden's hostel realistically, but for now showing all or
             // all for assigned students
             table.getItems().setAll(cDAO.getAllComplaints());
         });
 
-        Button viewBtn = createButton("View details", "#64748b");
+        Button viewBtn = createButton("View details");
         viewBtn.setOnAction(e -> {
             com.college.models.Complaint sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) {
@@ -1670,7 +1664,7 @@ public class HostelManagementView {
             d.showAndWait();
         });
 
-        Button resolveBtn = createButton("Resolve / Reject", "#22c55e");
+        Button resolveBtn = createButton("Resolve / Reject");
         resolveBtn.setOnAction(e -> {
             com.college.models.Complaint sel = table.getSelectionModel().getSelectedItem();
             if (sel == null) {

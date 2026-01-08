@@ -66,12 +66,12 @@ public class CourseManagementView {
     private void createAdminView() {
         root = new VBox(20);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         HBox header = createHeader();
 
         TabPane tabPane = new TabPane();
-        tabPane.setStyle("-fx-background-color: transparent;");
+        tabPane.getStyleClass().add("floating");
 
         Tab coursesTab = new Tab("Courses");
         coursesTab.setClosable(false);
@@ -167,13 +167,13 @@ public class CourseManagementView {
     private void createStudentView() {
         root = new VBox(20);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #f8fafc;");
+        root.getStyleClass().add("glass-pane");
 
         Label title = new Label("My Academics");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
 
         TabPane tabPane = new TabPane();
-        tabPane.setStyle("-fx-background-color: transparent;");
+        tabPane.getStyleClass().add("floating");
 
         Tab myCoursesTab = new Tab("My Courses");
         myCoursesTab.setClosable(false);

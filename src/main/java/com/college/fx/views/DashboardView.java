@@ -41,7 +41,7 @@ public class DashboardView {
         root.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Remove old inline style
-        // root.setStyle("-fx-background-color: #f8fafc;");
+        // root.getStyleClass().add("glass-pane");
 
         // Create top bar (Simplified for new design, or integrated?)
         // The design implies a clean top, let's keep the existing topbar but maybe
