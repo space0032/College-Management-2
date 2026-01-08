@@ -59,7 +59,7 @@ public class ProfileView {
         String displayName = UserDisplayNameUtil.getDisplayName(userId, role, username);
         Label nameLabel = new Label(displayName);
         nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        nameLabel.setTextFill(Color.web("#0f172a"));
+        // nameLabel.setTextFill(Color.web("#0f172a"));
 
         // Role badge
         Label roleBadge = new Label(role);
@@ -128,7 +128,7 @@ public class ProfileView {
 
         Label valueNode = new Label(value != null ? value : "-");
         valueNode.setFont(Font.font("Segoe UI", 14));
-        valueNode.setTextFill(Color.web("#0f172a"));
+        // valueNode.setTextFill(Color.web("#0f172a"));
 
         grid.add(labelNode, 0, row);
         grid.add(valueNode, 1, row);

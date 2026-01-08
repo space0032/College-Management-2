@@ -216,7 +216,7 @@ public class HostelManagementView {
 
         Label val = new Label(value);
         val.setFont(Font.font("Segoe UI", 14));
-        val.setTextFill(Color.web("#0f172a"));
+        // val.setTextFill(Color.web("#0f172a"));
 
         grid.add(lbl, 0, row);
         grid.add(val, 1, row);
@@ -239,6 +239,7 @@ public class HostelManagementView {
         toolbar.getChildren().addAll(allocateBtn, refreshBtn);
 
         allocationTable = new TableView<>();
+        allocationTable.getStyleClass().add("glass-table");
         allocationTable.setItems(allocationData);
 
         TableColumn<HostelAllocation, String> studentCol = new TableColumn<>("Student");
@@ -303,6 +304,7 @@ public class HostelManagementView {
         toolbar.getChildren().addAll(addHostelBtn, editHostelBtn, deleteHostelBtn, refreshBtn);
 
         hostelTable = new TableView<>();
+        hostelTable.getStyleClass().add("glass-table");
         hostelTable.setItems(hostelData);
 
         TableColumn<Hostel, String> nameCol = new TableColumn<>("Name");
@@ -339,6 +341,7 @@ public class HostelManagementView {
         toolbar.getChildren().addAll(addRoomBtn, deleteRoomBtn, refreshBtn);
 
         roomTable = new TableView<>();
+        roomTable.getStyleClass().add("glass-table");
         roomTable.setItems(roomData);
 
         TableColumn<Room, String> numCol = new TableColumn<>("Room No");
@@ -708,6 +711,7 @@ public class HostelManagementView {
 
         // Warden table
         TableView<Warden> wardenTable = new TableView<>();
+        wardenTable.getStyleClass().add("glass-table");
         wardenTable.setItems(wardenData);
 
         TableColumn<Warden, String> nameCol = new TableColumn<>("Name");
@@ -978,6 +982,7 @@ public class HostelManagementView {
         }
 
         hostelAttendanceTable = new TableView<>();
+        hostelAttendanceTable.getStyleClass().add("glass-table");
         ObservableList<Student> students = FXCollections.observableArrayList();
 
         for (HostelAllocation alloc : hostelAllocs) {
@@ -1316,6 +1321,7 @@ public class HostelManagementView {
         top.setAlignment(Pos.CENTER_LEFT);
 
         TableView<BulkHostelRecord> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         ObservableList<BulkHostelRecord> records = FXCollections.observableArrayList();
         table.setItems(records);
         table.setEditable(true);
@@ -1557,6 +1563,7 @@ public class HostelManagementView {
 
         // List of my complaints
         TableView<com.college.models.Complaint> myComplaintsTable = new TableView<>();
+        myComplaintsTable.getStyleClass().add("glass-table");
 
         TableColumn<com.college.models.Complaint, String> cTitle = new TableColumn<>("Title");
         cTitle.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTitle()));
@@ -1604,6 +1611,7 @@ public class HostelManagementView {
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
 
         TableView<com.college.models.Complaint> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         com.college.dao.ComplaintDAO cDAO = new com.college.dao.ComplaintDAO();
 
         // Cols

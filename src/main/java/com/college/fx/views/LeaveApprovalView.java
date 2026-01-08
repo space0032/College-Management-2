@@ -52,6 +52,7 @@ public class LeaveApprovalView {
 
     private VBox createStudentTable() {
         studentTable = new TableView<>();
+        studentTable.getStyleClass().add("glass-table");
 
         TableColumn<StudentLeave, String> studentCol = new TableColumn<>("Student");
         studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
@@ -109,6 +110,7 @@ public class LeaveApprovalView {
 
     private VBox createStaffTable() {
         staffTable = new TableView<>();
+        staffTable.getStyleClass().add("glass-table");
 
         TableColumn<StaffLeave, String> staffCol = new TableColumn<>("Staff Name");
         staffCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStaffName()));

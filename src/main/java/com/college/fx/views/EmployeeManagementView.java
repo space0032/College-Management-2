@@ -23,9 +23,11 @@ public class EmployeeManagementView extends VBox {
     public EmployeeManagementView() {
         setSpacing(20);
         setPadding(new Insets(20));
+        getStyleClass().add("glass-pane");
+        getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         Label header = new Label("Employee Management (HR)");
-        header.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        header.getStyleClass().add("section-title");
 
         HBox actions = new HBox(10);
         actions.setAlignment(Pos.CENTER_LEFT);
@@ -59,6 +61,7 @@ public class EmployeeManagementView extends VBox {
 
     private void setupTable() {
         table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         TableColumn<Employee, String> colId = new TableColumn<>("ID");

@@ -91,7 +91,7 @@ public class InstituteManagementView {
 
         Label title = new Label("Institute Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
         title.setPadding(new Insets(0, 0, 10, 10));
 
         TabPane tabPane = new TabPane();
@@ -153,6 +153,7 @@ public class InstituteManagementView {
 
         // Table
         deptTable = new TableView<>();
+        deptTable.getStyleClass().add("glass-table");
         deptTable.setItems(deptData);
 
         TableColumn<Department, String> codeCol = new TableColumn<>("Code");
@@ -348,6 +349,7 @@ public class InstituteManagementView {
         roleToolbar.getChildren().addAll(addRoleBtn, editRoleBtn, deleteRoleBtn);
 
         roleTable = new TableView<>();
+        roleTable.getStyleClass().add("glass-table");
         roleTable.setItems(roleData);
 
         TableColumn<Role, String> rNameCol = new TableColumn<>("Role Name");
@@ -797,6 +799,7 @@ public class InstituteManagementView {
         toolbar.getChildren().add(refreshBtn);
 
         auditTable = new TableView<>();
+        auditTable.getStyleClass().add("glass-table");
         auditTable.setItems(auditData);
 
         TableColumn<AuditLog, String> timeCol = new TableColumn<>("Timestamp");
@@ -847,6 +850,7 @@ public class InstituteManagementView {
         toolbar.getChildren().addAll(addUserBtn, refreshBtn);
 
         userTable = new TableView<>();
+        userTable.getStyleClass().add("glass-table");
         userTable.setItems(userData);
 
         TableColumn<User, String> idCol = new TableColumn<>("ID");

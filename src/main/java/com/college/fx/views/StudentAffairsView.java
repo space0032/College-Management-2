@@ -41,7 +41,7 @@ public class StudentAffairsView {
 
         Label title = new Label("Student Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
         title.setPadding(new Insets(0, 0, 10, 10));
 
         TabPane tabPane = new TabPane();

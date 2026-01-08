@@ -30,6 +30,7 @@ public class VolunteerTasksView {
         title.setStyle("-fx-text-fill: #1e293b;");
 
         table = new TableView<>();
+        table.getStyleClass().add("glass-table");
 
         TableColumn<EventVolunteer, String> eventCol = new TableColumn<>("Event");
         eventCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEventName()));

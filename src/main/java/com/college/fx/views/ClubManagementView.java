@@ -65,7 +65,7 @@ public class ClubManagementView {
 
         Label title = new Label("Club Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -88,6 +88,7 @@ public class ClubManagementView {
         VBox.setVgrow(section, Priority.ALWAYS);
 
         clubsTable = new TableView<>();
+        clubsTable.getStyleClass().add("glass-table");
         clubsTable.setItems(clubsData);
         clubsTable.setPlaceholder(new Label("No clubs yet.\nClick 'Create Club' to get started."));
         clubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
@@ -373,6 +374,7 @@ public class ClubManagementView {
         content.setPrefHeight(400);
 
         TableView<ClubMembership> memberTable = new TableView<>();
+        memberTable.getStyleClass().add("glass-table");
         TableColumn<ClubMembership, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
         nameCol.setPrefWidth(200);
@@ -427,6 +429,7 @@ public class ClubManagementView {
         content.setPrefHeight(400);
 
         TableView<ClubMembership> pendingTable = new TableView<>();
+        pendingTable.getStyleClass().add("glass-table");
         TableColumn<ClubMembership, String> nameCol = new TableColumn<>("Student Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
         nameCol.setPrefWidth(200);

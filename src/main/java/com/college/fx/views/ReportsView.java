@@ -36,7 +36,7 @@ public class ReportsView {
 
         Label title = new Label("Reports & Analytics");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         header.getChildren().add(title);
         root.setTop(header);

@@ -123,6 +123,7 @@ public class StudentLeaveView {
         historyTitle.setStyle("-fx-text-fill: #334155;");
 
         leaveTable = new TableView<>();
+        leaveTable.getStyleClass().add("glass-table");
 
         TableColumn<StudentLeave, String> typeCol = new TableColumn<>("Type");
         typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getLeaveType()));

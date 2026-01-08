@@ -126,7 +126,7 @@ public class AcademicCalendarView {
         VBox cell = new VBox(5);
         cell.setPrefSize(100, 100);
         cell.setPadding(new Insets(5));
-        cell.setStyle("-fx-border-color: #e2e8f0; -fx-background-color: white;");
+        cell.getStyleClass().add("glass-card");
 
         // Highlight today
         if (date.equals(LocalDate.now())) {

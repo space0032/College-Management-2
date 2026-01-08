@@ -84,7 +84,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
 
         Label title = new Label("Student Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);

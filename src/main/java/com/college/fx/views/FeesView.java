@@ -67,7 +67,7 @@ public class FeesView {
 
         Label title = new Label(role.equals("STUDENT") ? "My Fees" : "Fee Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -97,6 +97,7 @@ public class FeesView {
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(feeData);
 
         TableColumn<StudentFee, String> idCol = new TableColumn<>("ID");

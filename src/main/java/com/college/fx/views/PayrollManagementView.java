@@ -95,6 +95,7 @@ public class PayrollManagementView {
 
     private TableView<PayrollEntry> createTable() {
         TableView<PayrollEntry> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         table.setItems(payrollData);
 
         TableColumn<PayrollEntry, String> empCol = new TableColumn<>("Employee");

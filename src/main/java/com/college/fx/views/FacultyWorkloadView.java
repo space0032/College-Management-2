@@ -41,7 +41,7 @@ public class FacultyWorkloadView {
 
         Label title = new Label("Faculty Workload Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         HBox toolbar = new HBox(10);
         Button refreshBtn = createButton("Refresh", "#3b82f6");
@@ -49,6 +49,7 @@ public class FacultyWorkloadView {
         toolbar.getChildren().add(refreshBtn);
 
         table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         table.setItems(data);
 
         TableColumn<FacultyWorkloadItem, String> nameCol = new TableColumn<>("Faculty Name");

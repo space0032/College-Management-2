@@ -99,6 +99,7 @@ public class CourseManagementView {
         content.setPadding(new Insets(15));
 
         TableView<com.college.dao.CourseRegistrationDAO.RegistrationRequest> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
 
         TableColumn<com.college.dao.CourseRegistrationDAO.RegistrationRequest, String> idCol = new TableColumn<>("ID");
         idCol.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
@@ -311,6 +312,7 @@ public class CourseManagementView {
     // Helper to create table columns
     private TableView<Course> createBasicCourseTable() {
         TableView<Course> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
 
         TableColumn<Course, String> codeCol = new TableColumn<>("Code");
         codeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCode()));
@@ -342,7 +344,7 @@ public class CourseManagementView {
 
         Label title = new Label(role.equals("STUDENT") ? "My Courses" : "Course Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -369,6 +371,7 @@ public class CourseManagementView {
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(courseData);
 
         TableColumn<Course, String> codeCol = new TableColumn<>("Code");

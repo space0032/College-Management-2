@@ -100,6 +100,7 @@ public class StaffLeaveView {
 
     private VBox createTable() {
         leaveTable = new TableView<>();
+        leaveTable.getStyleClass().add("glass-table");
         leaveTable.setItems(leaveData);
 
         TableColumn<StaffLeave, String> typeCol = new TableColumn<>("Type");

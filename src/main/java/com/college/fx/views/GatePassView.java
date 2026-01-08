@@ -65,7 +65,7 @@ public class GatePassView {
 
         Label title = new Label(role.equals("STUDENT") ? "My Gate Passes" : "Gate Pass Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -84,6 +84,7 @@ public class GatePassView {
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(gatePassData);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");

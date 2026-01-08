@@ -82,7 +82,7 @@ public class TimetableView {
 
         Label title = new Label("Weekly Timetable");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -277,7 +277,7 @@ public class TimetableView {
     private Label createFilledCell(String subject, String room) {
         Label label = new Label(subject + "\n" + room);
         label.setFont(Font.font("Segoe UI", 11));
-        label.setTextFill(Color.web("#0f172a"));
+        // label.setTextFill(Color.web("#0f172a"));
         label.setAlignment(Pos.CENTER);
         label.setWrapText(true);
         label.setPrefWidth(120);

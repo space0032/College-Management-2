@@ -57,7 +57,7 @@ public class AnnouncementManagementView {
 
         Label title = new Label("Announcement Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -76,6 +76,7 @@ public class AnnouncementManagementView {
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(announcementData);
 
         TableColumn<Announcement, String> priorityCol = new TableColumn<>("Priority");

@@ -65,7 +65,7 @@ public class EventManagementView {
 
         Label title = new Label("Event Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -90,6 +90,7 @@ public class EventManagementView {
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy HH:mm");
 
         eventsTable = new TableView<>();
+        eventsTable.getStyleClass().add("glass-table");
         eventsTable.setItems(eventsData);
         eventsTable.setPlaceholder(new Label("No events yet.\nClick 'Create Event' to get started."));
         eventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
@@ -273,6 +274,7 @@ public class EventManagementView {
         content.setPadding(new Insets(10));
 
         TableView<EventRegistration> regTable = new TableView<>();
+        regTable.getStyleClass().add("glass-table");
         TableColumn<EventRegistration, String> studentCol = new TableColumn<>("Student");
         studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
         studentCol.setPrefWidth(200);
@@ -354,6 +356,7 @@ public class EventManagementView {
 
         // List Section
         TableView<com.college.models.EventCollaborator> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         TableColumn<com.college.models.EventCollaborator, String> deptCol = new TableColumn<>("Department");
         deptCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDepartmentName()));
         deptCol.setPrefWidth(200);
@@ -406,6 +409,7 @@ public class EventManagementView {
 
         // List Section
         TableView<com.college.models.EventResource> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         TableColumn<com.college.models.EventResource, String> nameCol = new TableColumn<>("Resource");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getResourceName()));
         nameCol.setPrefWidth(200);
@@ -503,6 +507,7 @@ public class EventManagementView {
         // For now, let's just View volunteers and their tasks.
 
         TableView<com.college.models.EventVolunteer> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         TableColumn<com.college.models.EventVolunteer, String> studentCol = new TableColumn<>("Student");
         studentCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStudentName()));
         studentCol.setPrefWidth(150);

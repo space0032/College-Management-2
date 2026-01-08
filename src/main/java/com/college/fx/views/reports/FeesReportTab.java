@@ -69,6 +69,7 @@ public class FeesReportTab {
         // Table Section
         VBox tableBox = new VBox(10);
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableData = FXCollections.observableArrayList();
         tableView.setItems(tableData);
         VBox.setVgrow(tableView, Priority.ALWAYS);

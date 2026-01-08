@@ -71,6 +71,7 @@ public class GradesReportTab {
         // Table
         VBox tableBox = new VBox(10);
         gradeTable = new TableView<>();
+        gradeTable.getStyleClass().add("glass-table");
         VBox.setVgrow(gradeTable, Priority.ALWAYS);
 
         TableColumn<com.college.models.Grade, String> studentCol = new TableColumn<>("Student Name");

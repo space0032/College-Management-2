@@ -47,7 +47,7 @@ public class ChangePasswordView {
         // Title
         Label title = new Label("Change Password");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Label subtitle = new Label("Enter your current password and choose a new one");
         subtitle.setFont(Font.font("Segoe UI", 14));

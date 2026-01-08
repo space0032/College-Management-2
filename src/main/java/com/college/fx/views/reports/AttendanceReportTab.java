@@ -78,6 +78,7 @@ public class AttendanceReportTab {
 
         // Table
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(filteredData);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 

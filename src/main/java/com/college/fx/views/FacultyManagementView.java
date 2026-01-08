@@ -74,7 +74,7 @@ public class FacultyManagementView {
 
         Label title = new Label("Faculty Management");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
-        title.setTextFill(Color.web("#0f172a"));
+        // title.setTextFill(Color.web("#0f172a"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -101,6 +101,7 @@ public class FacultyManagementView {
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("glass-table");
         tableView.setItems(facultyData);
 
         // Columns - Faculty ID should be first and prominent

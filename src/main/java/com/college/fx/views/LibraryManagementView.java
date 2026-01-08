@@ -155,6 +155,7 @@ public class LibraryManagementView {
 
         // Table
         catalogTable = new TableView<>();
+        catalogTable.getStyleClass().add("glass-table");
         catalogTable.setItems(bookData);
 
         TableColumn<Book, String> idCol = new TableColumn<>("ID");
@@ -215,6 +216,7 @@ public class LibraryManagementView {
         content.setPadding(new Insets(10));
 
         issuedTable = new TableView<>();
+        issuedTable.getStyleClass().add("glass-table");
         issuedTable.setItems(issuedData);
 
         TableColumn<BookIssue, String> bTitleCol = new TableColumn<>("Book Title");
@@ -261,6 +263,7 @@ public class LibraryManagementView {
         content.setPadding(new Insets(10));
 
         requestTable = new TableView<>();
+        requestTable.getStyleClass().add("glass-table");
         requestTable.setItems(requestData);
 
         TableColumn<BookRequest, String> titleCol = new TableColumn<>("Book Title");
@@ -313,6 +316,7 @@ public class LibraryManagementView {
         content.setPadding(new Insets(10));
 
         reviewTable = new TableView<>();
+        reviewTable.getStyleClass().add("glass-table");
         reviewTable.setItems(reviewData);
 
         TableColumn<BookRequest, String> idCol = new TableColumn<>("ID");
