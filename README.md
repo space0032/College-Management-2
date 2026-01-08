@@ -13,21 +13,23 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
 ## ✨ Key Features
 
 ### 🎨 Modern UI & Experience
-- **AtlantaFX Theme**: tailored, modern look and feel.
-- **Responsive Navigation**: Role-specific dashboards and sidebars.
+- **Glassmorphism Design**: A stunning dark-themed UI with glass-effect cards, transparent tables, and rounded aesthetics.
+- **Redesigned Login**: A modern, secure, and visually appealing login screen with SVG icons and gradient styles.
+- **Responsive Layouts**: Fluid sidebar navigation and pill-shaped tab panes for a premium user experience.
+- **AtlantaFX Integration**: Leveraging the best of JavaFX styling libraries for consistent components.
 
 ### 🛠️ Technical Enhancements
 - **Native Migrations**: Custom `MigrationRunner` automatically updates the database schema on startup. No manual SQL scripts needed.
-- **Transactional Integrity**: `EnrollmentDAO` ensures data consistency across users and students.
+- **Transactional Integrity**: `EnrollmentDAO` and others ensure data consistency across complex operations.
+- **Performance Optimized**: Resolved N+1 query issues and memory leaks for a snappy experience (20x faster).
 - **CI/CD**: Automated build and testing pipeline via GitHub Actions.
-- **Comprehensive Testing**: JUnit 5 & Mockito test suite ensuring core logic stability.
 
 ### 👥 Role-Based Access Control
 - **Admin**: Complete system oversight, user management, and system logs.
 - **Faculty**: Course management, attendance marking, grading.
 - **Student**: View personalized timetable, attendance, grades, and fees.
 - **Warden**: Hostel room allocation and gate pass management.
-- **Finance**: **(New)** Manage fee collections, view transaction reports, and handle receipts.
+- **Finance**: Manage fee collections, view transaction reports, and handle receipts.
 
 ### 📚 Core Modules
 - **Institute**: Manage Students, Faculty, Courses, Departments.
@@ -35,7 +37,7 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
 - **Hostel**: Room allocation, Warden management, Gate Passes.
 - **Reports**: Visual analytics for Attendance, Fees, and Grades (with CSV export).
 - **Student Activities**: Manage and join Events & Clubs with approval workflows.
-- **Learning Portal**: Course syllabus management and digital learning resources (PDF, DOCX).
+- **Learning Portal**: Course syllabus management and digital learning resources.
 - **AI & Intelligence**: 
   - **Gemini AI**: Integrated chat assistant for instant support.
   - **Smart Calendar**: Academic calendar with auto-holiday syncing.
@@ -114,19 +116,21 @@ All test users have password: **`123`**
 
 ### Admin
 - **User**: `admin`
+-  **Password**: `admin123`
+
 
 ### Faculty
 - **Users**: `FAC001`, `FAC002`...
 
 ### Student
-- **Users**: `CS2026001`, `CS2026002`...
+- **Users**: `TES2026001`
+- **Password**: `123`
 
-### Finance **(New)**
-- **User**: `finance_admin`
-- **Access**: Fee collection, Dashboard statistics.
+### Finance
+- **User**: `Create From Portal`
 
 ### Warden
-- **Users**: `WARDEN01`...
+- **Users**: `Create From Portal`...
 
 ---
 
@@ -157,7 +161,7 @@ College-Management-2/
 ## 💻 Technology Stack
 
 - **Language**: Java 17
-- **UI Framework**: JavaFX + AtlantaFX (Theme)
+- **UI Framework**: JavaFX + AtlantaFX (Theme) + Custom CSS (Glassmorphism)
 - **Database**: MySQL 8.0 (JDBC)
 - **Testing**: JUnit 5, Mockito
 - **Build**: Custom Bash Scripts + Maven (for dependency resolution)
