@@ -28,7 +28,7 @@ public class LeaveApprovalView {
         // Header
         Label title = new Label("Leave Approvals");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setStyle("-fx-text-fill: #1e293b;");
+        title.setStyle("-fx-text-fill: #e2e8f0;");
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
@@ -100,7 +100,7 @@ public class LeaveApprovalView {
             }
         });
 
-        studentTable.getColumns().addAll(studentCol, typeCol, datesCol, reasonCol, actionCol);
+        studentTable.getColumns().addAll(java.util.Arrays.asList(studentCol, typeCol, datesCol, reasonCol, actionCol));
         studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(studentTable, Priority.ALWAYS);
 
@@ -159,7 +159,7 @@ public class LeaveApprovalView {
             }
         });
 
-        staffTable.getColumns().addAll(staffCol, typeCol, datesCol, reasonCol, actionCol);
+        staffTable.getColumns().addAll(java.util.Arrays.asList(staffCol, typeCol, datesCol, reasonCol, actionCol));
         staffTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(staffTable, Priority.ALWAYS);
 

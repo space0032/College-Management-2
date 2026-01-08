@@ -13,9 +13,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import com.college.dao.CourseDAO;
 import com.college.models.Course;
@@ -82,7 +79,6 @@ public class GradesView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -150,10 +146,13 @@ public class GradesView {
 
         // Add columns based on role
         if (role.equals("STUDENT")) {
-            tableView.getColumns().addAll(courseCol, deptCol, semCol, examCol, marksCol, gradeCol);
+            tableView.getColumns()
+                    .addAll(java.util.Arrays.asList(courseCol, deptCol, semCol, examCol, marksCol, gradeCol));
         } else {
-            tableView.getColumns().addAll(studentCol, enrollCol, courseCol, deptCol, semCol, examCol, marksCol,
-                    gradeCol);
+            tableView.getColumns()
+                    .addAll(java.util.Arrays.asList(studentCol, enrollCol, courseCol, deptCol, semCol, examCol,
+                            marksCol,
+                            gradeCol));
         }
 
         VBox.setVgrow(tableView, Priority.ALWAYS);
@@ -408,7 +407,7 @@ public class GradesView {
         });
         marksCol.setPrefWidth(100);
 
-        gradeTable.getColumns().addAll(nameCol, marksCol);
+        gradeTable.getColumns().addAll(java.util.Arrays.asList(nameCol, marksCol));
 
         loadBtn.setOnAction(e -> {
             if (courseCombo.getValue() == null) {

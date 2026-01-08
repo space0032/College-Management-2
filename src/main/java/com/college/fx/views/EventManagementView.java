@@ -11,7 +11,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -80,7 +80,6 @@ public class EventManagementView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox(15);
         section.setPadding(new Insets(20));
@@ -169,7 +168,8 @@ public class EventManagementView {
         });
         actionCol.setPrefWidth(300);
 
-        eventsTable.getColumns().addAll(nameCol, typeCol, dateCol, locationCol, registrationsCol, statusCol, actionCol);
+        eventsTable.getColumns().addAll(java.util.Arrays.asList(nameCol, typeCol, dateCol, locationCol,
+                registrationsCol, statusCol, actionCol));
         section.getChildren().add(eventsTable);
         return section;
     }
@@ -317,7 +317,7 @@ public class EventManagementView {
         });
         actionCol.setPrefWidth(130);
 
-        regTable.getColumns().addAll(studentCol, dateCol, statusCol, actionCol);
+        regTable.getColumns().addAll(java.util.Arrays.asList(studentCol, dateCol, statusCol, actionCol));
 
         List<EventRegistration> registrations = eventDAO.getEventRegistrations(event.getId());
         regTable.setItems(FXCollections.observableArrayList(registrations));
@@ -365,7 +365,7 @@ public class EventManagementView {
         statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
         statusCol.setPrefWidth(120);
 
-        table.getColumns().addAll(deptCol, statusCol);
+        table.getColumns().addAll(java.util.Arrays.asList(deptCol, statusCol));
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Runnable loadCollaborators = () -> {
@@ -468,7 +468,7 @@ public class EventManagementView {
         });
         actionCol.setPrefWidth(200);
 
-        table.getColumns().addAll(nameCol, qtyCol, statusCol, actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(nameCol, qtyCol, statusCol, actionCol));
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Runnable loadResources = () -> {
@@ -559,7 +559,7 @@ public class EventManagementView {
         });
         actionCol.setPrefWidth(220);
 
-        table.getColumns().addAll(studentCol, taskCol, statusCol, hoursCol, actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(studentCol, taskCol, statusCol, hoursCol, actionCol));
         VBox.setVgrow(table, Priority.ALWAYS);
 
         table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getVolunteers(event.getId())));

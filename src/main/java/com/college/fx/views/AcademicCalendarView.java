@@ -270,7 +270,7 @@ public class AcademicCalendarView {
 
         if (SessionManager.getInstance().getRole().equals("ADMIN")) {
             Label hint = new Label("(Double-click a day to add event)");
-            hint.setTextFill(Color.GRAY);
+            // hint.setTextFill(Color.GRAY);
             legend.getChildren().add(hint);
         }
 

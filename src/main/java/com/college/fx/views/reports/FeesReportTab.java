@@ -118,7 +118,7 @@ public class FeesReportTab {
 
     private Label createStatLabel(String title, double value) {
         Label label = new Label(String.format("%s: $%.2f", title, value));
-        label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #334155;");
+        label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
         return label;
     }
 

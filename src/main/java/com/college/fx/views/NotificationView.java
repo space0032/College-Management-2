@@ -4,10 +4,10 @@ import com.college.dao.NotificationDAO;
 import com.college.models.Notification;
 import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -53,7 +53,7 @@ public class NotificationView {
                     message.setWrapText(true);
 
                     Label date = new Label(item.getCreatedAt().toString().replace("T", " ").substring(0, 16));
-                    date.setTextFill(Color.GRAY);
+                    // date.setTextFill(Color.GRAY);
                     date.setFont(Font.font("Segoe UI", 10));
 
                     card.getChildren().addAll(subject, message, date);

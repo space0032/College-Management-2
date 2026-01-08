@@ -27,7 +27,7 @@ public class VolunteerTasksView {
         // Header
         Label title = new Label("My Volunteer Tasks");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setStyle("-fx-text-fill: #1e293b;");
+        title.setStyle("-fx-text-fill: #e2e8f0;");
 
         table = new TableView<>();
         table.getStyleClass().add("glass-table");
@@ -94,7 +94,7 @@ public class VolunteerTasksView {
             }
         });
 
-        table.getColumns().addAll(eventCol, taskCol, statusCol, hoursCol, actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(eventCol, taskCol, statusCol, hoursCol, actionCol));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
 

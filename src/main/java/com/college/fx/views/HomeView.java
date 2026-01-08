@@ -407,7 +407,7 @@ public class HomeView {
                     actionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
 
                     Label timeLabel = new Label(getRelativeTime(item.getTimestamp()));
-                    timeLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px;"); // Slate-500
+                    timeLabel.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 11px;"); // Slate-500
 
                     textContent.getChildren().addAll(actionLabel, timeLabel);
 
@@ -464,7 +464,7 @@ public class HomeView {
 
                     // Priority Badge
                     Label badge = new Label();
-                    String priority = item.getPriority(); // Urgent, News, Info?
+                    // Urgent, News, Info?
                     // Map priority icon/text to badge style
                     if (item.getPriorityIcon() != null && item.getPriorityIcon().contains("[!]")) {
                         badge.setText("Urgent");
@@ -579,14 +579,6 @@ public class HomeView {
     private String getHostelRoomsCount() {
         try {
             return String.valueOf(new HostelDAO().getAllRooms().size());
-        } catch (Exception e) {
-            return "0";
-        }
-    }
-
-    private String getHostelStudentCount() {
-        try {
-            return String.valueOf(new StudentDAO().getHostelStudents().size());
         } catch (Exception e) {
             return "0";
         }

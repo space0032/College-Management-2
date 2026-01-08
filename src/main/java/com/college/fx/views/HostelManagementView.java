@@ -203,7 +203,7 @@ public class HostelManagementView {
 
         Label noAllocLabel = new Label("No hostel room allocated assigned.");
         noAllocLabel.setFont(Font.font("Segoe UI", 16));
-        noAllocLabel.setTextFill(Color.web("#64748b"));
+        // noAllocLabel.setTextFill(Color.web("#64748b"));
         content.getChildren().add(noAllocLabel);
 
         return content;
@@ -212,7 +212,7 @@ public class HostelManagementView {
     private void addDetailRow(GridPane grid, String label, String value, int row) {
         Label lbl = new Label(label);
         lbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
-        lbl.setTextFill(Color.web("#64748b"));
+        // lbl.setTextFill(Color.web("#64748b"));
 
         Label val = new Label(value);
         val.setFont(Font.font("Segoe UI", 14));
@@ -274,7 +274,8 @@ public class HostelManagementView {
             }
         });
 
-        allocationTable.getColumns().addAll(studentCol, hostelCol, roomCol, dateCol, actionCol);
+        allocationTable.getColumns()
+                .addAll(java.util.Arrays.asList(studentCol, hostelCol, roomCol, dateCol, actionCol));
         VBox.setVgrow(allocationTable, Priority.ALWAYS);
 
         content.getChildren().addAll(toolbar, allocationTable);
@@ -316,7 +317,7 @@ public class HostelManagementView {
         TableColumn<Hostel, String> wardenCol = new TableColumn<>("Warden");
         wardenCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getWardenName()));
 
-        hostelTable.getColumns().addAll(nameCol, typeCol, wardenCol);
+        hostelTable.getColumns().addAll(java.util.Arrays.asList(nameCol, typeCol, wardenCol));
         VBox.setVgrow(hostelTable, Priority.ALWAYS);
 
         content.getChildren().addAll(toolbar, hostelTable);
@@ -354,7 +355,7 @@ public class HostelManagementView {
         capCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getOccupiedCount() + "/" + data.getValue().getCapacity()));
 
-        roomTable.getColumns().addAll(numCol, hostelCol, capCol);
+        roomTable.getColumns().addAll(java.util.Arrays.asList(numCol, hostelCol, capCol));
         VBox.setVgrow(roomTable, Priority.ALWAYS);
 
         content.getChildren().addAll(toolbar, roomTable);
@@ -737,7 +738,7 @@ public class HostelManagementView {
         userCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getUsername()));
         userCol.setPrefWidth(120);
 
-        wardenTable.getColumns().addAll(nameCol, userCol, emailCol, phoneCol, hostelCol);
+        wardenTable.getColumns().addAll(java.util.Arrays.asList(nameCol, userCol, emailCol, phoneCol, hostelCol));
         VBox.setVgrow(wardenTable, Priority.ALWAYS);
 
         // Control buttons
@@ -1069,7 +1070,7 @@ public class HostelManagementView {
         });
         statusCol.setPrefWidth(120);
 
-        hostelAttendanceTable.getColumns().addAll(nameCol, enrollCol, roomCol, statusCol);
+        hostelAttendanceTable.getColumns().addAll(java.util.Arrays.asList(nameCol, enrollCol, roomCol, statusCol));
         VBox.setVgrow(hostelAttendanceTable, Priority.ALWAYS);
 
         // Initial Data Load with Status
@@ -1367,7 +1368,7 @@ public class HostelManagementView {
             }
         });
 
-        table.getColumns().addAll(roomCol, enrollCol, nameCol, statusCol);
+        table.getColumns().addAll(java.util.Arrays.asList(roomCol, enrollCol, nameCol, statusCol));
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Warden warden = wardenDAO.getWardenByUserId(userId);
@@ -1512,7 +1513,7 @@ public class HostelManagementView {
         formTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
 
         Label roomLabel = new Label("Your Location: " + detectedRoom);
-        roomLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748b;");
+        roomLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
 
         TextField titleField = new TextField();
         titleField.setPromptText("Complaint Title (e.g., Leaking Tap)");
@@ -1582,7 +1583,7 @@ public class HostelManagementView {
         cRemarks.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getRemarks()));
         cRemarks.setPrefWidth(200);
 
-        myComplaintsTable.getColumns().addAll(cTitle, cCat, cStatus, cDate, cRemarks);
+        myComplaintsTable.getColumns().addAll(java.util.Arrays.asList(cTitle, cCat, cStatus, cDate, cRemarks));
         VBox.setVgrow(myComplaintsTable, Priority.ALWAYS);
 
         // Load data button
@@ -1633,7 +1634,7 @@ public class HostelManagementView {
         TableColumn<com.college.models.Complaint, String> colDate = new TableColumn<>("Date");
         colDate.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFiledDate().toString()));
 
-        table.getColumns().addAll(colId, colStudent, colHostel, colCat, colStatus, colDate);
+        table.getColumns().addAll(java.util.Arrays.asList(colId, colStudent, colHostel, colCat, colStatus, colDate));
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Button refreshBtn = createButton("Refresh");

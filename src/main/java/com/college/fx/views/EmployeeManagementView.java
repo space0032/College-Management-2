@@ -86,7 +86,8 @@ public class EmployeeManagementView extends VBox {
         TableColumn<Employee, String> colStatus = new TableColumn<>("Status");
         colStatus.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus().name()));
 
-        table.getColumns().addAll(colId, colName, colEmail, colDesignation, colSalary, colStatus);
+        table.getColumns()
+                .addAll(java.util.Arrays.asList(colId, colName, colEmail, colDesignation, colSalary, colStatus));
     }
 
     private void refreshTable() {

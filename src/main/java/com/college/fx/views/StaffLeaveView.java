@@ -136,7 +136,7 @@ public class StaffLeaveView {
             }
         });
 
-        leaveTable.getColumns().addAll(typeCol, fromCol, toCol, reasonCol, statusCol);
+        leaveTable.getColumns().addAll(java.util.Arrays.asList(typeCol, fromCol, toCol, reasonCol, statusCol));
         VBox.setVgrow(leaveTable, Priority.ALWAYS);
 
         VBox box = new VBox(10, new Label("My Leave History"), leaveTable);

@@ -224,7 +224,8 @@ public class SyllabusManagementView {
             }
         });
 
-        syllabusTable.getColumns().addAll(versionCol, titleCol, descCol, dateCol, uploaderCol, actionCol);
+        syllabusTable.getColumns()
+                .addAll(java.util.Arrays.asList(versionCol, titleCol, descCol, dateCol, uploaderCol, actionCol));
     }
 
     private void loadSyllabi() {

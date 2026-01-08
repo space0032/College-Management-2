@@ -16,9 +16,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import java.text.SimpleDateFormat;
 
@@ -84,7 +81,6 @@ public class AttendanceView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -138,7 +134,7 @@ public class AttendanceView {
             tableView.getColumns().add(studentCol);
         }
 
-        tableView.getColumns().addAll(dateCol, courseCol, statusCol);
+        tableView.getColumns().addAll(java.util.Arrays.asList(dateCol, courseCol, statusCol));
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;

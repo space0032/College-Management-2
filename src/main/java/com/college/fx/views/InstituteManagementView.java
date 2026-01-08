@@ -17,7 +17,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -99,13 +99,13 @@ public class InstituteManagementView {
         tabPane.getStyleClass().add("floating");
 
         Tab deptTab = new Tab("Departments");
-        deptTab.setContent(createDepartmentTab());
+        deptTab.setContent(createDepartmentsSection());
 
         Tab roleTab = new Tab("Roles & Permissions");
-        roleTab.setContent(createRoleTab());
+        roleTab.setContent(createRolesSection());
 
         Tab auditTab = new Tab("Audit Logs");
-        auditTab.setContent(createAuditTab());
+        auditTab.setContent(createAuditSection());
 
         // Student & Faculty Tabs (Integrated)
         Tab studentTab = new Tab("Students");
@@ -133,8 +133,7 @@ public class InstituteManagementView {
 
     // ==================== DEPARTMENTS TAB ====================
 
-    @SuppressWarnings("unchecked")
-    private VBox createDepartmentTab() {
+    private VBox createDepartmentsSection() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
         content.getStyleClass().add("glass-card");
@@ -192,7 +191,7 @@ public class InstituteManagementView {
             }
         });
 
-        deptTable.getColumns().addAll(codeCol, nameCol, headCol, actionCol);
+        deptTable.getColumns().addAll(java.util.Arrays.asList(codeCol, nameCol, headCol, actionCol));
         VBox.setVgrow(deptTable, Priority.ALWAYS);
 
         content.getChildren().addAll(toolbar, deptTable);
@@ -245,22 +244,22 @@ public class InstituteManagementView {
         }
 
         Label codeLabel = new Label("Code:");
-        codeLabel.setStyle("-fx-text-fill: black;");
+        codeLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(codeLabel, 0, 0);
         grid.add(codeField, 1, 0);
 
         Label nameLabel = new Label("Name:");
-        nameLabel.setStyle("-fx-text-fill: black;");
+        nameLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(nameLabel, 0, 1);
         grid.add(nameField, 1, 1);
 
         Label headLabel = new Label("Head:");
-        headLabel.setStyle("-fx-text-fill: black;");
+        headLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(headLabel, 0, 2);
         grid.add(headField, 1, 2);
 
         Label descLabel = new Label("Description:");
-        descLabel.setStyle("-fx-text-fill: black;");
+        descLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(descLabel, 0, 3);
         grid.add(descArea, 1, 3);
 
@@ -319,8 +318,7 @@ public class InstituteManagementView {
 
     // ==================== ROLES TAB ====================
 
-    @SuppressWarnings("unchecked")
-    private HBox createRoleTab() {
+    private HBox createRolesSection() {
         HBox content = new HBox(15);
         content.setPadding(new Insets(20));
         content.getStyleClass().add("glass-card");
@@ -364,7 +362,7 @@ public class InstituteManagementView {
         rSysCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().isSystemRole() ? "Yes" : "No"));
         rSysCol.setPrefWidth(80);
 
-        roleTable.getColumns().addAll(rNameCol, rCodeCol, rSysCol);
+        roleTable.getColumns().addAll(java.util.Arrays.asList(rNameCol, rCodeCol, rSysCol));
         VBox.setVgrow(roleTable, Priority.ALWAYS);
 
         roleTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -471,22 +469,22 @@ public class InstituteManagementView {
         }
 
         Label codeLabel = new Label("Code:");
-        codeLabel.setStyle("-fx-text-fill: black;");
+        codeLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(codeLabel, 0, 0);
         grid.add(codeField, 1, 0);
 
         Label nameLabel = new Label("Name:");
-        nameLabel.setStyle("-fx-text-fill: black;");
+        nameLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(nameLabel, 0, 1);
         grid.add(nameField, 1, 1);
 
         Label descLabel = new Label("Description:");
-        descLabel.setStyle("-fx-text-fill: black;");
+        descLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(descLabel, 0, 2);
         grid.add(descArea, 1, 2);
 
         Label portalLabel = new Label("Portal Type:");
-        portalLabel.setStyle("-fx-text-fill: black;");
+        portalLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(portalLabel, 0, 3);
         grid.add(portalCombo, 1, 3);
 
@@ -787,8 +785,7 @@ public class InstituteManagementView {
 
     // ==================== AUDIT LOG TAB ====================
 
-    @SuppressWarnings("unchecked")
-    private VBox createAuditTab() {
+    private VBox createAuditSection() {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
         content.getStyleClass().add("glass-card");
@@ -820,7 +817,7 @@ public class InstituteManagementView {
         detailsCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDetails()));
         detailsCol.setPrefWidth(300);
 
-        auditTable.getColumns().addAll(timeCol, userCol, actionCol, detailsCol);
+        auditTable.getColumns().addAll(java.util.Arrays.asList(timeCol, userCol, actionCol, detailsCol));
         VBox.setVgrow(auditTable, Priority.ALWAYS);
 
         content.getChildren().addAll(toolbar, auditTable);
@@ -893,7 +890,7 @@ public class InstituteManagementView {
             }
         });
 
-        userTable.getColumns().addAll(idCol, nameCol, roleCol, actionCol);
+        userTable.getColumns().addAll(java.util.Arrays.asList(idCol, nameCol, roleCol, actionCol));
         VBox.setVgrow(userTable, Priority.ALWAYS);
 
         content.getChildren().addAll(toolbar, userTable);
@@ -970,17 +967,17 @@ public class InstituteManagementView {
         });
 
         Label userLabel = new Label("Username:");
-        userLabel.setStyle("-fx-text-fill: black;");
+        userLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(userLabel, 0, 0);
         grid.add(usernameField, 1, 0);
 
         Label passLabel = new Label("Password:");
-        passLabel.setStyle("-fx-text-fill: black;");
+        passLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(passLabel, 0, 1);
         grid.add(passwordField, 1, 1);
 
         Label roleLabel = new Label("Role:");
-        roleLabel.setStyle("-fx-text-fill: black;");
+        roleLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(roleLabel, 0, 2);
         grid.add(roleCombo, 1, 2);
 

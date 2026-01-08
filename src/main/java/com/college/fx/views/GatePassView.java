@@ -77,7 +77,6 @@ public class GatePassView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -145,7 +144,8 @@ public class GatePassView {
             }
         });
 
-        tableView.getColumns().addAll(idCol, studentCol, enrollCol, reasonCol, fromCol, toCol, statusCol);
+        tableView.getColumns()
+                .addAll(java.util.Arrays.asList(idCol, studentCol, enrollCol, reasonCol, fromCol, toCol, statusCol));
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;

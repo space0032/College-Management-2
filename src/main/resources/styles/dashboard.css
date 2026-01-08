@@ -1,6 +1,7 @@
 /* Icons */
 .menu-icon {
     -fx-fill: #94a3b8;
+    fill: #94a3b8;
     /* Default inactive color */
 }
 
@@ -8,10 +9,12 @@
 .menu-item:hover .vector-icon {
     /* Fallback name */
     -fx-fill: white;
+    fill: white;
 }
 
 .menu-item-active .menu-icon {
     -fx-fill: white;
+    fill: white;
 }
 
 
@@ -32,6 +35,7 @@
 
 .search-icon {
     -fx-fill: white;
+    fill: white;
     -fx-cursor: hand;
 }
 
@@ -79,6 +83,7 @@
 
 .sidebar-section>.title>.text {
     -fx-fill: white;
+    fill: white;
     /* Explicitly target the text node */
 }
 
@@ -89,6 +94,7 @@
 
 .sidebar-section>.title:hover>.text {
     -fx-fill: #14b8a6;
+    fill: #14b8a6;
 }
 
 .sidebar-section>.title>.arrow-button {
@@ -421,10 +427,34 @@
 }
 
 /* Floating Tabs */
-.floating .tab-header-area .tab-header-background {
-    -fx-background-color: transparent;
+/* Global TabPane Header Fix - Aggressive */
+.tab-pane,
+.tab-pane .tab-header-area,
+.tab-pane .tab-header-area .headers-region,
+.tab-pane .tab-header-area .tab-header-background,
+.tab-pane .tab-header-area .control-buttons-tab,
+.tab-pane .tab-header-area .tab-down-button,
+.tab-pane .tab-header-area .tab-down-button .arrow,
+.floating,
+.floating .tab-header-area,
+.floating .tab-header-area .headers-region,
+.floating .tab-header-area .tab-header-background,
+.floating .tab-header-area .control-buttons-tab,
+.floating .tab-header-area .tab-down-button,
+.floating .tab-header-area .tab-down-button .arrow {
+    -fx-background-color: transparent !important;
+    -fx-background-insets: 0 !important;
+    -fx-padding: 0 !important;
 }
 
+.tab-pane .tab-content-area,
+.floating .tab-content-area {
+    -fx-background-color: transparent !important;
+    -fx-padding: 10 0 0 0 !important;
+    /* Adding some spacing for content */
+}
+
+.tab-pane .tab,
 .floating .tab {
     -fx-background-color: transparent;
     -fx-border-color: transparent transparent transparent transparent;
@@ -459,6 +489,15 @@ AnchorPane {
 }
 
 /* Override Label text colors to be visible */
-Label {
-    -fx-text-fill: #e2e8f0;
+/* ScrollPane & SplitPane Transparency */
+.scroll-pane,
+.scroll-pane .viewport,
+.split-pane,
+.split-pane .split-pane-divider {
+    -fx-background-color: transparent !important;
+}
+
+/* Ensure default background is dark if transparency fails */
+.root {
+    -fx-background-color: #0f172a;
 }

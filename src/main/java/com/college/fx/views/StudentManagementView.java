@@ -15,7 +15,7 @@ import javafx.application.Platform;
 import javafx.scene.control.*;
 
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -118,7 +118,6 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -162,7 +161,8 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         batchCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBatch()));
         batchCol.setPrefWidth(100);
 
-        tableView.getColumns().addAll(enrollmentCol, nameCol, emailCol, phoneCol, deptCol, semCol, batchCol);
+        tableView.getColumns()
+                .addAll(java.util.Arrays.asList(enrollmentCol, nameCol, emailCol, phoneCol, deptCol, semCol, batchCol));
 
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
@@ -329,7 +329,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         grid.add(passwordField, 1, 13);
 
         Label passHint = new Label("(Leave empty for default: 123)");
-        passHint.setStyle("-fx-text-fill: #64748b; -fx-font-size: 10px;");
+        passHint.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
         grid.add(passHint, 1, 14);
 
         dialog.getDialogPane().setContent(grid);

@@ -15,7 +15,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -487,7 +487,7 @@ public class ClubManagementView {
         List<ClubMembership> pending = clubDAO.getPendingMemberships(club.getId());
         if (pending.isEmpty()) {
             Label noRequestsLabel = new Label("No pending join requests.");
-            noRequestsLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
+            noRequestsLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
             content.getChildren().add(noRequestsLabel);
         } else {
             pendingTable.setItems(FXCollections.observableArrayList(pending));
@@ -587,7 +587,7 @@ public class ClubManagementView {
 
         if (list.isEmpty()) {
             Label placeholder = new Label("No announcements yet.");
-            placeholder.setTextFill(Color.GRAY);
+            // placeholder.setTextFill(Color.GRAY);
             container.getChildren().add(placeholder);
         } else {
             for (com.college.models.ClubAnnouncement a : list) {
@@ -599,7 +599,7 @@ public class ClubManagementView {
 
                 Label meta = new Label("Posted by " + a.getPosterName() + " on " + a.getPostedAt());
                 meta.setFont(Font.font("System", 10));
-                meta.setTextFill(Color.GRAY);
+                // meta.setTextFill(Color.GRAY);
 
                 Label body = new Label(a.getContent());
                 body.setWrapText(true);

@@ -10,7 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -215,27 +215,27 @@ public class AnnouncementManagementView {
         activeCheck.setSelected(announcement == null || announcement.isActive());
 
         Label titleLabel = new Label("Title:");
-        titleLabel.setStyle("-fx-text-fill: black;");
+        titleLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(titleLabel, 0, 0);
         grid.add(titleField, 1, 0);
 
         Label contentLabel = new Label("Content:");
-        contentLabel.setStyle("-fx-text-fill: black;");
+        contentLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(contentLabel, 0, 1);
         grid.add(contentArea, 1, 1);
 
         Label targetLabel = new Label("Target:");
-        targetLabel.setStyle("-fx-text-fill: black;");
+        targetLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(targetLabel, 0, 2);
         grid.add(targetBox, 1, 2);
 
         Label priorityLabel = new Label("Priority:");
-        priorityLabel.setStyle("-fx-text-fill: black;");
+        priorityLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(priorityLabel, 0, 3);
         grid.add(priorityBox, 1, 3);
 
         Label statusLabel = new Label("Status:");
-        statusLabel.setStyle("-fx-text-fill: black;");
+        statusLabel.setStyle("-fx-text-fill: #e2e8f0;");
         grid.add(statusLabel, 0, 4);
         grid.add(activeCheck, 1, 4);
 

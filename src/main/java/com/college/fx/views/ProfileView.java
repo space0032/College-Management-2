@@ -124,7 +124,7 @@ public class ProfileView {
     private void addDetailRow(GridPane grid, String label, String value, int row) {
         Label labelNode = new Label(label + ":");
         labelNode.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
-        labelNode.setTextFill(Color.web("#64748b"));
+        // labelNode.setTextFill(Color.web("#64748b"));
 
         Label valueNode = new Label(value != null ? value : "-");
         valueNode.setFont(Font.font("Segoe UI", 14));

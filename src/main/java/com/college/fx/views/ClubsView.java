@@ -12,7 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -143,7 +143,6 @@ public class ClubsView {
         return content;
     }
 
-    @SuppressWarnings("unchecked")
     private TableView<Club> createClubsTable(boolean includeActions) {
         TableView<Club> table = new TableView<>();
 
@@ -183,7 +182,8 @@ public class ClubsView {
             }
         });
 
-        table.getColumns().addAll(nameCol, categoryCol, presidentCol, coordinatorCol, membersCol);
+        table.getColumns()
+                .addAll(java.util.Arrays.asList(nameCol, categoryCol, presidentCol, coordinatorCol, membersCol));
 
         if (includeActions) {
             TableColumn<Club, Void> actionCol = new TableColumn<>("Actions");
@@ -343,7 +343,7 @@ public class ClubsView {
                 new java.text.SimpleDateFormat("MMM dd, yyyy").format(data.getValue().getJoinedAt())));
         dateCol.setPrefWidth(150);
 
-        myApplicationsTable.getColumns().addAll(clubCol, roleCol, statusCol, dateCol);
+        myApplicationsTable.getColumns().addAll(java.util.Arrays.asList(clubCol, roleCol, statusCol, dateCol));
         content.getChildren().add(myApplicationsTable);
         return content;
     }
@@ -485,7 +485,6 @@ public class ClubsView {
         });
     }
 
-    @SuppressWarnings("unchecked")
     private void showClubMembers(Club club) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Members of " + club.getName());
@@ -505,7 +504,7 @@ public class ClubsView {
         roleCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRole()));
         roleCol.setPrefWidth(150);
 
-        memberTable.getColumns().addAll(nameCol, roleCol);
+        memberTable.getColumns().addAll(java.util.Arrays.asList(nameCol, roleCol));
 
         List<ClubMembership> members = clubDAO.getClubMembers(club.getId());
         memberTable.setItems(FXCollections.observableArrayList(members));
@@ -554,7 +553,7 @@ public class ClubsView {
 
         if (list.isEmpty()) {
             Label placeholder = new Label("No active announcements.");
-            placeholder.setTextFill(Color.GRAY);
+            // placeholder.setTextFill(Color.GRAY);
             listArea.getChildren().add(placeholder);
         } else {
             for (com.college.models.ClubAnnouncement a : list) {
@@ -566,7 +565,7 @@ public class ClubsView {
 
                 Label meta = new Label("Posted by " + a.getPosterName() + " on " + a.getPostedAt());
                 meta.setFont(Font.font("System", 10));
-                meta.setTextFill(Color.GRAY);
+                // meta.setTextFill(Color.GRAY);
 
                 Label body = new Label(a.getContent());
                 body.setWrapText(true);

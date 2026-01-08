@@ -25,7 +25,7 @@ public class TimetableView {
     private GridPane timetableGrid;
     private TimetableDAO timetableDAO;
     private StudentDAO studentDAO;
-    private String role;
+
     private int userId;
 
     private ComboBox<String> departmentCombo;
@@ -36,7 +36,7 @@ public class TimetableView {
             "3:00-4:00", "4:00-5:00" };
 
     public TimetableView(String role, int userId) {
-        this.role = role;
+
         this.userId = userId;
         this.timetableDAO = new TimetableDAO();
         this.studentDAO = new StudentDAO();
@@ -255,7 +255,7 @@ public class TimetableView {
     private Label createTimeCell(String text) {
         Label label = new Label(text);
         label.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
-        label.setTextFill(Color.web("#475569"));
+        // label.setTextFill(Color.web("#475569"));
         label.setAlignment(Pos.CENTER);
         label.setPrefWidth(100);
         label.setPrefHeight(60);

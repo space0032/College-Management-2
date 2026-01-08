@@ -3,18 +3,9 @@ package com.college.fx.views;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import com.college.fx.views.CourseManagementView;
-import com.college.fx.views.AttendanceView;
-import com.college.fx.views.GradesView;
-import com.college.fx.views.TimetableView;
-import com.college.fx.views.LibraryManagementView;
-import com.college.fx.views.HostelManagementView;
-import com.college.fx.views.GatePassView;
-import com.college.fx.views.FeesView;
-import com.college.fx.views.AssignmentsView;
 
 /**
  * Student Affairs View (Consolidated "Student Management")

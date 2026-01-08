@@ -252,7 +252,8 @@ public class ResourceManagementView {
             }
         });
 
-        resourceTable.getColumns().addAll(titleCol, categoryCol, courseCol, sizeCol, publicCol, uploaderCol, actionCol);
+        resourceTable.getColumns().addAll(
+                java.util.Arrays.asList(titleCol, categoryCol, courseCol, sizeCol, publicCol, uploaderCol, actionCol));
     }
 
     private void loadResources() {

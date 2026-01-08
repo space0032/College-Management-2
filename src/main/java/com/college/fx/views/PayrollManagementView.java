@@ -149,7 +149,8 @@ public class PayrollManagementView {
             }
         });
 
-        table.getColumns().addAll(empCol, basicCol, bonusCol, dedCol, netCol, statusCol, actionCol);
+        table.getColumns()
+                .addAll(java.util.Arrays.asList(empCol, basicCol, bonusCol, dedCol, netCol, statusCol, actionCol));
         VBox.setVgrow(table, Priority.ALWAYS);
         return table;
     }

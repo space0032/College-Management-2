@@ -111,7 +111,7 @@ public class StudentProfileView {
         nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
         idLabel = new Label("Student ID: " + student.getId() + " | " + student.getCourse() + " | Semester "
                 + student.getSemester());
-        idLabel.setTextFill(Color.GRAY);
+        // idLabel.setTextFill(Color.GRAY);
 
         infoBox.getChildren().addAll(nameLabel, idLabel);
 
@@ -267,7 +267,7 @@ public class StudentProfileView {
 
         VBox cgpaBox = new VBox(5);
         Label cgpaLbl = new Label("CGPA");
-        cgpaLbl.setTextFill(Color.GRAY);
+        // cgpaLbl.setTextFill(Color.GRAY);
         Label cgpaVal = new Label(String.format("%.2f", summary.getCgpa()));
         cgpaVal.setFont(Font.font("Segoe UI", FontWeight.BOLD, 32));
         cgpaVal.setTextFill(Color.web("#0284c7"));
@@ -280,7 +280,7 @@ public class StudentProfileView {
         for (Map.Entry<Integer, Double> entry : summary.getSemesterSgpa().entrySet()) {
             VBox sgpaBox = new VBox(5);
             Label sgpaLbl = new Label("Sem " + entry.getKey());
-            sgpaLbl.setTextFill(Color.GRAY);
+            // sgpaLbl.setTextFill(Color.GRAY);
             Label sgpaVal = new Label(String.format("%.2f", entry.getValue()));
             sgpaVal.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
             sgpaBox.getChildren().addAll(sgpaLbl, sgpaVal);
@@ -326,7 +326,7 @@ public class StudentProfileView {
                         "-fx-background-color: #f1f5f9; -fx-background-radius: 8; -fx-border-color: #e2e8f0; -fx-border-radius: 8;");
 
                 Label catLbl = new Label(sf.getCategory());
-                catLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 10px;");
+                catLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
 
                 Label textLbl = new Label(sf.getFeedbackText());
                 textLbl.setWrapText(true);

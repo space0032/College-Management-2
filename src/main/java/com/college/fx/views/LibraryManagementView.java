@@ -180,7 +180,7 @@ public class LibraryManagementView {
                         : "Out of Stock"));
         statusCol.setPrefWidth(120);
 
-        catalogTable.getColumns().addAll(idCol, titleCol, authorCol, isbnCol, statusCol);
+        catalogTable.getColumns().addAll(java.util.Arrays.asList(idCol, titleCol, authorCol, isbnCol, statusCol));
         VBox.setVgrow(catalogTable, Priority.ALWAYS);
 
         // Buttons
@@ -237,7 +237,8 @@ public class LibraryManagementView {
         fineCol.setCellValueFactory(data -> new SimpleStringProperty(
                 String.format("Rs. %.2f", data.getValue().calculateFine(5.0))));
 
-        issuedTable.getColumns().addAll(bTitleCol, issueDateCol, dueDateCol, statusCol, fineCol);
+        issuedTable.getColumns()
+                .addAll(java.util.Arrays.asList(bTitleCol, issueDateCol, dueDateCol, statusCol, fineCol));
         VBox.setVgrow(issuedTable, Priority.ALWAYS);
 
         Button refreshBtn = createButton("Refresh", "#3b82f6");
@@ -297,7 +298,7 @@ public class LibraryManagementView {
             }
         });
 
-        requestTable.getColumns().addAll(titleCol, dateCol, msgCol, statusCol);
+        requestTable.getColumns().addAll(java.util.Arrays.asList(titleCol, dateCol, msgCol, statusCol));
         VBox.setVgrow(requestTable, Priority.ALWAYS);
 
         Button refreshBtn = createButton("Refresh", "#3b82f6");
@@ -363,7 +364,8 @@ public class LibraryManagementView {
             }
         });
 
-        reviewTable.getColumns().addAll(idCol, studentCol, bookCol, dateCol, remarksCol, actionCol);
+        reviewTable.getColumns()
+                .addAll(java.util.Arrays.asList(idCol, studentCol, bookCol, dateCol, remarksCol, actionCol));
         VBox.setVgrow(reviewTable, Priority.ALWAYS);
 
         Button refreshBtn = createButton("Refresh", "#3b82f6");

@@ -13,17 +13,13 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 import java.text.SimpleDateFormat;
 import com.college.dao.CourseDAO;
 import com.college.dao.SubmissionDAO;
 import com.college.models.Course;
 import com.college.models.Submission;
-import com.college.services.DropboxService;
-import com.college.services.FileUploadService;
+
 import java.time.ZoneId;
 import java.util.Date;
 
@@ -88,7 +84,6 @@ public class AssignmentsView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -138,9 +133,10 @@ public class AssignmentsView {
         statusCol.setPrefWidth(100);
 
         if (role.equals("STUDENT")) {
-            tableView.getColumns().addAll(courseCol, titleCol, descCol, semesterCol, dueCol, statusCol);
+            tableView.getColumns()
+                    .addAll(java.util.Arrays.asList(courseCol, titleCol, descCol, semesterCol, dueCol, statusCol));
         } else {
-            tableView.getColumns().addAll(courseCol, titleCol, descCol, semesterCol, dueCol);
+            tableView.getColumns().addAll(java.util.Arrays.asList(courseCol, titleCol, descCol, semesterCol, dueCol));
         }
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
@@ -216,19 +212,19 @@ public class AssignmentsView {
 
         // Create labels with explicit styles
         Label lblCourse = new Label("Course:");
-        lblCourse.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblCourse.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         Label lblTitle = new Label("Title:");
-        lblTitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblTitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         Label lblDesc = new Label("Description:");
-        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         Label lblDueDate = new Label("Due Date:");
-        lblDueDate.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblDueDate.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         Label lblSemester = new Label("Semester:");
-        lblSemester.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblSemester.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         grid.add(lblCourse, 0, 0);
         grid.add(courseCombo, 1, 0);
@@ -319,10 +315,10 @@ public class AssignmentsView {
         fileBox.getChildren().addAll(filePathField, browseBtn);
 
         Label lblContent = new Label("Content:");
-        lblContent.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblContent.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         Label lblFile = new Label("Attach File:");
-        lblFile.setStyle("-fx-font-size: 14px; -fx-text-fill: #000000;");
+        lblFile.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         grid.add(lblContent, 0, 0);
         grid.add(contentArea, 1, 0);

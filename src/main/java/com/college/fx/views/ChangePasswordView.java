@@ -51,7 +51,7 @@ public class ChangePasswordView {
 
         Label subtitle = new Label("Enter your current password and choose a new one");
         subtitle.setFont(Font.font("Segoe UI", 14));
-        subtitle.setTextFill(Color.web("#64748b"));
+        // subtitle.setTextFill(Color.web("#64748b"));
 
         // Form fields
         VBox fieldsBox = new VBox(18);
@@ -92,7 +92,7 @@ public class ChangePasswordView {
         VBox box = new VBox(6);
         Label label = new Label(labelText);
         label.setFont(Font.font("Segoe UI", FontWeight.BOLD, 13));
-        label.setTextFill(Color.web("#475569"));
+        // label.setTextFill(Color.web("#475569"));
         box.getChildren().addAll(label, field);
         return box;
     }
@@ -132,7 +132,6 @@ public class ChangePasswordView {
         }
 
         // Verify current password and update
-        String verifySql = "SELECT id FROM users WHERE id = ? AND password = ?";
         String updateSql = "UPDATE users SET password = ? WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection()) {

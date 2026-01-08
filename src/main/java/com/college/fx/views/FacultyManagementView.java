@@ -12,7 +12,7 @@ import javafx.geometry.Pos;
 import javafx.application.Platform;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.StringConverter;
@@ -423,7 +423,7 @@ public class FacultyManagementView {
         grid.add(passwordField, 1, 9);
 
         Label passHint = new Label("(Leave empty for default: 123)");
-        passHint.setStyle("-fx-text-fill: #64748b; -fx-font-size: 10px;");
+        passHint.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
         grid.add(passHint, 1, 10);
 
         dialog.getDialogPane().setContent(grid);

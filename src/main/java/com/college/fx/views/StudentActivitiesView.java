@@ -35,10 +35,10 @@ public class StudentActivitiesView {
 
         // Header
         Label header = new Label("Student Activities");
-        header.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
+        header.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
 
         Label subtitle = new Label("Explore campus events and join student clubs");
-        subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
+        subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
         VBox headerBox = new VBox(5, header, subtitle);
 
@@ -106,12 +106,12 @@ public class StudentActivitiesView {
 
         // Title
         Label titleLabel = new Label(title);
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
         titleLabel.setWrapText(true);
 
         // Description
         Label descLabel = new Label(description);
-        descLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #64748b;");
+        descLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0;");
         descLabel.setWrapText(true);
 
         // Button

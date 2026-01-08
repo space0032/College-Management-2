@@ -26,7 +26,7 @@ public class StudentLeaveView {
         // Header
         Label title = new Label("Leave Application");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setStyle("-fx-text-fill: #1e293b;");
+        title.setStyle("-fx-text-fill: #e2e8f0;");
 
         // Application Form
         VBox form = createApplicationForm();
@@ -44,7 +44,7 @@ public class StudentLeaveView {
 
         Label formTitle = new Label("Apply for Leave");
         formTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        formTitle.setStyle("-fx-text-fill: #334155;");
+        formTitle.setStyle("-fx-text-fill: #e2e8f0;");
 
         GridPane grid = new GridPane();
         grid.setHgap(20);
@@ -120,7 +120,7 @@ public class StudentLeaveView {
         VBox box = new VBox(10);
         Label historyTitle = new Label("My Leave History");
         historyTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        historyTitle.setStyle("-fx-text-fill: #334155;");
+        historyTitle.setStyle("-fx-text-fill: #e2e8f0;");
 
         leaveTable = new TableView<>();
         leaveTable.getStyleClass().add("glass-table");
@@ -155,7 +155,7 @@ public class StudentLeaveView {
             }
         });
 
-        leaveTable.getColumns().addAll(typeCol, fromCol, toCol, statusCol);
+        leaveTable.getColumns().addAll(java.util.Arrays.asList(typeCol, fromCol, toCol, statusCol));
         leaveTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         leaveTable.setPrefHeight(300);
 

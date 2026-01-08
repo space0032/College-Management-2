@@ -67,7 +67,7 @@ public class LoginView {
         // Username field
         VBox usernameBox = new VBox(6);
         Label usernameLabel = new Label("Username");
-        usernameLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569; -fx-font-weight: bold;");
+        usernameLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0; -fx-font-weight: bold;");
         usernameField = new TextField();
         usernameField.setPromptText("Enter your username");
         usernameField.setPrefHeight(45);
@@ -82,7 +82,7 @@ public class LoginView {
         // Password field
         VBox passwordBox = new VBox(6);
         Label passwordLabel = new Label("Password");
-        passwordLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569; -fx-font-weight: bold;");
+        passwordLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0; -fx-font-weight: bold;");
         passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
         passwordField.setPrefHeight(45);
@@ -97,7 +97,7 @@ public class LoginView {
         // Role dropdown
         VBox roleBox = new VBox(6);
         Label roleLabel = new Label("Login As");
-        roleLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569; -fx-font-weight: bold;");
+        roleLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e2e8f0; -fx-font-weight: bold;");
         roleComboBox = new ComboBox<>();
         roleComboBox.getItems().addAll("ADMIN", "FACULTY", "STUDENT", "WARDEN", "FINANCE");
         // We will update this to show PORTAL types, which map to Role logic
@@ -200,7 +200,6 @@ public class LoginView {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private int authenticateUser(String username, String password) {
         String sql = "SELECT id, password FROM users WHERE username=?";
 

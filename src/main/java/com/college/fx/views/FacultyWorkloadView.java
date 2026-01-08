@@ -10,7 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -81,7 +81,7 @@ public class FacultyWorkloadView {
             }
         });
 
-        table.getColumns().addAll(nameCol, deptCol, countCol, creditCol, actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(nameCol, deptCol, countCol, creditCol, actionCol));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
 

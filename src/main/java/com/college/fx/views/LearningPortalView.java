@@ -144,7 +144,7 @@ public class LearningPortalView {
             }
         });
 
-        table.getColumns().addAll(titleCol, versionCol, dateCol, downloadCol);
+        table.getColumns().addAll(java.util.Arrays.asList(titleCol, versionCol, dateCol, downloadCol));
 
         courseFilter.setOnAction(e -> {
             Course c = courseFilter.getValue();
@@ -243,7 +243,7 @@ public class LearningPortalView {
             }
         });
 
-        table.getColumns().addAll(titleCol, catCol, courseCol, sizeCol, actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(titleCol, catCol, courseCol, sizeCol, actionCol));
 
         List<LearningResource> allResources = resourceDAO.getAllResources();
         List<LearningResource> filtered = new ArrayList<>();

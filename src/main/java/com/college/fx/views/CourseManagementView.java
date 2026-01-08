@@ -12,7 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -121,7 +121,7 @@ public class CourseManagementView {
                 "Status");
         statusCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getStatus()));
 
-        table.getColumns().addAll(idCol, studentCol, courseCol, dateCol, statusCol);
+        table.getColumns().addAll(java.util.Arrays.asList(idCol, studentCol, courseCol, dateCol, statusCol));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
 
@@ -330,7 +330,7 @@ public class CourseManagementView {
         capCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getEnrolledCount() + " / " + data.getValue().getCapacity()));
 
-        table.getColumns().addAll(codeCol, nameCol, typeCol, creditsCol, capCol);
+        table.getColumns().addAll(java.util.Arrays.asList(codeCol, nameCol, typeCol, creditsCol, capCol));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         return table;
@@ -364,7 +364,6 @@ public class CourseManagementView {
         return header;
     }
 
-    @SuppressWarnings("unchecked")
     private VBox createTableSection() {
         VBox section = new VBox();
         section.getStyleClass().add("glass-card");
@@ -411,7 +410,8 @@ public class CourseManagementView {
                 data.getValue().getFacultyName() != null ? data.getValue().getFacultyName() : "-"));
         facultyCol.setPrefWidth(150);
 
-        tableView.getColumns().addAll(codeCol, nameCol, deptCol, semCol, creditsCol, typeCol, capacityCol, facultyCol);
+        tableView.getColumns().addAll(java.util.Arrays.asList(codeCol, nameCol, deptCol, semCol, creditsCol, typeCol,
+                capacityCol, facultyCol));
         VBox.setVgrow(tableView, Priority.ALWAYS);
         section.getChildren().add(tableView);
         return section;
