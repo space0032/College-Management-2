@@ -89,7 +89,7 @@ public class LibraryManagementView {
         title.setPadding(new Insets(0, 0, 10, 0));
 
         TabPane tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         // 1. Catalog Tab (All Books)

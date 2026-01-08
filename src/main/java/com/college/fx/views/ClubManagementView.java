@@ -88,7 +88,7 @@ public class ClubManagementView {
         clubsTable.getStyleClass().add("glass-table");
         clubsTable.setItems(clubsData);
         clubsTable.setPlaceholder(new Label("No clubs yet.\nClick 'Create Club' to get started."));
-        clubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        // clubsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(clubsTable, Priority.ALWAYS);
 
         TableColumn<Club, String> nameCol = new TableColumn<>("Club Name");

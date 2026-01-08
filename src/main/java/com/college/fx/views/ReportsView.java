@@ -39,7 +39,7 @@ public class ReportsView {
 
         // TabPane
         TabPane tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         // Attendance Tab

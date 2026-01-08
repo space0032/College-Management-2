@@ -88,7 +88,7 @@ public class EventManagementView {
         eventsTable.getStyleClass().add("glass-table");
         eventsTable.setItems(eventsData);
         eventsTable.setPlaceholder(new Label("No events yet.\nClick 'Create Event' to get started."));
-        eventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
+        // eventsTable.getStylesheets().add(getClass().getResource("/styles/tables.css").toExternalForm());
         VBox.setVgrow(eventsTable, Priority.ALWAYS);
 
         TableColumn<Event, String> nameCol = new TableColumn<>("Event Name");

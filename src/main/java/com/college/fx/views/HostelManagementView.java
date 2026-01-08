@@ -82,7 +82,7 @@ public class HostelManagementView {
         title.setPadding(new Insets(0, 0, 10, 0));
 
         TabPane tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         if (role.equals("STUDENT")) {

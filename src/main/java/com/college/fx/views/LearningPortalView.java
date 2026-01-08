@@ -54,7 +54,7 @@ public class LearningPortalView {
         BorderPane.setMargin(header, new Insets(0, 0, 20, 0)); // Add spacing below header
 
         tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating"); // Floating tab style
+        tabPane.getStyleClass().add("pill-tab-pane"); // Floating tab style
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         tabPane.getTabs().add(createSyllabusTab());

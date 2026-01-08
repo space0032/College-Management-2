@@ -123,7 +123,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         section.setPadding(new Insets(15));
 
         tableView = new TableView<>();
-        tableView.getItems().addAll(studentData);
+        tableView.setItems(studentData);
         tableView.getStyleClass().add("glass-table");
         tableView.setStyle("-fx-background-color: transparent;");
 
@@ -296,24 +296,49 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Password (optional, default: 123)");
 
-        grid.add(new Label("Name:"), 0, 0);
+        Label nameLbl = new Label("Name:");
+        nameLbl.setStyle("-fx-text-fill: white;");
+        grid.add(nameLbl, 0, 0);
         grid.add(nameField, 1, 0);
-        grid.add(new Label("Email:"), 0, 1);
+
+        Label emailLbl = new Label("Email:");
+        emailLbl.setStyle("-fx-text-fill: white;");
+        grid.add(emailLbl, 0, 1);
         grid.add(emailField, 1, 1);
-        grid.add(new Label("Phone:"), 0, 2);
+
+        Label phoneLbl = new Label("Phone:");
+        phoneLbl.setStyle("-fx-text-fill: white;");
+        grid.add(phoneLbl, 0, 2);
         grid.add(phoneField, 1, 2);
-        grid.add(new Label("Address:"), 0, 3);
+
+        Label addressLbl = new Label("Address:");
+        addressLbl.setStyle("-fx-text-fill: white;");
+        grid.add(addressLbl, 0, 3);
         grid.add(addressField, 1, 3);
 
-        grid.add(new Label("Department:"), 0, 4);
+        Label deptLbl = new Label("Department:");
+        deptLbl.setStyle("-fx-text-fill: white;");
+        grid.add(deptLbl, 0, 4);
         grid.add(deptCombo, 1, 4);
-        grid.add(new Label("Course:"), 0, 5);
+
+        Label courseLbl = new Label("Course:");
+        courseLbl.setStyle("-fx-text-fill: white;");
+        grid.add(courseLbl, 0, 5);
         grid.add(courseCombo, 1, 5);
-        grid.add(new Label("Batch:"), 0, 6);
+
+        Label batchLbl = new Label("Batch:");
+        batchLbl.setStyle("-fx-text-fill: white;");
+        grid.add(batchLbl, 0, 6);
         grid.add(batchField, 1, 6);
-        grid.add(new Label("Semester:"), 0, 7);
+
+        Label semLbl = new Label("Semester:");
+        semLbl.setStyle("-fx-text-fill: white;");
+        grid.add(semLbl, 0, 7);
         grid.add(semSpinner, 1, 7);
-        grid.add(new Label("Enrollment:"), 0, 8);
+
+        Label enrollLbl = new Label("Enrollment:");
+        enrollLbl.setStyle("-fx-text-fill: white;");
+        grid.add(enrollLbl, 0, 8);
         grid.add(enrollDate, 1, 8);
         grid.add(hosteliteCheck, 1, 9);
 
@@ -468,15 +493,29 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         deptCombo.getItems().addAll(depts.stream().map(Department::getName).collect(Collectors.toList()));
         deptCombo.setValue(selected.getDepartment());
 
-        grid.add(new Label("Name:"), 0, 0);
+        Label nameLbl = new Label("Name:");
+        nameLbl.setStyle("-fx-text-fill: white;");
+        grid.add(nameLbl, 0, 0);
         grid.add(nameField, 1, 0);
-        grid.add(new Label("Email:"), 0, 1);
+
+        Label emailLbl = new Label("Email:");
+        emailLbl.setStyle("-fx-text-fill: white;");
+        grid.add(emailLbl, 0, 1);
         grid.add(emailField, 1, 1);
-        grid.add(new Label("Phone:"), 0, 2);
+
+        Label phoneLbl = new Label("Phone:");
+        phoneLbl.setStyle("-fx-text-fill: white;");
+        grid.add(phoneLbl, 0, 2);
         grid.add(phoneField, 1, 2);
-        grid.add(new Label("Address:"), 0, 3);
+
+        Label addressLbl = new Label("Address:");
+        addressLbl.setStyle("-fx-text-fill: white;");
+        grid.add(addressLbl, 0, 3);
         grid.add(addressField, 1, 3);
-        grid.add(new Label("Department:"), 0, 4);
+
+        Label deptLbl = new Label("Department:");
+        deptLbl.setStyle("-fx-text-fill: white;");
+        grid.add(deptLbl, 0, 4);
         grid.add(deptCombo, 1, 4);
 
         dialog.getDialogPane().setContent(grid);

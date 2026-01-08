@@ -69,7 +69,7 @@ public class CourseManagementView {
         HBox header = createHeader();
 
         TabPane tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
 
         Tab coursesTab = new Tab("Courses");
         coursesTab.setClosable(false);
@@ -173,7 +173,7 @@ public class CourseManagementView {
         title.getStyleClass().add("section-title");
 
         TabPane tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
 
         Tab myCoursesTab = new Tab("My Courses");
         myCoursesTab.setClosable(false);

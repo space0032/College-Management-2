@@ -58,7 +58,7 @@ public class EventsView {
 
         // Tab Pane
         TabPane tabPane = new TabPane();
-        tabPane.getStyleClass().add("floating");
+        tabPane.getStyleClass().add("pill-tab-pane");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         Tab browseTab = new Tab("Browse Events");
