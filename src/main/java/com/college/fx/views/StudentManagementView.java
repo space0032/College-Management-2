@@ -313,8 +313,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         autoGenLabel.setStyle("-fx-text-fill: #3b82f6; -fx-font-size: 11px; -fx-font-style: italic;");
         grid.add(autoGenLabel, 0, 12, 2, 1);
 
-        grid.add(new Label("Password:"), 0, 13);
-        grid.add(passwordField, 1, 13);
+        DialogUtils.addFormRow(grid, "Password:", passwordField, 13);
 
         Label passHint = new Label("(Leave empty for default: 123)");
         passHint.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
@@ -458,30 +457,11 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         deptCombo.getItems().addAll(depts.stream().map(Department::getName).collect(Collectors.toList()));
         deptCombo.setValue(selected.getDepartment());
 
-        Label nameLbl = new Label("Name:");
-        nameLbl.setStyle("-fx-text-fill: white;");
-        grid.add(nameLbl, 0, 0);
-        grid.add(nameField, 1, 0);
-
-        Label emailLbl = new Label("Email:");
-        emailLbl.setStyle("-fx-text-fill: white;");
-        grid.add(emailLbl, 0, 1);
-        grid.add(emailField, 1, 1);
-
-        Label phoneLbl = new Label("Phone:");
-        phoneLbl.setStyle("-fx-text-fill: white;");
-        grid.add(phoneLbl, 0, 2);
-        grid.add(phoneField, 1, 2);
-
-        Label addressLbl = new Label("Address:");
-        addressLbl.setStyle("-fx-text-fill: white;");
-        grid.add(addressLbl, 0, 3);
-        grid.add(addressField, 1, 3);
-
-        Label deptLbl = new Label("Department:");
-        deptLbl.setStyle("-fx-text-fill: white;");
-        grid.add(deptLbl, 0, 4);
-        grid.add(deptCombo, 1, 4);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Email:", emailField, 1);
+        DialogUtils.addFormRow(grid, "Phone:", phoneField, 2);
+        DialogUtils.addFormRow(grid, "Address:", addressField, 3);
+        DialogUtils.addFormRow(grid, "Department:", deptCombo, 4);
 
         dialog.getDialogPane().setContent(grid);
 

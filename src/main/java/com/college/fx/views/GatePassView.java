@@ -241,16 +241,11 @@ public class GatePassView {
         TextField parentContact = new TextField();
         parentContact.setPromptText("Parent Contact");
 
-        grid.add(new Label("Reason:"), 0, 0);
-        grid.add(reason, 1, 0);
-        grid.add(new Label("From Date:"), 0, 1);
-        grid.add(fromDate, 1, 1);
-        grid.add(new Label("To Date:"), 0, 2);
-        grid.add(toDate, 1, 2);
-        grid.add(new Label("Destination:"), 0, 3);
-        grid.add(destination, 1, 3);
-        grid.add(new Label("Parent Contact:"), 0, 4);
-        grid.add(parentContact, 1, 4);
+        DialogUtils.addFormRow(grid, "Reason:", reason, 0);
+        DialogUtils.addFormRow(grid, "From Date:", fromDate, 1);
+        DialogUtils.addFormRow(grid, "To Date:", toDate, 2);
+        DialogUtils.addFormRow(grid, "Destination:", destination, 3);
+        DialogUtils.addFormRow(grid, "Parent Contact:", parentContact, 4);
 
         dialog.getDialogPane().setContent(grid);
 

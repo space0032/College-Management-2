@@ -942,20 +942,9 @@ public class InstituteManagementView {
             }
         });
 
-        Label userLabel = new Label("Username:");
-        userLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(userLabel, 0, 0);
-        grid.add(usernameField, 1, 0);
-
-        Label passLabel = new Label("Password:");
-        passLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(passLabel, 0, 1);
-        grid.add(passwordField, 1, 1);
-
-        Label roleLabel = new Label("Role:");
-        roleLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(roleLabel, 0, 2);
-        grid.add(roleCombo, 1, 2);
+        DialogUtils.addFormRow(grid, "Username:", usernameField, 0);
+        DialogUtils.addFormRow(grid, "Password:", passwordField, 1);
+        DialogUtils.addFormRow(grid, "Role:", roleCombo, 2);
 
         dialog.getDialogPane().setContent(grid);
 

@@ -395,19 +395,13 @@ public class FacultyManagementView {
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Password");
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Email:"), 0, 1);
-        grid.add(emailField, 1, 1);
-        grid.add(new Label("Phone:"), 0, 2);
-        grid.add(phoneField, 1, 2);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Email:", emailField, 1);
+        DialogUtils.addFormRow(grid, "Phone:", phoneField, 2);
 
-        grid.add(new Label("Department:"), 0, 3);
-        grid.add(deptCombo, 1, 3);
-        grid.add(new Label("Qualification:"), 0, 4);
-        grid.add(qualField, 1, 4);
-        grid.add(new Label("Join Date:"), 0, 5);
-        grid.add(joinDate, 1, 5);
+        DialogUtils.addFormRow(grid, "Department:", deptCombo, 3);
+        DialogUtils.addFormRow(grid, "Qualification:", qualField, 4);
+        DialogUtils.addFormRow(grid, "Join Date:", joinDate, 5);
 
         grid.add(sep, 0, 6, 2, 1);
         grid.add(userLabel, 0, 7, 2, 1);
@@ -416,8 +410,7 @@ public class FacultyManagementView {
         autoGenLabel.setStyle("-fx-text-fill: #3b82f6; -fx-font-size: 11px; -fx-font-style: italic;");
         grid.add(autoGenLabel, 0, 8, 2, 1);
 
-        grid.add(new Label("Password:"), 0, 9);
-        grid.add(passwordField, 1, 9);
+        DialogUtils.addFormRow(grid, "Password:", passwordField, 9);
 
         Label passHint = new Label("(Leave empty for default: 123)");
         passHint.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 10px;");

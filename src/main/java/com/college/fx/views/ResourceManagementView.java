@@ -349,16 +349,11 @@ public class ResourceManagementView {
         titleField.textProperty().addListener((obs, old, newVal) -> errorLabel.setVisible(false));
         dialogCategoryBox.valueProperty().addListener((obs, old, newVal) -> errorLabel.setVisible(false));
 
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleField, 1, 0);
-        grid.add(new Label("Course (Opt):"), 0, 1);
-        grid.add(dialogCourseBox, 1, 1);
-        grid.add(new Label("Category:"), 0, 2);
-        grid.add(dialogCategoryBox, 1, 2);
-        grid.add(new Label("Description:"), 0, 3);
-        grid.add(descArea, 1, 3);
-        grid.add(new Label("File:"), 0, 4);
-        grid.add(selectFileBtn, 1, 4);
+        DialogUtils.addFormRow(grid, "Title:", titleField, 0);
+        DialogUtils.addFormRow(grid, "Course (Opt):", dialogCourseBox, 1);
+        DialogUtils.addFormRow(grid, "Category:", dialogCategoryBox, 2);
+        DialogUtils.addFormRow(grid, "Description:", descArea, 3);
+        DialogUtils.addFormRow(grid, "File:", selectFileBtn, 4);
         grid.add(fileLabel, 1, 5);
         grid.add(publicCheck, 1, 6);
         grid.add(errorLabel, 1, 7);

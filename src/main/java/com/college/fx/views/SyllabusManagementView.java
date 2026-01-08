@@ -300,14 +300,10 @@ public class SyllabusManagementView {
         // Remove error when typing
         titleField.textProperty().addListener((obs, old, newVal) -> errorLabel.setVisible(false));
 
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleField, 1, 0);
-        grid.add(new Label("Version:"), 0, 1);
-        grid.add(versionField, 1, 1);
-        grid.add(new Label("Description:"), 0, 2);
-        grid.add(descArea, 1, 2);
-        grid.add(new Label("File:"), 0, 3);
-        grid.add(selectFileBtn, 1, 3);
+        DialogUtils.addFormRow(grid, "Title:", titleField, 0);
+        DialogUtils.addFormRow(grid, "Version:", versionField, 1);
+        DialogUtils.addFormRow(grid, "Description:", descArea, 2);
+        DialogUtils.addFormRow(grid, "File:", selectFileBtn, 3);
         grid.add(fileLabel, 1, 4);
         grid.add(errorLabel, 1, 5); // Add error label at bottom
 

@@ -213,30 +213,11 @@ public class AnnouncementManagementView {
         CheckBox activeCheck = new CheckBox("Active");
         activeCheck.setSelected(announcement == null || announcement.isActive());
 
-        Label titleLabel = new Label("Title:");
-        titleLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(titleLabel, 0, 0);
-        grid.add(titleField, 1, 0);
-
-        Label contentLabel = new Label("Content:");
-        contentLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(contentLabel, 0, 1);
-        grid.add(contentArea, 1, 1);
-
-        Label targetLabel = new Label("Target:");
-        targetLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(targetLabel, 0, 2);
-        grid.add(targetBox, 1, 2);
-
-        Label priorityLabel = new Label("Priority:");
-        priorityLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(priorityLabel, 0, 3);
-        grid.add(priorityBox, 1, 3);
-
-        Label statusLabel = new Label("Status:");
-        statusLabel.setStyle("-fx-text-fill: #e2e8f0;");
-        grid.add(statusLabel, 0, 4);
-        grid.add(activeCheck, 1, 4);
+        DialogUtils.addFormRow(grid, "Title:", titleField, 0);
+        DialogUtils.addFormRow(grid, "Content:", contentArea, 1);
+        DialogUtils.addFormRow(grid, "Target:", targetBox, 2);
+        DialogUtils.addFormRow(grid, "Priority:", priorityBox, 3);
+        DialogUtils.addFormRow(grid, "Status:", activeCheck, 4);
 
         dialog.getDialogPane().setContent(grid);
 

@@ -260,30 +260,11 @@ public class GradesView {
         TextField maxMarksField = new TextField();
         maxMarksField.setPromptText("Max Marks");
 
-        Label courseLbl = new Label("Course:");
-        courseLbl.setStyle("-fx-text-fill: white;");
-        grid.add(courseLbl, 0, 0);
-        grid.add(courseCombo, 1, 0);
-
-        Label studentLbl = new Label("Student:");
-        studentLbl.setStyle("-fx-text-fill: white;");
-        grid.add(studentLbl, 0, 1);
-        grid.add(studentSelector, 1, 1);
-
-        Label examLbl = new Label("Exam:");
-        examLbl.setStyle("-fx-text-fill: white;");
-        grid.add(examLbl, 0, 2);
-        grid.add(examTypeCombo, 1, 2);
-
-        Label marksLbl = new Label("Marks:");
-        marksLbl.setStyle("-fx-text-fill: white;");
-        grid.add(marksLbl, 0, 3);
-        grid.add(marksField, 1, 3);
-
-        Label maxMarksLbl = new Label("Max Marks:");
-        maxMarksLbl.setStyle("-fx-text-fill: white;");
-        grid.add(maxMarksLbl, 0, 4);
-        grid.add(maxMarksField, 1, 4);
+        DialogUtils.addFormRow(grid, "Course:", courseCombo, 0);
+        DialogUtils.addFormRow(grid, "Student:", studentSelector, 1);
+        DialogUtils.addFormRow(grid, "Exam:", examTypeCombo, 2);
+        DialogUtils.addFormRow(grid, "Marks:", marksField, 3);
+        DialogUtils.addFormRow(grid, "Max Marks:", maxMarksField, 4);
 
         dialog.getDialogPane().setContent(grid);
 

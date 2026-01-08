@@ -206,10 +206,8 @@ public class PayrollManagementView {
         TextField bonusField = new TextField(entry.getBonuses().toString());
         TextField dedField = new TextField(entry.getDeductions().toString());
 
-        grid.add(new Label("Bonuses:"), 0, 0);
-        grid.add(bonusField, 1, 0);
-        grid.add(new Label("Deductions:"), 0, 1);
-        grid.add(dedField, 1, 1);
+        DialogUtils.addFormRow(grid, "Bonuses:", bonusField, 0);
+        DialogUtils.addFormRow(grid, "Deductions:", dedField, 1);
 
         dialog.getDialogPane().setContent(grid);
 

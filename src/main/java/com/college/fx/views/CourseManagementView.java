@@ -696,25 +696,17 @@ public class CourseManagementView {
 
         TextField capacityField = new TextField("60"); // Default
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Code:"), 0, 1);
-        grid.add(codeField, 1, 1);
-        grid.add(new Label("Department:"), 0, 2);
-        grid.add(deptCombo, 1, 2);
-        grid.add(new Label("Semester:"), 0, 3);
-        grid.add(semSpinner, 1, 3);
-        grid.add(new Label("Credits:"), 0, 4);
-        grid.add(creditsSpinner, 1, 4);
-        grid.add(new Label("Type:"), 0, 5);
-        grid.add(typeCombo, 1, 5);
-        grid.add(new Label("Capacity:"), 0, 6);
-        grid.add(capacityField, 1, 6);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Code:", codeField, 1);
+        DialogUtils.addFormRow(grid, "Department:", deptCombo, 2);
+        DialogUtils.addFormRow(grid, "Semester:", semSpinner, 3);
+        DialogUtils.addFormRow(grid, "Credits:", creditsSpinner, 4);
+        DialogUtils.addFormRow(grid, "Type:", typeCombo, 5);
+        DialogUtils.addFormRow(grid, "Capacity:", capacityField, 6);
 
         ComboBox<Faculty> facultyCombo = new ComboBox<>();
         facultyCombo.getItems().addAll(facultyDAO.getAllFaculty());
-        grid.add(new Label("Instructor:"), 0, 7);
-        grid.add(facultyCombo, 1, 7);
+        DialogUtils.addFormRow(grid, "Instructor:", facultyCombo, 7);
 
         dialog.getDialogPane().setContent(grid);
 

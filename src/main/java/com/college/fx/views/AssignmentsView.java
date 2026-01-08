@@ -212,32 +212,11 @@ public class AssignmentsView {
         semesterCombo.setValue(1); // Default semester
         semesterCombo.setPrefWidth(250);
 
-        // Create labels with explicit styles
-        Label lblCourse = new Label("Course:");
-        lblCourse.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
-
-        Label lblTitle = new Label("Title:");
-        lblTitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
-
-        Label lblDesc = new Label("Description:");
-        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
-
-        Label lblDueDate = new Label("Due Date:");
-        lblDueDate.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
-
-        Label lblSemester = new Label("Semester:");
-        lblSemester.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
-
-        grid.add(lblCourse, 0, 0);
-        grid.add(courseCombo, 1, 0);
-        grid.add(lblTitle, 0, 1);
-        grid.add(titleField, 1, 1);
-        grid.add(lblDesc, 0, 2);
-        grid.add(descArea, 1, 2);
-        grid.add(lblDueDate, 0, 3);
-        grid.add(datePicker, 1, 3);
-        grid.add(lblSemester, 0, 4);
-        grid.add(semesterCombo, 1, 4);
+        DialogUtils.addFormRow(grid, "Course:", courseCombo, 0);
+        DialogUtils.addFormRow(grid, "Title:", titleField, 1);
+        DialogUtils.addFormRow(grid, "Description:", descArea, 2);
+        DialogUtils.addFormRow(grid, "Due Date:", datePicker, 3);
+        DialogUtils.addFormRow(grid, "Semester:", semesterCombo, 4);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -323,10 +302,8 @@ public class AssignmentsView {
         Label lblFile = new Label("Attach File:");
         lblFile.setStyle("-fx-font-size: 14px; -fx-text-fill: #e2e8f0;");
 
-        grid.add(lblContent, 0, 0);
-        grid.add(contentArea, 1, 0);
-        grid.add(lblFile, 0, 1);
-        grid.add(fileBox, 1, 1);
+        DialogUtils.addFormRow(grid, "Content:", contentArea, 0);
+        DialogUtils.addFormRow(grid, "Attach File:", fileBox, 1);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -552,9 +529,9 @@ public class AssignmentsView {
         feedbackArea.setPromptText("Enter feedback...");
         feedbackArea.setPrefHeight(60);
 
-        grid.add(new Label("Submission Content:"), 0, 0);
-        grid.add(contentArea, 1, 0);
+        DialogUtils.addFormRow(grid, "Submission Content:", contentArea, 0);
 
+        int rowOffset = 1;
         if (submission.getFilePath() != null && !submission.getFilePath().isEmpty()) {
             HBox fileBox = new HBox(10);
             TextField fileField = new TextField(submission.getFilePath());
@@ -579,14 +556,11 @@ public class AssignmentsView {
 
             fileBox.getChildren().addAll(fileField, openBtn);
 
-            grid.add(new Label("Attached File:"), 0, 1);
-            grid.add(fileBox, 1, 1);
+            DialogUtils.addFormRow(grid, "Attached File:", fileBox, rowOffset++);
         }
 
-        grid.add(new Label("Marks:"), 0, 2);
-        grid.add(marksField, 1, 2);
-        grid.add(new Label("Feedback:"), 0, 3);
-        grid.add(feedbackArea, 1, 3);
+        DialogUtils.addFormRow(grid, "Marks:", marksField, rowOffset++);
+        DialogUtils.addFormRow(grid, "Feedback:", feedbackArea, rowOffset);
 
         dialog.getDialogPane().setContent(grid);
 

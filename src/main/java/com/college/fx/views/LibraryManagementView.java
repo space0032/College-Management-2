@@ -518,14 +518,10 @@ public class LibraryManagementView {
         TextField isbnField = new TextField();
         Spinner<Integer> qtySpinner = new Spinner<>(1, 100, 1);
 
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleField, 1, 0);
-        grid.add(new Label("Author:"), 0, 1);
-        grid.add(authorField, 1, 1);
-        grid.add(new Label("ISBN:"), 0, 2);
-        grid.add(isbnField, 1, 2);
-        grid.add(new Label("Quantity:"), 0, 3);
-        grid.add(qtySpinner, 1, 3);
+        DialogUtils.addFormRow(grid, "Title:", titleField, 0);
+        DialogUtils.addFormRow(grid, "Author:", authorField, 1);
+        DialogUtils.addFormRow(grid, "ISBN:", isbnField, 2);
+        DialogUtils.addFormRow(grid, "Quantity:", qtySpinner, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -572,14 +568,10 @@ public class LibraryManagementView {
         TextField isbnField = new TextField(selected.getIsbn());
         Spinner<Integer> qtySpinner = new Spinner<>(1, 100, selected.getQuantity());
 
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleField, 1, 0);
-        grid.add(new Label("Author:"), 0, 1);
-        grid.add(authorField, 1, 1);
-        grid.add(new Label("ISBN:"), 0, 2);
-        grid.add(isbnField, 1, 2);
-        grid.add(new Label("Quantity:"), 0, 3);
-        grid.add(qtySpinner, 1, 3);
+        DialogUtils.addFormRow(grid, "Title:", titleField, 0);
+        DialogUtils.addFormRow(grid, "Author:", authorField, 1);
+        DialogUtils.addFormRow(grid, "ISBN:", isbnField, 2);
+        DialogUtils.addFormRow(grid, "Quantity:", qtySpinner, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -654,16 +646,11 @@ public class LibraryManagementView {
 
         DatePicker dueDate = new DatePicker(LocalDate.now().plusDays(14));
 
-        grid.add(new Label("Filter Student:"), 0, 0);
-        grid.add(studentSearch, 1, 0);
-        grid.add(new Label("Select Student:"), 0, 1);
-        grid.add(studentCombo, 1, 1);
-        grid.add(new Label("Filter Book:"), 0, 2);
-        grid.add(bookSearch, 1, 2);
-        grid.add(new Label("Select Book:"), 0, 3);
-        grid.add(bookCombo, 1, 3);
-        grid.add(new Label("Due Date:"), 0, 4);
-        grid.add(dueDate, 1, 4);
+        DialogUtils.addFormRow(grid, "Filter Student:", studentSearch, 0);
+        DialogUtils.addFormRow(grid, "Select Student:", studentCombo, 1);
+        DialogUtils.addFormRow(grid, "Filter Book:", bookSearch, 2);
+        DialogUtils.addFormRow(grid, "Select Book:", bookCombo, 3);
+        DialogUtils.addFormRow(grid, "Due Date:", dueDate, 4);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -738,12 +725,9 @@ public class LibraryManagementView {
                 fineField.setText(String.valueOf(bi.calculateFine(5.0)));
         });
 
-        grid.add(new Label("Filter:"), 0, 0);
-        grid.add(searchIssue, 1, 0);
-        grid.add(new Label("Issued Book:"), 0, 1);
-        grid.add(issueCombo, 1, 1);
-        grid.add(new Label("Fine:"), 0, 2);
-        grid.add(fineField, 1, 2);
+        DialogUtils.addFormRow(grid, "Filter:", searchIssue, 0);
+        DialogUtils.addFormRow(grid, "Issued Book:", issueCombo, 1);
+        DialogUtils.addFormRow(grid, "Fine:", fineField, 2);
 
         dialog.getDialogPane().setContent(grid);
 

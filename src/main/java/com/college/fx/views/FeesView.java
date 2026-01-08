@@ -322,14 +322,10 @@ public class FeesView {
         DatePicker dueDatePicker = new DatePicker();
         dueDatePicker.setValue(java.time.LocalDate.now().plusMonths(1));
 
-        grid.add(new Label("Student:"), 0, 0);
-        grid.add(studentCombo, 1, 0);
-        grid.add(new Label("Category:"), 0, 1);
-        grid.add(categoryCombo, 1, 1);
-        grid.add(new Label("Amount:"), 0, 2);
-        grid.add(amountField, 1, 2);
-        grid.add(new Label("Due Date:"), 0, 3);
-        grid.add(dueDatePicker, 1, 3);
+        DialogUtils.addFormRow(grid, "Student:", studentCombo, 0);
+        DialogUtils.addFormRow(grid, "Category:", categoryCombo, 1);
+        DialogUtils.addFormRow(grid, "Amount:", amountField, 2);
+        DialogUtils.addFormRow(grid, "Due Date:", dueDatePicker, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -401,10 +397,8 @@ public class FeesView {
         grid.add(totalLabel, 0, 1, 2, 1);
         grid.add(paidLabel, 0, 2, 2, 1);
         grid.add(remainingLabel, 0, 3, 2, 1);
-        grid.add(new Label("Payment Amount:"), 0, 4);
-        grid.add(paymentField, 1, 4);
-        grid.add(new Label("Payment Date:"), 0, 5);
-        grid.add(paymentDatePicker, 1, 5);
+        DialogUtils.addFormRow(grid, "Payment Amount:", paymentField, 4);
+        DialogUtils.addFormRow(grid, "Payment Date:", paymentDatePicker, 5);
 
         dialog.getDialogPane().setContent(grid);
 

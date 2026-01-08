@@ -64,14 +64,10 @@ public class StudentLeaveView {
         reasonArea.setPromptText("Reason for leave...");
         reasonArea.setPrefRowCount(3);
 
-        grid.add(new Label("Leave Type:"), 0, 0);
-        grid.add(typeCombo, 1, 0);
-        grid.add(new Label("Start Date:"), 0, 1);
-        grid.add(startDate, 1, 1);
-        grid.add(new Label("End Date:"), 0, 2);
-        grid.add(endDate, 1, 2);
-        grid.add(new Label("Reason:"), 0, 3);
-        grid.add(reasonArea, 1, 3);
+        DialogUtils.addFormRow(grid, "Leave Type:", typeCombo, 0);
+        DialogUtils.addFormRow(grid, "Start Date:", startDate, 1);
+        DialogUtils.addFormRow(grid, "End Date:", endDate, 2);
+        DialogUtils.addFormRow(grid, "Reason:", reasonArea, 3);
         GridPane.setColumnSpan(reasonArea, 2);
 
         Button applyBtn = new Button("Submit Request");

@@ -161,16 +161,11 @@ public class TimetableView {
         TextField roomField = new TextField();
         roomField.setPromptText("Room Number");
 
-        grid.add(new Label("Day:"), 0, 0);
-        grid.add(dayCombo, 1, 0);
-        grid.add(new Label("Time:"), 0, 1);
-        grid.add(timeCombo, 1, 1);
-        grid.add(new Label("Subject:"), 0, 2);
-        grid.add(subjectField, 1, 2);
-        grid.add(new Label("Faculty:"), 0, 3);
-        grid.add(facultyField, 1, 3);
-        grid.add(new Label("Room:"), 0, 4);
-        grid.add(roomField, 1, 4);
+        DialogUtils.addFormRow(grid, "Day:", dayCombo, 0);
+        DialogUtils.addFormRow(grid, "Time:", timeCombo, 1);
+        DialogUtils.addFormRow(grid, "Subject:", subjectField, 2);
+        DialogUtils.addFormRow(grid, "Faculty:", facultyField, 3);
+        DialogUtils.addFormRow(grid, "Room:", roomField, 4);
 
         dialog.getDialogPane().setContent(grid);
 

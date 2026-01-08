@@ -213,14 +213,10 @@ public class AttendanceView {
         statusCombo.getItems().addAll("PRESENT", "ABSENT", "LATE");
         statusCombo.setValue("PRESENT");
 
-        grid.add(new Label("Course:"), 0, 0);
-        grid.add(courseCombo, 1, 0);
-        grid.add(new Label("Student:"), 0, 1);
-        grid.add(studentSelector, 1, 1);
-        grid.add(new Label("Date:"), 0, 2);
-        grid.add(datePicker, 1, 2);
-        grid.add(new Label("Status:"), 0, 3);
-        grid.add(statusCombo, 1, 3);
+        DialogUtils.addFormRow(grid, "Course:", courseCombo, 0);
+        DialogUtils.addFormRow(grid, "Student:", studentSelector, 1);
+        DialogUtils.addFormRow(grid, "Date:", datePicker, 2);
+        DialogUtils.addFormRow(grid, "Status:", statusCombo, 3);
 
         dialog.getDialogPane().setContent(grid);
 

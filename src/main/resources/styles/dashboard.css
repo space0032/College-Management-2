@@ -406,6 +406,132 @@
     -fx-border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* TextArea Dark Theme */
+.text-area {
+    -fx-background-color: transparent;
+    /* Wrapper */
+}
+
+.text-area .content {
+    -fx-background-color: rgba(15, 23, 42, 0.6);
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 8;
+}
+
+.text-area:focused .content {
+    -fx-background-color: rgba(15, 23, 42, 0.8);
+    -fx-border-color: #14b8a6;
+}
+
+.text-area .text {
+    -fx-fill: white;
+}
+
+/* DatePicker Dark Theme */
+.date-picker .text-field {
+    -fx-background-color: rgba(15, 23, 42, 0.6);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-background-radius: 8 0 0 8;
+    -fx-border-radius: 8 0 0 8;
+}
+
+.date-picker .arrow-button {
+    -fx-background-color: rgba(15, 23, 42, 0.6);
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-background-radius: 0 8 8 0;
+    -fx-border-radius: 0 8 8 0;
+}
+
+.date-picker .arrow-button .arrow {
+    -fx-background-color: white;
+}
+
+/* CheckBox Dark Theme */
+.check-box {
+    -fx-text-fill: #cbd5e1;
+}
+
+.check-box:selected {
+    -fx-text-fill: white;
+}
+
+.check-box .box {
+    -fx-background-color: rgba(15, 23, 42, 0.6);
+    -fx-border-color: rgba(255, 255, 255, 0.3);
+    -fx-border-radius: 3;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+/* Spinner Dark Theme */
+.spinner {
+    -fx-background-color: rgba(15, 23, 42, 0.6);
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.spinner .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+}
+
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-body-color: transparent;
+}
+
+.spinner .increment-arrow-button:hover,
+.spinner .decrement-arrow-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.spinner .increment-arrow-button .increment-arrow,
+.spinner .decrement-arrow-button .decrement-arrow {
+    -fx-background-color: white;
+}
+
+/* DatePicker Popup Dark Theme */
+.date-picker-popup {
+    -fx-background-color: #1e293b;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+}
+
+.date-picker-popup .month-year-pane {
+    -fx-background-color: #0f172a;
+}
+
+.date-picker-popup .month-year-pane .label {
+    -fx-text-fill: white;
+}
+
+.date-picker-popup .week-number-cell {
+    -fx-text-fill: #94a3b8;
+}
+
+.date-picker-popup .day-cell {
+    -fx-background-color: #1e293b;
+    -fx-text-fill: #cbd5e1;
+}
+
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: #334155;
+}
+
+.date-picker-popup .selected {
+    -fx-background-color: #14b8a6;
+    -fx-text-fill: white;
+}
+
+.date-picker-popup .today {
+    -fx-border-color: #14b8a6;
+}
+
 /* Glass Table View */
 .glass-table {
     -fx-background-color: transparent !important;

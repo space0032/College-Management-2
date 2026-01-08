@@ -453,14 +453,10 @@ public class HostelManagementView {
 
         DatePicker checkInDate = new DatePicker(java.time.LocalDate.now());
 
-        grid.add(new Label("Student:"), 0, 0);
-        grid.add(studentSelector, 1, 0);
-        grid.add(new Label("Hostel:"), 0, 1);
-        grid.add(hostelCombo, 1, 1);
-        grid.add(new Label("Room:"), 0, 2);
-        grid.add(roomCombo, 1, 2);
-        grid.add(new Label("Check-In:"), 0, 3);
-        grid.add(checkInDate, 1, 3);
+        DialogUtils.addFormRow(grid, "Student:", studentSelector, 0);
+        DialogUtils.addFormRow(grid, "Hostel:", hostelCombo, 1);
+        DialogUtils.addFormRow(grid, "Room:", roomCombo, 2);
+        DialogUtils.addFormRow(grid, "Check-In:", checkInDate, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -616,12 +612,9 @@ public class HostelManagementView {
             }
         }
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Type:"), 0, 1);
-        grid.add(typeCombo, 1, 1);
-        grid.add(new Label("Warden:"), 0, 2);
-        grid.add(wardenCombo, 1, 2);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Type:", typeCombo, 1);
+        DialogUtils.addFormRow(grid, "Warden:", wardenCombo, 2);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -678,12 +671,9 @@ public class HostelManagementView {
         TextField capacityField = new TextField();
         capacityField.setPromptText("Capacity");
 
-        grid.add(new Label("Room Number:"), 0, 0);
-        grid.add(roomNumField, 1, 0);
-        grid.add(new Label("Hostel:"), 0, 1);
-        grid.add(hostelCombo, 1, 1);
-        grid.add(new Label("Capacity:"), 0, 2);
-        grid.add(capacityField, 1, 2);
+        DialogUtils.addFormRow(grid, "Room Number:", roomNumField, 0);
+        DialogUtils.addFormRow(grid, "Hostel:", hostelCombo, 1);
+        DialogUtils.addFormRow(grid, "Capacity:", capacityField, 2);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -798,14 +788,10 @@ public class HostelManagementView {
         hostelCombo.getItems().addAll(hostelDAO.getAllHostels());
         hostelCombo.setPromptText("Select Hostel");
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Email:"), 0, 1);
-        grid.add(emailField, 1, 1);
-        grid.add(new Label("Phone:"), 0, 2);
-        grid.add(phoneField, 1, 2);
-        grid.add(new Label("Hostel:"), 0, 3);
-        grid.add(hostelCombo, 1, 3);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Email:", emailField, 1);
+        DialogUtils.addFormRow(grid, "Phone:", phoneField, 2);
+        DialogUtils.addFormRow(grid, "Hostel:", hostelCombo, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -875,14 +861,10 @@ public class HostelManagementView {
             }
         }
 
-        grid.add(new Label("Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Email:"), 0, 1);
-        grid.add(emailField, 1, 1);
-        grid.add(new Label("Phone:"), 0, 2);
-        grid.add(phoneField, 1, 2);
-        grid.add(new Label("Hostel:"), 0, 3);
-        grid.add(hostelCombo, 1, 3);
+        DialogUtils.addFormRow(grid, "Name:", nameField, 0);
+        DialogUtils.addFormRow(grid, "Email:", emailField, 1);
+        DialogUtils.addFormRow(grid, "Phone:", phoneField, 2);
+        DialogUtils.addFormRow(grid, "Hostel:", hostelCombo, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -1194,14 +1176,10 @@ public class HostelManagementView {
         remarks.setPromptText("Remarks (optional)");
         remarks.setPrefRowCount(2);
 
-        grid.add(new Label("Student:"), 0, 0);
-        grid.add(studentSelector, 1, 0);
-        grid.add(new Label("Date:"), 0, 1);
-        grid.add(datePicker, 1, 1);
-        grid.add(new Label("Status:"), 0, 2);
-        grid.add(statusCombo, 1, 2);
-        grid.add(new Label("Remarks:"), 0, 3);
-        grid.add(remarks, 1, 3);
+        DialogUtils.addFormRow(grid, "Student:", studentSelector, 0);
+        DialogUtils.addFormRow(grid, "Date:", datePicker, 1);
+        DialogUtils.addFormRow(grid, "Status:", statusCombo, 2);
+        DialogUtils.addFormRow(grid, "Remarks:", remarks, 3);
 
         Button saveBtn = createButton("Mark"); // avoid clash with dialog button
         final int finalHostelId = currentHostelId;
