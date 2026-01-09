@@ -1,7 +1,9 @@
 package com.college.fx.views;
 
+import com.college.dao.EventDAO;
 import com.college.dao.EventDetailsDAO;
 import com.college.dao.StudentDAO;
+import com.college.models.Event;
 import com.college.models.EventVolunteer;
 import com.college.models.Student;
 import com.college.utils.SessionManager;
@@ -12,12 +14,17 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class VolunteerTasksView {
 
     private final EventDetailsDAO eventDetailsDAO = new EventDetailsDAO();
+    private final EventDAO eventDAO = new EventDAO();
     private final StudentDAO studentDAO = new StudentDAO();
-    private TableView<EventVolunteer> table;
+
+    private TableView<EventVolunteer> myTasksTable;
+    private TableView<Event> opportunitiesTable;
 
     public VBox getView() {
         VBox mainLayout = new VBox(20);
@@ -26,12 +33,35 @@ public class VolunteerTasksView {
         mainLayout.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
-        Label title = new Label("My Volunteer Tasks");
+        Label title = new Label("Volunteer Portal");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
         title.setStyle("-fx-text-fill: #e2e8f0;");
 
-        table = new TableView<>();
-        table.getStyleClass().add("glass-table");
+        // TabPane
+        TabPane tabPane = new TabPane();
+        tabPane.getStyleClass().add("pill-tab-pane");
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        Tab myTasksTab = new Tab("My Tasks");
+        myTasksTab.setContent(createMyTasksTab());
+
+        Tab browseTab = new Tab("Browse Opportunities");
+        browseTab.setContent(createBrowseTab());
+
+        tabPane.getTabs().addAll(myTasksTab, browseTab);
+        VBox.setVgrow(tabPane, Priority.ALWAYS);
+
+        mainLayout.getChildren().addAll(title, tabPane);
+        return mainLayout;
+    }
+
+    private VBox createMyTasksTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.getStyleClass().add("glass-card");
+
+        myTasksTable = new TableView<>();
+        myTasksTable.getStyleClass().add("glass-table");
 
         TableColumn<EventVolunteer, String> eventCol = new TableColumn<>("Event");
         eventCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEventName()));
@@ -84,7 +114,6 @@ public class VolunteerTasksView {
                     setGraphic(null);
                 } else {
                     EventVolunteer task = getTableView().getItems().get(getIndex());
-                    // Only show request button if Approved
                     requestBtn.setVisible("APPROVED".equalsIgnoreCase(task.getStatus()));
                     if ("APPROVED".equalsIgnoreCase(task.getStatus())) {
                         setGraphic(requestBtn);
@@ -95,24 +124,140 @@ public class VolunteerTasksView {
             }
         });
 
-        table.getColumns().addAll(java.util.Arrays.asList(eventCol, taskCol, statusCol, hoursCol, actionCol));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        VBox.setVgrow(table, Priority.ALWAYS);
+        myTasksTable.getColumns().addAll(java.util.Arrays.asList(eventCol, taskCol, statusCol, hoursCol, actionCol));
+        myTasksTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        VBox.setVgrow(myTasksTable, Priority.ALWAYS);
 
-        refreshTable();
-
-        mainLayout.getChildren().addAll(title, table);
-        return mainLayout;
+        content.getChildren().add(myTasksTable);
+        refreshMyTasks();
+        return content;
     }
 
-    private void refreshTable() {
-        // Get current student ID from user ID
+    private VBox createBrowseTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.getStyleClass().add("glass-card");
+
+        opportunitiesTable = new TableView<>();
+        opportunitiesTable.getStyleClass().add("glass-table");
+        opportunitiesTable.setPlaceholder(new Label("No upcoming events found."));
+
+        TableColumn<Event, String> eventNameCol = new TableColumn<>("Event Name");
+        eventNameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
+        eventNameCol.setPrefWidth(200);
+
+        TableColumn<Event, String> typeCol = new TableColumn<>("Type");
+        typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEventType()));
+        typeCol.setPrefWidth(120);
+
+        TableColumn<Event, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getStartTime() != null ? data.getValue().getStartTime().toString() : "TBA"));
+        dateCol.setPrefWidth(150);
+
+        TableColumn<Event, Void> applyCol = new TableColumn<>("Action");
+        applyCol.setCellFactory(param -> new TableCell<>() {
+            private final Button volunteerBtn = new Button("Volunteer");
+
+            {
+                volunteerBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold;");
+                volunteerBtn.setOnAction(e -> {
+                    Event event = getTableView().getItems().get(getIndex());
+                    showVolunteerDialog(event);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(volunteerBtn);
+                }
+            }
+        });
+
+        opportunitiesTable.getColumns().addAll(java.util.Arrays.asList(eventNameCol, typeCol, dateCol, applyCol));
+        VBox.setVgrow(opportunitiesTable, Priority.ALWAYS);
+
+        Button refreshBtn = new Button("Refresh Opportunities");
+        refreshBtn.getStyleClass().add("accent-button");
+        refreshBtn.setOnAction(e -> refreshOpportunities());
+
+        content.getChildren().addAll(refreshBtn, opportunitiesTable);
+        refreshOpportunities();
+        return content;
+    }
+
+    private void refreshMyTasks() {
         int userId = SessionManager.getInstance().getUserId();
         Student student = studentDAO.getStudentByUserId(userId);
 
         if (student != null) {
-            table.getItems().setAll(eventDetailsDAO.getVolunteersByStudent(student.getId()));
+            myTasksTable.getItems().setAll(eventDetailsDAO.getVolunteersByStudent(student.getId()));
         }
+    }
+
+    private void refreshOpportunities() {
+        // Fetch UPCOMING events
+        List<Event> allEvents = eventDAO.getAllEvents();
+        List<Event> upcomingEvents = allEvents.stream()
+                .filter(e -> "UPCOMING".equalsIgnoreCase(e.getStatus()))
+                .collect(Collectors.toList());
+        opportunitiesTable.getItems().setAll(upcomingEvents);
+    }
+
+    private void showVolunteerDialog(Event event) {
+        Dialog<String> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
+        dialog.setTitle("Volunteer Application");
+        dialog.setHeaderText("Volunteer for " + event.getName());
+
+        ButtonType submitBtn = new ButtonType("Submit", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitBtn, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(20));
+
+        TextArea descArea = new TextArea();
+        descArea.setPromptText("Describe what you can help with (e.g., Technical setup, Promotion, Logistics)...");
+        descArea.setWrapText(true);
+        descArea.setPrefHeight(100);
+
+        content.getChildren().addAll(new Label("How would you like to help?"), descArea);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btnType -> {
+            if (btnType == submitBtn) {
+                return descArea.getText();
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(taskDesc -> {
+            if (taskDesc != null && !taskDesc.trim().isEmpty()) {
+                int userId = SessionManager.getInstance().getUserId();
+                Student student = studentDAO.getStudentByUserId(userId);
+                if (student != null) {
+                    // Check if already volunteered
+                    if (eventDetailsDAO.isVolunteer(event.getId(), student.getId())) {
+                        showAlert(Alert.AlertType.WARNING, "Already Registered",
+                                "You have already volunteered for this event.");
+                        return;
+                    }
+
+                    if (eventDetailsDAO.registerVolunteer(event.getId(), student.getId(), taskDesc)) {
+                        showAlert(Alert.AlertType.INFORMATION, "Success", "Application submitted! Wait for approval.");
+                        refreshMyTasks();
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit application.");
+                    }
+                }
+            } else {
+                showAlert(Alert.AlertType.WARNING, "Input Required", "Please describe how you can help.");
+            }
+        });
     }
 
     private void showRequestResourceDialog(EventVolunteer task) {
@@ -149,26 +294,22 @@ public class VolunteerTasksView {
                 res.setEventId(task.getEventId());
                 res.setResourceName(name);
                 res.setQuantity(qtySpinner.getValue());
-                // Assuming students can add connection, or we need a specific 'requestResource'
-                // method allowing reduced perms?
-                // EventDetailsDAO.addResource is likely fine for now.
 
                 if (eventDetailsDAO.addResource(res)) {
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    DialogUtils.styleDialog(alert);
-                    alert.setTitle("Success");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Resource requested successfully!");
-                    alert.showAndWait();
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Resource requested successfully!");
                 } else {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    DialogUtils.styleDialog(alert);
-                    alert.setTitle("Error");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Failed to request resource.");
-                    alert.showAndWait();
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to request resource.");
                 }
             }
         });
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        DialogUtils.styleDialog(alert);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

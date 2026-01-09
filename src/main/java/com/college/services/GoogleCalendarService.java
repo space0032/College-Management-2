@@ -24,7 +24,8 @@ import java.util.List;
  */
 public class GoogleCalendarService {
 
-    private static final String API_KEY = System.getenv("GOOGLE_API_KEY");
+    private static final String API_KEY = System.getenv("GOOGLE_API_KEY") != null ? System.getenv("GOOGLE_API_KEY")
+            : "YOUR_API_KEY_HERE";
     private static final String CALENDAR_ID = "en.indian#holiday@group.v.calendar.google.com"; // Indian Holidays
     private static final String BASE_URL = "https://www.googleapis.com/calendar/v3/calendars/";
 

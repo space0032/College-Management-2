@@ -246,4 +246,150 @@ public class EventDetailsDAO {
             return false;
         }
     }
+
+    // --- Budgets ---
+    public boolean addBudget(EventBudget budget) {
+        String sql = "INSERT INTO event_budgets (event_id, item, estimated_cost, actual_cost, status) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, budget.getEventId());
+            pstmt.setString(2, budget.getItem());
+            pstmt.setDouble(3, budget.getEstimatedCost());
+            pstmt.setDouble(4, budget.getActualCost());
+            pstmt.setString(5, budget.getStatus());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            // If table doesn't exist, create it on fly (Development convenience)
+            String msg = e.getMessage().toLowerCase();
+            if (msg.contains("not exist") || msg.contains("doesn't exist")) {
+                createBudgetTable();
+                return addBudget(budget);
+            }
+            Logger.error("Error adding budget: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private void createBudgetTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS event_budgets (" +
+                "id SERIAL PRIMARY KEY, " +
+                "event_id INT, " +
+                "item VARCHAR(255), " +
+                "estimated_cost DOUBLE, " +
+                "actual_cost DOUBLE, " +
+                "status VARCHAR(50), " +
+                "FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            Logger.error("Error creating budget table: " + e.getMessage());
+        }
+    }
+
+    public List<EventBudget> getBudgets(int eventId) {
+        List<EventBudget> list = new ArrayList<>();
+        String sql = "SELECT * FROM event_budgets WHERE event_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, eventId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                EventBudget b = new EventBudget();
+                b.setId(rs.getInt("id"));
+                b.setEventId(rs.getInt("event_id"));
+                b.setItem(rs.getString("item"));
+                b.setEstimatedCost(rs.getDouble("estimated_cost"));
+                b.setActualCost(rs.getDouble("actual_cost"));
+                b.setStatus(rs.getString("status"));
+                list.add(b);
+            }
+        } catch (SQLException e) {
+            String msg = e.getMessage().toLowerCase();
+            if (msg.contains("not exist") || msg.contains("doesn't exist")) {
+                createBudgetTable(); // Ensure table exists
+                return list;
+            }
+            Logger.error("Error fetching budgets: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public boolean updateBudgetStatus(int id, String status) {
+        String sql = "UPDATE event_budgets SET status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, status);
+            pstmt.setInt(2, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error updating budget: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // --- Polls ---
+    public boolean createPoll(EventPoll poll) {
+        String sql = "INSERT INTO event_polls (event_id, question, options, status) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, poll.getEventId());
+            pstmt.setString(2, poll.getQuestion());
+            pstmt.setString(3, poll.getOptions());
+            pstmt.setString(4, poll.getStatus());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            String msg = e.getMessage().toLowerCase();
+            if (msg.contains("not exist") || msg.contains("doesn't exist")) {
+                createPollTable();
+                return createPoll(poll);
+            }
+            Logger.error("Error creating poll: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private void createPollTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS event_polls (" +
+                "id SERIAL PRIMARY KEY, " +
+                "event_id INT, " +
+                "question VARCHAR(255), " +
+                "options TEXT, " +
+                "status VARCHAR(50), " +
+                "FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            Logger.error("Error creating poll table: " + e.getMessage());
+        }
+    }
+
+    public List<EventPoll> getPolls(int eventId) {
+        List<EventPoll> list = new ArrayList<>();
+        String sql = "SELECT * FROM event_polls WHERE event_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, eventId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                EventPoll p = new EventPoll();
+                p.setId(rs.getInt("id"));
+                p.setEventId(rs.getInt("event_id"));
+                p.setQuestion(rs.getString("question"));
+                p.setOptions(rs.getString("options"));
+                p.setStatus(rs.getString("status"));
+                list.add(p);
+            }
+        } catch (SQLException e) {
+            String msg = e.getMessage().toLowerCase();
+            if (msg.contains("not exist") || msg.contains("doesn't exist")) {
+                createPollTable();
+                return list;
+            }
+            Logger.error("Error fetching polls: " + e.getMessage());
+        }
+        return list;
+    }
+
 }

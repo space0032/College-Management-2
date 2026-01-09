@@ -139,6 +139,8 @@ public class DashboardView {
     private static final String SVG_TIMETABLE = "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z";
     private static final String SVG_PAYROLL = "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z";
     private static final String SVG_ANNOUNCEMENTS = "M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.06-1.2-1.59-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.41zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v5h2v-5h2l3-3V9H4zm9 0h2v5h-2z";
+    private static final String SVG_CROWDFUND = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.86 2.13-2.03 0-1.01-.55-1.53-1.45-1.92L11 12.03c-2-.89-3.23-1.66-3.19-4.04.05-1.78 1.34-3.08 3.19-3.37V3h2.67v1.63c1.71.36 3.16 1.46 3.27 3.4h-1.96c-.1-1.05-1.18-1.91-2.53-1.91-1.29 0-2.13.86-2.13 2.03 0 1.01.55 1.53 1.45 1.92L13 10.97c2 .89 3.23 1.66 3.19 4.04-.05 1.78-1.34 3.08-3.19 3.37z";
+    private static final String SVG_SCHOLARSHIP = "M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"; // Similar to learning, adjusted
     private static final String SVG_FEES = "M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z";
     private static final String SVG_REPORTS = "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z";
     private static final String SVG_PROFILE = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z";
@@ -303,6 +305,7 @@ public class DashboardView {
             addMenuItem(academicContent, "Leave", "staff_leave", SVG_LEAVE);
             if (session.hasPermission("VIEW_TIMETABLE")) {
                 addMenuItem(academicContent, "Timetable", "timetable", SVG_TIMETABLE);
+                addMenuItem(academicContent, "Room Check", "room_availability", SVG_SEARCH);
                 hasAcademic = true;
             }
         }
@@ -338,13 +341,15 @@ public class DashboardView {
         // Available to everyone (Students, Faculty, Admin, Staff)
         addMenuItem(campusContent, "Events", "events", SVG_EVENT);
         addMenuItem(campusContent, "Clubs", "clubs", SVG_CLUB);
+        addMenuItem(campusContent, "Crowdfunding", "crowdfunding", SVG_CROWDFUND);
+        addMenuItem(campusContent, "Scholarships", "scholarships", SVG_SCHOLARSHIP);
         if (!session.isAdmin()) {
             addMenuItem(campusContent, "Activities", "student_activities", SVG_ACTIVITIES);
         }
         hasCampus = true;
 
         if (hasCampus) {
-            sectionsContainer.getChildren().add(createSection("Campus", campusContent));
+            sectionsContainer.getChildren().add(createSection("Campus & Community", campusContent));
         }
 
         // --- Finance & News ---
@@ -582,6 +587,15 @@ public class DashboardView {
                     break;
                 case "learning_portal":
                     loadViewReflectively("com.college.fx.views.LearningPortalView");
+                    break;
+                case "crowdfunding":
+                    loadViewReflectively("com.college.fx.views.CrowdfundingView");
+                    break;
+                case "scholarships":
+                    loadViewReflectively("com.college.fx.views.ScholarshipView");
+                    break;
+                case "room_availability":
+                    loadViewReflectively("com.college.fx.views.RoomAvailabilityView");
                     break;
                 default:
                     showHome();

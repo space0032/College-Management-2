@@ -147,8 +147,48 @@ public class TimetableDAO {
     }
 
     /**
+     * Get all unique rooms
+     */
+    public List<String> getAllRooms() {
+        List<String> rooms = new ArrayList<>();
+        String sql = "SELECT DISTINCT room_number FROM timetable WHERE room_number IS NOT NULL AND room_number != '' ORDER BY room_number";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                rooms.add(rs.getString("room_number"));
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching rooms: " + e.getMessage());
+        }
+        return rooms;
+    }
+
+    /**
      * Extract Timetable object from ResultSet
      */
+    /**
+     * Check for room conflict
+     */
+    public boolean checkConflict(String roomNumber, String day, String timeSlot, int semester, int excludeId) {
+        String sql = "SELECT COUNT(*) FROM timetable WHERE room_number = ? AND day_of_week = ? AND time_slot = ? AND semester = ? AND id != ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, roomNumber);
+            pstmt.setString(2, day);
+            pstmt.setString(3, timeSlot);
+            pstmt.setInt(4, semester);
+            pstmt.setInt(5, excludeId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            Logger.error("Error checking conflict: " + e.getMessage());
+        }
+        return false;
+    }
+
     private Timetable extractTimetableFromResultSet(ResultSet rs) throws SQLException {
         Timetable timetable = new Timetable();
         timetable.setId(rs.getInt("id"));
@@ -161,4 +201,25 @@ public class TimetableDAO {
         timetable.setRoomNumber(rs.getString("room_number"));
         return timetable;
     }
+
+    /**
+     * Get occupied rooms for a specific day and time slot
+     */
+    public List<String> getOccupiedRooms(String day, String timeSlot) {
+        List<String> occupied = new ArrayList<>();
+        String sql = "SELECT DISTINCT room_number FROM timetable WHERE day_of_week = ? AND time_slot = ? AND room_number IS NOT NULL AND room_number != ''";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, day);
+            pstmt.setString(2, timeSlot);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                occupied.add(rs.getString("room_number"));
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching occupied rooms: " + e.getMessage());
+        }
+        return occupied;
+    }
+
 }

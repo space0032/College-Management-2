@@ -2,6 +2,8 @@ package com.college.fx.views;
 
 import com.college.dao.EventDAO;
 import com.college.models.Event;
+import com.college.models.EventBudget;
+import com.college.models.EventPoll;
 import com.college.models.EventRegistration;
 import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
@@ -264,7 +266,15 @@ public class EventManagementView {
         Tab regTab = new Tab("Registrations");
         regTab.setContent(createRegistrationsContent(event));
 
-        tabPane.getTabs().addAll(collabTab, resourceTab, volunteerTab, regTab);
+        // Tab 5: Budgets
+        Tab budgetTab = new Tab("Budgets");
+        budgetTab.setContent(createBudgetsTab(event));
+
+        // Tab 6: Polls
+        Tab pollTab = new Tab("Polls");
+        pollTab.setContent(createPollsTab(event));
+
+        tabPane.getTabs().addAll(collabTab, resourceTab, volunteerTab, regTab, budgetTab, pollTab);
         dialog.getDialogPane().setContent(tabPane);
         dialog.showAndWait();
     }
@@ -566,6 +576,192 @@ public class EventManagementView {
 
         content.getChildren().addAll(new Label("Registered Volunteers"), table);
         return content;
+    }
+
+    private VBox createBudgetsTab(Event event) {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        HBox addBox = new HBox(10);
+        addBox.setAlignment(Pos.CENTER_LEFT);
+
+        TextField itemField = new TextField();
+        itemField.setPromptText("Item Name");
+
+        TextField costField = new TextField();
+        costField.setPromptText("Est. Cost");
+        costField.setPrefWidth(100);
+
+        Button addBtn = new Button("Add Item");
+        addBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;");
+
+        TableView<EventBudget> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
+
+        TableColumn<EventBudget, String> itemCol = new TableColumn<>("Item");
+        itemCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getItem()));
+        itemCol.setPrefWidth(200);
+
+        TableColumn<EventBudget, String> estCol = new TableColumn<>("Est. Cost");
+        estCol.setCellValueFactory(
+                data -> new SimpleStringProperty(String.format("$%.2f", data.getValue().getEstimatedCost())));
+        estCol.setPrefWidth(100);
+
+        TableColumn<EventBudget, String> actCol = new TableColumn<>("Actual Cost");
+        actCol.setCellValueFactory(
+                data -> new SimpleStringProperty(String.format("$%.2f", data.getValue().getActualCost())));
+        actCol.setPrefWidth(100);
+
+        TableColumn<EventBudget, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setPrefWidth(100);
+
+        TableColumn<EventBudget, Void> actionCol = new TableColumn<>("Actions");
+        actionCol.setCellFactory(param -> new TableCell<>() {
+            private final Button approveBtn = new Button("Approve");
+
+            {
+                approveBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-padding: 2 8;");
+                approveBtn.setOnAction(e -> {
+                    EventBudget b = getTableView().getItems().get(getIndex());
+                    if (eventDetailsDAO.updateBudgetStatus(b.getId(), "APPROVED")) {
+                        b.setStatus("APPROVED");
+                        getTableView().refresh();
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    EventBudget b = getTableView().getItems().get(getIndex());
+                    if ("PLANNED".equals(b.getStatus())) {
+                        setGraphic(approveBtn);
+                    } else {
+                        setGraphic(null);
+                    }
+                }
+            }
+        });
+
+        table.getColumns().addAll(java.util.Arrays.asList(itemCol, estCol, actCol, statusCol, actionCol));
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable loadBudgets = () -> {
+            table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getBudgets(event.getId())));
+        };
+        loadBudgets.run();
+
+        addBtn.setOnAction(e -> {
+            try {
+                String item = itemField.getText();
+                double cost = Double.parseDouble(costField.getText());
+                EventBudget b = new EventBudget();
+                b.setEventId(event.getId());
+                b.setItem(item);
+                b.setEstimatedCost(cost);
+                b.setActualCost(0);
+                b.setStatus("PLANNED");
+
+                if (eventDetailsDAO.addBudget(b)) {
+                    loadBudgets.run();
+                    itemField.clear();
+                    costField.clear();
+                }
+            } catch (NumberFormatException ex) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Cost must be a number.");
+            }
+        });
+
+        addBox.getChildren().addAll(itemField, costField, addBtn);
+        content.getChildren().addAll(new Label("Budget Tracker"), addBox, table);
+        return content;
+    }
+
+    private VBox createPollsTab(Event event) {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+
+        Button createBtn = new Button("Create Poll");
+        createBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white;");
+        createBtn.setOnAction(e -> showCreatePollDialog(event));
+
+        TableView<EventPoll> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
+
+        TableColumn<EventPoll, String> qCol = new TableColumn<>("Question");
+        qCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getQuestion()));
+        qCol.setPrefWidth(250);
+
+        TableColumn<EventPoll, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
+        statusCol.setPrefWidth(100);
+
+        table.getColumns().addAll(java.util.Arrays.asList(qCol, statusCol));
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable loadPolls = () -> {
+            table.setItems(FXCollections.observableArrayList(eventDetailsDAO.getPolls(event.getId())));
+        };
+        loadPolls.run();
+
+        // Refresh polls when created
+        createBtn.setUserData(loadPolls);
+
+        content.getChildren().addAll(new Label("Event Polls"), createBtn, table);
+        return content;
+    }
+
+    private void showCreatePollDialog(Event event) {
+        Dialog<EventPoll> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
+        dialog.setTitle("Create Poll");
+        dialog.setHeaderText("New Poll for " + event.getName());
+
+        ButtonType createType = new ButtonType("Create", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(createType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField qField = new TextField();
+        qField.setPromptText("Question");
+
+        TextArea optArea = new TextArea();
+        optArea.setPromptText("Options (comma separated)");
+        optArea.setPrefRowCount(3);
+
+        grid.add(new Label("Question:"), 0, 0);
+        grid.add(qField, 1, 0);
+        grid.add(new Label("Options:"), 0, 1);
+        grid.add(optArea, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == createType) {
+                EventPoll p = new EventPoll();
+                p.setEventId(event.getId());
+                p.setQuestion(qField.getText());
+                p.setOptions(optArea.getText());
+                p.setStatus("ACTIVE");
+                return p;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(poll -> {
+            if (eventDetailsDAO.createPoll(poll)) {
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Poll created!");
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to create poll.");
+            }
+        });
     }
 
     private GridPane createEventForm(Event event) {

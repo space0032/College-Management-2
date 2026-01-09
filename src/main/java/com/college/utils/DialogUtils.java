@@ -24,6 +24,7 @@ public class DialogUtils {
             int row) {
         javafx.scene.control.Label label = new javafx.scene.control.Label(labelText);
         label.setStyle("-fx-text-fill: #e2e8f0;"); // Default text color for dark theme
+        label.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE); // Prevent truncation
         grid.add(label, 0, row);
         grid.add(field, 1, row);
         javafx.scene.layout.GridPane.setValignment(label, javafx.geometry.VPos.CENTER);

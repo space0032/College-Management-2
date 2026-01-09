@@ -153,6 +153,19 @@ public class DatabaseMigrator {
                         System.err.println("V36 Migration file not found!");
                     }
                 }
+
+                // Execute V40 Add New Feature Permissions & missing tables
+                String v40Path = "/db/migration/V40__Add_New_Feature_Permissions.sql";
+                try (InputStream v40is = DatabaseMigrator.class.getResourceAsStream(v40Path)) {
+                    if (v40is != null) {
+                        String v40sql = new BufferedReader(new InputStreamReader(v40is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v40sql);
+                        System.out.println("V40 Add New Feature Permissions Migration executed successfully!");
+                    } else {
+                        System.err.println("V40 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {

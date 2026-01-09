@@ -1,116 +1,130 @@
 package com.college.fx.views;
 
-import com.college.dao.CalendarDAO;
-import com.college.models.CalendarEvent;
-import com.college.models.CalendarEvent.EventType;
-import com.college.services.GoogleCalendarService;
-import com.college.utils.SessionManager;
-import com.college.utils.DialogUtils;
+import com.college.dao.EventDAO;
+import com.college.models.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class AcademicCalendarView {
 
-    private VBox root;
+    private final EventDAO eventDAO = new EventDAO();
+    private final com.college.services.GoogleCalendarService googleService = new com.college.services.GoogleCalendarService();
     private YearMonth currentYearMonth;
-    private GridPane calendarGrid;
-    private Label monthYearLabel;
-    private CalendarDAO calendarDAO;
-    private GoogleCalendarService googleCalendarService;
+    private final GridPane calendarGrid;
+    private final Text calendarTitle;
 
     public AcademicCalendarView() {
-        this.calendarDAO = new CalendarDAO();
-        this.googleCalendarService = new GoogleCalendarService();
         this.currentYearMonth = YearMonth.now();
-        createView();
+        this.calendarGrid = new GridPane();
+        this.calendarTitle = new Text();
     }
 
-    private void createView() {
-        root = new VBox(20);
-        root.setPadding(new Insets(20));
-        root.getStyleClass().add("glass-card");
+    public VBox getView() {
+        VBox view = new VBox(20);
+        view.setPadding(new Insets(20));
+        view.getStyleClass().add("glass-pane");
+        view.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
         // Header
-        HBox header = new HBox(20);
+        HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER);
 
-        Button prevBtn = new Button("<");
+        Button prevBtn = new Button("<<");
+        prevBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 50%;");
         prevBtn.setOnAction(e -> {
             currentYearMonth = currentYearMonth.minusMonths(1);
             updateCalendar();
         });
 
-        monthYearLabel = new Label();
-        monthYearLabel.getStyleClass().add("section-title");
-
-        Button nextBtn = new Button(">");
+        Button nextBtn = new Button(">>");
+        nextBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 50%;");
         nextBtn.setOnAction(e -> {
             currentYearMonth = currentYearMonth.plusMonths(1);
             updateCalendar();
         });
 
-        header.getChildren().addAll(prevBtn, monthYearLabel, nextBtn);
+        calendarTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+        calendarTitle.setFill(Color.WHITE);
 
-        // Legend
-        HBox legend = createLegend();
+        header.getChildren().addAll(prevBtn, calendarTitle, nextBtn);
 
         // Calendar Grid
-        calendarGrid = new GridPane();
-        calendarGrid.setHgap(5);
-        calendarGrid.setVgap(5);
+        calendarGrid.setHgap(10);
+        calendarGrid.setVgap(10);
         calendarGrid.setAlignment(Pos.CENTER);
 
-        root.getChildren().addAll(header, legend, calendarGrid);
-
         updateCalendar();
+
+        ScrollPane scroll = new ScrollPane(calendarGrid);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        view.getChildren().addAll(header, scroll);
+        return view;
     }
 
     private void updateCalendar() {
         calendarGrid.getChildren().clear();
-        monthYearLabel.setText(currentYearMonth.getMonth().toString() + " " + currentYearMonth.getYear());
+        calendarTitle.setText(currentYearMonth.getMonth().toString() + " " + currentYearMonth.getYear());
 
-        // Header Row (Days)
+        // Days of week header
         String[] days = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
         for (int i = 0; i < 7; i++) {
             Label dayName = new Label(days[i]);
-            dayName.getStyleClass().add("calendar-day-header");
-            dayName.setMinWidth(100);
-            dayName.setAlignment(Pos.CENTER);
+            dayName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+            dayName.setTextFill(Color.web("#cbd5e1"));
             calendarGrid.add(dayName, i, 0);
+            GridPane.setHalignment(dayName, javafx.geometry.HPos.CENTER);
         }
 
-        // Days
-        LocalDate firstDayOfMonth = currentYearMonth.atDay(1);
-        int dayOfWeek = firstDayOfMonth.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
-        int daysInMonth = currentYearMonth.lengthOfMonth();
+        LocalDate calendarDate = LocalDate.of(currentYearMonth.getYear(), currentYearMonth.getMonth(), 1);
+        int dayOfWeek = calendarDate.getDayOfWeek().getValue(); // 1 = Mon, 7 = Sun
 
-        List<CalendarEvent> dbEvents = calendarDAO.getEventsByMonth(currentYearMonth.getYear(),
+        // Load events for this month
+        List<Event> allEvents = eventDAO.getAllEvents();
+
+        // Fetch and merge Google Holidays
+        List<com.college.models.CalendarEvent> holidays = googleService.getHolidays(currentYearMonth.getYear(),
                 currentYearMonth.getMonthValue());
+        for (com.college.models.CalendarEvent holiday : holidays) {
+            Event e = new Event();
+            e.setName(holiday.getTitle());
+            e.setEventType("HOLIDAY");
+            e.setStartTime(java.sql.Date.valueOf(holiday.getEventDate()));
+            allEvents.add(e);
+        }
 
-        // Fetch holidays from Google Calendar Service
-        List<CalendarEvent> googleHolidays = googleCalendarService.getHolidays(currentYearMonth.getYear(),
-                currentYearMonth.getMonthValue());
-
-        // Merge lists (dbEvents is mutable or not? DAO returns generic list. Let's
-        // create a combined list)
-        List<CalendarEvent> events = new java.util.ArrayList<>(dbEvents);
-        events.addAll(googleHolidays);
+        Map<LocalDate, List<Event>> eventsByDate = allEvents.stream()
+                .filter(e -> e.getStartTime() != null)
+                .collect(Collectors.groupingBy(e -> {
+                    if (e.getStartTime() instanceof java.sql.Date) {
+                        return ((java.sql.Date) e.getStartTime()).toLocalDate();
+                    }
+                    return e.getStartTime().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                }));
 
         int row = 1;
-        int col = dayOfWeek - 1;
+        int col = dayOfWeek - 1; // 0-indexed column
 
-        for (int day = 1; day <= daysInMonth; day++) {
-            LocalDate date = currentYearMonth.atDay(day);
-            VBox dayCell = createDayCell(date, events);
+        for (int day = 1; day <= currentYearMonth.lengthOfMonth(); day++) {
+            LocalDate date = LocalDate.of(currentYearMonth.getYear(), currentYearMonth.getMonth(), day);
+            VBox dayCell = createDayCell(day, eventsByDate.get(date));
+
             calendarGrid.add(dayCell, col, row);
 
             col++;
@@ -121,178 +135,37 @@ public class AcademicCalendarView {
         }
     }
 
-    private VBox createDayCell(LocalDate date, List<CalendarEvent> allEvents) {
+    private VBox createDayCell(int day, List<Event> events) {
         VBox cell = new VBox(5);
-        cell.setPrefSize(100, 100);
+        cell.setPrefSize(120, 100);
         cell.setPadding(new Insets(5));
-        cell.getStyleClass().add("calendar-cell");
+        cell.setStyle(
+                "-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 8; -fx-border-color: rgba(255,255,255,0.1); -fx-border-radius: 8;");
 
-        // Highlight today
-        if (date.equals(LocalDate.now())) {
-            cell.getStyleClass().add("calendar-cell-today");
-        } else if (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
-                || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-            // Highlight Weekends (Holidays)
-            cell.getStyleClass().add("calendar-cell-weekend");
-        }
+        Label dayLabel = new Label(String.valueOf(day));
+        dayLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+        dayLabel.setTextFill(Color.WHITE);
+        cell.getChildren().add(dayLabel);
 
-        Label dateLbl = new Label(String.valueOf(date.getDayOfMonth()));
-        dateLbl.getStyleClass().add("calendar-date-label");
-        cell.getChildren().add(dateLbl);
+        if (events != null) {
+            for (Event e : events) {
+                Label eventLabel = new Label(e.getName());
+                eventLabel.setMaxWidth(110);
+                eventLabel.getStyleClass().add("event-card-small"); // Need to ensure style exists or inline
 
-        // Filter events for this day
-        List<CalendarEvent> dayEvents = allEvents.stream()
-                .filter(e -> e.getEventDate().equals(date))
-                .collect(Collectors.toList());
+                String color = "#3b82f6"; // Default blue
+                if ("HOLIDAY".equalsIgnoreCase(e.getEventType()))
+                    color = "#ef4444"; // Red
+                if ("EXAM".equalsIgnoreCase(e.getEventType()))
+                    color = "#f59e0b"; // Amber
 
-        for (CalendarEvent e : dayEvents) {
-            Label eventLbl = new Label(e.getTitle());
-            eventLbl.getStyleClass().add("small-button"); // Reusing small button font size
-            eventLbl.setWrapText(true);
-            eventLbl.setTextFill(Color.WHITE);
-            eventLbl.setPadding(new Insets(2));
-            eventLbl.setMaxWidth(Double.MAX_VALUE);
+                eventLabel.setStyle("-fx-background-color: " + color
+                        + "; -fx-text-fill: white; -fx-padding: 2 5; -fx-background-radius: 4; -fx-font-size: 10px;");
 
-            String color = "#64748b"; // Default
-            if (e.getEventType() == EventType.HOLIDAY)
-                color = "#ef4444";
-            else if (e.getEventType() == EventType.EXAM)
-                color = "#f59e0b";
-            else if (e.getEventType() == EventType.EVENT)
-                color = "#3b82f6";
-
-            // Should properly move these colors to CSS classes too, but dynamic colors are
-            // tricky without many classes
-            // For now, inline background color for event pills is acceptable as they are
-            // content-driven colors
-            eventLbl.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 4;");
-
-            // Tooltip
-            Tooltip tooltip = new Tooltip(e.getTitle() + "\n" + e.getDescription());
-            Tooltip.install(eventLbl, tooltip);
-
-            // Delete action for Admin
-            if (SessionManager.getInstance().getRole().equals("ADMIN")) {
-                ContextMenu cm = new ContextMenu();
-                MenuItem deleteItem = new MenuItem("Delete Event");
-                deleteItem.setOnAction(ev -> {
-                    calendarDAO.deleteEvent(e.getId());
-                    updateCalendar();
-                });
-                cm.getItems().add(deleteItem);
-                eventLbl.setContextMenu(cm);
+                cell.getChildren().add(eventLabel);
             }
-
-            cell.getChildren().add(eventLbl);
-        }
-
-        // Add Event Action (Admin only)
-        if (SessionManager.getInstance().getRole().equals("ADMIN")) {
-            cell.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2) {
-                    showAddEventDialog(date);
-                }
-            });
         }
 
         return cell;
-    }
-
-    private void showAddEventDialog(LocalDate date) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        DialogUtils.styleDialog(dialog);
-        dialog.setTitle("Add Event");
-        dialog.setHeaderText("Add Event for " + date);
-
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
-
-        // Add column constraints to prevent label truncation
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setMinWidth(100);
-        col1.setPrefWidth(100);
-        col1.setHgrow(Priority.NEVER);
-
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setHgrow(Priority.ALWAYS);
-
-        grid.getColumnConstraints().addAll(col1, col2);
-
-        TextField titleField = new TextField();
-        titleField.setPromptText("Event Title");
-
-        ComboBox<EventType> typeCombo = new ComboBox<>();
-        typeCombo.getItems().addAll(EventType.values());
-        typeCombo.setValue(EventType.EVENT);
-
-        TextArea descArea = new TextArea();
-        descArea.setPromptText("Description");
-        descArea.setPrefRowCount(3);
-
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleField, 1, 0);
-        grid.add(new Label("Type:"), 0, 1);
-        grid.add(typeCombo, 1, 1);
-        grid.add(new Label("Description:"), 0, 2);
-        grid.add(descArea, 1, 2);
-
-        dialog.getDialogPane().setContent(grid);
-
-        dialog.setResultConverter(btn -> {
-            if (btn == saveBtn) {
-                CalendarEvent event = new CalendarEvent();
-                event.setTitle(titleField.getText());
-                event.setEventDate(date);
-                event.setEventType(typeCombo.getValue());
-                event.setDescription(descArea.getText());
-
-                if (calendarDAO.addEvent(event)) {
-                    updateCalendar();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.ERROR, "Failed to add event");
-                    DialogUtils.styleDialog(a);
-                    a.show();
-                }
-            }
-            return null;
-        });
-
-        dialog.showAndWait();
-    }
-
-    private HBox createLegend() {
-        HBox legend = new HBox(15);
-        legend.setAlignment(Pos.CENTER);
-
-        legend.getChildren().addAll(
-                createLegendItem("Holiday", "#ef4444"),
-                createLegendItem("Exam", "#f59e0b"),
-                createLegendItem("Event", "#3b82f6"));
-
-        if (SessionManager.getInstance().getRole().equals("ADMIN")) {
-            Label hint = new Label("(Double-click a day to add event)");
-            // hint.setTextFill(Color.GRAY);
-            legend.getChildren().add(hint);
-        }
-
-        return legend;
-    }
-
-    private HBox createLegendItem(String label, String colorCode) {
-        HBox item = new HBox(5);
-        item.setAlignment(Pos.CENTER);
-        Circle c = new Circle(5, Color.web(colorCode));
-        Label l = new Label(label);
-        item.getChildren().addAll(c, l);
-        return item;
-    }
-
-    public VBox getView() {
-        return root;
     }
 }
