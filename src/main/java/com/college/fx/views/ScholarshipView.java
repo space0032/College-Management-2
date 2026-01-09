@@ -11,7 +11,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.shape.SVGPath;
-import javafx.beans.binding.Bindings;
 
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -27,10 +26,6 @@ public class ScholarshipView {
     private String userRole;
     private List<Scholarship> scholarships;
 
-    // SVG Path for Degree/Scroll
-    private static final String SCROLL_ICON = "M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-3.5a.5.5 0 00-.5-.5H18v3H5V5h3V4H5z M9 4a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 01-1 1h-6a1 1 0 01-1-1V4z m2 1v10h4V5h-4z M17 4h2a2 2 0 012 2v2a.5.5 0 001 0V6a3 3 0 00-3-3h-2v1z";
-    // Hand holding icon (Approximate)
-    private static final String HAND_ICON = "M18 11l-5-2-5 2v7l5 2 5-2v-7zm-5 7.5l-3.5-1.4v-4.6l3.5 1.4v4.6zm0-5.6l-3.5-1.4 3.5-1.4 3.5 1.4-3.5 1.4zm4.5 4.2L14 18.5v-4.6l3.5-1.4v4.6z";
     // Combined or simple big icon for empty state
     private static final String EMPTY_STATE_ICON = "M12 2L1 7l11 5 9-4.09V17h2V7L12 2zm0 8.18l-8 3.64L12 17.5l8-3.64-8-3.68z M12 22l-8-3.64v-6.36l8 3.64 8-3.64v6.36L12 22z";
     // Academic Cap
