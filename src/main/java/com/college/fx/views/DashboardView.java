@@ -188,15 +188,9 @@ public class DashboardView {
         Label title = new Label("College Manager");
         title.getStyleClass().add("sidebar-title");
 
-        // Search Icon
-        javafx.scene.shape.SVGPath searchIcon = createIcon(SVG_SEARCH);
-        searchIcon.setFill(Color.WHITE);
-        searchIcon.setScaleX(0.9);
-        searchIcon.setScaleY(0.9);
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        titleBox.getChildren().addAll(title, spacer, searchIcon);
+        titleBox.getChildren().addAll(title, spacer);
 
         // 2. Home Button (Prominent)
         homeButton = new Button("Home");

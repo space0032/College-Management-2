@@ -10,6 +10,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.shape.SVGPath;
+import javafx.beans.binding.Bindings;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -18,9 +21,19 @@ import java.util.List;
 public class ScholarshipView {
 
     private final CommunityDAO communityDAO = new CommunityDAO();
-    private VBox mainLayout;
+    private BorderPane mainLayout;
+    private StackPane centerStack;
     private int userId;
     private String userRole;
+    private List<Scholarship> scholarships;
+
+    // SVG Path for Degree/Scroll
+    private static final String SCROLL_ICON = "M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-3.5a.5.5 0 00-.5-.5H18v3H5V5h3V4H5z M9 4a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 01-1 1h-6a1 1 0 01-1-1V4z m2 1v10h4V5h-4z M17 4h2a2 2 0 012 2v2a.5.5 0 001 0V6a3 3 0 00-3-3h-2v1z";
+    // Hand holding icon (Approximate)
+    private static final String HAND_ICON = "M18 11l-5-2-5 2v7l5 2 5-2v-7zm-5 7.5l-3.5-1.4v-4.6l3.5 1.4v4.6zm0-5.6l-3.5-1.4 3.5-1.4 3.5 1.4-3.5 1.4zm4.5 4.2L14 18.5v-4.6l3.5-1.4v4.6z";
+    // Combined or simple big icon for empty state
+    private static final String EMPTY_STATE_ICON = "M12 2L1 7l11 5 9-4.09V17h2V7L12 2zm0 8.18l-8 3.64L12 17.5l8-3.64-8-3.68z M12 22l-8-3.64v-6.36l8 3.64 8-3.64v6.36L12 22z";
+    // Academic Cap
 
     public ScholarshipView() {
         this.userId = SessionManager.getInstance().getUserId();
@@ -28,60 +41,208 @@ public class ScholarshipView {
         this.userRole = r != null ? r.toString() : "";
     }
 
-    public VBox getView() {
-        mainLayout = new VBox(20);
+    public BorderPane getView() {
+        mainLayout = new BorderPane();
         mainLayout.setPadding(new Insets(25));
         mainLayout.getStyleClass().add("glass-pane");
         mainLayout.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
+        // Header
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(0, 0, 20, 0));
 
         Label title = new Label("Scholarship Portal");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
-        title.setStyle("-fx-text-fill: white;");
+        title.getStyleClass().add("scholarship-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Only Admins/Staff usually create scholarships
-        Button createBtn = new Button("Post Scholarship");
-        createBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white;");
+        Button createBtn = new Button("+ Post Scholarship");
+        createBtn.getStyleClass().add("scholarship-post-btn");
         createBtn.setOnAction(e -> showCreateScholarshipDialog());
 
-        // Check perms if needed, for now let anyone "Post" (simulating Donors) or
-        // restricted
-        // Assuming implementation allows it for demo
         header.getChildren().addAll(title, spacer, createBtn);
+        mainLayout.setTop(header);
 
-        ScrollPane scroll = new ScrollPane(createContent());
-        scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        VBox.setVgrow(scroll, Priority.ALWAYS);
+        // Center Stack (Empty State vs List)
+        centerStack = new StackPane();
+        centerStack.setAlignment(Pos.CENTER);
+        VBox.setVgrow(centerStack, Priority.ALWAYS);
 
-        mainLayout.getChildren().addAll(header, scroll);
+        refreshContent(); // Load content
+
         return mainLayout;
     }
 
-    private VBox createContent() {
-        VBox container = new VBox(15);
-        List<Scholarship> scholarships = communityDAO.getAllScholarships();
+    private void refreshContent() {
+        scholarships = communityDAO.getAllScholarships();
 
-        if (scholarships.isEmpty()) {
-            container.getChildren().add(new Label("No scholarships available at the moment."));
-        } else {
-            for (Scholarship s : scholarships) {
-                container.getChildren().add(createScholarshipCard(s));
-            }
+        centerStack.getChildren().clear();
+        mainLayout.setCenter(centerStack);
+        mainLayout.setBottom(null);
+
+        // 1. Empty State Layer
+        VBox emptyState = createEmptyState();
+
+        // 2. Main Content Layer (Grid)
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setFitToWidth(true);
+        VBox gridContainer = new VBox(15);
+        gridContainer.setPadding(new Insets(10));
+
+        for (Scholarship s : scholarships) {
+            gridContainer.getChildren().add(createScholarshipCard(s));
         }
-        return container;
+        scrollPane.setContent(gridContainer);
+
+        // Logic: Show empty state if no scholarships, otherwise show list
+        if (scholarships.isEmpty()) {
+            centerStack.getChildren().add(emptyState);
+        } else {
+            // If we have items, we might want to show them in Center or Bottom
+            // Per design: "No scholarships available" is the main view when empty.
+            // "Recent Scholarships" is at the bottom.
+            // Let's ALWAYS show "Recent Scholarships" at the bottom if there are any.
+
+            // If there are NO scholarships, center has Empty State.
+            // If there ARE scholarships, center could be "Featured" or just empty space?
+            // But usually a portal lists them.
+
+            // Let's follow the image structure implying:
+            // Center = "Featured" or "Message".
+            // Bottom = "Recent".
+
+            // If list is not empty, I'll put the full list in the Center for now,
+            // AND a carousel at the bottom for "Recent" (same items for demo).
+
+            centerStack.getChildren().add(scrollPane);
+        }
+
+        // Bottom Carousel (Always show if there are items, or maybe even if empty
+        // placeholders?)
+        // The image shows "Recent Scholarships" with placeholders even when empty?
+        // "No scholarships available... Check back soon!" is visible.
+        // AND "Recent Scholarships" is below it with cards.
+
+        // Wait, the image shows "No scholarships available" AND "Recent Scholarships"
+        // below it.
+        // This implies the center message is just a status, and the bottom is the list.
+        // OR the "Recent" list is empty/placeholders?
+
+        // Let's implement BOTH.
+        // Center: Empty State Message (always visible if truly empty, or hidden if we
+        // have logic)
+        // But the image explicitly confirms: "No scholarships available" IS visible.
+        // And "Recent Scholarships" has cards (maybe disabled or past ones?).
+
+        // For this functional app:
+        // If empty -> Show Center Message. Show Bottom with maybe placeholder or
+        // hidden.
+        // If not empty -> Show List in Center? Or Show Message "Available!"?
+
+        // I will stick to:
+        // If empty -> Center = Illustrated Message.
+        // If not empty -> Center = List.
+
+        // ADDITIONALLY: I will add the "Recent Scholarships" bar at the bottom
+        // with the actual list (mini cards) regardless of Center content (if we have
+        // data).
+
+        if (!scholarships.isEmpty()) {
+            VBox bottomSection = createRecentSection(scholarships);
+            mainLayout.setBottom(bottomSection);
+        } else {
+            // Even if empty, maybe show the header "Recent Scholarships" with empty grid?
+            // For now, only show if we have data to mimic a functional app.
+        }
+    }
+
+    private VBox createEmptyState() {
+        VBox box = new VBox(15);
+        box.setAlignment(Pos.CENTER);
+        box.getStyleClass().add("scholarship-empty-container");
+
+        SVGPath icon = new SVGPath();
+        icon.setContent(EMPTY_STATE_ICON); // Graduation Cap
+        icon.setScaleX(5);
+        icon.setScaleY(5);
+        icon.getStyleClass().add("scholarship-empty-icon");
+
+        // Add a stack for the glow effect or just use CSS drop shadow
+        StackPane iconPane = new StackPane(icon);
+        iconPane.setPadding(new Insets(40)); // Space for scale
+
+        Label mainText = new Label("No scholarships available at the moment.");
+        mainText.getStyleClass().add("scholarship-empty-text");
+
+        Label subText = new Label("Check back soon!");
+        subText.getStyleClass().add("scholarship-empty-subtext");
+
+        box.getChildren().addAll(iconPane, mainText, subText);
+        return box;
+    }
+
+    private VBox createRecentSection(List<Scholarship> list) {
+        VBox section = new VBox(10);
+        section.setPadding(new Insets(20, 0, 0, 0));
+
+        Label title = new Label("Recent Scholarships");
+        title.getStyleClass().add("recent-headers");
+
+        ScrollPane scroll = new ScrollPane();
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setFitToHeight(true);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        HBox cardBox = new HBox(15);
+        cardBox.setPadding(new Insets(10));
+        cardBox.getStyleClass().add("recent-scholarships-bar");
+
+        for (Scholarship s : list) {
+            cardBox.getChildren().add(createMiniCard(s));
+        }
+
+        scroll.setContent(cardBox);
+        section.getChildren().addAll(title, scroll);
+        return section;
+    }
+
+    private Button createMiniCard(Scholarship s) {
+        // Using Button for clickable mini card
+        Button card = new Button();
+        card.getStyleClass().add("scholarship-card-mini");
+
+        VBox content = new VBox(5);
+        content.setAlignment(Pos.CENTER_LEFT);
+
+        SVGPath icon = new SVGPath();
+        icon.setContent("M12 2l9 4-9 4-9-4 9-4zm0 9l-9-4v6h2v-5l7 3 7-3v5h2v-6l-9 4z"); // Cap small
+        icon.getStyleClass().add("mini-card-icon");
+
+        Label title = new Label(s.getTitle());
+        title.getStyleClass().add("mini-card-title");
+        title.setWrapText(true);
+        title.setMaxWidth(180);
+
+        Label amount = new Label(String.format("$%.0f", s.getAmount()));
+        amount.setStyle("-fx-text-fill: #14b8a6; -fx-font-weight: bold;");
+
+        content.getChildren().addAll(icon, title, amount);
+        card.setGraphic(content);
+
+        card.setOnAction(e -> showApplyDialog(s));
+
+        return card;
     }
 
     private VBox createScholarshipCard(Scholarship s) {
         VBox card = new VBox(10);
         card.setPadding(new Insets(15));
         card.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.05); -fx-background-radius: 10; -fx-border-color: rgba(255,255,255,0.1); -fx-border-radius: 10;");
+                "-fx-background-color: rgba(30, 41, 59, 0.6); -fx-background-radius: 10; -fx-border-color: rgba(255,255,255,0.08); -fx-border-radius: 10;");
 
         HBox top = new HBox(10);
         Label name = new Label(s.getTitle());
@@ -89,7 +250,7 @@ public class ScholarshipView {
         name.setStyle("-fx-text-fill: white;");
 
         Label amount = new Label(String.format("$%.2f", s.getAmount()));
-        amount.setStyle("-fx-text-fill: #22c55e; -fx-font-weight: bold; -fx-font-size: 16px;");
+        amount.setStyle("-fx-text-fill: #2dd4bf; -fx-font-weight: bold; -fx-font-size: 16px;");
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
@@ -106,19 +267,15 @@ public class ScholarshipView {
         actions.setAlignment(Pos.CENTER_RIGHT);
 
         Button applyBtn = new Button("Apply");
-        applyBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
+        applyBtn.getStyleClass().add("accent-button");
         applyBtn.setOnAction(e -> showApplyDialog(s));
 
         Button viewAppsBtn = new Button("View Applications");
-        viewAppsBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white;");
+        viewAppsBtn.getStyleClass().add("icon-button");
         viewAppsBtn.setOnAction(e -> showApplicationsDialog(s));
 
-        // Show View Apps if creator or admin
-        // Show Apply if Student
-
-        actions.getChildren().add(applyBtn); // Default show apply
-        // If user is creator, show View Apps
-        if (s.getCreatedBy() == userId || "ADMIN".equals(userRole)) {
+        actions.getChildren().add(applyBtn);
+        if (s.getCreatedBy() == userId || "ADMIN".equals(userRole) || "FACULTY".equals(userRole)) {
             actions.getChildren().add(viewAppsBtn);
         }
 
@@ -130,7 +287,6 @@ public class ScholarshipView {
         Dialog<Scholarship> dialog = new Dialog<>();
         DialogUtils.styleDialog(dialog);
         dialog.setTitle("Post Scholarship");
-        dialog.getDialogPane().setMinWidth(500); // Fix truncation
         dialog.setHeaderText("Create new scholarship opportunity");
 
         ButtonType postBtn = new ButtonType("Post", ButtonBar.ButtonData.OK_DONE);
@@ -141,12 +297,6 @@ public class ScholarshipView {
         grid.setVgap(10);
         grid.setPadding(new Insets(20));
 
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setMinWidth(100);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setHgrow(Priority.ALWAYS);
-        grid.getColumnConstraints().addAll(col1, col2);
-
         TextField titleF = new TextField();
         titleF.setPromptText("Title");
         TextField donorF = new TextField();
@@ -156,14 +306,10 @@ public class ScholarshipView {
         TextArea descF = new TextArea();
         descF.setPromptText("Description & Criteria");
 
-        grid.add(new Label("Title:"), 0, 0);
-        grid.add(titleF, 1, 0);
-        grid.add(new Label("Donor:"), 0, 1);
-        grid.add(donorF, 1, 1);
-        grid.add(new Label("Amount:"), 0, 2);
-        grid.add(amountF, 1, 2);
-        grid.add(new Label("Details:"), 0, 3);
-        grid.add(descF, 1, 3);
+        DialogUtils.addFormRow(grid, "Title:", titleF, 0);
+        DialogUtils.addFormRow(grid, "Donor:", donorF, 1);
+        DialogUtils.addFormRow(grid, "Amount:", amountF, 2);
+        DialogUtils.addFormRow(grid, "Details:", descF, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -187,7 +333,8 @@ public class ScholarshipView {
 
         dialog.showAndWait().ifPresent(s -> {
             if (communityDAO.createScholarship(s)) {
-                refresh();
+                refreshContent();
+                showAlert("Success", "Scholarship Posted!");
             }
         });
     }
@@ -197,28 +344,25 @@ public class ScholarshipView {
         DialogUtils.styleDialog(dialog);
         dialog.setTitle("Apply for Scholarship");
         dialog.setHeaderText("Apply for: " + s.getTitle());
-
-        ButtonType applyBtn = new ButtonType("Submit Application", ButtonBar.ButtonData.OK_DONE);
+        ButtonType applyBtn = new ButtonType("Submit", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(applyBtn, ButtonType.CANCEL);
 
         TextArea stmtArea = new TextArea();
-        stmtArea.setPromptText("Personal Statement / Why do you need this scholarship?");
+        stmtArea.setPromptText("Personal Statement...");
 
-        VBox content = new VBox(10, new Label("Statement:"), stmtArea);
-        content.setPadding(new Insets(20));
-        dialog.getDialogPane().setContent(content);
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+        DialogUtils.addFormRow(grid, "Statement:", stmtArea, 0);
 
-        dialog.setResultConverter(btn -> {
-            if (btn == applyBtn)
-                return stmtArea.getText();
-            return null;
-        });
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> btn == applyBtn ? stmtArea.getText() : null);
 
         dialog.showAndWait().ifPresent(stmt -> {
-            // Need Student ID
             com.college.models.Student student = new StudentDAO().getStudentByUserId(userId);
             if (student == null) {
-                // Not a student
                 showAlert("Error", "Only students can apply.");
                 return;
             }
@@ -243,6 +387,7 @@ public class ScholarshipView {
 
         TableView<ScholarshipApplication> table = new TableView<>();
         table.getStyleClass().add("glass-table");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         TableColumn<ScholarshipApplication, String> studentCol = new TableColumn<>("Student");
         studentCol.setCellValueFactory(
@@ -256,11 +401,11 @@ public class ScholarshipView {
 
         TableColumn<ScholarshipApplication, Void> actionCol = new TableColumn<>("Actions");
         actionCol.setCellFactory(p -> new TableCell<>() {
-            Button approve = new Button("Approve");
-            Button reject = new Button("Reject");
+            Button approve = new Button("✔");
+            Button reject = new Button("✘");
             {
-                approve.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-size: 10px;");
-                reject.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 10px;");
+                approve.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white;");
+                reject.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white;");
                 approve.setOnAction(
                         e -> handleUpdate(getTableView().getItems().get(getIndex()), "APPROVED", getTableView()));
                 reject.setOnAction(
@@ -272,8 +417,11 @@ public class ScholarshipView {
                 super.updateItem(item, empty);
                 if (empty)
                     setGraphic(null);
-                else
-                    setGraphic(new HBox(5, approve, reject));
+                else {
+                    HBox box = new HBox(5, approve, reject);
+                    box.setAlignment(Pos.CENTER);
+                    setGraphic(box);
+                }
             }
         });
 
@@ -290,23 +438,19 @@ public class ScholarshipView {
         dialog.showAndWait();
     }
 
-    private void refresh() {
-        ScrollPane scroll = (ScrollPane) mainLayout.getChildren().get(1);
-        scroll.setContent(createContent());
+    private void handleUpdate(ScholarshipApplication app, String status, TableView<ScholarshipApplication> table) {
+        if (communityDAO.updateApplicationStatus(app.getId(), status)) {
+            app.setStatus(status);
+            table.refresh();
+        }
     }
 
     private void showAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         DialogUtils.styleDialog(alert);
         alert.setTitle(title);
+        alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
-    }
-
-    private void handleUpdate(ScholarshipApplication app, String status, TableView<ScholarshipApplication> table) {
-        if (communityDAO.updateApplicationStatus(app.getId(), status)) {
-            app.setStatus(status);
-            table.refresh();
-        }
     }
 }
