@@ -120,7 +120,7 @@ public class CourseManagementView {
         statusCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getStatus()));
 
         table.getColumns().addAll(java.util.Arrays.asList(idCol, studentCol, courseCol, dateCol, statusCol));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Button refreshBtn = createButton("Refresh", "#3b82f6");
@@ -329,7 +329,7 @@ public class CourseManagementView {
                 data.getValue().getEnrolledCount() + " / " + data.getValue().getCapacity()));
 
         table.getColumns().addAll(java.util.Arrays.asList(codeCol, nameCol, typeCol, creditsCol, capCol));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(table, Priority.ALWAYS);
         return table;
     }

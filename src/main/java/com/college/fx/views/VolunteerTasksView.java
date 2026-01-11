@@ -125,7 +125,7 @@ public class VolunteerTasksView {
         });
 
         myTasksTable.getColumns().addAll(java.util.Arrays.asList(eventCol, taskCol, statusCol, hoursCol, actionCol));
-        myTasksTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        myTasksTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(myTasksTable, Priority.ALWAYS);
 
         content.getChildren().add(myTasksTable);

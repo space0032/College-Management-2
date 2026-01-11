@@ -99,7 +99,7 @@ public class LeaveApprovalView {
         });
 
         studentTable.getColumns().addAll(java.util.Arrays.asList(studentCol, typeCol, datesCol, reasonCol, actionCol));
-        studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(studentTable, Priority.ALWAYS);
 
         refreshStudentTable();
@@ -158,7 +158,7 @@ public class LeaveApprovalView {
         });
 
         staffTable.getColumns().addAll(java.util.Arrays.asList(staffCol, typeCol, datesCol, reasonCol, actionCol));
-        staffTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        staffTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(staffTable, Priority.ALWAYS);
 
         refreshStaffTable();

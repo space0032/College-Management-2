@@ -382,7 +382,7 @@ public class ScholarshipView {
 
         TableView<ScholarshipApplication> table = new TableView<>();
         table.getStyleClass().add("glass-table");
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         TableColumn<ScholarshipApplication, String> studentCol = new TableColumn<>("Student");
         studentCol.setCellValueFactory(

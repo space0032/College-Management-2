@@ -153,7 +153,7 @@ public class StudentLeaveView {
         });
 
         leaveTable.getColumns().addAll(java.util.Arrays.asList(typeCol, fromCol, toCol, statusCol));
-        leaveTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        leaveTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         leaveTable.setPrefHeight(300);
 
         refreshTable();

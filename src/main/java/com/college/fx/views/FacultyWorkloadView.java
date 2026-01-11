@@ -79,7 +79,7 @@ public class FacultyWorkloadView {
         });
 
         table.getColumns().addAll(java.util.Arrays.asList(nameCol, deptCol, countCol, creditCol, actionCol));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         root.getChildren().addAll(title, toolbar, table);

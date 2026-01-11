@@ -63,7 +63,7 @@ public class EmployeeManagementView extends VBox {
     private void setupTable() {
         table = new TableView<>();
         table.getStyleClass().add("glass-table");
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         TableColumn<Employee, String> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEmployeeId()));

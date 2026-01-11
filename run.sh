@@ -21,5 +21,5 @@ fi
 # with the jars usually works if we main class extends Application properly 
 # or if we use a helper launcher. 
 # Attempting direct run first.
-echo "Starting College Management System..."
-java -cp "$CP" "$MAIN_CLASS"
+java --enable-native-access=ALL-UNNAMED \
+     -cp "$CP" "$MAIN_CLASS"
