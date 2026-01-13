@@ -465,39 +465,36 @@ public class FeesView {
         // Fetch payment details
         List<FeePayment> payments = feeDAO.getPaymentHistory(fee.getId());
 
-        // Receipt Container
-        VBox receipt = new VBox(10);
-        receipt.setPadding(new Insets(40)); // High padding for paper look
-        receipt.setPrefWidth(500);
-        receipt.getStyleClass().add("glass-card");
+        // --- Receipt Container ---
+        VBox receiptContainer = new VBox();
+        receiptContainer.setStyle(
+                "-fx-background-color: white; -fx-padding: 40; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);");
+        receiptContainer.setPrefWidth(600);
+        receiptContainer.setMaxWidth(600);
 
-        // Header
+        // Border around content
+        VBox contentBox = new VBox(20);
+        contentBox.setStyle("-fx-border-color: #000000ff; -fx-border-width: 2; -fx-padding: 30;");
+
+        // --- Header Section ---
+
         // Fetch Settings
         String collegeNameStr = systemSettingsDAO.getSetting("COLLEGE_NAME");
         if (collegeNameStr == null || collegeNameStr.isEmpty())
             collegeNameStr = "College Management System";
 
-        Label collegeName = new Label(collegeNameStr);
-        collegeName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+        VBox headerBox = new VBox(5);
+        headerBox.setAlignment(Pos.CENTER);
 
         // Logo
         String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
-        ImageView logoView = null;
-
         if (logoPath != null && !logoPath.isEmpty()) {
-            logoView = new ImageView();
-            logoView.setFitHeight(60);
-            logoView.setFitWidth(60);
+            ImageView logoView = new ImageView();
+            logoView.setFitHeight(70);
+            logoView.setFitWidth(70);
             logoView.setPreserveRatio(true);
-            // We need sync loading here for receipt printing ideally, or assume network is
-            // fast enough
-            // For simplicity, we trigger fetch. If it's slow, it might pop in after.
-            // But for printing, we might want to block a bit or use placeholders.
-            // Given constraint, let's try to load.
-            // Ideally we should have a cached image or similar.
-            // Let's stick with async for UI but print might miss it if too fast.
-            // Wait, printing is triggered by user clicking 'Print' button inside dialog.
-            // So if the user waits for image to appear, then clicks print, it works.
+
+            // Async load
             final ImageView fLogo = logoView;
             new Thread(() -> {
                 String url = storageService.getTemporaryLink(logoPath);
@@ -505,89 +502,135 @@ public class FeesView {
                     javafx.application.Platform.runLater(() -> fLogo.setImage(new Image(url, true)));
                 }
             }).start();
+            headerBox.getChildren().add(logoView);
         }
 
-        Label address = new Label("123, University Road, Academic City");
-        Label receiptTitle = new Label("FEE RECEIPT");
-        receiptTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        receiptTitle.setStyle("-fx-underline: true; -fx-padding: 10 0 10 0;");
+        Label collegeName = new Label(collegeNameStr);
+        collegeName.setFont(Font.font("Times New Roman", FontWeight.BOLD, 26));
+        collegeName.setStyle("-fx-text-fill: black;");
 
-        VBox header = new VBox(5);
-        if (logoView != null)
-            header.getChildren().add(logoView);
-        header.getChildren().addAll(collegeName, address, receiptTitle);
-        header.setAlignment(Pos.CENTER);
+        Label address = new Label("123, University Road, Academic City, 560001");
+        address.setFont(Font.font("Times New Roman", 14));
+        address.setStyle("-fx-text-fill: black;");
 
-        // Student Details
-        GridPane details = new GridPane();
-        details.setHgap(10);
-        details.setVgap(5);
-        details.setPadding(new Insets(20, 0, 20, 0));
+        Label receiptTitle = new Label("OFFICIAL FEE RECEIPT");
+        receiptTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        receiptTitle.setStyle(
+                "-fx-background-color: #e2e8f0; -fx-padding: 5 15 5 15; -fx-background-radius: 15; -fx-text-fill: black;");
+        VBox.setMargin(receiptTitle, new Insets(15, 0, 0, 0));
 
-        details.add(new Label("Date:"), 0, 0);
-        details.add(new Label(java.time.LocalDate.now().toString()), 1, 0);
+        headerBox.getChildren().addAll(collegeName, address, receiptTitle);
 
-        details.add(new Label("Student Name:"), 0, 1);
-        details.add(new Label(fee.getStudentName()), 1, 1);
+        // --- Info Grid ---
+        GridPane infoGrid = new GridPane();
+        infoGrid.setHgap(15);
+        infoGrid.setVgap(10);
+        infoGrid.setPadding(new Insets(20, 0, 20, 0));
 
-        details.add(new Label("Enrollment ID:"), 0, 2);
-        details.add(new Label(fee.getStudentUsername() != null ? fee.getStudentUsername() : "N/A"), 1, 2);
+        addReceiptField(infoGrid, "Receipt Date:",
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")), 0, 0);
+        addReceiptField(infoGrid, "Enrollment ID:", fee.getStudentUsername() != null ? fee.getStudentUsername() : "N/A",
+                1, 0);
 
-        details.add(new Label("Fee Category:"), 0, 3);
-        details.add(new Label(getCategoryName(fee.getCategoryId())), 1, 3);
+        addReceiptField(infoGrid, "Student Name:", fee.getStudentName(), 0, 1);
+        addReceiptField(infoGrid, "Fee Category:", getCategoryName(fee.getCategoryId()), 1, 1);
 
-        // Payment Table
-        VBox paymentBox = new VBox(5);
-        paymentBox.setPadding(new Insets(10, 0, 10, 0));
-        paymentBox.getChildren().add(new Separator());
+        addReceiptField(infoGrid, "Course/Batch:", "B.Tech - CS", 0, 2); // Hardcoded for mockup aesthetics
+        addReceiptField(infoGrid, "Receipt No:", "REC-" + System.currentTimeMillis() % 10000, 1, 2);
 
-        GridPane table = new GridPane();
-        table.setHgap(20);
-        table.setVgap(5);
-        table.add(new Label("Payment ID"), 0, 0);
-        table.add(new Label("Date"), 1, 0);
-        table.add(new Label("Mode"), 2, 0);
-        table.add(new Label("Amount"), 3, 0);
+        // Style the grid columns
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(50);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(50);
+        infoGrid.getColumnConstraints().addAll(col1, col2);
 
-        // Header Style
-        for (javafx.scene.Node n : table.getChildren()) {
-            n.setStyle("-fx-font-weight: bold;");
-        }
+        // --- Payment Details Table ---
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle("-fx-border-color: #cbd5e1; -fx-border-width: 1;");
 
-        int row = 1;
+        // Header
+        HBox tableHeader = new HBox();
+        tableHeader.setStyle(
+                "-fx-background-color: #f1f5f9; -fx-padding: 8; -fx-border-color: #cbd5e1; -fx-border-width: 0 0 1 0;");
+        tableHeader.getChildren().addAll(
+                createTableLabel("Payment Date", 120),
+                createTableLabel("Transaction ID", 150),
+                createTableLabel("Mode", 100),
+                createTableLabel("Amount (INR)", 100));
+
+        tableContainer.getChildren().add(tableHeader);
+
         double totalPaidInReceipt = 0;
         for (FeePayment p : payments) {
-            table.add(new Label(p.getReceiptNumber()), 0, row);
-            table.add(new Label(p.getPaymentDate().toString()), 1, row);
-            table.add(new Label(p.getPaymentMode()), 2, row);
-            table.add(new Label("₹" + p.getAmount()), 3, row);
+            HBox row = new HBox();
+            row.setStyle(
+                    "-fx-padding: 8; -fx-background-color: white; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 1 0;");
+            row.getChildren().addAll(
+                    createTableValue(p.getPaymentDate().toString(), 120),
+                    createTableValue(p.getReceiptNumber(), 150),
+                    createTableValue(p.getPaymentMode(), 100),
+                    createTableValue("₹ " + String.format("%.2f", p.getAmount()), 100));
+            tableContainer.getChildren().add(row);
             totalPaidInReceipt += p.getAmount();
-            row++;
         }
 
-        paymentBox.getChildren().addAll(table, new Separator());
-
-        // Footer
-        HBox totalBox = new HBox(10);
+        // --- Totals Section ---
+        HBox totalBox = new HBox(20);
         totalBox.setAlignment(Pos.CENTER_RIGHT);
-        Label totalLbl = new Label("Total Paid: ₹" + totalPaidInReceipt);
-        totalLbl.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
-        totalBox.getChildren().add(totalLbl);
+        totalBox.setPadding(new Insets(15, 10, 0, 0));
 
-        Label authSig = new Label("Authorized Signature");
-        authSig.setPadding(new Insets(40, 0, 0, 0));
-        authSig.setAlignment(Pos.CENTER_RIGHT);
+        Label totalLabel = new Label("Total Amount Paid:");
+        totalLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-        VBox footer = new VBox(10, totalBox, authSig);
-        footer.setAlignment(Pos.CENTER_RIGHT);
+        Label totalValue = new Label("₹ " + String.format("%.2f", totalPaidInReceipt));
+        totalValue.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        totalValue.setStyle("-fx-text-fill: black;");
 
-        receipt.getChildren().addAll(header, details, paymentBox, footer);
+        totalBox.getChildren().addAll(totalLabel, totalValue);
 
-        ScrollPane scroll = new ScrollPane(receipt);
+        // --- Footer (Signatures & Stamp) ---
+        HBox footerBox = new HBox();
+        footerBox.setAlignment(Pos.BOTTOM_CENTER);
+        footerBox.setPadding(new Insets(50, 20, 10, 20));
+
+        VBox stampBox = new VBox();
+        stampBox.setAlignment(Pos.CENTER);
+        // Create a 'PAID' stamp using CSS border/rotate
+        Label stamp = new Label("PAID");
+        stamp.setFont(Font.font("Stencil", FontWeight.BOLD, 36));
+        stamp.setStyle(
+                "-fx-text-fill: #22c55e; -fx-border-color: #22c55e; -fx-border-width: 4; -fx-border-radius: 10; -fx-padding: 5 20 5 20; -fx-rotate: -15; -fx-opacity: 0.8;");
+        stampBox.getChildren().add(stamp);
+
+        Region footerSpacer = new Region();
+        HBox.setHgrow(footerSpacer, Priority.ALWAYS);
+
+        VBox signBox = new VBox(5);
+        signBox.setAlignment(Pos.CENTER);
+        Separator line = new Separator();
+        line.setPrefWidth(150);
+        Label signLabel = new Label("Authorized Signatory");
+        signLabel.setFont(Font.font("Times New Roman", 12));
+        signLabel.setStyle("-fx-text-fill: black;");
+        signBox.getChildren().addAll(line, signLabel);
+
+        footerBox.getChildren().addAll(stampBox, footerSpacer, signBox);
+
+        // Assemble
+        contentBox.getChildren().addAll(headerBox, new Separator(), infoGrid, tableContainer, totalBox, footerBox);
+        receiptContainer.getChildren().add(contentBox);
+
+        ScrollPane scroll = new ScrollPane(receiptContainer);
+        scroll.setFitToWidth(true);
+        // Remove scrollpane styling for cleaner look in dialog
+        scroll.setStyle(
+                "-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;");
+
         dialog.getDialogPane().setContent(scroll);
 
-        // Print Logic
-        final javafx.scene.Node printNode = receipt;
+        // Printing
+        final javafx.scene.Node printNode = receiptContainer;
         dialog.setResultConverter(btn -> {
             if (btn == printBtn) {
                 javafx.print.PrinterJob job = javafx.print.PrinterJob.createPrinterJob();
@@ -603,6 +646,46 @@ public class FeesView {
         });
 
         dialog.showAndWait();
+    }
+
+    private void addReceiptField(GridPane grid, String labelText, String valueText, int col, int row) {
+        HBox container = new HBox(10);
+        container.setAlignment(Pos.CENTER_LEFT);
+
+        Label lbl = new Label(labelText);
+        lbl.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        lbl.setStyle("-fx-text-fill: black;");
+        lbl.setMinWidth(90);
+
+        Label val = new Label(valueText);
+        val.setFont(Font.font("Arial", 13));
+        val.setStyle("-fx-text-fill: black;");
+        val.setWrapText(true);
+
+        container.getChildren().addAll(lbl, val);
+        grid.add(container, col, row);
+    }
+
+    private Label createTableLabel(String text, double width) {
+        Label l = new Label(text);
+        l.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        l.setStyle("-fx-text-fill: black;");
+        if (width > 0)
+            l.setPrefWidth(width);
+        else
+            l.setMaxWidth(Double.MAX_VALUE);
+        return l;
+    }
+
+    private Label createTableValue(String text, double width) {
+        Label l = new Label(text);
+        l.setFont(Font.font("Arial", 12));
+        l.setStyle("-fx-text-fill: black;");
+        if (width > 0)
+            l.setPrefWidth(width);
+        else
+            l.setMaxWidth(Double.MAX_VALUE);
+        return l;
     }
 
     private void handleSendReminder() {

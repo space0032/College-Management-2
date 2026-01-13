@@ -233,13 +233,6 @@ public class DashboardView {
         // 3. Sections
         VBox sectionsContainer = new VBox(10);
 
-        // --- System Settings (New) ---
-        if (session.hasPermission("MANAGE_COLLEGE_INFO")) {
-            VBox settingsContent = new VBox(5);
-            addMenuItem(settingsContent, "College Settings", "college_settings", SVG_SETTINGS);
-            sectionsContainer.getChildren().add(createSection("Settings", settingsContent));
-        }
-
         // --- Management Section ---
         VBox managementContent = new VBox(5);
         boolean hasManagement = false;
@@ -410,6 +403,13 @@ public class DashboardView {
             VBox reportsContent = new VBox(5);
             addMenuItem(reportsContent, "Reports", "reports", SVG_REPORTS);
             sectionsContainer.getChildren().add(createSection("Reports", reportsContent));
+        }
+
+        // --- System Settings (Moved to Bottom) ---
+        if (session.hasPermission("MANAGE_COLLEGE_INFO")) {
+            VBox settingsContent = new VBox(5);
+            addMenuItem(settingsContent, "College Settings", "college_settings", SVG_SETTINGS);
+            sectionsContainer.getChildren().add(createSection("Settings", settingsContent));
         }
 
         // ScrollPane for menu items if they get too long
