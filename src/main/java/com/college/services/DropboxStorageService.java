@@ -177,8 +177,10 @@ public class DropboxStorageService implements StorageService {
                 System.err.println("Dropbox Get Link Failed (" + response.statusCode() + "): " + response.body());
             }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            // Log warning instead of stack trace for connection issues to avoid spamming
+            // logs when offline
+            System.err.println("Warning: Could not connect to Dropbox to fetch logo link: " + e.getMessage());
         }
-        return null;
+        return null; // Return null effectively so UI can fall back to default/text
     }
 }

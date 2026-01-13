@@ -178,6 +178,19 @@ public class DashboardView {
 
     // New Icons
     private static final String SVG_COURSE = "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z";
+    private static final String SVG_VISITOR = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"; // User
+                                                                                                                                                               // icon
+                                                                                                                                                               // reused
+                                                                                                                                                               // or
+                                                                                                                                                               // similar,
+                                                                                                                                                               // let's
+                                                                                                                                                               // use
+                                                                                                                                                               // a
+                                                                                                                                                               // badge
+                                                                                                                                                               // style
+    // Actually let's use a ID Badge icon
+    private static final String SVG_VISITOR_BADGE = "M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z";
+
     private static final String SVG_ATTENDANCE = "M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z";
     private static final String SVG_LIBRARY = "M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z";
 
@@ -361,6 +374,16 @@ public class DashboardView {
             hasCampus = true;
         }
 
+        // Placement Cell (Available to Users with Permission or Admins or Students)
+        // Note: Students map to this implicitly if they have the role, but explicit
+        // permission is better.
+        // Or if we want strictly permission based:
+        if (session.hasPermission("VIEW_PLACEMENTS") || session.hasPermission("MANAGE_PLACEMENTS") || session.isAdmin()
+                || session.isStudent()) {
+            addMenuItem(campusContent, "Placement Cell", "placements", SVG_WORKLOAD);
+            hasCampus = true;
+        }
+
         // General Campus Browsing (Events, Clubs, Activities)
         // Available to everyone (Students, Faculty, Admin, Staff)
         addMenuItem(campusContent, "Events", "events", SVG_EVENT);
@@ -386,6 +409,12 @@ public class DashboardView {
         }
         if (!role.equals("STUDENT")) {
             addMenuItem(financeContent, "Announcements", "announcements", SVG_ANNOUNCEMENTS);
+            hasFinance = true;
+        }
+
+        // Visitor Management
+        if (session.isAdmin() || session.hasPermission("MANAGE_VISITORS")) {
+            addMenuItem(financeContent, "Visitor Log", "visitor_log", SVG_VISITOR_BADGE);
             hasFinance = true;
         }
         // Fees
@@ -598,17 +627,14 @@ public class DashboardView {
                 case "reports":
                     loadViewReflectively("com.college.fx.views.ReportsView");
                     break;
-                case "events":
-                    showEvents();
+                case "placements":
+                    showPlacementCell();
                     break;
-                case "event_management":
-                    showEventManagement();
+                case "visitor_log":
+                    showVisitorLog();
                     break;
-                case "clubs":
-                    showClubs();
-                    break;
-                case "club_management":
-                    showClubManagement();
+                case "college_settings":
+                    showCollegeSettings();
                     break;
                 case "student_activities":
                     showStudentActivities();
@@ -632,7 +658,10 @@ public class DashboardView {
                     loadViewReflectively("com.college.fx.views.RoomAvailabilityView");
                     break;
                 default:
-                    showHome();
+                    // Try to load by class name if mapped or check specialized loaders
+                    // For now, if dynamic, assume view name is class name? No, safer to explicit.
+                    System.err.println("Unknown view: " + viewName);
+                    showHome(); // Fallback to home
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -812,6 +841,22 @@ public class DashboardView {
         MainFX.getPrimaryStage().setWidth(1000);
         MainFX.getPrimaryStage().setHeight(650);
         MainFX.getPrimaryStage().centerOnScreen();
+    }
+
+    private void showCollegeSettings() {
+        loadViewReflectively("com.college.fx.views.CollegeSettingsView");
+    }
+
+    private void showPlacementCell() {
+        PlacementView view = new PlacementView(role, userId);
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showVisitorLog() {
+        VisitorView view = new VisitorView();
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
     }
 
     private void showEvents() {

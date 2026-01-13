@@ -179,6 +179,45 @@ public class DatabaseMigrator {
                         System.err.println("V41 Migration file not found!");
                     }
                 }
+
+                // Execute V43 Add Placement Cell
+                String v43Path = "/db/migration/V43__Add_Placement_Cell.sql";
+                try (InputStream v43is = DatabaseMigrator.class.getResourceAsStream(v43Path)) {
+                    if (v43is != null) {
+                        String v43sql = new BufferedReader(new InputStreamReader(v43is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v43sql);
+                        System.out.println("V43 Add Placement Cell Migration executed successfully!");
+                    } else {
+                        System.err.println("V43 Migration file not found!");
+                    }
+                }
+
+                // Execute V44 Add View Placement Permission
+                String v44Path = "/db/migration/V44__Add_View_Placement_Permission.sql";
+                try (InputStream v44is = DatabaseMigrator.class.getResourceAsStream(v44Path)) {
+                    if (v44is != null) {
+                        String v44sql = new BufferedReader(new InputStreamReader(v44is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v44sql);
+                        System.out.println("V44 Add View Placement Permission Migration executed successfully!");
+                    } else {
+                        System.err.println("V44 Migration file not found!");
+                    }
+                }
+
+                // Execute V45 Add Visitor Management
+                String v45Path = "/db/migration/V45__Add_Visitor_Management.sql";
+                try (InputStream v45is = DatabaseMigrator.class.getResourceAsStream(v45Path)) {
+                    if (v45is != null) {
+                        String v45sql = new BufferedReader(new InputStreamReader(v45is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v45sql);
+                        System.out.println("V45 Add Visitor Management Migration executed successfully!");
+                    } else {
+                        System.err.println("V45 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {

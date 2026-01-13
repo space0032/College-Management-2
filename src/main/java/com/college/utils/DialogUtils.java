@@ -30,4 +30,25 @@ public class DialogUtils {
         javafx.scene.layout.GridPane.setValignment(label, javafx.geometry.VPos.CENTER);
         javafx.scene.layout.GridPane.setValignment(field, javafx.geometry.VPos.CENTER);
     }
+
+    public static void showSuccess(String title, String content) {
+        showDialog(javafx.scene.control.Alert.AlertType.INFORMATION, title, content);
+    }
+
+    public static void showInfo(String title, String content) {
+        showDialog(javafx.scene.control.Alert.AlertType.INFORMATION, title, content);
+    }
+
+    public static void showError(String title, String content) {
+        showDialog(javafx.scene.control.Alert.AlertType.ERROR, title, content);
+    }
+
+    private static void showDialog(javafx.scene.control.Alert.AlertType type, String title, String content) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        styleDialog(alert);
+        alert.showAndWait();
+    }
 }
