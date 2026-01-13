@@ -417,7 +417,10 @@ public class DashboardView {
         }
 
         // --- Reports ---
-        if (session.hasAnyPermission("VIEW_FEES_REPORT", "VIEW_ATTENDANCE_REPORT", "VIEW_GRADES_REPORT")) {
+        // --- Reports ---
+        // Expanded permissions for Reports module
+        if (session.hasAnyPermission("VIEW_REPORTS", "MANAGE_VISITORS", "VIEW_PLACEMENTS", "VIEW_FEES_REPORT")
+                || session.isAdmin()) {
             VBox reportsContent = new VBox(5);
             addMenuItem(reportsContent, "Reports", "reports", SVG_REPORTS);
             sectionsContainer.getChildren().add(createSection("Reports", reportsContent));
@@ -635,6 +638,7 @@ public class DashboardView {
                 case "college_settings":
                     showCollegeSettings();
                     break;
+
                 case "student_activities":
                     showStudentActivities();
                     break;
@@ -888,6 +892,12 @@ public class DashboardView {
                 this::showClubs,
                 this::showEventManagement,
                 this::showClubManagement);
+        currentController = view;
+        contentArea.getChildren().add(view.getView());
+    }
+
+    private void showReports() {
+        ReportsView view = new ReportsView();
         currentController = view;
         contentArea.getChildren().add(view.getView());
     }
