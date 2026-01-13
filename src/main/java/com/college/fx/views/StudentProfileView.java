@@ -21,9 +21,6 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.FileChooser;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
@@ -441,22 +438,48 @@ public class StudentProfileView {
 
         if (selectedFile != null) {
             try {
-                // Ensure directory exists
-                File destDir = new File("user_data/profiles");
-                if (!destDir.exists())
-                    destDir.mkdirs();
+                // Open Cropper
+                com.college.fx.components.ImageCropperDialog cropper = new com.college.fx.components.ImageCropperDialog(
+                        new Image(selectedFile.toURI().toString()), (javafx.stage.Stage) root.getScene().getWindow());
+                Image croppedImage = cropper.showAndWait();
 
-                File destFile = new File(destDir,
-                        "student_" + student.getId() + "_" + System.currentTimeMillis() + ".jpg");
-                Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                if (croppedImage != null) {
+                    // Use Storage Service (Now using Dropbox)
+                    com.college.services.StorageService storage = new com.college.services.DropboxStorageService();
 
-                student.setProfilePhotoPath(destFile.getAbsolutePath());
-                updateStudent();
-                updateProfileImageDisplay();
+                    // Capture old path to delete later
+                    String oldPath = student.getProfilePhotoPath();
 
-            } catch (IOException e) {
+                    String fileName = "student_" + student.getId() + "_" + System.currentTimeMillis() + ".png";
+
+                    String savedPath = storage.saveImage(croppedImage, fileName);
+
+                    if (savedPath != null) {
+                        // Success! Now allow deleting the old image if it exists
+                        if (oldPath != null && !oldPath.isEmpty()) {
+                            // Run in background or same thread? Storage calls might be blocking but fast.
+                            storage.deleteImage(oldPath);
+                        }
+
+                        // For Dropbox, savedPath might be just the path identifier.
+                        // We store it. Note: Displaying it back might require downloading logic later.
+                        // For now we assume local update of the ImageView is enough for the session.
+                        student.setProfilePhotoPath(savedPath);
+                        updateStudent();
+
+                        // Set the image directly from the cropped version since we don't have a local
+                        // file for the dropbox URL immediately readable
+                        profileImageView.setImage(croppedImage);
+                    } else {
+                        Alert a = new Alert(Alert.AlertType.ERROR, "Failed to save to Dropbox.");
+                        DialogUtils.styleDialog(a);
+                        a.show();
+                    }
+                }
+
+            } catch (Exception e) {
                 e.printStackTrace();
-                Alert a = new Alert(Alert.AlertType.ERROR, "Failed to upload image.");
+                Alert a = new Alert(Alert.AlertType.ERROR, "Failed to process image.");
                 DialogUtils.styleDialog(a);
                 a.show();
             }

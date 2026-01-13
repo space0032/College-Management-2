@@ -25,7 +25,7 @@ if [ -s sources.txt ]; then
     javac -d "$OUT_DIR" -cp "$CP" -sourcepath "$SRC_DIR" @sources.txt
     echo "Compilation successful."
 else
-    echo "No source files found."
+    echo "No source files found."sh
 fi
 
 # Copy Resources (fxml, images, css) if any

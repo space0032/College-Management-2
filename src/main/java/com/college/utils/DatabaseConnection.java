@@ -25,40 +25,22 @@ public class DatabaseConnection {
     }
 
     private static void loadEnv() {
-        // 1. Try Environment Variables first
-        if (System.getenv("DB_URL") != null)
-            URL = System.getenv("DB_URL");
-        if (System.getenv("DB_USER") != null)
-            USERNAME = System.getenv("DB_USER");
-        if (System.getenv("DB_PASSWORD") != null)
-            PASSWORD = System.getenv("DB_PASSWORD");
+        // Use EnvConfig utility
+        String envUrl = EnvConfig.get("DB_URL");
+        String envUser = EnvConfig.get("DB_USER");
+        String envPass = EnvConfig.get("DB_PASSWORD");
 
-        // 2. Try .env file if Env Vars are missing
-        java.io.File envFile = new java.io.File(".env");
+        if (envUrl != null)
+            URL = envUrl;
+        if (envUser != null)
+            USERNAME = envUser;
+        if (envPass != null)
+            PASSWORD = envPass;
 
-        if (envFile.exists()) {
-            try (java.util.Scanner scanner = new java.util.Scanner(envFile)) {
-                while (scanner.hasNextLine()) {
-                    String line = scanner.nextLine().trim();
-                    if (line.isEmpty() || line.startsWith("#"))
-                        continue;
-                    String[] parts = line.split("=", 2);
-                    if (parts.length == 2) {
-                        String key = parts[0].trim();
-                        String value = parts[1].trim();
-                        if (key.equals("DB_USER")) {
-                            USERNAME = value;
-                        } else if (key.equals("DB_PASSWORD")) {
-                            PASSWORD = value;
-                        } else if (key.equals("DB_URL")) {
-                            URL = value;
-                        }
-                    }
-                }
-            } catch (java.io.FileNotFoundException e) {
-                System.err.println("Error reading .env file: " + e.getMessage());
-            }
-        }
+        System.out.println("Database Config Loaded:");
+        System.out.println("  URL: " + URL);
+        System.out.println("  User: " + USERNAME);
+        // Do not print password
     }
 
     private static void initDataSource() {
