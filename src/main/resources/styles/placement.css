@@ -82,3 +82,40 @@
     -fx-background-color: #475569;
     -fx-background-radius: 5;
 }
+
+/* --- Placement Tabs Styling (Visitor Management Tabs) --- */
+.placement-tabs .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.placement-tabs .tab {
+    -fx-background-color: transparent;
+    -fx-border-width: 0 0 0 0;
+    /* Remove borders */
+    -fx-padding: 10 20;
+}
+
+.placement-tabs .tab:selected {
+    -fx-background-color: #1e293b;
+    /* Darker background for selected */
+    -fx-background-radius: 5 5 0 0;
+    -fx-border-color: transparent transparent #00E5FF transparent;
+    /* Cyan bottom border */
+    -fx-border-width: 0 0 3 0;
+}
+
+.placement-tabs .tab:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-cursor: hand;
+}
+
+.placement-tabs .tab-label {
+    -fx-text-fill: #94a3b8;
+    /* Slate-400 for unselected */
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.placement-tabs .tab:selected .tab-label {
+    -fx-text-fill: white;
+}

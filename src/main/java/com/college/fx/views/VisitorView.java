@@ -38,6 +38,7 @@ public class VisitorView {
         root = new VBox(20);
         root.setPadding(new Insets(30));
         root.setStyle("-fx-background-color: transparent;");
+        root.getStylesheets().add(getClass().getResource("/styles/placement.css").toExternalForm());
 
         // Header
         Label title = new Label("Visitor Management");
