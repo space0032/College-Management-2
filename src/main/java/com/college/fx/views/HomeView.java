@@ -98,10 +98,12 @@ public class HomeView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         TextField searchField = new TextField();
-        searchField.setPromptText("Search keyword...");
+        searchField.setPromptText("Search features (e.g. 'fees', 'students')...");
         searchField.setPrefWidth(300);
         searchField.setPrefHeight(40);
         searchField.getStyleClass().add("glass-card");
+
+        searchField.setOnAction(e -> handleSearch(searchField.getText()));
 
         banner.getChildren().addAll(textPart, spacer, searchField);
         return banner;
@@ -714,6 +716,52 @@ public class HomeView {
         } catch (Exception e) {
         }
         return "N/A";
+    }
+
+    private void handleSearch(String query) {
+        if (query == null || query.trim().isEmpty())
+            return;
+
+        String q = query.trim().toLowerCase();
+        String target = null;
+
+        if (q.contains("student") || q.contains("add student"))
+            target = "students";
+        else if (q.contains("faculty") || q.contains("teacher"))
+            target = "faculty";
+        else if (q.contains("fee") || q.contains("payment") || q.contains("due"))
+            target = "fees";
+        else if (q.contains("course") || q.contains("subject") || q.contains("class"))
+            target = "courses";
+        else if (q.contains("exam") || q.contains("grade") || q.contains("mark"))
+            target = "grades";
+        else if (q.contains("attendance") || q.contains("present"))
+            target = "attendance";
+        else if (q.contains("book") || q.contains("library"))
+            target = "library";
+        else if (q.contains("timetable") || q.contains("schedule"))
+            target = "timetable";
+        else if (q.contains("event") || q.contains("activity"))
+            target = "events";
+        else if (q.contains("leave") || q.contains("vacation"))
+            target = "leave_approval";
+        else if (q.contains("setting") || q.contains("logo") || q.contains("college"))
+            target = "college_settings";
+        else if (q.contains("profile") || q.contains("account"))
+            target = "profile";
+        else if (q.contains("password"))
+            target = "password";
+
+        if (target != null && navigationHandler != null) {
+            navigationHandler.accept(target);
+        } else {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            DialogUtils.styleDialog(alert);
+            alert.setTitle("Search Result");
+            alert.setHeaderText("No matching feature found");
+            alert.setContentText("Try keywords like 'students', 'fees', 'library', etc.");
+            alert.showAndWait();
+        }
     }
 
     public ScrollPane getView() {

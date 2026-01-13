@@ -7,12 +7,16 @@ import com.college.models.Student;
 import com.college.models.FeePayment;
 import com.college.utils.SessionManager;
 import com.college.utils.DialogUtils;
+import com.college.dao.SystemSettingsDAO; // Added
+import com.college.services.DropboxStorageService; // Added
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image; // Added
+import javafx.scene.image.ImageView; // Added
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -31,6 +35,8 @@ public class FeesView {
     private ObservableList<StudentFee> allFeeData;
     private EnhancedFeeDAO feeDAO;
     private StudentDAO studentDAO;
+    private SystemSettingsDAO systemSettingsDAO; // Added
+    private DropboxStorageService storageService; // Added
     private TextField searchField;
     private String role;
     private int userId;
@@ -40,6 +46,8 @@ public class FeesView {
         this.userId = userId;
         this.feeDAO = new EnhancedFeeDAO();
         this.studentDAO = new StudentDAO();
+        this.systemSettingsDAO = new SystemSettingsDAO();
+        this.storageService = new DropboxStorageService();
         this.feeData = FXCollections.observableArrayList();
         this.allFeeData = FXCollections.observableArrayList();
         createView();
@@ -464,14 +472,50 @@ public class FeesView {
         receipt.getStyleClass().add("glass-card");
 
         // Header
-        Label collegeName = new Label("College Management System");
+        // Fetch Settings
+        String collegeNameStr = systemSettingsDAO.getSetting("COLLEGE_NAME");
+        if (collegeNameStr == null || collegeNameStr.isEmpty())
+            collegeNameStr = "College Management System";
+
+        Label collegeName = new Label(collegeNameStr);
         collegeName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+
+        // Logo
+        String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
+        ImageView logoView = null;
+
+        if (logoPath != null && !logoPath.isEmpty()) {
+            logoView = new ImageView();
+            logoView.setFitHeight(60);
+            logoView.setFitWidth(60);
+            logoView.setPreserveRatio(true);
+            // We need sync loading here for receipt printing ideally, or assume network is
+            // fast enough
+            // For simplicity, we trigger fetch. If it's slow, it might pop in after.
+            // But for printing, we might want to block a bit or use placeholders.
+            // Given constraint, let's try to load.
+            // Ideally we should have a cached image or similar.
+            // Let's stick with async for UI but print might miss it if too fast.
+            // Wait, printing is triggered by user clicking 'Print' button inside dialog.
+            // So if the user waits for image to appear, then clicks print, it works.
+            final ImageView fLogo = logoView;
+            new Thread(() -> {
+                String url = storageService.getTemporaryLink(logoPath);
+                if (url != null) {
+                    javafx.application.Platform.runLater(() -> fLogo.setImage(new Image(url, true)));
+                }
+            }).start();
+        }
+
         Label address = new Label("123, University Road, Academic City");
         Label receiptTitle = new Label("FEE RECEIPT");
         receiptTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
         receiptTitle.setStyle("-fx-underline: true; -fx-padding: 10 0 10 0;");
 
-        VBox header = new VBox(5, collegeName, address, receiptTitle);
+        VBox header = new VBox(5);
+        if (logoView != null)
+            header.getChildren().add(logoView);
+        header.getChildren().addAll(collegeName, address, receiptTitle);
         header.setAlignment(Pos.CENTER);
 
         // Student Details

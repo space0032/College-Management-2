@@ -135,4 +135,50 @@ public class DropboxStorageService implements StorageService {
             e.printStackTrace();
         }
     }
+
+    public String getTemporaryLink(String path) {
+        if (accessToken == null || path == null || path.isEmpty())
+            return null;
+
+        String remotePath = path;
+        if (remotePath.startsWith("Dropbox: ")) {
+            remotePath = remotePath.substring("Dropbox: ".length());
+        }
+
+        if (!remotePath.startsWith("/")) {
+            return null;
+        }
+
+        String URL = "https://api.dropboxapi.com/2/files/get_temporary_link";
+        String jsonBody = "{\"path\": \"" + remotePath + "\"}";
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(URL))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                // Parse simple JSON to get "link"
+                String json = response.body();
+                int linkIndex = json.indexOf("\"link\":");
+                if (linkIndex != -1) {
+                    int startQuote = json.indexOf("\"", linkIndex + 7);
+                    int endQuote = json.indexOf("\"", startQuote + 1);
+                    if (startQuote != -1 && endQuote != -1) {
+                        return json.substring(startQuote + 1, endQuote);
+                    }
+                }
+            } else {
+                System.err.println("Dropbox Get Link Failed (" + response.statusCode() + "): " + response.body());
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

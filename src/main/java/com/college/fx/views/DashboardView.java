@@ -12,6 +12,10 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import com.college.dao.SystemSettingsDAO;
+import com.college.services.DropboxStorageService;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.Image;
 
 /**
  * JavaFX Dashboard View
@@ -71,19 +75,45 @@ public class DashboardView {
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setPadding(new Insets(0, 25, 0, 25));
         topBar.setPrefHeight(70);
-        topBar.setStyle("-fx-background-color: transparent;"); // Transparent to blend with gradient or specific color?
-        // Actually, let's stick to the previous style or a dark theme one.
-        // If the sidebar is dark (#0f172a), the top bar could match or be transparent
-        // if root has background.
-        // Let's use a solid dark color to match or contrast slightly.
         topBar.setStyle("-fx-background-color: #0f172a;");
         topBar.setSpacing(20);
 
-        // Title - Now in sidebar, so maybe removal from TopBar?
-        // The mock shows "College Manager" in the sidebar. The TopBar might be for
-        // global actions or breadcrumbs.
-        // For now, let's keep it simple: just the User Info and Logout on the right, as
-        // Title is in sidebar.
+        // --- Branding (Logo + Name) ---
+        HBox brandingBox = new HBox(15);
+        brandingBox.setAlignment(Pos.CENTER_LEFT);
+
+        // Fetch Settings
+        String collegeNameSetting = systemSettingsDAO.getSetting("COLLEGE_NAME");
+        final String collegeName = (collegeNameSetting == null || collegeNameSetting.isEmpty())
+                ? "College Manager"
+                : collegeNameSetting;
+        String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
+
+        ImageView logoView = new ImageView();
+        logoView.setFitHeight(40);
+        logoView.setFitWidth(40);
+        logoView.setPreserveRatio(true);
+
+        // Async Load Logo
+        if (logoPath != null && !logoPath.isEmpty()) {
+            final String fLogoPath = logoPath;
+            new Thread(() -> {
+                String tempLink = storageService.getTemporaryLink(fLogoPath);
+                if (tempLink != null) {
+                    javafx.application.Platform.runLater(() -> {
+                        logoView.setImage(new Image(tempLink, true));
+                    });
+                }
+            }).start();
+        } else {
+            // Optional: Set default logo or hide
+        }
+
+        Label titleLabel = new Label(collegeName);
+        titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
+        titleLabel.setTextFill(Color.WHITE);
+
+        brandingBox.getChildren().addAll(logoView, titleLabel);
 
         // Spacer
         Region spacer = new Region();
@@ -114,7 +144,7 @@ public class DashboardView {
                         "-fx-cursor: hand;");
         logoutBtn.setOnAction(e -> handleLogout());
 
-        topBar.getChildren().addAll(spacer, userInfo, logoutBtn);
+        topBar.getChildren().addAll(brandingBox, spacer, userInfo, logoutBtn);
         return topBar;
     }
 
@@ -160,6 +190,11 @@ public class DashboardView {
                                                                                                                                                                             // style
     private static final String SVG_VOLUNTEER = "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"; // Heart
 
+    private static final String SVG_SETTINGS = "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z";
+
+    private final SystemSettingsDAO systemSettingsDAO = new SystemSettingsDAO();
+    private final DropboxStorageService storageService = new DropboxStorageService();
+
     private javafx.scene.shape.SVGPath createIcon(String pathContent) {
         javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();
         icon.setContent(pathContent);
@@ -179,6 +214,7 @@ public class DashboardView {
         // 1. App Title
         HBox titleBox = new HBox(10);
         titleBox.setAlignment(Pos.CENTER_LEFT);
+
         Label title = new Label("College Manager");
         title.getStyleClass().add("sidebar-title");
 
@@ -196,6 +232,13 @@ public class DashboardView {
 
         // 3. Sections
         VBox sectionsContainer = new VBox(10);
+
+        // --- System Settings (New) ---
+        if (session.hasPermission("MANAGE_COLLEGE_INFO")) {
+            VBox settingsContent = new VBox(5);
+            addMenuItem(settingsContent, "College Settings", "college_settings", SVG_SETTINGS);
+            sectionsContainer.getChildren().add(createSection("Settings", settingsContent));
+        }
 
         // --- Management Section ---
         VBox managementContent = new VBox(5);
@@ -476,6 +519,9 @@ public class DashboardView {
             switch (viewName) {
                 case "home":
                     showHome();
+                    break;
+                case "college_settings":
+                    loadViewReflectively("com.college.fx.views.CollegeSettingsView");
                     break;
                 case "institute":
                     showInstitute();

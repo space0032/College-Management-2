@@ -166,6 +166,19 @@ public class DatabaseMigrator {
                         System.err.println("V40 Migration file not found!");
                     }
                 }
+
+                // Execute V41 Add System Settings
+                String v41Path = "/db/migration/V41__Add_System_Settings.sql";
+                try (InputStream v41is = DatabaseMigrator.class.getResourceAsStream(v41Path)) {
+                    if (v41is != null) {
+                        String v41sql = new BufferedReader(new InputStreamReader(v41is, StandardCharsets.UTF_8))
+                                .lines().collect(Collectors.joining("\n"));
+                        stmt.execute(v41sql);
+                        System.out.println("V41 Add System Settings Migration executed successfully!");
+                    } else {
+                        System.err.println("V41 Migration file not found!");
+                    }
+                }
             }
 
         } catch (Exception e) {

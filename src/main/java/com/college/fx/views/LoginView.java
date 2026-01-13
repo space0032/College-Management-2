@@ -1,10 +1,14 @@
 package com.college.fx.views;
 
+import com.college.dao.SystemSettingsDAO; // Added
+import com.college.services.DropboxStorageService; // Added
 import com.college.utils.DatabaseConnection;
 import com.college.utils.SessionManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
@@ -30,6 +34,9 @@ public class LoginView {
     private static final String LOCK_ICON = "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z";
     private static final String LOGO_ICON = "M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z";
 
+    private final SystemSettingsDAO systemSettingsDAO = new SystemSettingsDAO();
+    private final DropboxStorageService storageService = new DropboxStorageService();
+
     public LoginView() {
         createView();
     }
@@ -46,22 +53,53 @@ public class LoginView {
         card.setAlignment(Pos.CENTER);
 
         // Logo Section
-        SVGPath logoIcon = new SVGPath();
-        logoIcon.setContent(LOGO_ICON);
-        logoIcon.setFill(Color.web("#2dd4bf")); // Teal/Cyan
-        logoIcon.setScaleX(2.5);
-        logoIcon.setScaleY(2.5);
-
-        StackPane logoContainer = new StackPane(logoIcon);
+        StackPane logoContainer = new StackPane();
         logoContainer.setMinSize(60, 60);
-        logoContainer.setPrefSize(60, 60);
-        logoContainer.setMaxSize(60, 60);
+        logoContainer.setPrefSize(80, 80); // Slightly larger for custom logo
+        logoContainer.setMaxSize(80, 80);
         logoContainer.setStyle("-fx-background-color: rgba(45, 212, 191, 0.1); -fx-background-radius: 50%;");
 
-        Label title = new Label("College Management");
-        title.getStyleClass().add("login-title");
+        // Default Icon
+        SVGPath defaultIcon = new SVGPath();
+        defaultIcon.setContent(LOGO_ICON);
+        defaultIcon.setFill(Color.web("#2dd4bf"));
+        defaultIcon.setScaleX(2.5);
+        defaultIcon.setScaleY(2.5);
 
-        Label subtitle = new Label("System");
+        logoContainer.getChildren().add(defaultIcon);
+
+        // Fetch Custom Logo
+        String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
+        if (logoPath != null && !logoPath.isEmpty()) {
+            ImageView customLogo = new ImageView();
+            customLogo.setFitHeight(60);
+            customLogo.setFitWidth(60);
+            customLogo.setPreserveRatio(true);
+
+            // Async loading
+            new Thread(() -> {
+                String url = storageService.getTemporaryLink(logoPath);
+                if (url != null) {
+                    javafx.application.Platform.runLater(() -> {
+                        customLogo.setImage(new Image(url, true));
+                        logoContainer.getChildren().clear(); // Remove default
+                        logoContainer.getChildren().add(customLogo);
+                    });
+                }
+            }).start();
+        }
+
+        // Fetch Custom Name
+        String collegeName = systemSettingsDAO.getSetting("COLLEGE_NAME");
+        if (collegeName == null || collegeName.isEmpty())
+            collegeName = "College Management";
+
+        Label title = new Label(collegeName);
+        title.getStyleClass().add("login-title");
+        title.setWrapText(true);
+        title.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+
+        Label subtitle = new Label("System"); // Or maybe remove if name is long?
         subtitle.getStyleClass().add("login-subtitle");
 
         VBox header = new VBox(10, logoContainer, title, subtitle);
@@ -194,7 +232,7 @@ public class LoginView {
                 messageLabel.setText("Login failed: Account configuration error.");
                 return;
             }
-            
+
             // Validate selected role against actual user role
             String selectedRole = roleComboBox.getValue();
             if (selectedRole != null && !"Select".equalsIgnoreCase(selectedRole)) {
