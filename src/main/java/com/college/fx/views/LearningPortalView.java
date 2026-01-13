@@ -83,6 +83,7 @@ public class LearningPortalView {
         courseFilter.setItems(FXCollections.observableArrayList(courses));
 
         TableView<Syllabus> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
 
         TableColumn<Syllabus, String> courseCol = new TableColumn<>("Course");
         courseCol.setCellValueFactory(new PropertyValueFactory<>("courseId"));

@@ -415,6 +415,11 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 10, 0, 0, 5);
 }
 
+.glass-card .label {
+    -fx-text-fill: white !important;
+    color: white !important;
+}
+
 .section-title {
     -fx-text-fill: white !important;
     color: white !important;
@@ -550,30 +555,40 @@
 }
 
 /* DatePicker Dark Theme */
+.date-picker {
+    -fx-background-color: transparent !important;
+    background-color: transparent !important;
+}
+
 .date-picker .text-field {
-    -fx-background-color: rgba(15, 23, 42, 0.6);
-    background-color: rgba(15, 23, 42, 0.6);
-    -fx-text-fill: white;
-    -fx-border-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.1);
-    -fx-background-radius: 8 0 0 8;
-    -fx-border-radius: 8 0 0 8;
-    border-radius: 8 0 0 8;
+    -fx-background-color: rgba(15, 23, 42, 0.6) !important;
+    background-color: rgba(15, 23, 42, 0.6) !important;
+    -fx-text-fill: white !important;
+    color: white !important;
+    -fx-border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    -fx-background-radius: 8 0 0 8 !important;
+    -fx-border-radius: 8 0 0 8 !important;
+    border-radius: 8 0 0 8 !important;
+    -fx-border-width: 1 0 1 1 !important;
+    border-width: 1 0 1 1 !important;
 }
 
 .date-picker .arrow-button {
-    -fx-background-color: rgba(15, 23, 42, 0.6);
-    background-color: rgba(15, 23, 42, 0.6);
-    -fx-border-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.1);
-    -fx-background-radius: 0 8 8 0;
-    -fx-border-radius: 0 8 8 0;
-    border-radius: 0 8 8 0;
+    -fx-background-color: rgba(15, 23, 42, 0.6) !important;
+    background-color: rgba(15, 23, 42, 0.6) !important;
+    -fx-border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    -fx-background-radius: 0 8 8 0 !important;
+    -fx-border-radius: 0 8 8 0 !important;
+    border-radius: 0 8 8 0 !important;
+    -fx-border-width: 1 1 1 0 !important;
+    border-width: 1 1 1 0 !important;
 }
 
 .date-picker .arrow-button .arrow {
-    -fx-background-color: white;
-    background-color: white;
+    -fx-background-color: white !important;
+    background-color: white !important;
 }
 
 /* CheckBox Dark Theme */
@@ -636,46 +651,110 @@
 }
 
 /* DatePicker Popup Dark Theme */
+/* DatePicker Popup Dark Theme - Aggressive Overrides */
+/* DatePicker Popup Dark Theme - Aggressive Overrides */
 .date-picker-popup {
-    -fx-background-color: #1e293b;
-    background-color: #1e293b;
+    -fx-background-color: #1e293b !important;
+    background-color: #1e293b !important;
     -fx-border-color: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.1);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.6), 10, 0, 0, 5);
+}
+
+.date-picker-popup>* {
+    -fx-background-color: #1e293b !important;
+    background-color: #1e293b !important;
 }
 
 .date-picker-popup .month-year-pane {
-    -fx-background-color: #0f172a;
-    background-color: #0f172a;
+    -fx-background-color: #0f172a !important;
+    background-color: #0f172a !important;
+    -fx-padding: 10;
+    padding: 10;
 }
 
 .date-picker-popup .month-year-pane .label {
-    -fx-text-fill: white;
+    -fx-text-fill: white !important;
+    color: white !important;
+    -fx-font-weight: bold;
+    font-weight: bold;
+}
+
+.date-picker-popup .month-year-pane .spinner {
+    -fx-background-color: transparent !important;
+    background-color: transparent !important;
+}
+
+.date-picker-popup .month-year-pane .spinner .button {
+    -fx-background-color: transparent !important;
+    background-color: transparent !important;
+}
+
+.date-picker-popup .month-year-pane .spinner .button .left-arrow,
+.date-picker-popup .month-year-pane .spinner .button .right-arrow {
+    -fx-background-color: white !important;
+    background-color: white !important;
+}
+
+.date-picker-popup .calendar-grid {
+    -fx-background-color: #1e293b !important;
+    background-color: #1e293b !important;
 }
 
 .date-picker-popup .week-number-cell {
-    -fx-text-fill: #94a3b8;
+    -fx-text-fill: #64748b !important;
+    color: #64748b !important;
+    -fx-background-color: #1e293b !important;
+    background-color: #1e293b !important;
+}
+
+.date-picker-popup .day-name-cell {
+    -fx-background-color: #1e293b !important;
+    background-color: #1e293b !important;
+    -fx-text-fill: #94a3b8 !important;
+    color: #94a3b8 !important;
+    -fx-font-weight: bold;
+    font-weight: bold;
 }
 
 .date-picker-popup .day-cell {
-    -fx-background-color: #1e293b;
-    background-color: #1e293b;
-    -fx-text-fill: #cbd5e1;
+    -fx-background-color: #1e293b !important;
+    background-color: #1e293b !important;
+    -fx-text-fill: #cbd5e1 !important;
+    color: #cbd5e1 !important;
+    -fx-border-color: transparent !important;
+    border-color: transparent !important;
 }
 
 .date-picker-popup .day-cell:hover {
-    -fx-background-color: #334155;
-    background-color: #334155;
+    -fx-background-color: #334155 !important;
+    background-color: #334155 !important;
+    -fx-cursor: hand;
+    cursor: hand;
 }
 
 .date-picker-popup .selected {
-    -fx-background-color: #14b8a6;
-    background-color: #14b8a6;
-    -fx-text-fill: white;
+    -fx-background-color: #14b8a6 !important;
+    background-color: #14b8a6 !important;
+    -fx-text-fill: white !important;
+    color: white !important;
+    -fx-font-weight: bold;
+    font-weight: bold;
 }
 
 .date-picker-popup .today {
-    -fx-border-color: #14b8a6;
-    border-color: #14b8a6;
+    -fx-background-color: rgba(20, 184, 166, 0.2) !important;
+    background-color: rgba(20, 184, 166, 0.2) !important;
+    -fx-border-color: #14b8a6 !important;
+    border-color: #14b8a6 !important;
+    -fx-text-fill: white !important;
+    color: white !important;
+}
+
+.date-picker-popup .next-month,
+.date-picker-popup .previous-month {
+    -fx-text-fill: #475569 !important;
+    color: #475569 !important;
 }
 
 /* Glass Table View */
@@ -798,6 +877,46 @@
     -fx-text-fill: white;
 }
 
+/* --- Profile View Tabs (Fix for White Blocks) --- */
+.profile-tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent !important;
+    background-color: transparent !important;
+}
+
+.profile-tab-pane .tab {
+    -fx-background-color: transparent !important;
+    background-color: transparent !important;
+    -fx-background-insets: 0 !important;
+    -fx-padding: 10 20 !important;
+    padding: 10px 20px !important;
+    -fx-border-width: 0 0 2 0 !important;
+    border-width: 0 0 2px 0 !important;
+    -fx-border-color: transparent transparent transparent transparent !important;
+    border-color: transparent transparent transparent transparent !important;
+}
+
+.profile-tab-pane .tab:selected {
+    -fx-background-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    -fx-border-color: transparent transparent #14b8a6 transparent !important;
+    border-color: transparent transparent #14b8a6 transparent !important;
+    /* Teal underline */
+}
+
+.profile-tab-pane .tab .tab-label {
+    -fx-text-fill: #94a3b8 !important;
+    color: #94a3b8 !important;
+    /* Slate-400 */
+    -fx-font-weight: bold;
+    font-weight: bold;
+    -fx-font-size: 14px;
+    font-size: 14px;
+}
+
+.profile-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: white !important;
+}
+
 /* Override ANY white backgrounds in VBox, HBox, etc */
 VBox,
 HBox,
@@ -864,6 +983,7 @@ AnchorPane {
 
 .pill-tab-pane .tab .tab-label {
     -fx-text-fill: #10b981;
+    color: #10b981;
     /* Text color matches border when inactive */
     -fx-font-weight: bold;
     font-weight: bold;

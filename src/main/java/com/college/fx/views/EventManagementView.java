@@ -201,6 +201,17 @@ public class EventManagementView {
         dialog.showAndWait().ifPresent(event -> {
             event.setCreatedBy(userId);
             if (eventDAO.createEvent(event)) {
+                // Trigger Announcement
+                com.college.models.Announcement ann = new com.college.models.Announcement();
+                ann.setTitle("New Event: " + event.getName());
+                ann.setContent("A new event '" + event.getName() + "' has been scheduled at " + event.getLocation()
+                        + ". Register now!");
+                ann.setTargetAudience("ALL");
+                ann.setPriority("HIGH");
+                ann.setCreatedBy(userId);
+                ann.setActive(true);
+                new com.college.dao.AnnouncementDAO().addAnnouncement(ann);
+
                 showAlert(Alert.AlertType.INFORMATION, "Success", "Event created successfully!");
                 loadEvents();
             } else {

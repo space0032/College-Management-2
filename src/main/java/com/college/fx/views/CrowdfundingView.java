@@ -43,6 +43,13 @@ public class CrowdfundingView {
         startCampaignBtn.getStyleClass().add("crowd-start-btn");
         startCampaignBtn.setOnAction(e -> showCreateCampaignDialog());
 
+        // RESTRICTION: Hide button if user is STUDENT
+        com.college.models.Role role = SessionManager.getInstance().getUserRole();
+        if (role != null && "STUDENT".equalsIgnoreCase(role.getCode())) {
+            startCampaignBtn.setVisible(false);
+            startCampaignBtn.setManaged(false);
+        }
+
         header.getChildren().addAll(title, spacer, startCampaignBtn);
         mainLayout.setTop(header);
 
@@ -164,6 +171,7 @@ public class CrowdfundingView {
         goalF.setPromptText("Goal Amount");
         TextArea descF = new TextArea();
         descF.setPromptText("Description");
+        descF.setStyle("-fx-text-fill: white; -fx-control-inner-background: #1e293b;");
 
         DialogUtils.addFormRow(grid, "Title:", titleF, 0);
         DialogUtils.addFormRow(grid, "Goal:", goalF, 1);
@@ -190,6 +198,16 @@ public class CrowdfundingView {
 
         dialog.showAndWait().ifPresent(c -> {
             if (communityDAO.createCampaign(c)) {
+                // Trigger Announcement
+                com.college.models.Announcement ann = new com.college.models.Announcement();
+                ann.setTitle("New Campaign: " + c.getTitle());
+                ann.setContent("A new crowdfunding campaign has started: " + c.getTitle() + ". Support your peers!");
+                ann.setTargetAudience("ALL");
+                ann.setPriority("NORMAL");
+                ann.setCreatedBy(SessionManager.getInstance().getUserId());
+                ann.setActive(true);
+                new com.college.dao.AnnouncementDAO().addAnnouncement(ann);
+
                 refreshCampaigns();
             } else {
                 showAlert("Error", "Failed to create campaign.");

@@ -23,7 +23,7 @@ public class DialogUtils {
     public static void addFormRow(javafx.scene.layout.GridPane grid, String labelText, javafx.scene.Node field,
             int row) {
         javafx.scene.control.Label label = new javafx.scene.control.Label(labelText);
-        label.setStyle("-fx-text-fill: #e2e8f0;"); // Default text color for dark theme
+        label.setStyle("-fx-text-fill: white; -fx-font-weight: bold;"); // Force white and bold for visibility
         label.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE); // Prevent truncation
         grid.add(label, 0, row);
         grid.add(field, 1, row);

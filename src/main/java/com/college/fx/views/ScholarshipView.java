@@ -57,6 +57,12 @@ public class ScholarshipView {
         createBtn.getStyleClass().add("scholarship-post-btn");
         createBtn.setOnAction(e -> showCreateScholarshipDialog());
 
+        // RESTRICTION: Hide button if user is STUDENT
+        if ("STUDENT".equalsIgnoreCase(userRole)) {
+            createBtn.setVisible(false);
+            createBtn.setManaged(false); // Remove from layout calculation
+        }
+
         header.getChildren().addAll(title, spacer, createBtn);
         mainLayout.setTop(header);
 
@@ -300,6 +306,7 @@ public class ScholarshipView {
         amountF.setPromptText("Amount");
         TextArea descF = new TextArea();
         descF.setPromptText("Description & Criteria");
+        descF.setStyle("-fx-text-fill: white; -fx-control-inner-background: #1e293b;");
 
         DialogUtils.addFormRow(grid, "Title:", titleF, 0);
         DialogUtils.addFormRow(grid, "Donor:", donorF, 1);
@@ -328,6 +335,17 @@ public class ScholarshipView {
 
         dialog.showAndWait().ifPresent(s -> {
             if (communityDAO.createScholarship(s)) {
+                // Trigger Announcement
+                com.college.models.Announcement ann = new com.college.models.Announcement();
+                ann.setTitle("New Scholarship: " + s.getTitle());
+                ann.setContent("A new scholarship opportunity is available. Amount: $" + s.getAmount()
+                        + ". Check the Scholarship Portal.");
+                ann.setTargetAudience("ALL");
+                ann.setPriority("HIGH");
+                ann.setCreatedBy(userId);
+                ann.setActive(true);
+                new com.college.dao.AnnouncementDAO().addAnnouncement(ann);
+
                 refreshContent();
                 showAlert("Success", "Scholarship Posted!");
             }
@@ -344,6 +362,7 @@ public class ScholarshipView {
 
         TextArea stmtArea = new TextArea();
         stmtArea.setPromptText("Personal Statement...");
+        stmtArea.setStyle("-fx-text-fill: white; -fx-control-inner-background: #e3e5e7ff;");
 
         GridPane grid = new GridPane();
         grid.setHgap(10);

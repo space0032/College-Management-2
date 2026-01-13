@@ -63,6 +63,7 @@ public class StudentProfileView {
         // Tabs
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.getStyleClass().add("profile-tab-pane");
 
         Tab personalTab = new Tab("Personal Details");
         personalTab.setContent(createPersonalTab());
@@ -111,9 +112,10 @@ public class StudentProfileView {
         VBox infoBox = new VBox(5);
         nameLabel = new Label(student.getName());
         nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 24));
+        nameLabel.setStyle("-fx-text-fill: white;");
         idLabel = new Label("Student ID: " + student.getId() + " | " + student.getCourse() + " | Semester "
                 + student.getSemester());
-        // idLabel.setTextFill(Color.GRAY);
+        idLabel.setStyle("-fx-text-fill: #cbd5e1;"); // Light gray for subtitle
 
         infoBox.getChildren().addAll(nameLabel, idLabel);
 
@@ -238,6 +240,8 @@ public class StudentProfileView {
 
         TextArea activitiesArea = new TextArea(student.getExtracurricularActivities());
         activitiesArea.setPromptText("List sports, clubs, awards, etc.");
+        activitiesArea.setStyle(
+                "-fx-text-fill: white; -fx-control-inner-background: #bcc1c9ff; -fx-prompt-text-fill: #94a3b8;");
         activitiesArea.setPrefHeight(200);
 
         if (isEditable) {
@@ -415,6 +419,7 @@ public class StudentProfileView {
     }
 
     private void addFormRow(GridPane grid, String label, Control field, int row) {
+        field.setStyle("-fx-text-fill: white; -fx-prompt-text-fill: #94a3b8; -fx-control-inner-background: #d3d5daff;");
         DialogUtils.addFormRow(grid, label, field, row);
     }
 

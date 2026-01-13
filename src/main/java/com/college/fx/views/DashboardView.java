@@ -103,12 +103,6 @@ public class DashboardView {
 
         userInfo.getChildren().addAll(welcomeLabel, roleLabel);
 
-        // Notifications Button
-        Button notifBtn = new Button("Notifications");
-        notifBtn.setStyle(
-                "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
-        notifBtn.setOnAction(e -> NotificationView.showDialog());
-
         // Logout button
         Button logoutBtn = new Button("Logout");
         logoutBtn.setStyle(
@@ -120,7 +114,7 @@ public class DashboardView {
                         "-fx-cursor: hand;");
         logoutBtn.setOnAction(e -> handleLogout());
 
-        topBar.getChildren().addAll(spacer, notifBtn, userInfo, logoutBtn);
+        topBar.getChildren().addAll(spacer, userInfo, logoutBtn);
         return topBar;
     }
 
@@ -639,7 +633,7 @@ public class DashboardView {
     private Object currentController;
 
     private void showHome() {
-        HomeView homeView = new HomeView(displayName, role, userId);
+        HomeView homeView = new HomeView(displayName, role, userId, this::navigateTo);
         currentController = homeView;
         contentArea.getChildren().add(homeView.getView());
     }

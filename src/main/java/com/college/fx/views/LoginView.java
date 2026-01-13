@@ -194,6 +194,17 @@ public class LoginView {
                 messageLabel.setText("Login failed: Account configuration error.");
                 return;
             }
+            
+            // Validate selected role against actual user role
+            String selectedRole = roleComboBox.getValue();
+            if (selectedRole != null && !"Select".equalsIgnoreCase(selectedRole)) {
+                // If user selected a specific role, ensure it matches their assigned role
+                // Check against Role Code (e.g., STUDENT, ADMIN)
+                if (!selectedRole.equalsIgnoreCase(userRole.getCode())) {
+                    messageLabel.setText("Access Denied: You are not authorized as " + selectedRole);
+                    return;
+                }
+            }
 
             String portalType = userRole.getPortalType();
             if (portalType == null || portalType.isEmpty()) {

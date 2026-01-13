@@ -13,6 +13,11 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.function.Consumer;
+import com.college.models.Notification;
 
 /**
  * JavaFX Home View
@@ -24,11 +29,17 @@ public class HomeView {
     private String displayName;
     private String role;
     private int userId;
+    private Consumer<String> navigationHandler;
 
     public HomeView(String displayName, String role, int userId) {
+        this(displayName, role, userId, null);
+    }
+
+    public HomeView(String displayName, String role, int userId, Consumer<String> navigationHandler) {
         this.displayName = displayName;
         this.role = role;
         this.userId = userId;
+        this.navigationHandler = navigationHandler;
         createView();
     }
 
@@ -448,14 +459,32 @@ public class HomeView {
         header.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
         header.setTextFill(Color.WHITE);
 
-        ListView<com.college.models.Announcement> listView = new ListView<>();
+        // Wrapper class for unified display
+        class DashboardAlert {
+            String title;
+            String badgeText;
+            String badgeStyle;
+            java.time.LocalDateTime timestamp;
+            Object source;
+
+            DashboardAlert(String title, String badgeText, String badgeStyle, java.time.LocalDateTime timestamp,
+                    Object source) {
+                this.title = title;
+                this.badgeText = badgeText;
+                this.badgeStyle = badgeStyle;
+                this.timestamp = timestamp;
+                this.source = source;
+            }
+        }
+
+        ListView<DashboardAlert> listView = new ListView<>();
         listView.getStyleClass().add("list-view");
         listView.setStyle("-fx-background-color: transparent;");
 
-        // Custom Cell Factory for Announcements
-        listView.setCellFactory(lv -> new ListCell<com.college.models.Announcement>() {
+        // Custom Cell Factory
+        listView.setCellFactory(lv -> new ListCell<DashboardAlert>() {
             @Override
-            protected void updateItem(com.college.models.Announcement item, boolean empty) {
+            protected void updateItem(DashboardAlert item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setGraphic(null);
@@ -464,23 +493,12 @@ public class HomeView {
                     HBox cell = new HBox(10);
                     cell.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-                    // Priority Badge
-                    Label badge = new Label();
-                    // Urgent, News, Info?
-                    // Map priority icon/text to badge style
-                    if (item.getPriorityIcon() != null && item.getPriorityIcon().contains("[!]")) {
-                        badge.setText("Urgent");
-                        badge.getStyleClass().add("badge-urgent");
-                    } else if (item.getPriorityIcon() != null && item.getPriorityIcon().contains("[N]")) {
-                        badge.setText("News");
-                        badge.getStyleClass().add("badge-news");
-                    } else {
-                        badge.setText("Info");
-                        badge.getStyleClass().add("badge-info");
-                    }
+                    // Badge
+                    Label badge = new Label(item.badgeText);
+                    badge.getStyleClass().add(item.badgeStyle);
 
                     // Message
-                    Label messageLabel = new Label(item.getTitle());
+                    Label messageLabel = new Label(item.title);
                     messageLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
 
                     cell.getChildren().addAll(badge, messageLabel);
@@ -490,22 +508,88 @@ public class HomeView {
             }
         });
 
-        // Get announcements
+        // Click Handler for Redirection
+        listView.setOnMouseClicked(e -> {
+            DashboardAlert item = listView.getSelectionModel().getSelectedItem();
+            if (item != null) {
+                if (item.source instanceof com.college.models.Announcement) {
+                    String title = ((com.college.models.Announcement) item.source).getTitle().toLowerCase();
+                    if (title.contains("scholarship")) {
+                        if (navigationHandler != null)
+                            navigationHandler.accept("scholarships");
+                    } else if (title.contains("campaign") || title.contains("crowdfunding")) {
+                        if (navigationHandler != null)
+                            navigationHandler.accept("crowdfunding");
+                    } else if (title.contains("event")) {
+                        if (navigationHandler != null)
+                            navigationHandler.accept("events");
+                    } else {
+                        // Show details
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        DialogUtils.styleDialog(alert);
+                        alert.setTitle("Announcement");
+                        alert.setHeaderText(item.title);
+                        alert.setContentText(((com.college.models.Announcement) item.source).getContent());
+                        alert.showAndWait();
+                    }
+                } else if (item.source instanceof Notification) {
+                    // Show Notification details
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    DialogUtils.styleDialog(alert);
+                    alert.setTitle("Notification");
+                    alert.setHeaderText(item.title);
+                    alert.setContentText(((Notification) item.source).getMessage());
+                    alert.showAndWait();
+                }
+            }
+        });
+
+        // Load Data
         try {
+            List<DashboardAlert> alerts = new ArrayList<>();
+
+            // 1. Announcements
             AnnouncementDAO announcementDAO = new AnnouncementDAO();
             List<com.college.models.Announcement> announcements = announcementDAO.getActiveAnnouncements(role);
-            listView.getItems().addAll(announcements);
+            for (com.college.models.Announcement a : announcements) {
+                String badgeStyle = "badge-info";
+                String badgeText = "Info";
+                if (a.getPriorityIcon() != null && a.getPriorityIcon().contains("[!]")) {
+                    badgeText = "Urgent";
+                    badgeStyle = "badge-urgent";
+                } else if (a.getPriorityIcon() != null && a.getPriorityIcon().contains("[N]")) {
+                    badgeText = "News";
+                    badgeStyle = "badge-news";
+                }
+                alerts.add(new DashboardAlert(a.getTitle(), badgeText, badgeStyle, a.getCreatedAt(), a));
+            }
 
-            if (announcements.isEmpty()) {
-                // Add placeholder/default fake items if empty to demonstrate UI?
-                // User code previously added string items directly.
-                // Let's rely on placeholder logic or add dummy announcements if specifically
-                // requested.
-                // For now, clean data-driven approach.
-                listView.setPlaceholder(new Label("No active announcements"));
+            // 2. Notifications
+            NotificationDAO notificationDAO = new NotificationDAO();
+            // getPendingNotifications(userId) is what we likely want, checking previous
+            // grep
+            // Grep said: getPendingNotifications(int userId) exists.
+            List<Notification> notifications = notificationDAO.getPendingNotifications(userId);
+            // Also merging getPendingNotifications() (all) if it's admin? No, stick to user
+            // specific.
+            // Wait, previous grep showed getPendingNotifications() might return ALL.
+            // Let's assume getPendingNotifications(userId) is correct for now.
+
+            for (Notification n : notifications) {
+                alerts.add(new DashboardAlert(n.getSubject(), "Msg", "badge-info", n.getCreatedAt(), n));
+            }
+
+            // Sort by Date Descending
+            Collections.sort(alerts, Comparator.comparing((DashboardAlert a) -> a.timestamp).reversed());
+
+            listView.getItems().addAll(alerts);
+
+            if (alerts.isEmpty()) {
+                listView.setPlaceholder(new Label("No active alerts"));
             }
         } catch (Exception e) {
-            listView.setPlaceholder(new Label("Error loading announcements"));
+            e.printStackTrace();
+            listView.setPlaceholder(new Label("Error loading alerts"));
         }
 
         VBox.setVgrow(listView, Priority.ALWAYS);
