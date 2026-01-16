@@ -44,6 +44,7 @@ public class GradesReportTab {
         controls.setAlignment(Pos.CENTER_LEFT);
 
         Label courseLabel = new Label("Select Course:");
+        courseLabel.setStyle("-fx-text-fill: white;");
         courseComboBox = new ComboBox<>();
         courseComboBox.setPromptText("Choose Course...");
         courseComboBox.setPrefWidth(200);
@@ -93,7 +94,9 @@ public class GradesReportTab {
 
         gradeTable.getColumns().addAll(java.util.Arrays.asList(studentCol, examCol, marksCol, gradeCol));
 
-        tableBox.getChildren().add(new Label("Detailed Performance"));
+        Label detailLabel = new Label("Detailed Performance");
+        detailLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        tableBox.getChildren().add(detailLabel);
         tableBox.getChildren().add(gradeTable);
 
         splitPane.getItems().addAll(chartBox, tableBox);

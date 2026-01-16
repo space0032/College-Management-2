@@ -52,6 +52,7 @@ public class AttendanceReportTab {
         controls.setAlignment(Pos.CENTER_LEFT);
 
         Label courseLabel = new Label("Select Course:");
+        courseLabel.setStyle("-fx-text-fill: white;");
         courseComboBox = new ComboBox<>();
         courseComboBox.setPromptText("Choose Course...");
         courseComboBox.setPrefWidth(200);
@@ -59,6 +60,7 @@ public class AttendanceReportTab {
         courseComboBox.setOnAction(e -> loadReport());
 
         Label searchLabel = new Label("Search Student:");
+        searchLabel.setStyle("-fx-text-fill: white;");
         searchField = new TextField();
         searchField.setPromptText("Type name...");
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {

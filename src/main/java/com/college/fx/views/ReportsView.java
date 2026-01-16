@@ -1,5 +1,8 @@
 package com.college.fx.views;
 
+import com.college.fx.views.reports.AttendanceReportTab;
+import com.college.fx.views.reports.FeesReportTab;
+import com.college.fx.views.reports.GradesReportTab;
 import com.college.services.ExcelReportGenerator;
 import com.college.services.PdfReportGenerator;
 import com.college.services.ReportDataService;
@@ -8,7 +11,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
-
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
@@ -29,14 +31,49 @@ public class ReportsView {
 
     public Parent getView() {
         VBox root = new VBox(20);
-        root.setPadding(new Insets(30));
+        root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: transparent;");
 
         Label header = new Label("Reports & Analytics");
         header.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
 
-        // --- Visitor Reports Section ---
-        VBox visitorSection = createSection("Visitor Log Reports");
+        // Tab Pane Configuration
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.setStyle("-fx-background-color: transparent;");
+
+        // 1. Visitor Log Tab
+        Tab visitorTab = new Tab("Visitor Logs");
+        visitorTab.setContent(createVisitorSection());
+
+        // 2. Attendance Tab
+        Tab attendanceTab = new Tab("Attendance");
+        AttendanceReportTab attendanceView = new AttendanceReportTab();
+        attendanceTab.setContent(attendanceView.getContent());
+
+        // 3. Fees Tab
+        Tab feesTab = new Tab("Fees");
+        FeesReportTab feesView = new FeesReportTab();
+        feesTab.setContent(feesView.getContent());
+
+        // 4. Grades Tab
+        Tab gradesTab = new Tab("Grades");
+        GradesReportTab gradesView = new GradesReportTab();
+        gradesTab.setContent(gradesView.getContent());
+
+        // 5. Placement Tab
+        Tab placementTab = new Tab("Placements");
+        placementTab.setContent(createPlacementSection());
+
+        tabPane.getTabs().addAll(visitorTab, attendanceTab, feesTab, gradesTab, placementTab);
+
+        root.getChildren().addAll(header, tabPane);
+        return root;
+    }
+
+    private VBox createVisitorSection() {
+        VBox section = new VBox(15);
+        section.setStyle("-fx-padding: 20;");
 
         GridPane visitorGrid = new GridPane();
         visitorGrid.setHgap(15);
@@ -64,12 +101,15 @@ public class ReportsView {
         // Style labels in grid
         visitorGrid.getChildren().stream()
                 .filter(n -> n instanceof Label)
-                .forEach(n -> n.setStyle("-fx-text-fill: #94a3b8;"));
+                .forEach(n -> n.setStyle("-fx-text-fill: white;"));
 
-        visitorSection.getChildren().add(visitorGrid);
+        section.getChildren().add(visitorGrid);
+        return section;
+    }
 
-        // --- Placement Reports Section ---
-        VBox placementSection = createSection("Placement Statistics"); // Future expansion
+    private VBox createPlacementSection() {
+        VBox placementSection = new VBox(15);
+        placementSection.setStyle("-fx-padding: 20;");
 
         Button placementPdfBtn = new Button("Export Placement Summary (PDF)");
         styleButton(placementPdfBtn);
@@ -77,24 +117,10 @@ public class ReportsView {
         // placementPdfBtn.setOnAction(e -> generatePlacementReport());
 
         Label comingSoon = new Label("Detailed placement reports coming soon.");
-        comingSoon.setStyle("-fx-text-fill: #64748b; -fx-font-style: italic;");
+        comingSoon.setStyle("-fx-text-fill: #94a3b8; -fx-font-style: italic;");
 
         placementSection.getChildren().addAll(placementPdfBtn, comingSoon);
-
-        root.getChildren().addAll(header, visitorSection, placementSection);
-        return root;
-    }
-
-    private VBox createSection(String title) {
-        VBox section = new VBox(15);
-        section.setStyle(
-                "-fx-background-color: #1e293b; -fx-padding: 20; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 5);");
-
-        Label titleLabel = new Label(title);
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
-
-        section.getChildren().add(titleLabel);
-        return section;
+        return placementSection;
     }
 
     private void styleButton(Button btn) {

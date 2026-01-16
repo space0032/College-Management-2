@@ -1470,3 +1470,64 @@ AnchorPane {
     font-size: 14px;
     -fx-alignment: center;
 }
+
+/* Pie Chart Styling */
+.chart-pie-label {
+    -fx-fill: white;
+    fill: white;
+    -fx-font-weight: bold;
+    font-weight: bold;
+}
+
+.chart-pie-label-line {
+    -fx-stroke: white;
+    stroke: white;
+}
+
+/* TabPane Styling for Reports */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+    background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    background-color: transparent;
+    -fx-text-base-color: white;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
+    -fx-border-color: #3b82f6;
+    border-color: #3b82f6;
+    -fx-border-width: 0 0 2 0;
+    border-width: 0 0 2 0;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 14px;
+    font-size: 14px;
+    -fx-font-weight: bold;
+    font-weight: bold;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: white;
+}
+
+
+/* Chart Title and Legend Styling */
+.chart-title {
+    -fx-text-fill: white;
+}
+
+.chart-legend {
+    -fx-background-color: transparent;
+    background-color: transparent;
+}
+
+.chart-legend-item {
+    -fx-text-fill: white;
+}

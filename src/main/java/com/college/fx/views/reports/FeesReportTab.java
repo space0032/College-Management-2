@@ -119,7 +119,7 @@ public class FeesReportTab {
 
     private Label createStatLabel(String title, double value) {
         Label label = new Label(String.format("%s: $%.2f", title, value));
-        label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+        label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: white;");
         return label;
     }
 
@@ -164,6 +164,31 @@ public class FeesReportTab {
                 new PieChart.Data("Partial (" + partialCount + ")", partialCount),
                 new PieChart.Data("Pending (" + pendingCount + ")", pendingCount));
         statusChart.setData(pieData);
+
+        // Apply Semantic Colors
+        for (PieChart.Data data : pieData) {
+            String name = data.getName();
+            // Wait for node to be created
+            data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                if (newNode != null) {
+                    updateSliceColor(newNode, name);
+                }
+            });
+            // If already created (e.g. data updated)
+            if (data.getNode() != null) {
+                updateSliceColor(data.getNode(), name);
+            }
+        }
+    }
+
+    private void updateSliceColor(javafx.scene.Node node, String name) {
+        if (name.startsWith("Paid")) {
+            node.setStyle("-fx-pie-color: #22c55e;"); // Green
+        } else if (name.startsWith("Pending")) {
+            node.setStyle("-fx-pie-color: #ef4444;"); // Red
+        } else if (name.startsWith("Partial")) {
+            node.setStyle("-fx-pie-color: #f59e0b;"); // Amber
+        }
     }
 
     private void exportReport() {
