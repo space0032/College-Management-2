@@ -2,7 +2,6 @@ package com.college.utils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.nio.file.Paths;
 
 public class EnvLoader {
     public static void load() {

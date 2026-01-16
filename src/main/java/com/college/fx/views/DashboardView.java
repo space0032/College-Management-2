@@ -615,7 +615,7 @@ public class DashboardView {
                     loadViewReflectively("com.college.fx.views.StudentAffairsView", role, userId);
                     break;
                 case "reports":
-                    loadViewReflectively("com.college.fx.views.ReportsView");
+                    showReports();
                     break;
                 case "placements":
                     showPlacementCell();
