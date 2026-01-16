@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class GeminiService {
 
-    private static final String API_KEY = System.getenv("GOOGLE_API_KEY");
+    private static final String API_KEY = System.getProperty("GOOGLE_API_KEY", System.getenv("GOOGLE_API_KEY"));
     private static final String API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key="
             + (API_KEY != null ? API_KEY : "");
 
