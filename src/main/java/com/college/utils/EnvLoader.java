@@ -10,7 +10,8 @@ public class EnvLoader {
             String line;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
-                if (line.isEmpty() || line.startsWith("#")) continue;
+                if (line.isEmpty() || line.startsWith("#"))
+                    continue;
                 int idx = line.indexOf('=');
                 if (idx > 0) {
                     String key = line.substring(0, idx).trim();
