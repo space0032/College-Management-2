@@ -19,6 +19,7 @@ public class Course {
     private int enrolledCount = 0;
     private int facultyId;
     private String facultyName;
+    private String specialization;
 
     // Constructors
     public Course() {
@@ -137,6 +138,14 @@ public class Course {
 
     public void setFacultyName(String facultyName) {
         this.facultyName = facultyName;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
     }
 
     @Override

@@ -21,8 +21,9 @@ public class FacultyDAO {
      * @return generated faculty ID if successful, -1 otherwise
      */
     public int addFaculty(Faculty faculty, int userId) {
-        String sql = "INSERT INTO faculty (name, email, phone, department, qualification, join_date, user_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO faculty (name, email, phone, department, qualification, join_date, specialization, user_id) "
+                +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -33,10 +34,11 @@ public class FacultyDAO {
             pstmt.setString(4, faculty.getDepartment());
             pstmt.setString(5, faculty.getQualification());
             pstmt.setDate(6, new java.sql.Date(faculty.getJoinDate().getTime()));
+            pstmt.setString(7, faculty.getSpecialization());
             if (userId > 0) {
-                pstmt.setInt(7, userId);
+                pstmt.setInt(8, userId);
             } else {
-                pstmt.setNull(7, Types.INTEGER);
+                pstmt.setNull(8, Types.INTEGER);
             }
 
             int rowsAffected = pstmt.executeUpdate();
@@ -73,7 +75,7 @@ public class FacultyDAO {
      */
     public boolean updateFaculty(Faculty faculty) {
         String sql = "UPDATE faculty SET name=?, email=?, phone=?, department=?, qualification=?, " +
-                "join_date=? WHERE id=?";
+                "join_date=?, specialization=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -84,7 +86,8 @@ public class FacultyDAO {
             pstmt.setString(4, faculty.getDepartment());
             pstmt.setString(5, faculty.getQualification());
             pstmt.setDate(6, new java.sql.Date(faculty.getJoinDate().getTime()));
-            pstmt.setInt(7, faculty.getId());
+            pstmt.setString(7, faculty.getSpecialization());
+            pstmt.setInt(8, faculty.getId());
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -250,6 +253,11 @@ public class FacultyDAO {
         faculty.setDepartment(rs.getString("department"));
         faculty.setQualification(rs.getString("qualification"));
         faculty.setJoinDate(rs.getDate("join_date"));
+        try {
+            faculty.setSpecialization(rs.getString("specialization"));
+        } catch (SQLException e) {
+            // Column might not exist yet
+        }
         faculty.setUserId(rs.getInt("user_id"));
 
         try {

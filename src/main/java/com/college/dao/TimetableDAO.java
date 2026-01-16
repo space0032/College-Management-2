@@ -222,4 +222,41 @@ public class TimetableDAO {
         return occupied;
     }
 
+    /**
+     * Get timetable by faculty name
+     */
+    public List<Timetable> getTimetableByFaculty(String facultyName) {
+        List<Timetable> timetable = new ArrayList<>();
+        String sql = "SELECT * FROM timetable WHERE faculty_name = ? ORDER BY day_of_week, time_slot";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, facultyName);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                timetable.add(extractTimetableFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return timetable;
+    }
+
+    /**
+     * Get timetable by subject
+     */
+    public List<Timetable> getTimetableBySubject(String subject) {
+        List<Timetable> timetable = new ArrayList<>();
+        String sql = "SELECT * FROM timetable WHERE subject = ? ORDER BY day_of_week, time_slot";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, subject);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                timetable.add(extractTimetableFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return timetable;
+    }
 }

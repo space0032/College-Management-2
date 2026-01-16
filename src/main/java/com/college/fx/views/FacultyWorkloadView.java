@@ -2,18 +2,23 @@ package com.college.fx.views;
 
 import com.college.dao.CourseDAO;
 import com.college.dao.FacultyDAO;
+import com.college.dao.TimetableDAO;
 import com.college.models.Course;
 import com.college.models.Faculty;
+import com.college.models.Timetable;
 import com.college.utils.DialogUtils;
+import com.college.utils.NotificationService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.chart.PieChart;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class FacultyWorkloadView {
 
@@ -22,10 +27,17 @@ public class FacultyWorkloadView {
     private ObservableList<FacultyWorkloadItem> data;
     private FacultyDAO facultyDAO;
     private CourseDAO courseDAO;
+    private ComboBox<String> departmentFilter;
+
+    private PieChart chart;
+    private NotificationService notificationService;
+    private TimetableDAO timetableDAO;
 
     public FacultyWorkloadView() {
         this.facultyDAO = new FacultyDAO();
         this.courseDAO = new CourseDAO();
+        this.notificationService = new NotificationService();
+        this.timetableDAO = new TimetableDAO();
         this.data = FXCollections.observableArrayList();
         createView();
         loadData();
@@ -41,9 +53,43 @@ public class FacultyWorkloadView {
         title.getStyleClass().add("section-title");
 
         HBox toolbar = new HBox(10);
+        toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        departmentFilter = new ComboBox<>();
+        departmentFilter.setPromptText("Filter by Department");
+        departmentFilter.getItems().add("All Departments");
+        departmentFilter.getSelectionModel().selectFirst();
+        departmentFilter.setOnAction(e -> loadData());
+
+        // Populate departments - hardcoded for now or fetch?
+        // Let's just fetch unique departments from faculty
+        List<String> depts = facultyDAO.getAllFaculty().stream()
+                .map(Faculty::getDepartment)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+        departmentFilter.getItems().addAll(depts);
+
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadData());
-        toolbar.getChildren().add(refreshBtn);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button exportBtn = createButton("Export Report", "#10b981");
+        exportBtn.setOnAction(e -> exportReport());
+
+        Label deptLabel = new Label("Department:");
+        deptLabel.setStyle("-fx-text-fill: white;");
+        toolbar.getChildren().addAll(deptLabel, departmentFilter, refreshBtn, spacer, exportBtn);
+
+        // Chart
+        chart = new PieChart();
+        chart.setTitle("Average Credits per Department");
+        chart.setLabelsVisible(true);
+        chart.setLegendVisible(false); // Too cluttered if many depts
+        chart.setPrefHeight(250);
+        chart.setMaxHeight(250);
 
         table = new TableView<>();
         table.getStyleClass().add("glass-table");
@@ -60,6 +106,39 @@ public class FacultyWorkloadView {
 
         TableColumn<FacultyWorkloadItem, String> creditCol = new TableColumn<>("Total Credits");
         creditCol.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getStats().credits)));
+
+        TableColumn<FacultyWorkloadItem, String> studentCol = new TableColumn<>("Total Students");
+        studentCol.setCellValueFactory(
+                d -> new SimpleStringProperty(String.valueOf(d.getValue().getStats().totalStudents)));
+
+        TableColumn<FacultyWorkloadItem, Void> statusCol = new TableColumn<>("Status");
+        statusCol.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    int credits = getTableView().getItems().get(getIndex()).getStats().credits;
+                    Label lbl = new Label();
+                    lbl.setStyle(
+                            "-fx-padding: 2 8; -fx-background-radius: 10; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10px;");
+
+                    if (credits < 8) {
+                        lbl.setText("UNDERLOAD");
+                        lbl.setStyle(lbl.getStyle() + "-fx-background-color: #f59e0b;"); // Amber
+                    } else if (credits <= 18) {
+                        lbl.setText("OPTIMAL");
+                        lbl.setStyle(lbl.getStyle() + "-fx-background-color: #22c55e;"); // Green
+                    } else {
+                        lbl.setText("OVERLOAD");
+                        lbl.setStyle(lbl.getStyle() + "-fx-background-color: #ef4444;"); // Red
+                    }
+                    setGraphic(lbl);
+                    setAlignment(javafx.geometry.Pos.CENTER);
+                }
+            }
+        });
 
         TableColumn<FacultyWorkloadItem, Void> actionCol = new TableColumn<>("Actions");
         actionCol.setCellFactory(width -> new TableCell<>() {
@@ -78,20 +157,47 @@ public class FacultyWorkloadView {
             }
         });
 
-        table.getColumns().addAll(java.util.Arrays.asList(nameCol, deptCol, countCol, creditCol, actionCol));
+        table.getColumns().addAll(
+                java.util.Arrays.asList(nameCol, deptCol, countCol, creditCol, studentCol, statusCol, actionCol));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        root.getChildren().addAll(title, toolbar, table);
+        root.getChildren().addAll(title, toolbar, chart, table);
     }
 
     private void loadData() {
         data.clear();
         List<Faculty> facultyList = facultyDAO.getAllFaculty();
+        String selectedDept = departmentFilter.getValue();
+
+        // For Chart
+        Map<String, Double> deptCredits = new java.util.HashMap<>();
+        Map<String, Integer> deptFacultyCount = new java.util.HashMap<>();
+
         for (Faculty f : facultyList) {
             CourseDAO.WorkloadStats stats = courseDAO.getFacultyWorkload(f.getId());
-            data.add(new FacultyWorkloadItem(f, stats));
+
+            // Populate table data (filtered)
+            if (selectedDept == null || selectedDept.equals("All Departments")
+                    || f.getDepartment().equals(selectedDept)) {
+                data.add(new FacultyWorkloadItem(f, stats));
+            }
+
+            // Populate chart data (unfiltered to show overall view? Or filtered? Let's show
+            // unfiltered overall)
+            deptCredits.merge(f.getDepartment(), (double) stats.credits, Double::sum);
+            deptFacultyCount.merge(f.getDepartment(), 1, Integer::sum);
         }
+
+        // Update Chart
+        chart.getData().clear();
+        deptCredits.forEach((dept, totalCredits) -> {
+            int count = deptFacultyCount.getOrDefault(dept, 1);
+            double avg = totalCredits / count;
+            if (avg > 0) {
+                chart.getData().add(new PieChart.Data(dept + String.format(" (%.1f)", avg), avg));
+            }
+        });
     }
 
     private void manageAssignments(Faculty faculty) {
@@ -103,6 +209,7 @@ public class FacultyWorkloadView {
 
         VBox content = new VBox(15);
         content.setPadding(new Insets(15));
+        content.setPrefWidth(500);
 
         // 1. List current courses
         ListView<Course> courseList = new ListView<>();
@@ -121,42 +228,176 @@ public class FacultyWorkloadView {
 
         // 2. Add new assignment
         HBox addBox = new HBox(10);
+        addBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
         ComboBox<Course> availableCombo = new ComboBox<>();
-        // Load courses that have NO faculty (faculty_id is 0 or null)
-        // Need a method for this, or just filter getAllCourses
-        List<Course> available = courseDAO.getAllCourses().stream()
-                .filter(c -> c.getFacultyId() == 0) // Assuming 0 is default/null-like
+        availableCombo.setPromptText("Select Course to Assign");
+        availableCombo.setPrefWidth(200);
+
+        // Load filtered courses
+        List<Course> allAvailable = courseDAO.getAllCourses().stream()
+                .filter(c -> c.getFacultyId() == 0)
                 .collect(Collectors.toList());
-        availableCombo.getItems().addAll(available);
+        availableCombo.getItems().addAll(allAvailable);
+
+        // Custom Cell Factory for Specialization Highlighting
+        availableCombo.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Course item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    String text = item.getCode() + " - " + item.getName();
+                    if (faculty.getSpecialization() != null
+                            && faculty.getSpecialization().equalsIgnoreCase(item.getSpecialization())) {
+                        text += " (Recommended)";
+                        setStyle("-fx-font-weight: bold; -fx-text-fill: #22c55e;"); // Green for match
+                    } else {
+                        setStyle("");
+                    }
+                    setText(text);
+                }
+            }
+        });
+        // Also update button cell
+        availableCombo.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Course item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getCode() + " - " + item.getName());
+                }
+            }
+        });
+
+        Button suggestBtn = createButton("Suggest Fit", "#f59e0b");
+        suggestBtn.setOnAction(e -> {
+            if (faculty.getSpecialization() != null) {
+                availableCombo.getItems().sort((c1, c2) -> {
+                    boolean s1 = faculty.getSpecialization().equalsIgnoreCase(c1.getSpecialization());
+                    boolean s2 = faculty.getSpecialization().equalsIgnoreCase(c2.getSpecialization());
+                    return Boolean.compare(s2, s1); // True first
+                });
+                availableCombo.getSelectionModel().selectFirst();
+                availableCombo.show(); // Auto open
+            } else {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                DialogUtils.styleDialog(alert);
+                alert.setContentText("Faculty has no specialization set.");
+                alert.showAndWait();
+            }
+        });
 
         Button assignBtn = createButton("Assign", "#22c55e");
         assignBtn.setOnAction(e -> {
             Course c = availableCombo.getValue();
             if (c != null) {
+                // 1. Check for Overload
+                int currentCredits = courseList.getItems().stream().mapToInt(Course::getCredits).sum();
+                if (currentCredits + c.getCredits() > 18) {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    DialogUtils.styleDialog(alert);
+                    alert.setTitle("Overload Warning");
+                    alert.setHeaderText("Workload Limit Exceeded");
+                    alert.setContentText("Assigning this course will exceed 18 credits (Total: "
+                            + (currentCredits + c.getCredits()) + "). Continue?");
+                    if (alert.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+                        return;
+                    }
+                }
+
+                // 2. Check for Time Conflict
+                // Get faculty schedule
+                List<Timetable> facultySchedule = timetableDAO.getTimetableByFaculty(faculty.getName());
+                // Get course schedule (assuming subject name matches)
+                List<Timetable> courseSchedule = timetableDAO.getTimetableBySubject(c.getName());
+
+                for (Timetable fEntry : facultySchedule) {
+                    for (Timetable cEntry : courseSchedule) {
+                        if (fEntry.getDayOfWeek().equals(cEntry.getDayOfWeek()) &&
+                                fEntry.getTimeSlot().equals(cEntry.getTimeSlot())) {
+
+                            Alert conflictAlert = new Alert(Alert.AlertType.ERROR);
+                            DialogUtils.styleDialog(conflictAlert);
+                            conflictAlert.setTitle("Time Conflict");
+                            conflictAlert.setHeaderText("Schedule Conflict Detected");
+                            conflictAlert.setContentText("Faculty is already busy on " + fEntry.getDayOfWeek() +
+                                    " at " + fEntry.getTimeSlot() + " (" + fEntry.getSubject() + ").");
+                            conflictAlert.showAndWait();
+                            return; // Block assignment
+                        }
+                    }
+                }
+
+                // 3. Assign
                 if (courseDAO.assignFaculty(c.getId(), faculty.getId())) {
+                    // 4. Notification
+                    if (faculty.getEmail() != null && !faculty.getEmail().isEmpty()) {
+                        String subject = "New Course Assignment: " + c.getName();
+                        String body = "Dear " + faculty.getName() + ",\n\n" +
+                                "You have been assigned the course: " + c.getCode() + " - " + c.getName() + ".\n" +
+                                "Credits: " + c.getCredits() + "\n\n" +
+                                "Please check your schedule.";
+                        notificationService.queueEmail(faculty.getUserId(), faculty.getEmail(), subject, body);
+                    }
+
                     updateCourseList(courseList, faculty.getId());
-                    // Refresh available
                     availableCombo.getItems().remove(c);
                     loadData();
                 }
             }
         });
 
-        addBox.getChildren().addAll(new Label("Assign Course:"), availableCombo, assignBtn);
+        addBox.getChildren().addAll(availableCombo, suggestBtn, assignBtn);
 
         content.getChildren().addAll(new Label("Current Assignments:"), courseList, unassignBtn, new Separator(),
-                addBox);
+                new Label("Assign New Course:"), addBox);
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
     }
 
     private void updateCourseList(ListView<Course> list, int facultyId) {
-        // We don't have getCoursesByFaculty yet in DAO?
-        // We have getFacultyWorkload but not the list.
-        // I can filter getAllCourses for now.
-        List<Course> all = courseDAO.getAllCourses();
-        List<Course> mine = all.stream().filter(c -> c.getFacultyId() == facultyId).collect(Collectors.toList());
+        List<Course> mine = courseDAO.getCoursesByFaculty(facultyId);
         list.getItems().setAll(mine);
+    }
+
+    private void exportReport() {
+        try {
+            java.io.File file = new java.io.File("faculty_workload_report.csv");
+            try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
+                writer.println("Faculty Name,Department,Courses Assigned,Total Credits,Total Students,Status");
+                for (FacultyWorkloadItem item : data) {
+                    int credits = item.getStats().credits;
+                    String status = credits < 8 ? "UNDERLOAD" : (credits <= 18 ? "OPTIMAL" : "OVERLOAD");
+
+                    writer.printf("%s,%s,%d,%d,%d,%s%n",
+                            item.getFaculty().getName(),
+                            item.getFaculty().getDepartment(),
+                            item.getStats().count,
+                            credits,
+                            item.getStats().totalStudents,
+                            status);
+                }
+            }
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            DialogUtils.styleDialog(alert);
+            alert.setTitle("Export Successful");
+            alert.setHeaderText("Report Exported");
+            alert.setContentText("Report saved to: " + file.getAbsolutePath());
+            alert.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            DialogUtils.styleDialog(alert);
+            alert.setTitle("Export Failed");
+            alert.setHeaderText("Could not export report");
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
+        }
     }
 
     private Button createButton(String text, String color) {

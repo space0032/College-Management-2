@@ -14,7 +14,7 @@ import java.util.List;
 public class CourseDAO {
 
     public boolean addCourse(Course course) {
-        String sql = "INSERT INTO courses (name, code, credits, department, department_id, semester, course_type, capacity, faculty_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO courses (name, code, credits, department, department_id, semester, course_type, capacity, faculty_id, specialization) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -36,6 +36,7 @@ public class CourseDAO {
             } else {
                 pstmt.setNull(9, Types.INTEGER);
             }
+            pstmt.setString(10, course.getSpecialization());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -117,6 +118,7 @@ public class CourseDAO {
             course.setCourseType(rs.getString("course_type"));
             course.setCapacity(rs.getInt("capacity"));
             course.setEnrolledCount(rs.getInt("enrolled_count"));
+            course.setSpecialization(rs.getString("specialization"));
         } catch (SQLException e) {
             // Might happen if column doesn't exist yet, default to safe values
             course.setCourseType("CORE");
@@ -149,7 +151,7 @@ public class CourseDAO {
     }
 
     public boolean updateCourse(Course course) {
-        String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=?, course_type=?, capacity=?, faculty_id=? WHERE id=?";
+        String sql = "UPDATE courses SET name=?, code=?, credits=?, department=?, semester=?, department_id=?, course_type=?, capacity=?, faculty_id=?, specialization=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -171,7 +173,8 @@ public class CourseDAO {
             } else {
                 pstmt.setNull(9, Types.INTEGER);
             }
-            pstmt.setInt(10, course.getId());
+            pstmt.setString(10, course.getSpecialization());
+            pstmt.setInt(11, course.getId());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -276,11 +279,12 @@ public class CourseDAO {
     public static class WorkloadStats {
         public int count;
         public int credits;
+        public int totalStudents;
     }
 
     public WorkloadStats getFacultyWorkload(int facultyId) {
         WorkloadStats stats = new WorkloadStats();
-        String sql = "SELECT COUNT(*) as cnt, SUM(credits) as total_credits FROM courses WHERE faculty_id = ?";
+        String sql = "SELECT COUNT(*) as cnt, SUM(credits) as total_credits, SUM(enrolled_count) as total_students FROM courses WHERE faculty_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, facultyId);
@@ -288,6 +292,7 @@ public class CourseDAO {
             if (rs.next()) {
                 stats.count = rs.getInt("cnt");
                 stats.credits = rs.getInt("total_credits");
+                stats.totalStudents = rs.getInt("total_students");
             }
         } catch (SQLException e) {
             Logger.error("Workload fetch failed", e);
