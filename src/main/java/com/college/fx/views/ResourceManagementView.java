@@ -201,45 +201,27 @@ public class ResourceManagementView {
 
         TableColumn<LearningResource, Void> actionCol = new TableColumn<>("Actions");
         actionCol.setCellFactory(param -> new TableCell<>() {
-            private final Button deleteBtn = new Button("Delete");
+            private final Button viewBtn = new Button("View");
             private final Button downloadBtn = new Button("Download");
+            private final Button deleteBtn = new Button("Delete");
 
             {
-                deleteBtn.setStyle("-fx-background-color: #ff4444; -fx-text-fill: white;");
-                deleteBtn.setOnAction(event -> {
+                viewBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white;");
+                viewBtn.setOnAction(event -> {
                     LearningResource r = getTableView().getItems().get(getIndex());
-                    deleteResource(r);
+                    ResourceManagementView.this.viewResource(r);
                 });
 
                 downloadBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
                 downloadBtn.setOnAction(event -> {
                     LearningResource r = getTableView().getItems().get(getIndex());
-                    String path = r.getFilePath();
-                    if (path != null && (path.startsWith("http") || path.startsWith("www"))) {
-                        com.college.MainFX.getHostServicesInstance().showDocument(path);
-                    } else if (path != null && path.startsWith("/")) {
-                        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-                        fileChooser.setTitle("Save File");
-                        fileChooser.setInitialFileName(path.substring(path.lastIndexOf("/") + 1));
-                        java.io.File dest = fileChooser.showSaveDialog(getTableView().getScene().getWindow());
-                        if (dest != null) {
-                            try {
-                                fileUploadService.downloadFile(path, dest);
-                                Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                                        "File downloaded to: " + dest.getAbsolutePath());
-                                DialogUtils.styleDialog(alert);
-                                alert.show();
-                            } catch (Exception ex) {
-                                Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
-                                DialogUtils.styleDialog(alert);
-                                alert.show();
-                            }
-                        }
-                    } else {
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is stored locally at: " + path);
-                        DialogUtils.styleDialog(alert);
-                        alert.show();
-                    }
+                    ResourceManagementView.this.downloadResource(r);
+                });
+
+                deleteBtn.setStyle("-fx-background-color: #ff4444; -fx-text-fill: white;");
+                deleteBtn.setOnAction(event -> {
+                    LearningResource r = getTableView().getItems().get(getIndex());
+                    deleteResource(r);
                 });
             }
 
@@ -249,7 +231,7 @@ public class ResourceManagementView {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    HBox box = new HBox(5, downloadBtn, deleteBtn);
+                    HBox box = new HBox(5, viewBtn, downloadBtn, deleteBtn);
                     box.setAlignment(Pos.CENTER);
                     setGraphic(box);
                 }
@@ -454,5 +436,136 @@ public class ResourceManagementView {
         if (type.contains("zip") || type.contains("rar"))
             return "📦";
         return "📄";
+    }
+
+    private void viewResource(LearningResource r) {
+        String path = r.getFilePath();
+        if (path == null)
+            return;
+
+        if (path.startsWith("http") || path.startsWith("www")) {
+            showInAppViewer(r.getTitle(), path, "web");
+        } else {
+            // It's a file (Local or Dropbox)
+            try {
+                // Determine type
+                String type = r.getFileType() != null ? r.getFileType().toLowerCase() : "";
+                if (type.equals("jpg") || type.equals("png") || type.equals("jpeg") || type.equals("gif")) {
+                    // Images can be loaded directly from URL (if dropbox link is direct) or local
+                    // path
+                    // For Dropbox, we'd need a direct link. For now, let's download to temp.
+                    downloadAndShow(r, "image");
+                } else if (type.equals("txt") || type.equals("md") || type.equals("csv")) {
+                    downloadAndShow(r, "text");
+                } else {
+                    // Fallback to system viewer for PDF/Doc/etc as JavaFX WebView PDF support is
+                    // flaky/non-existent without PDF.js
+                    downloadAndShow(r, "system");
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                DialogUtils.showError("Error", "Could not preview file: " + e.getMessage());
+            }
+        }
+    }
+
+    private void downloadAndShow(LearningResource r, String type) {
+        try {
+            String ext = r.getFileType() != null ? "." + r.getFileType() : ".tmp";
+            java.io.File tempFile = java.io.File.createTempFile("view_", ext);
+            tempFile.deleteOnExit();
+
+            fileUploadService.downloadFile(r.getFilePath(), tempFile);
+
+            if (type.equals("system")) {
+                com.college.MainFX.getHostServicesInstance().showDocument(tempFile.toURI().toString());
+            } else {
+                showInAppViewer(r.getTitle(), tempFile.toURI().toString(), type);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            DialogUtils.showError("Error", "Preview failed: " + e.getMessage());
+        }
+    }
+
+    private void showInAppViewer(String title, String source, String type) {
+        Dialog<Void> viewer = new Dialog<>();
+        DialogUtils.styleDialog(viewer);
+        viewer.setTitle("Preview: " + title);
+        viewer.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        BorderPane content = new BorderPane();
+        content.setPrefSize(800, 600);
+
+        if ("web".equals(type)) {
+            javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
+            webView.getEngine().load(source);
+            content.setCenter(webView);
+        } else if ("image".equals(type)) {
+            javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView(source);
+            imageView.setPreserveRatio(true);
+            imageView.setFitWidth(780);
+            imageView.setFitHeight(580);
+            ScrollPane scroll = new ScrollPane(imageView);
+            scroll.setFitToWidth(true);
+            scroll.setFitToHeight(true);
+            content.setCenter(scroll);
+        } else if ("text".equals(type)) {
+            TextArea textArea = new TextArea();
+            textArea.setEditable(false);
+            try {
+                // Read text from source URI
+                // Remove file: prefix if present for reading
+                java.net.URI uri = java.net.URI.create(source);
+                java.nio.file.Path p = java.nio.file.Paths.get(uri);
+                String text = java.nio.file.Files.readString(p);
+                textArea.setText(text);
+            } catch (Exception e) {
+                textArea.setText("Error loading text: " + e.getMessage());
+            }
+            content.setCenter(textArea);
+        }
+
+        viewer.getDialogPane().setContent(content);
+        viewer.showAndWait();
+    }
+
+    private void downloadResource(LearningResource r) {
+        String path = r.getFilePath();
+        if (path == null)
+            return;
+
+        if (path.startsWith("http") || path.startsWith("www")) {
+            com.college.MainFX.getHostServicesInstance().showDocument(path);
+        } else {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Save File");
+
+            String fileName = "downloaded_file";
+            if (path.startsWith("/") || path.contains(java.io.File.separator)) {
+                java.io.File f = new java.io.File(path);
+                fileName = f.getName();
+            } else if (r.getFileType() != null) {
+                fileName = "resource." + r.getFileType();
+            }
+
+            fileChooser.setInitialFileName(fileName);
+            java.io.File dest = fileChooser.showSaveDialog(root.getScene().getWindow());
+
+            if (dest != null) {
+                try {
+                    fileUploadService.downloadFile(path, dest);
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                            "File downloaded to: " + dest.getAbsolutePath());
+                    DialogUtils.styleDialog(alert);
+                    alert.show();
+                } catch (Exception ex) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Download failed: " + ex.getMessage());
+                    DialogUtils.styleDialog(alert);
+                    alert.show();
+                }
+            }
+        }
     }
 }

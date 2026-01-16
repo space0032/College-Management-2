@@ -17,7 +17,7 @@ import javax.net.ssl.X509TrustManager;
 
 public class DropboxService {
 
-    private static final String ENV_TOKEN = System.getenv("DROPBOX_ACCESS_TOKEN");
+    private static final String ENV_TOKEN = com.college.utils.EnvConfig.get("DROPBOX_ACCESS_TOKEN");
     // Fallback hardcoded token (Convenience for testing)
     private static final String HARDCODED_TOKEN = ""; // Loaded from .env via run.sh
 
