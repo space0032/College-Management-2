@@ -40,6 +40,7 @@ public class LibraryManagementView {
     // Catalog Tab
     private TableView<Book> catalogTable;
     private ObservableList<Book> bookData;
+    private ObservableList<Book> allBooks;
 
     // Issued Books Tab (for Students)
     private TableView<BookIssue> issuedTable;
@@ -71,6 +72,7 @@ public class LibraryManagementView {
         this.studentDAO = new StudentDAO();
 
         this.bookData = FXCollections.observableArrayList();
+        this.allBooks = FXCollections.observableArrayList();
         this.issuedData = FXCollections.observableArrayList();
         this.requestData = FXCollections.observableArrayList();
         this.reviewData = FXCollections.observableArrayList();
@@ -141,18 +143,31 @@ public class LibraryManagementView {
         // Search Bar
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(15));
+        header.getStyleClass().add("glass-card");
 
         searchField = new TextField();
         searchField.setPromptText("Search by Title or Author...");
         searchField.setPrefWidth(300);
+        searchField.textProperty().addListener((obs, old, newVal) -> filterBooks());
 
-        Button searchBtn = createButton("Search", "#14b8a6");
-        searchBtn.setOnAction(e -> searchBooks());
+        ComboBox<String> statusFilter = new ComboBox<>();
+        statusFilter.getItems().addAll("All", "Available", "Out of Stock");
+        statusFilter.setValue("All");
+        statusFilter.setOnAction(e -> filterBooks());
+        statusFilter.setUserData("statusFilter");
+
+        Label statsLabel = new Label("Total Books: 0");
+        statsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+        statsLabel.setUserData("statsLabel");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadBooks());
 
-        header.getChildren().addAll(searchField, searchBtn, refreshBtn);
+        header.getChildren().addAll(searchField, statusFilter, spacer, statsLabel, refreshBtn);
 
         // Table
         catalogTable = new TableView<>();
@@ -406,8 +421,44 @@ public class LibraryManagementView {
     // --- Data Loaders ---
 
     private void loadBooks() {
+        allBooks.clear();
+        allBooks.addAll(libraryDAO.getAllBooks());
+        filterBooks();
+    }
+
+    private void filterBooks() {
+        String searchText = searchField.getText().toLowerCase();
+        ComboBox<String> statusFilter = findNodeByUserData("statusFilter");
+        String status = statusFilter != null ? statusFilter.getValue() : "All";
+
         bookData.clear();
-        bookData.addAll(libraryDAO.getAllBooks());
+        bookData.addAll(allBooks.stream()
+            .filter(book -> {
+                boolean matchesSearch = searchText.isEmpty() ||
+                    book.getTitle().toLowerCase().contains(searchText) ||
+                    book.getAuthor().toLowerCase().contains(searchText);
+                boolean matchesStatus = status.equals("All") ||
+                    (status.equals("Available") && book.getAvailable() > 0) ||
+                    (status.equals("Out of Stock") && book.getAvailable() == 0);
+                return matchesSearch && matchesStatus;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+        updateStats();
+    }
+
+    private void updateStats() {
+        Label statsLabel = findNodeByUserData("statsLabel");
+        if (statsLabel != null) {
+            long available = bookData.stream().filter(b -> b.getAvailable() > 0).count();
+            statsLabel.setText(String.format("Total: %d | Available: %d", bookData.size(), available));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T findNodeByUserData(String userData) {
+        return (T) root.lookupAll("*").stream()
+            .filter(node -> userData.equals(node.getUserData()))
+            .findFirst().orElse(null);
     }
 
     private void loadIssuedBooks() {
@@ -443,21 +494,7 @@ public class LibraryManagementView {
         reviewData.addAll(bookRequestDAO.getPendingRequests());
     }
 
-    private void searchBooks() {
-        String keyword = searchField.getText().trim().toLowerCase();
-        if (keyword.isEmpty()) {
-            loadBooks();
-            return;
-        }
-        bookData.clear();
-        List<Book> books = libraryDAO.getAllBooks();
-        for (Book b : books) {
-            if (b.getTitle().toLowerCase().contains(keyword) ||
-                    b.getAuthor().toLowerCase().contains(keyword)) {
-                bookData.add(b);
-            }
-        }
-    }
+
 
     // --- Actions ---
 

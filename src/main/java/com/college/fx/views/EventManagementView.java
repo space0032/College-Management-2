@@ -32,7 +32,12 @@ public class EventManagementView {
     private int userId;
 
     private ObservableList<Event> eventsData;
+    private ObservableList<Event> allEvents;
     private TableView<Event> eventsTable;
+    private TextField searchField;
+    private ComboBox<String> typeFilter;
+    private ComboBox<String> statusFilter;
+    private Label statsLabel;
 
     public EventManagementView(int userId) {
         this.userId = userId;
@@ -40,6 +45,7 @@ public class EventManagementView {
         this.eventDetailsDAO = new com.college.dao.EventDetailsDAO();
         this.departmentDAO = new com.college.dao.DepartmentDAO();
         this.eventsData = FXCollections.observableArrayList();
+        this.allEvents = FXCollections.observableArrayList();
 
         createView();
         loadEvents();
@@ -66,6 +72,24 @@ public class EventManagementView {
         Label title = new Label("Event Management");
         title.getStyleClass().add("section-title");
 
+        searchField = new TextField();
+        searchField.setPromptText("Search events...");
+        searchField.setPrefWidth(250);
+        searchField.textProperty().addListener((obs, old, newVal) -> filterEvents());
+
+        typeFilter = new ComboBox<>();
+        typeFilter.getItems().addAll("All Types", "FEST", "CULTURAL", "SPORTS", "ACADEMIC", "CLUB", "SEMINAR");
+        typeFilter.setValue("All Types");
+        typeFilter.setOnAction(e -> filterEvents());
+
+        statusFilter = new ComboBox<>();
+        statusFilter.getItems().addAll("All Status", "UPCOMING", "ONGOING", "COMPLETED", "CANCELLED");
+        statusFilter.setValue("All Status");
+        statusFilter.setOnAction(e -> filterEvents());
+
+        statsLabel = new Label("Total Events: 0");
+        statsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -75,7 +99,7 @@ public class EventManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadEvents());
 
-        header.getChildren().addAll(title, spacer, createBtn, refreshBtn);
+        header.getChildren().addAll(title, searchField, typeFilter, statusFilter, spacer, statsLabel, createBtn, refreshBtn);
         return header;
     }
 
@@ -175,8 +199,33 @@ public class EventManagementView {
 
     private void loadEvents() {
         eventDAO.updateEventStatuses();
-        List<Event> events = eventDAO.getAllEvents();
-        eventsData.setAll(events);
+        allEvents.setAll(eventDAO.getAllEvents());
+        filterEvents();
+    }
+
+    private void filterEvents() {
+        String searchText = searchField.getText().toLowerCase();
+        String type = typeFilter.getValue();
+        String status = statusFilter.getValue();
+
+        eventsData.clear();
+        eventsData.addAll(allEvents.stream()
+            .filter(event -> {
+                boolean matchesSearch = searchText.isEmpty() ||
+                    event.getName().toLowerCase().contains(searchText) ||
+                    event.getLocation().toLowerCase().contains(searchText);
+                boolean matchesType = type.equals("All Types") || event.getEventType().equals(type);
+                boolean matchesStatus = status.equals("All Status") || event.getStatus().equals(status);
+                return matchesSearch && matchesType && matchesStatus;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+        updateStats();
+    }
+
+    private void updateStats() {
+        long upcoming = eventsData.stream().filter(e -> "UPCOMING".equals(e.getStatus())).count();
+        long ongoing = eventsData.stream().filter(e -> "ONGOING".equals(e.getStatus())).count();
+        statsLabel.setText(String.format("Total: %d | Upcoming: %d | Ongoing: %d", eventsData.size(), upcoming, ongoing));
     }
 
     private void showCreateEventDialog() {

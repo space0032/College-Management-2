@@ -65,6 +65,8 @@ public class GradesView {
     private HBox createHeader() {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("glass-card");
+        header.setPadding(new Insets(10));
 
         Label title = new Label(role.equals("STUDENT") ? "My Grades" : "Grade Management");
         title.getStyleClass().add("section-title");
@@ -72,8 +74,8 @@ public class GradesView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh");
-        refreshBtn.getStyleClass().add("icon-button");
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadGrades());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -167,24 +169,23 @@ public class GradesView {
         section.setPadding(new Insets(10));
 
         if (SessionManager.getInstance().hasPermission("MANAGE_GRADES")) {
-            Button addGradeBtn = createButton("Add Grade");
-            addGradeBtn.getStyleClass().add("accent-button");
+            Button addGradeBtn = new Button("+ Add Grade");
+            addGradeBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addGradeBtn.setOnAction(e -> showAddGradeDialog());
 
-            Button bulkGradeBtn = createButton("Bulk Grade Entry");
-            bulkGradeBtn.getStyleClass().add("accent-button");
+            Button bulkGradeBtn = new Button("Bulk Entry");
+            bulkGradeBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             bulkGradeBtn.setOnAction(e -> showBulkGradeDialog());
 
-            section.getChildren().addAll(addGradeBtn, bulkGradeBtn);
-
-            Button importBtn = createButton("Import CSV");
-            importBtn.getStyleClass().add("accent-button");
+            Button importBtn = new Button("Import CSV");
+            importBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             importBtn.setOnAction(e -> showImportDialog());
-            section.getChildren().add(importBtn);
+
+            section.getChildren().addAll(addGradeBtn, bulkGradeBtn, importBtn);
         }
 
-        Button exportBtn = createButton("Export Report");
-        exportBtn.getStyleClass().add("icon-button");
+        Button exportBtn = new Button("Export Report");
+        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         section.getChildren().add(exportBtn);
 
         return section;
@@ -361,23 +362,23 @@ public class GradesView {
 
         TextField maxMarksField = new TextField("100");
 
-        Label courseVal = new Label("Course:");
-        courseVal.setStyle("-fx-text-fill: white;");
-        selectionGrid.add(courseVal, 0, 0);
+        Label courseLabel = new Label("Course:");
+        courseLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        selectionGrid.add(courseLabel, 0, 0);
         selectionGrid.add(courseCombo, 1, 0);
 
-        Label examVal = new Label("Exam Type:");
-        examVal.setStyle("-fx-text-fill: white;");
-        selectionGrid.add(examVal, 0, 1);
+        Label examLabel = new Label("Exam Type:");
+        examLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        selectionGrid.add(examLabel, 0, 1);
         selectionGrid.add(examTypeCombo, 1, 1);
 
-        Label maxVal = new Label("Max Marks:");
-        maxVal.setStyle("-fx-text-fill: white;");
-        selectionGrid.add(maxVal, 0, 2);
+        Label maxLabel = new Label("Max Marks:");
+        maxLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        selectionGrid.add(maxLabel, 0, 2);
         selectionGrid.add(maxMarksField, 1, 2);
 
-        Button loadBtn = createButton("Load Students");
-        loadBtn.getStyleClass().add("accent-button");
+        Button loadBtn = new Button("Load Students");
+        loadBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16;");
 
         TableView<BulkGradeRecord> gradeTable = new TableView<>();
         gradeTable.setPrefHeight(300);

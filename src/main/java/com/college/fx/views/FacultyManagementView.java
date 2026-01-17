@@ -37,16 +37,20 @@ public class FacultyManagementView {
     private VBox root;
     private TableView<Faculty> tableView;
     private ObservableList<Faculty> facultyData;
+    private ObservableList<Faculty> allFaculty;
     private FacultyDAO facultyDAO;
     private UserDAO userDAO;
     private RoleDAO roleDAO;
     private TextField searchField;
+    private ComboBox<String> deptFilter;
+    private Label statsLabel;
 
     public FacultyManagementView(String role, int userId) {
         this.facultyDAO = new FacultyDAO();
         this.userDAO = new UserDAO();
         this.roleDAO = new RoleDAO();
         this.facultyData = FXCollections.observableArrayList();
+        this.allFaculty = FXCollections.observableArrayList();
         createView();
         loadFaculty();
     }
@@ -77,18 +81,37 @@ public class FacultyManagementView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        statsLabel = new Label();
+        statsLabel.getStyleClass().add("text-white");
+        statsLabel.setStyle("-fx-font-size: 14px;");
+
         searchField = new TextField();
         searchField.setPromptText("Search faculty...");
         searchField.setPrefWidth(250);
-        searchField.setStyle("-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #e2e8f0;");
+        searchField.getStyleClass().add("search-field");
+        searchField.textProperty().addListener((obs, old, newVal) -> filterFaculty());
 
-        Button searchBtn = createButton("Search", "#14b8a6");
-        searchBtn.setOnAction(e -> searchFaculty());
+        Label filterLabel = new Label("Dept:");
+        filterLabel.getStyleClass().add("text-white");
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        deptFilter = new ComboBox<>();
+        deptFilter.getItems().add("All");
+        try {
+            DepartmentDAO deptDAO = new DepartmentDAO();
+            deptFilter.getItems().addAll(deptDAO.getAllDepartments().stream()
+                    .map(Department::getName).collect(Collectors.toList()));
+        } catch (Exception e) {
+            deptFilter.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
+        }
+        deptFilter.setValue("All");
+        deptFilter.getStyleClass().add("combo-box");
+        deptFilter.setOnAction(e -> filterFaculty());
+
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.getStyleClass().add("icon-button");
         refreshBtn.setOnAction(e -> loadFaculty());
 
-        header.getChildren().addAll(title, spacer, searchField, searchBtn, refreshBtn);
+        header.getChildren().addAll(title, spacer, statsLabel, searchField, filterLabel, deptFilter, refreshBtn);
         return header;
     }
 
@@ -148,22 +171,27 @@ public class FacultyManagementView {
         SessionManager session = SessionManager.getInstance();
 
         if (session.hasPermission("MANAGE_FACULTY")) {
-            Button addBtn = createButton("Add Faculty", "#22c55e");
+            Button addBtn = new Button("+ Add Faculty");
+            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> showAddFacultyDialog());
 
-            Button editBtn = createButton("Edit Faculty", "#3b82f6");
+            Button editBtn = new Button("Edit");
+            editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             editBtn.setOnAction(e -> editFaculty());
 
-            Button deleteBtn = createButton("Delete Faculty", "#ef4444");
+            Button deleteBtn = new Button("Delete");
+            deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             deleteBtn.setOnAction(e -> deleteFaculty());
 
-            Button roleBtn = createButton("Assign Role", "#8b5cf6"); // Violet color
+            Button roleBtn = new Button("Assign Role");
+            roleBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             roleBtn.setOnAction(e -> assignRole());
 
             section.getChildren().addAll(addBtn, editBtn, deleteBtn, roleBtn);
         }
 
-        Button exportBtn = createButton("Export", "#64748b");
+        Button exportBtn = new Button("Export");
+        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
@@ -174,35 +202,49 @@ public class FacultyManagementView {
         Button btn = new Button(text);
         btn.setPrefWidth(140);
         btn.setPrefHeight(40);
-        btn.setStyle(
-                "-fx-background-color: " + color + ";" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
+        btn.getStyleClass().add("icon-button");
         return btn;
     }
 
     private void loadFaculty() {
-        facultyData.clear();
+        allFaculty.clear();
         List<Faculty> faculty = facultyDAO.getAllFaculty();
-        facultyData.addAll(faculty);
+        allFaculty.addAll(faculty);
+        filterFaculty();
+        updateStats();
+    }
+
+    private void filterFaculty() {
+        if (allFaculty == null) return;
+
+        String searchText = searchField.getText().toLowerCase().trim();
+        String deptValue = deptFilter.getValue();
+
+        List<Faculty> filtered = allFaculty.stream()
+                .filter(f -> {
+                    boolean matchesSearch = searchText.isEmpty() ||
+                            f.getName().toLowerCase().contains(searchText) ||
+                            (f.getEmail() != null && f.getEmail().toLowerCase().contains(searchText)) ||
+                            (f.getUsername() != null && f.getUsername().toLowerCase().contains(searchText)) ||
+                            (f.getQualification() != null && f.getQualification().toLowerCase().contains(searchText));
+
+                    boolean matchesDept = deptValue.equals("All") ||
+                            (f.getDepartment() != null && f.getDepartment().equals(deptValue));
+
+                    return matchesSearch && matchesDept;
+                })
+                .collect(Collectors.toList());
+
+        facultyData.setAll(filtered);
+    }
+
+    private void updateStats() {
+        if (allFaculty == null) return;
+        statsLabel.setText(String.format("Total: %d faculty", allFaculty.size()));
     }
 
     private void searchFaculty() {
-        String keyword = searchField.getText().trim().toLowerCase();
-        if (keyword.isEmpty()) {
-            loadFaculty();
-            return;
-        }
-        facultyData.clear();
-        List<Faculty> faculty = facultyDAO.getAllFaculty();
-        for (Faculty f : faculty) {
-            if (f.getName().toLowerCase().contains(keyword) ||
-                    (f.getEmail() != null && f.getEmail().toLowerCase().contains(keyword))) {
-                facultyData.add(f);
-            }
-        }
+        filterFaculty();
     }
 
     private void editFaculty() {

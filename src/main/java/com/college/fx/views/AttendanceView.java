@@ -67,6 +67,8 @@ public class AttendanceView {
     private HBox createHeader() {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("glass-card");
+        header.setPadding(new Insets(10));
 
         Label title = new Label(role.equals("STUDENT") ? "My Attendance" : "Attendance Management");
         title.getStyleClass().add("section-title");
@@ -74,8 +76,8 @@ public class AttendanceView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh");
-        refreshBtn.getStyleClass().add("icon-button");
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadAttendance());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -149,12 +151,12 @@ public class AttendanceView {
         SessionManager session = SessionManager.getInstance();
 
         if (session.hasPermission("MANAGE_ATTENDANCE")) {
-            Button markBtn = createButton("Mark Attendance");
-            markBtn.getStyleClass().add("accent-button");
+            Button markBtn = new Button("+ Mark Attendance");
+            markBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             markBtn.setOnAction(e -> showMarkAttendanceDialog());
 
-            Button bulkMarkBtn = createButton("Bulk Mark Attendance");
-            bulkMarkBtn.getStyleClass().add("accent-button");
+            Button bulkMarkBtn = new Button("Bulk Mark");
+            bulkMarkBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             bulkMarkBtn.setOnAction(e -> showBulkAttendanceDialog());
 
             section.getChildren().addAll(markBtn, bulkMarkBtn);
@@ -281,15 +283,23 @@ public class AttendanceView {
 
         DatePicker datePicker = new DatePicker(java.time.LocalDate.now());
 
-        selectionGrid.add(new Label("Course:"), 0, 0);
+        Label courseLabel = new Label("Course:");
+        courseLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        selectionGrid.add(courseLabel, 0, 0);
         selectionGrid.add(courseCombo, 1, 0);
-        selectionGrid.add(new Label("Semester:"), 0, 1);
+        
+        Label semesterLabel = new Label("Semester:");
+        semesterLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        selectionGrid.add(semesterLabel, 0, 1);
         selectionGrid.add(semesterCombo, 1, 1);
-        selectionGrid.add(new Label("Date:"), 0, 2);
+        
+        Label dateLabel = new Label("Date:");
+        dateLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        selectionGrid.add(dateLabel, 0, 2);
         selectionGrid.add(datePicker, 1, 2);
 
-        Button loadBtn = createButton("Load Students");
-        loadBtn.getStyleClass().add("accent-button");
+        Button loadBtn = new Button("Load Students");
+        loadBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16;");
 
         TableView<BulkAttendanceRecord> attendanceTable = new TableView<>();
         attendanceTable.setPrefHeight(350);

@@ -24,8 +24,9 @@ import java.util.List;
  */
 public class GoogleCalendarService {
 
-    private static final String API_KEY = System.getenv("GOOGLE_API_KEY") != null ? System.getenv("GOOGLE_API_KEY")
-            : "YOUR_API_KEY_HERE";
+    private static final String API_KEY = System.getProperty("GOOGLE_API_KEY") != null 
+            ? System.getProperty("GOOGLE_API_KEY")
+            : (System.getenv("GOOGLE_API_KEY") != null ? System.getenv("GOOGLE_API_KEY") : "YOUR_API_KEY_HERE");
     private static final String CALENDAR_ID = "en.indian#holiday@group.v.calendar.google.com"; // Indian Holidays
     private static final String BASE_URL = "https://www.googleapis.com/calendar/v3/calendars/";
 
@@ -37,14 +38,10 @@ public class GoogleCalendarService {
 
     /**
      * Fetch public holidays for a given year and month
-     * Note: Google API often returns events for a range. We'll set a reasonable
-     * range.
      */
     public List<CalendarEvent> getHolidays(int year, int month) {
         List<CalendarEvent> holidays = new ArrayList<>();
 
-        // Construct timeMin and timeMax (RFC3339 format)
-        // Month is 1-based
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.plusMonths(1).minusDays(1);
 
@@ -52,10 +49,8 @@ public class GoogleCalendarService {
         String timeMax = end.atTime(23, 59, 59).format(DateTimeFormatter.ISO_DATE_TIME) + "Z";
 
         try {
-            // If API Key is placeholder, return empty or mock data to avoid errors during
-            // dev without key
-            if (API_KEY.equals("YOUR_API_KEY_HERE")) {
-                Logger.info("Google API Key not set. Skipping API call.");
+            if (API_KEY == null || API_KEY.trim().isEmpty() || API_KEY.equals("YOUR_API_KEY_HERE")) {
+                Logger.info("Google API Key not set. Skipping holiday fetch.");
                 return holidays;
             }
 
@@ -64,6 +59,8 @@ public class GoogleCalendarService {
                     "&timeMin=" + URLEncoder.encode(timeMin, StandardCharsets.UTF_8) +
                     "&timeMax=" + URLEncoder.encode(timeMax, StandardCharsets.UTF_8) +
                     "&singleEvents=true";
+
+            Logger.info("Fetching holidays from Google Calendar for " + year + "-" + month);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -76,15 +73,14 @@ public class GoogleCalendarService {
                 JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
                 JsonArray items = json.getAsJsonArray("items");
 
-                if (items != null) {
+                if (items != null && items.size() > 0) {
+                    Logger.info("Found " + items.size() + " holidays from Google Calendar");
                     for (JsonElement item : items) {
                         JsonObject eventJson = item.getAsJsonObject();
                         String summary = eventJson.has("summary") ? eventJson.get("summary").getAsString() : "Holiday";
 
-                        // Start date (Google Holidays are usually all-day events, so they have "date"
-                        // field)
                         JsonObject startJson = eventJson.getAsJsonObject("start");
-                        if (startJson.has("date")) {
+                        if (startJson != null && startJson.has("date")) {
                             String dateStr = startJson.get("date").getAsString();
                             LocalDate date = LocalDate.parse(dateStr);
 
@@ -92,18 +88,20 @@ public class GoogleCalendarService {
                             event.setTitle(summary);
                             event.setEventDate(date);
                             event.setEventType(EventType.HOLIDAY);
-                            event.setDescription("Public Holiday fetched from Google Calendar");
+                            event.setDescription("Public Holiday from Google Calendar");
 
                             holidays.add(event);
                         }
                     }
+                } else {
+                    Logger.info("No holidays found for " + year + "-" + month);
                 }
             } else {
-                Logger.error("Failed to fetch holidays: " + response.statusCode() + " - " + response.body());
+                Logger.error("Failed to fetch holidays: HTTP " + response.statusCode() + " - " + response.body());
             }
 
         } catch (Exception e) {
-            Logger.error("Error fetching holidays from Google Calendar", e);
+            Logger.error("Error fetching holidays from Google Calendar: " + e.getMessage(), e);
         }
 
         return holidays;

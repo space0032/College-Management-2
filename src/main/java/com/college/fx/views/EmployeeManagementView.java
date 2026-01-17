@@ -1,25 +1,32 @@
 package com.college.fx.views;
 
 import com.college.dao.EmployeeDAO;
-import com.college.dao.PayrollDAO;
 import com.college.models.Employee;
-import com.college.models.PayrollEntry;
 
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import com.college.utils.SessionManager;
 import com.college.utils.DialogUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class EmployeeManagementView extends VBox {
     private final EmployeeDAO employeeDAO = new EmployeeDAO();
-    private final PayrollDAO payrollDAO = new PayrollDAO();
     private TableView<Employee> table;
+    private TextField searchField;
+    private ComboBox<String> statusFilter;
+    private ObservableList<Employee> allEmployees;
+    private Label statsLabel;
 
     public EmployeeManagementView() {
         setSpacing(20);
@@ -27,96 +34,231 @@ public class EmployeeManagementView extends VBox {
         getStyleClass().add("glass-pane");
         getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
 
-        Label header = new Label("Employee Management (HR)");
+        // Header with stats
+        HBox headerBox = new HBox(20);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        
+        Label header = new Label("👥 Employee Management");
         header.getStyleClass().add("section-title");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        statsLabel = new Label();
+        statsLabel.getStyleClass().addAll("text-white");
+        statsLabel.setStyle("-fx-font-size: 14px;");
+        
+        headerBox.getChildren().addAll(header, spacer, statsLabel);
 
+        // Search and Filter Bar
+        HBox searchBar = createSearchBar();
+
+        // Action Buttons
+        HBox actions = createActionButtons();
+
+        setupTable();
+        refreshTable();
+
+        getChildren().addAll(headerBox, searchBar, actions, table);
+    }
+
+    private HBox createSearchBar() {
+        HBox searchBar = new HBox(15);
+        searchBar.setAlignment(Pos.CENTER_LEFT);
+        searchBar.setPadding(new Insets(10));
+        searchBar.getStyleClass().add("glass-card");
+
+        Label searchIcon = new Label("🔍");
+        searchIcon.setStyle("-fx-font-size: 16px;");
+
+        searchField = new TextField();
+        searchField.setPromptText("Search by name, ID, email, or designation...");
+        searchField.setPrefWidth(350);
+        searchField.getStyleClass().add("search-field");
+        searchField.textProperty().addListener((obs, old, newVal) -> filterEmployees());
+
+        Label filterLabel = new Label("Status:");
+        filterLabel.getStyleClass().add("text-white");
+
+        statusFilter = new ComboBox<>();
+        statusFilter.getItems().addAll("All", "ACTIVE", "INACTIVE", "ON_LEAVE");
+        statusFilter.setValue("All");
+        statusFilter.getStyleClass().add("combo-box");
+        statusFilter.setOnAction(e -> filterEmployees());
+
+        searchBar.getChildren().addAll(searchIcon, searchField, filterLabel, statusFilter);
+        return searchBar;
+    }
+
+    private HBox createActionButtons() {
         HBox actions = new HBox(10);
         actions.setAlignment(Pos.CENTER_LEFT);
 
         SessionManager session = SessionManager.getInstance();
         boolean canManage = session.hasPermission("MANAGE_EMPLOYEES");
 
-        Button btnAdd = new Button("Add Employee");
-        btnAdd.getStyleClass().add("accent");
+        Button btnAdd = new Button("➕ Add Employee");
+        btnAdd.getStyleClass().add("accent-button");
         btnAdd.setOnAction(e -> showAddDialog());
         btnAdd.setDisable(!canManage);
 
-        Button btnEdit = new Button("Edit Employee");
+        Button btnEdit = new Button("✏️ Edit");
+        btnEdit.getStyleClass().add("icon-button");
         btnEdit.setOnAction(e -> showEditDialog());
         btnEdit.setDisable(!canManage);
 
-        Button btnPayroll = new Button("Generate Payroll (Check)");
-        btnPayroll.setOnAction(e -> handleGeneratePayroll());
-        btnPayroll.setDisable(!canManage);
-
-        Button btnRefresh = new Button("Refresh");
+        Button btnRefresh = new Button("🔄 Refresh");
+        btnRefresh.getStyleClass().add("icon-button");
         btnRefresh.setOnAction(e -> refreshTable());
 
-        actions.getChildren().addAll(btnAdd, btnEdit, btnPayroll, btnRefresh);
-
-        setupTable();
-        refreshTable();
-
-        getChildren().addAll(header, actions, table);
+        actions.getChildren().addAll(btnAdd, btnEdit, btnRefresh);
+        return actions;
     }
 
     private void setupTable() {
         table = new TableView<>();
         table.getStyleClass().add("glass-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        VBox.setVgrow(table, Priority.ALWAYS);
 
-        TableColumn<Employee, String> colId = new TableColumn<>("ID");
+        TableColumn<Employee, String> colId = new TableColumn<>("Employee ID");
         colId.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEmployeeId()));
+        colId.setPrefWidth(120);
 
-        TableColumn<Employee, String> colName = new TableColumn<>("Name");
+        TableColumn<Employee, String> colName = new TableColumn<>("Full Name");
         colName.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue().getFirstName() + " " + data.getValue().getLastName()));
+        colName.setPrefWidth(180);
 
         TableColumn<Employee, String> colEmail = new TableColumn<>("Email");
         colEmail.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEmail()));
+        colEmail.setPrefWidth(200);
+
+        TableColumn<Employee, String> colPhone = new TableColumn<>("Phone");
+        colPhone.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getPhone() != null ? data.getValue().getPhone() : "N/A"));
+        colPhone.setPrefWidth(120);
 
         TableColumn<Employee, String> colDesignation = new TableColumn<>("Designation");
         colDesignation.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDesignation()));
+        colDesignation.setPrefWidth(150);
 
-        TableColumn<Employee, String> colSalary = new TableColumn<>("Salary");
+        TableColumn<Employee, String> colSalary = new TableColumn<>("Monthly Salary");
         colSalary.setCellValueFactory(data -> {
             BigDecimal salary = data.getValue().getSalary();
-            return new SimpleStringProperty(salary != null ? "₹" + salary.toString() : "Not Set");
+            return new SimpleStringProperty(salary != null ? "₹" + String.format("%,.2f", salary) : "Not Set");
         });
+        colSalary.setPrefWidth(130);
+        colSalary.setStyle("-fx-alignment: CENTER-RIGHT;");
+
+        TableColumn<Employee, String> colJoinDate = new TableColumn<>("Join Date");
+        colJoinDate.setCellValueFactory(data -> new SimpleStringProperty(
+                data.getValue().getJoinDate() != null ? data.getValue().getJoinDate().toString() : "N/A"));
+        colJoinDate.setPrefWidth(110);
 
         TableColumn<Employee, String> colStatus = new TableColumn<>("Status");
         colStatus.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus().name()));
+        colStatus.setPrefWidth(100);
+        colStatus.setCellFactory(col -> new TableCell<Employee, String>() {
+            @Override
+            protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                if (empty || status == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    Label badge = new Label(status);
+                    badge.setPadding(new Insets(4, 12, 4, 12));
+                    badge.setStyle("-fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;");
+                    
+                    switch (status) {
+                        case "ACTIVE":
+                            badge.setStyle(badge.getStyle() + "-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #10b981;");
+                            break;
+                        case "INACTIVE":
+                            badge.setStyle(badge.getStyle() + "-fx-background-color: rgba(239, 68, 68, 0.2); -fx-text-fill: #ef4444;");
+                            break;
+                        case "ON_LEAVE":
+                            badge.setStyle(badge.getStyle() + "-fx-background-color: rgba(251, 191, 36, 0.2); -fx-text-fill: #fbbf24;");
+                            break;
+                    }
+                    setGraphic(badge);
+                    setText(null);
+                }
+            }
+        });
 
-        table.getColumns()
-                .addAll(java.util.Arrays.asList(colId, colName, colEmail, colDesignation, colSalary, colStatus));
+        table.getColumns().addAll(colId, colName, colEmail, colPhone, colDesignation, colSalary, colJoinDate, colStatus);
     }
 
     private void refreshTable() {
-        table.getItems().setAll(employeeDAO.getAllEmployees());
+        allEmployees = FXCollections.observableArrayList(employeeDAO.getAllEmployees());
+        filterEmployees();
+        updateStats();
+    }
+
+    private void filterEmployees() {
+        if (allEmployees == null) return;
+
+        String searchText = searchField.getText().toLowerCase().trim();
+        String statusValue = statusFilter.getValue();
+
+        List<Employee> filtered = allEmployees.stream()
+                .filter(emp -> {
+                    boolean matchesSearch = searchText.isEmpty() ||
+                            emp.getEmployeeId().toLowerCase().contains(searchText) ||
+                            (emp.getFirstName() + " " + emp.getLastName()).toLowerCase().contains(searchText) ||
+                            emp.getEmail().toLowerCase().contains(searchText) ||
+                            emp.getDesignation().toLowerCase().contains(searchText);
+
+                    boolean matchesStatus = statusValue.equals("All") ||
+                            emp.getStatus().name().equals(statusValue);
+
+                    return matchesSearch && matchesStatus;
+                })
+                .collect(Collectors.toList());
+
+        table.getItems().setAll(filtered);
+    }
+
+    private void updateStats() {
+        if (allEmployees == null) return;
+        
+        long activeCount = allEmployees.stream().filter(e -> e.getStatus() == Employee.Status.ACTIVE).count();
+        long totalCount = allEmployees.size();
+        
+        statsLabel.setText(String.format("Total: %d | Active: %d", totalCount, activeCount));
     }
 
     private void showAddDialog() {
         Dialog<Employee> dialog = new Dialog<>();
         DialogUtils.styleDialog(dialog);
         dialog.setTitle("Add New Employee");
-        dialog.setHeaderText("Enter Employee Details");
+        dialog.setHeaderText("➕ Enter Employee Details");
 
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        grid.setHgap(15);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(20));
+        grid.setMaxWidth(500);
 
         TextField tfId = new TextField();
+        tfId.setPromptText("e.g., EMP001");
         TextField tfFirst = new TextField();
+        tfFirst.setPromptText("First name");
         TextField tfLast = new TextField();
+        tfLast.setPromptText("Last name");
         TextField tfEmail = new TextField();
+        tfEmail.setPromptText("email@example.com");
         TextField tfPhone = new TextField();
+        tfPhone.setPromptText("+91-XXXXXXXXXX");
         TextField tfDesignation = new TextField();
+        tfDesignation.setPromptText("e.g., Professor, Assistant");
         TextField tfSalary = new TextField();
-        tfSalary.setPromptText("e.g., 50000.00");
+        tfSalary.setPromptText("50000.00");
         DatePicker dpJoin = new DatePicker(LocalDate.now());
 
         grid.add(new Label("Employee ID:"), 0, 0);
@@ -186,16 +328,18 @@ public class EmployeeManagementView extends VBox {
         }
 
         Dialog<Employee> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
         dialog.setTitle("Edit Employee");
-        dialog.setHeaderText("Update Employee Details");
+        dialog.setHeaderText("✏️ Update Employee Details");
 
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        grid.setHgap(15);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(20));
+        grid.setMaxWidth(500);
 
         TextField tfId = new TextField(selected.getEmployeeId());
         tfId.setDisable(true); // Cannot change employee ID
@@ -269,37 +413,6 @@ public class EmployeeManagementView extends VBox {
                 showAlert(Alert.AlertType.ERROR, "Error", "Failed to update employee.");
             }
         });
-    }
-
-    private void handleGeneratePayroll() {
-        Employee selected = table.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert(Alert.AlertType.WARNING, "Select Employee", "Please select an employee to generate payroll.");
-            return;
-        }
-
-        // Check if salary is set
-        if (selected.getId() == 0) {
-            showAlert(Alert.AlertType.ERROR, "Profile Missing",
-                    "This employee has no profile (salary/join date). Please 'Edit' to save profile first.");
-            return;
-        }
-        if (selected.getSalary() == null || selected.getSalary().compareTo(BigDecimal.ZERO) <= 0) {
-            showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Employee has no salary set. Edit employee first.");
-            return;
-        }
-
-        PayrollEntry entry = new PayrollEntry(
-                selected.getId(),
-                LocalDate.now().getMonthValue(),
-                LocalDate.now().getYear(),
-                selected.getSalary());
-
-        if (payrollDAO.createPayrollEntry(entry)) {
-            showAlert(Alert.AlertType.INFORMATION, "Success", "Payroll generated for " + selected.getFirstName());
-        } else {
-            showAlert(Alert.AlertType.ERROR, "Error", "Failed to generate payroll. Check logs.");
-        }
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {

@@ -31,7 +31,12 @@ public class ClubManagementView {
 
     private int currentUserId;
     private ObservableList<Club> clubsData;
+    private ObservableList<Club> allClubs;
     private TableView<Club> clubsTable;
+    private TextField searchField;
+    private ComboBox<String> categoryFilter;
+    private ComboBox<String> statusFilter;
+    private Label statsLabel;
 
     public ClubManagementView(int userId) {
         this.currentUserId = userId;
@@ -39,6 +44,7 @@ public class ClubManagementView {
         this.studentDAO = new StudentDAO();
         this.facultyDAO = new FacultyDAO();
         this.clubsData = FXCollections.observableArrayList();
+        this.allClubs = FXCollections.observableArrayList();
 
         createView();
         loadClubs();
@@ -65,6 +71,24 @@ public class ClubManagementView {
         Label title = new Label("Club Management");
         title.getStyleClass().add("section-title");
 
+        searchField = new TextField();
+        searchField.setPromptText("Search clubs...");
+        searchField.setPrefWidth(250);
+        searchField.textProperty().addListener((obs, old, newVal) -> filterClubs());
+
+        categoryFilter = new ComboBox<>();
+        categoryFilter.getItems().addAll("All Categories", "TECHNICAL", "CULTURAL", "SPORTS", "SOCIAL", "ACADEMIC");
+        categoryFilter.setValue("All Categories");
+        categoryFilter.setOnAction(e -> filterClubs());
+
+        statusFilter = new ComboBox<>();
+        statusFilter.getItems().addAll("All Status", "ACTIVE", "INACTIVE");
+        statusFilter.setValue("All Status");
+        statusFilter.setOnAction(e -> filterClubs());
+
+        statsLabel = new Label("Total Clubs: 0");
+        statsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -74,7 +98,7 @@ public class ClubManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadClubs());
 
-        header.getChildren().addAll(title, spacer, createBtn, refreshBtn);
+        header.getChildren().addAll(title, searchField, categoryFilter, statusFilter, spacer, statsLabel, createBtn, refreshBtn);
         return header;
     }
 
@@ -182,8 +206,33 @@ public class ClubManagementView {
     }
 
     private void loadClubs() {
-        List<Club> clubs = clubDAO.getAllClubs();
-        clubsData.setAll(clubs);
+        allClubs.setAll(clubDAO.getAllClubs());
+        filterClubs();
+    }
+
+    private void filterClubs() {
+        String searchText = searchField.getText().toLowerCase();
+        String category = categoryFilter.getValue();
+        String status = statusFilter.getValue();
+
+        clubsData.clear();
+        clubsData.addAll(allClubs.stream()
+            .filter(club -> {
+                boolean matchesSearch = searchText.isEmpty() ||
+                    club.getName().toLowerCase().contains(searchText) ||
+                    (club.getPresidentName() != null && club.getPresidentName().toLowerCase().contains(searchText));
+                boolean matchesCategory = category.equals("All Categories") || club.getCategory().equals(category);
+                boolean matchesStatus = status.equals("All Status") || club.getStatus().equals(status);
+                return matchesSearch && matchesCategory && matchesStatus;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+        updateStats();
+    }
+
+    private void updateStats() {
+        long active = clubsData.stream().filter(c -> "ACTIVE".equals(c.getStatus())).count();
+        int totalMembers = clubsData.stream().mapToInt(Club::getMemberCount).sum();
+        statsLabel.setText(String.format("Total: %d | Active: %d | Members: %d", clubsData.size(), active, totalMembers));
     }
 
     private void showCreateClubDialog() {

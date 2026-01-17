@@ -70,6 +70,8 @@ public class AssignmentsView {
     private HBox createHeader() {
         HBox header = new HBox(20);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("glass-card");
+        header.setPadding(new Insets(10));
 
         Label title = new Label("Assignments");
         title.getStyleClass().add("section-title");
@@ -77,8 +79,8 @@ public class AssignmentsView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button refreshBtn = createButton("Refresh");
-        refreshBtn.getStyleClass().add("icon-button");
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadAssignments());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -152,18 +154,18 @@ public class AssignmentsView {
         SessionManager session = SessionManager.getInstance();
 
         if (session.hasPermission("MANAGE_ASSIGNMENTS")) {
-            Button addBtn = createButton("New Assignment");
-            addBtn.getStyleClass().add("accent-button");
+            Button addBtn = new Button("+ New Assignment");
+            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> showAddAssignmentDialog());
 
-            Button reviewBtn = createButton("Review Submissions");
-            reviewBtn.getStyleClass().add("accent-button");
+            Button reviewBtn = new Button("Review Submissions");
+            reviewBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             reviewBtn.setOnAction(e -> showReviewSubmissionsDialog());
 
             section.getChildren().addAll(addBtn, reviewBtn);
         } else if (role.equals("STUDENT")) {
-            Button submitBtn = createButton("Submit Assignment");
-            submitBtn.getStyleClass().add("accent-button");
+            Button submitBtn = new Button("Submit Assignment");
+            submitBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             submitBtn.setOnAction(e -> showSubmitAssignmentDialog());
             section.getChildren().add(submitBtn);
         }

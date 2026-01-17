@@ -31,12 +31,15 @@ public class CourseManagementView {
     private VBox root;
     private TableView<Course> tableView;
     private ObservableList<Course> courseData;
+    private ObservableList<Course> allCourses;
     private CourseDAO courseDAO;
     private StudentDAO studentDAO;
     private FacultyDAO facultyDAO;
     private String role;
     private int userId;
     private TextField searchField;
+    private ComboBox<String> deptFilter;
+    private Label statsLabel;
     private com.college.dao.CourseRegistrationDAO registrationDAO; // New DAO
 
     public CourseManagementView(String role, int userId) {
@@ -47,6 +50,7 @@ public class CourseManagementView {
         this.facultyDAO = new FacultyDAO();
         this.registrationDAO = new com.college.dao.CourseRegistrationDAO();
         this.courseData = FXCollections.observableArrayList();
+        this.allCourses = FXCollections.observableArrayList();
         createView();
         if (!"STUDENT".equals(role)) {
             loadCourses();
@@ -346,18 +350,37 @@ public class CourseManagementView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        statsLabel = new Label();
+        statsLabel.getStyleClass().add("text-white");
+        statsLabel.setStyle("-fx-font-size: 14px;");
+
         searchField = new TextField();
         searchField.setPromptText("Search courses...");
         searchField.setPrefWidth(250);
-        searchField.setStyle("-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #e2e8f0;");
+        searchField.getStyleClass().add("search-field");
+        searchField.textProperty().addListener((obs, old, newVal) -> filterCourses());
 
-        Button searchBtn = createButton("Search", "#14b8a6");
-        searchBtn.setOnAction(e -> searchCourses());
+        Label filterLabel = new Label("Dept:");
+        filterLabel.getStyleClass().add("text-white");
 
-        Button refreshBtn = createButton("Refresh", "#3b82f6");
+        deptFilter = new ComboBox<>();
+        deptFilter.getItems().add("All");
+        try {
+            DepartmentDAO deptDAO = new DepartmentDAO();
+            deptFilter.getItems().addAll(deptDAO.getAllDepartments().stream()
+                    .map(Department::getName).collect(Collectors.toList()));
+        } catch (Exception e) {
+            deptFilter.getItems().addAll("CS", "IT", "EC", "ME", "Civil");
+        }
+        deptFilter.setValue("All");
+        deptFilter.getStyleClass().add("combo-box");
+        deptFilter.setOnAction(e -> filterCourses());
+
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadCourses());
 
-        header.getChildren().addAll(title, spacer, searchField, searchBtn, refreshBtn);
+        header.getChildren().addAll(title, spacer, statsLabel, searchField, filterLabel, deptFilter, refreshBtn);
         return header;
     }
 
@@ -422,19 +445,23 @@ public class CourseManagementView {
         SessionManager session = SessionManager.getInstance();
 
         if (session.hasPermission("MANAGE_ALL_COURSES") || session.hasPermission("MANAGE_OWN_COURSES")) {
-            Button addBtn = createButton("Add Course", "#22c55e");
+            Button addBtn = new Button("+ Add Course");
+            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> showAddCourseDialog());
 
-            Button editBtn = createButton("Edit Course", "#3b82f6");
+            Button editBtn = new Button("Edit");
+            editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             editBtn.setOnAction(e -> editCourse());
 
-            Button deleteBtn = createButton("Delete Course", "#ef4444");
+            Button deleteBtn = new Button("Delete");
+            deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             deleteBtn.setOnAction(e -> deleteCourse());
 
             section.getChildren().addAll(addBtn, editBtn, deleteBtn);
         }
 
-        Button exportBtn = createButton("Export", "#64748b");
+        Button exportBtn = new Button("Export");
+        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
@@ -455,7 +482,6 @@ public class CourseManagementView {
     }
 
     private void loadCourses() {
-        // Show loading state if desired (optional)
         tableView.setPlaceholder(new Label("Loading courses..."));
 
         javafx.concurrent.Task<List<Course>> task = new javafx.concurrent.Task<>() {
@@ -466,32 +492,16 @@ public class CourseManagementView {
         };
 
         task.setOnSucceeded(e -> {
-            List<Course> courses = task.getValue();
-            courseData.clear();
-
-            // Filter for students
-            if ("STUDENT".equals(role)) {
-                Student student = studentDAO.getStudentByUserId(userId);
-                if (student != null) {
-                    String dept = student.getDepartment();
-                    int sem = student.getSemester();
-                    for (Course c : courses) {
-                        if (dept.equals(c.getDepartment()) && sem == c.getSemester()) {
-                            courseData.add(c);
-                        }
-                    }
-                }
-            } else {
-                courseData.addAll(courses);
-            }
-
-            // Restore placeholder
+            allCourses.clear();
+            allCourses.addAll(task.getValue());
+            filterCourses();
+            updateStats();
             tableView.setPlaceholder(new Label("No courses found."));
         });
 
         task.setOnFailed(e -> {
             Throwable ex = task.getException();
-            ex.printStackTrace(); // Log error
+            ex.printStackTrace();
             showAlert("Error", "Failed to load courses.");
             tableView.setPlaceholder(new Label("Error loading courses."));
         });
@@ -501,19 +511,35 @@ public class CourseManagementView {
         thread.start();
     }
 
+    private void filterCourses() {
+        if (allCourses == null) return;
+
+        String searchText = searchField.getText().toLowerCase().trim();
+        String deptValue = deptFilter.getValue();
+
+        List<Course> filtered = allCourses.stream()
+                .filter(c -> {
+                    boolean matchesSearch = searchText.isEmpty() ||
+                            c.getName().toLowerCase().contains(searchText) ||
+                            c.getCode().toLowerCase().contains(searchText);
+
+                    boolean matchesDept = deptValue.equals("All") ||
+                            (c.getDepartment() != null && c.getDepartment().equals(deptValue));
+
+                    return matchesSearch && matchesDept;
+                })
+                .collect(Collectors.toList());
+
+        courseData.setAll(filtered);
+    }
+
+    private void updateStats() {
+        if (allCourses == null) return;
+        statsLabel.setText(String.format("Total: %d courses", allCourses.size()));
+    }
+
     private void searchCourses() {
-        String keyword = searchField.getText().trim().toLowerCase();
-        if (keyword.isEmpty()) {
-            loadCourses();
-            return;
-        }
-        courseData.clear();
-        List<Course> courses = courseDAO.getAllCourses();
-        for (Course c : courses) {
-            if (c.getName().toLowerCase().contains(keyword) || c.getCode().toLowerCase().contains(keyword)) {
-                courseData.add(c);
-            }
-        }
+        filterCourses();
     }
 
     private void editCourse() {

@@ -47,9 +47,13 @@ public class InstituteManagementView {
     // Roles
     private TableView<Role> roleTable;
     private ObservableList<Role> roleData;
+    private ObservableList<Role> allRoles;
     private ListView<Permission> permissionList;
     private ObservableList<Permission> permissionData;
     private Role selectedRole;
+    private TextField roleSearchField;
+    private ComboBox<String> roleTypeFilter;
+    private Label roleStatsLabel;
 
     // Users (Special)
     private TableView<User> userTable;
@@ -71,6 +75,7 @@ public class InstituteManagementView {
         this.userDAO = new UserDAO();
         this.deptData = FXCollections.observableArrayList();
         this.roleData = FXCollections.observableArrayList();
+        this.allRoles = FXCollections.observableArrayList();
         this.permissionData = FXCollections.observableArrayList();
         this.userData = FXCollections.observableArrayList();
         this.auditData = FXCollections.observableArrayList();
@@ -312,7 +317,25 @@ public class InstituteManagementView {
 
         // LEFT: Role List
         VBox leftPane = new VBox(10);
-        leftPane.setPrefWidth(400);
+        leftPane.setPrefWidth(450);
+
+        HBox searchBox = new HBox(10);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+
+        roleSearchField = new TextField();
+        roleSearchField.setPromptText("Search roles...");
+        roleSearchField.setPrefWidth(200);
+        roleSearchField.textProperty().addListener((obs, old, newVal) -> filterRoles());
+
+        roleTypeFilter = new ComboBox<>();
+        roleTypeFilter.getItems().addAll("All Types", "System", "Custom");
+        roleTypeFilter.setValue("All Types");
+        roleTypeFilter.setOnAction(e -> filterRoles());
+
+        roleStatsLabel = new Label("Total Roles: 0");
+        roleStatsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+
+        searchBox.getChildren().addAll(roleSearchField, roleTypeFilter, roleStatsLabel);
 
         HBox roleToolbar = new HBox(10);
         Button addRoleBtn = createButton("Add Role", "#22c55e");
@@ -331,7 +354,10 @@ public class InstituteManagementView {
         Button deleteRoleBtn = createButton("Delete Role", "#ef4444");
         deleteRoleBtn.setOnAction(e -> confirmDeleteRole());
 
-        roleToolbar.getChildren().addAll(addRoleBtn, editRoleBtn, deleteRoleBtn);
+        Button refreshBtn = createButton("Refresh", "#8b5cf6");
+        refreshBtn.setOnAction(e -> loadRoles());
+
+        roleToolbar.getChildren().addAll(addRoleBtn, editRoleBtn, deleteRoleBtn, refreshBtn);
 
         roleTable = new TableView<>();
         roleTable.getStyleClass().add("glass-table");
@@ -357,7 +383,7 @@ public class InstituteManagementView {
             loadPermissionsForSelectedRole();
         });
 
-        leftPane.getChildren().addAll(roleToolbar, roleTable);
+        leftPane.getChildren().addAll(searchBox, roleToolbar, roleTable);
 
         // RIGHT: Permissions
         VBox rightPane = new VBox(10);
@@ -391,8 +417,35 @@ public class InstituteManagementView {
     }
 
     private void loadRoles() {
+        allRoles.setAll(roleDAO.getAllRoles());
+        filterRoles();
+    }
+
+    private void filterRoles() {
+        String searchText = roleSearchField != null ? roleSearchField.getText().toLowerCase() : "";
+        String typeFilter = roleTypeFilter != null ? roleTypeFilter.getValue() : "All Types";
+
         roleData.clear();
-        roleData.addAll(roleDAO.getAllRoles());
+        roleData.addAll(allRoles.stream()
+            .filter(role -> {
+                boolean matchesSearch = searchText.isEmpty() ||
+                    role.getName().toLowerCase().contains(searchText) ||
+                    role.getCode().toLowerCase().contains(searchText);
+                boolean matchesType = typeFilter.equals("All Types") ||
+                    (typeFilter.equals("System") && role.isSystemRole()) ||
+                    (typeFilter.equals("Custom") && !role.isSystemRole());
+                return matchesSearch && matchesType;
+            })
+            .collect(Collectors.toList()));
+        updateRoleStats();
+    }
+
+    private void updateRoleStats() {
+        if (roleStatsLabel != null) {
+            long system = roleData.stream().filter(Role::isSystemRole).count();
+            roleStatsLabel.setText(String.format("Total: %d | System: %d | Custom: %d", 
+                roleData.size(), system, roleData.size() - system));
+        }
     }
 
     private void loadPermissionsForSelectedRole() {

@@ -19,6 +19,9 @@ public class PlacementView {
     private final String userRole;
     private final int userId;
     private final PlacementDAO placementDAO;
+    private TextField searchField;
+    private ComboBox<String> companyFilter;
+    private Label statsLabel;
 
     public PlacementView(String role, int userId) {
         this.userRole = role;
@@ -91,20 +94,54 @@ public class PlacementView {
     private VBox createCompaniesView() {
         VBox vbox = new VBox(15);
         vbox.setPadding(new Insets(15));
+        vbox.getStyleClass().add("glass-card");
+
+        HBox header = new HBox(15);
+        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        searchField = new TextField();
+        searchField.setPromptText("Search companies...");
+        searchField.setPrefWidth(250);
+
+        statsLabel = new Label("Total Companies: 0");
+        statsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button addBtn = new Button("Add Company");
-        addBtn.getStyleClass().add("accent-button");
-        addBtn.setOnAction(e -> {
-            showAddCompanyDialog();
-            // Refresh table? Ideally use ObservableList, but for now re-fetching:
-            // We need a way to refresh. Let's rebuild the view or keep a reference.
-            // Simplified: User clicks tab to refresh or we rebuild on action.
-            // (Skipping auto-refresh for brevity in this step, but standard TableView usage
-            // recommended)
-        });
+        addBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+
+        header.getChildren().addAll(searchField, spacer, statsLabel, addBtn, refreshBtn);
 
         TableView<PlacementCompany> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        searchField.textProperty().addListener((obs, old, newVal) -> {
+            String searchText = newVal.toLowerCase();
+            List<PlacementCompany> all = placementDAO.getAllCompanies();
+            table.getItems().setAll(all.stream()
+                .filter(c -> searchText.isEmpty() ||
+                    c.getName().toLowerCase().contains(searchText) ||
+                    c.getIndustry().toLowerCase().contains(searchText))
+                .collect(java.util.stream.Collectors.toList()));
+            statsLabel.setText(String.format("Total Companies: %d", table.getItems().size()));
+        });
+
+        addBtn.setOnAction(e -> {
+            showAddCompanyDialog();
+            table.getItems().setAll(placementDAO.getAllCompanies());
+            searchField.clear();
+        });
+
+        refreshBtn.setOnAction(e -> {
+            table.getItems().setAll(placementDAO.getAllCompanies());
+            searchField.clear();
+        });
 
         TableColumn<PlacementCompany, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
@@ -128,21 +165,14 @@ public class PlacementView {
             {
                 btn.getStyleClass().add("small-button");
                 btn.setStyle(
-                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px;");
+                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px; -fx-padding: 5 10;");
                 btn.setOnAction(event -> {
                     PlacementCompany comp = getTableView().getItems().get(getIndex());
                     Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    DialogUtils.styleDialog(alert);
                     alert.setTitle("Confirm Delete");
                     alert.setHeaderText("Delete Company?");
                     alert.setContentText("Are you sure you want to delete " + comp.getName() + "?");
-
-                    // Dark Theme
-                    DialogPane dialogPane = alert.getDialogPane();
-                    dialogPane.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
-                    dialogPane.getStyleClass().add("my-dialog");
-                    dialogPane.setStyle("-fx-background-color: #1e293b; -fx-text-fill: white;");
-                    dialogPane.lookup(".content.label").setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 14px;");
-                    dialogPane.lookup(".header-panel").setStyle("-fx-background-color: #0f172a; -fx-text-fill: white;");
 
                     alert.showAndWait().ifPresent(response -> {
                         if (response == ButtonType.OK) {
@@ -170,11 +200,11 @@ public class PlacementView {
         table.getColumns().add(emailCol);
         table.getColumns().add(phoneCol);
         table.getColumns().add(actionCol);
-        table.getItems().addAll(placementDAO.getAllCompanies()); // Initial load
+        table.getItems().addAll(placementDAO.getAllCompanies());
+        statsLabel.setText(String.format("Total Companies: %d", table.getItems().size()));
 
-        // Refresh Logic could be added here
-
-        vbox.getChildren().addAll(addBtn, table);
+        vbox.getChildren().addAll(header, table);
+        VBox.setVgrow(table, Priority.ALWAYS);
         return vbox;
     }
 
@@ -225,15 +255,65 @@ public class PlacementView {
     private VBox createDrivesManagementView() {
         VBox vbox = new VBox(15);
         vbox.setPadding(new Insets(15));
+        vbox.getStyleClass().add("glass-card");
+
+        HBox header = new HBox(15);
+        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        TextField driveSearch = new TextField();
+        driveSearch.setPromptText("Search drives...");
+        driveSearch.setPrefWidth(250);
+
+        companyFilter = new ComboBox<>();
+        companyFilter.getItems().add("All Companies");
+        companyFilter.getItems().addAll(placementDAO.getAllCompanies().stream()
+            .map(PlacementCompany::getName)
+            .collect(java.util.stream.Collectors.toList()));
+        companyFilter.setValue("All Companies");
+
+        Label driveStats = new Label("Total Drives: 0");
+        driveStats.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button addBtn = new Button("Schedule Drive");
-        addBtn.getStyleClass().add("accent-button");
-        addBtn.setOnAction(e -> {
-            showAddDriveDialog();
-        });
+        addBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+
+        header.getChildren().addAll(driveSearch, companyFilter, spacer, driveStats, addBtn, refreshBtn);
 
         TableView<PlacementDrive> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        Runnable filterDrives = () -> {
+            String searchText = driveSearch.getText().toLowerCase();
+            String company = companyFilter.getValue();
+            List<PlacementDrive> all = placementDAO.getAllDrives();
+            table.getItems().setAll(all.stream()
+                .filter(d -> {
+                    boolean matchesSearch = searchText.isEmpty() ||
+                        d.getCompanyName().toLowerCase().contains(searchText) ||
+                        d.getJobRole().toLowerCase().contains(searchText);
+                    boolean matchesCompany = company.equals("All Companies") || d.getCompanyName().equals(company);
+                    return matchesSearch && matchesCompany;
+                })
+                .collect(java.util.stream.Collectors.toList()));
+            driveStats.setText(String.format("Total Drives: %d", table.getItems().size()));
+        };
+
+        driveSearch.textProperty().addListener((obs, old, newVal) -> filterDrives.run());
+        companyFilter.setOnAction(e -> filterDrives.run());
+
+        addBtn.setOnAction(e -> {
+            showAddDriveDialog();
+            filterDrives.run();
+        });
+
+        refreshBtn.setOnAction(e -> filterDrives.run());
 
         TableColumn<PlacementDrive, String> compCol = new TableColumn<>("Company");
         compCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCompanyName()));
@@ -268,21 +348,14 @@ public class PlacementView {
 
                 delBtn.getStyleClass().add("small-button");
                 delBtn.setStyle(
-                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px;");
+                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px; -fx-padding: 5 10;");
                 delBtn.setOnAction(event -> {
                     PlacementDrive drive = getTableView().getItems().get(getIndex());
                     Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    DialogUtils.styleDialog(alert);
                     alert.setTitle("Confirm Delete");
                     alert.setHeaderText("Delete Drive?");
                     alert.setContentText("Are you sure you want to delete drive for " + drive.getJobRole() + "?");
-
-                    // Dark Theme
-                    DialogPane dialogPane = alert.getDialogPane();
-                    dialogPane.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
-                    dialogPane.getStyleClass().add("my-dialog");
-                    dialogPane.setStyle("-fx-background-color: #1e293b; -fx-text-fill: white;");
-                    dialogPane.lookup(".content.label").setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 14px;");
-                    dialogPane.lookup(".header-panel").setStyle("-fx-background-color: #0f172a; -fx-text-fill: white;");
 
                     alert.showAndWait().ifPresent(response -> {
                         if (response == ButtonType.OK) {
@@ -312,8 +385,9 @@ public class PlacementView {
         table.getColumns().add(deadCol);
         table.getColumns().add(actionCol);
         table.getItems().addAll(placementDAO.getAllDrives());
+        driveStats.setText(String.format("Total Drives: %d", table.getItems().size()));
 
-        vbox.getChildren().addAll(addBtn, table);
+        vbox.getChildren().addAll(header, table);
         VBox.setVgrow(table, Priority.ALWAYS);
         return vbox;
     }
@@ -569,6 +643,14 @@ public class PlacementView {
                 applyBtn.setDisable(true);
                 applyBtn.setStyle("-fx-background-color: #475569; -fx-opacity: 0.7;");
                 DialogUtils.showSuccess("Success", "Successfully applied for " + d.getCompanyName());
+                
+                // Refresh applications table if it exists
+                TableView<PlacementApplication> appTable = (TableView<PlacementApplication>) root.lookupAll(".table-view").stream()
+                    .filter(node -> node.getParent() != null && node.getParent().getParent() instanceof VBox)
+                    .findFirst().orElse(null);
+                if (appTable != null) {
+                    appTable.getItems().setAll(placementDAO.getApplicationsForStudent(userId));
+                }
             });
         }
 
@@ -592,8 +674,22 @@ public class PlacementView {
         Label title = new Label("My Applications");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: white;");
 
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+
+        HBox header = new HBox(15);
+        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        header.getChildren().addAll(title, spacer, refreshBtn);
+
         TableView<PlacementApplication> table = new TableView<>();
+        table.getStyleClass().add("glass-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        refreshBtn.setOnAction(e -> {
+            table.getItems().setAll(placementDAO.getApplicationsForStudent(userId));
+        });
 
         TableColumn<PlacementApplication, String> compCol = new TableColumn<>("Company");
         compCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCompanyName()));
@@ -643,24 +739,15 @@ public class PlacementView {
             {
                 btn.getStyleClass().add("small-button"); // Assuming this style exists or just style inline
                 btn.setStyle(
-                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px;");
+                        "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px; -fx-padding: 5 10;");
                 btn.setOnAction(event -> {
                     PlacementApplication app = getTableView().getItems().get(getIndex());
                     Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    DialogUtils.styleDialog(alert);
                     alert.setTitle("Confirm Withdraw");
                     alert.setHeaderText("Withdraw Application?");
                     alert.setContentText(
                             "Are you sure you want to withdraw your application for " + app.getCompanyName() + "?");
-
-                    // Apply Dark Theme
-                    DialogPane dialogPane = alert.getDialogPane();
-                    dialogPane.getStylesheets().add(getClass().getResource("/styles/dashboard.css").toExternalForm());
-                    dialogPane.getStyleClass().add("my-dialog");
-                    dialogPane.setStyle("-fx-background-color: #1e293b; -fx-text-fill: white;");
-                    dialogPane.lookup(".content.label").setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 14px;");
-                    dialogPane.lookup(".header-panel").setStyle("-fx-background-color: #0f172a; -fx-text-fill: white;");
-                    dialogPane.lookup(".header-panel .label")
-                            .setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px;");
 
                     alert.showAndWait().ifPresent(response -> {
                         if (response == ButtonType.OK) {
@@ -695,7 +782,7 @@ public class PlacementView {
         table.getColumns().add(actionCol);
         table.getItems().addAll(placementDAO.getApplicationsForStudent(userId));
 
-        vbox.getChildren().addAll(title, table);
+        vbox.getChildren().addAll(header, table);
         VBox.setVgrow(table, Priority.ALWAYS);
         return vbox;
     }

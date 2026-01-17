@@ -15,6 +15,32 @@ public class DialogUtils {
             }
             // Standardize styles
             dialogPane.getStyleClass().add("dialog-pane");
+            
+            // Force dark background on all areas
+            dialogPane.setStyle("-fx-background-color: #1e293b;");
+            
+            // Apply dark theme to content area
+            javafx.scene.layout.Region content = (javafx.scene.layout.Region) dialogPane.getContent();
+            if (content != null) {
+                content.setStyle("-fx-background-color: transparent;");
+            }
+            
+            // Style all child nodes
+            javafx.application.Platform.runLater(() -> {
+                dialogPane.lookupAll(".label").forEach(node -> {
+                    node.setStyle("-fx-text-fill: white;");
+                });
+                
+                // Fix GridPane backgrounds
+                dialogPane.lookupAll(".grid-pane").forEach(node -> {
+                    node.setStyle("-fx-background-color: transparent;");
+                });
+                
+                // Fix VBox/HBox backgrounds
+                dialogPane.lookupAll(".vbox, .hbox").forEach(node -> {
+                    node.setStyle("-fx-background-color: transparent;");
+                });
+            });
         } catch (Exception e) {
             System.err.println("Warning: Failed to apply dialog styles: " + e.getMessage());
         }

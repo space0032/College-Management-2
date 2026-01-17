@@ -22,13 +22,19 @@ public class AnnouncementManagementView {
     private VBox root;
     private TableView<Announcement> tableView;
     private ObservableList<Announcement> announcementData;
+    private ObservableList<Announcement> allAnnouncements;
     private AnnouncementDAO announcementDAO;
     private int userId;
+    private TextField searchField;
+    private ComboBox<String> targetFilter;
+    private ComboBox<String> priorityFilter;
+    private Label statsLabel;
 
     public AnnouncementManagementView(String role, int userId) {
         this.userId = userId;
         this.announcementDAO = new AnnouncementDAO();
         this.announcementData = FXCollections.observableArrayList();
+        this.allAnnouncements = FXCollections.observableArrayList();
         createView();
         loadAnnouncements();
     }
@@ -55,7 +61,24 @@ public class AnnouncementManagementView {
 
         Label title = new Label("Announcement Management");
         title.getStyleClass().add("section-title");
-        // title.setTextFill(Color.web("#0f172a"));
+
+        searchField = new TextField();
+        searchField.setPromptText("Search announcements...");
+        searchField.setPrefWidth(250);
+        searchField.textProperty().addListener((obs, old, newVal) -> filterAnnouncements());
+
+        targetFilter = new ComboBox<>();
+        targetFilter.getItems().addAll("All Targets", "ALL", "STUDENTS", "FACULTY", "STUDENTS_FACULTY");
+        targetFilter.setValue("All Targets");
+        targetFilter.setOnAction(e -> filterAnnouncements());
+
+        priorityFilter = new ComboBox<>();
+        priorityFilter.getItems().addAll("All Priorities", "LOW", "NORMAL", "HIGH", "URGENT");
+        priorityFilter.setValue("All Priorities");
+        priorityFilter.setOnAction(e -> filterAnnouncements());
+
+        statsLabel = new Label("Total: 0");
+        statsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #e2e8f0;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -63,7 +86,7 @@ public class AnnouncementManagementView {
         Button refreshBtn = createButton("Refresh", "#3b82f6");
         refreshBtn.setOnAction(e -> loadAnnouncements());
 
-        header.getChildren().addAll(title, spacer, refreshBtn);
+        header.getChildren().addAll(title, searchField, targetFilter, priorityFilter, spacer, statsLabel, refreshBtn);
         return header;
     }
 
@@ -142,9 +165,33 @@ public class AnnouncementManagementView {
     }
 
     private void loadAnnouncements() {
+        allAnnouncements.setAll(announcementDAO.getAllAnnouncements());
+        filterAnnouncements();
+    }
+
+    private void filterAnnouncements() {
+        String searchText = searchField.getText().toLowerCase();
+        String target = targetFilter.getValue();
+        String priority = priorityFilter.getValue();
+
         announcementData.clear();
-        List<Announcement> announcements = announcementDAO.getAllAnnouncements();
-        announcementData.addAll(announcements);
+        announcementData.addAll(allAnnouncements.stream()
+            .filter(ann -> {
+                boolean matchesSearch = searchText.isEmpty() ||
+                    ann.getTitle().toLowerCase().contains(searchText) ||
+                    ann.getContent().toLowerCase().contains(searchText);
+                boolean matchesTarget = target.equals("All Targets") || ann.getTargetAudience().equals(target);
+                boolean matchesPriority = priority.equals("All Priorities") || ann.getPriority().equals(priority);
+                return matchesSearch && matchesTarget && matchesPriority;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+        updateStats();
+    }
+
+    private void updateStats() {
+        long active = announcementData.stream().filter(Announcement::isActive).count();
+        long urgent = announcementData.stream().filter(a -> "URGENT".equals(a.getPriority())).count();
+        statsLabel.setText(String.format("Total: %d | Active: %d | Urgent: %d", announcementData.size(), active, urgent));
     }
 
     private void addAnnouncement() {

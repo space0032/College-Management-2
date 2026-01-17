@@ -42,6 +42,7 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
   - **Gemini AI**: Integrated chat assistant for instant support.
   - **Smart Calendar**: Academic calendar with auto-holiday syncing.
 
+![img.png](img.png)
 ---
 
 ## 🚀 Quick Start

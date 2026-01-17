@@ -331,6 +331,8 @@ public class DashboardView {
             addMenuItem(academicContent, "Leave", "staff_leave", SVG_LEAVE);
             if (session.hasPermission("VIEW_TIMETABLE")) {
                 addMenuItem(academicContent, "Timetable", "timetable", SVG_TIMETABLE);
+            }
+            if (session.hasPermission("ROOM_CHECK")) {
                 addMenuItem(academicContent, "Room Check", "room_availability", SVG_SEARCH);
                 hasAcademic = true;
             }

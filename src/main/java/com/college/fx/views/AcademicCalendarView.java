@@ -139,12 +139,22 @@ public class AcademicCalendarView {
         VBox cell = new VBox(5);
         cell.setPrefSize(120, 100);
         cell.setPadding(new Insets(5));
-        cell.setStyle(
+        
+        LocalDate cellDate = LocalDate.of(currentYearMonth.getYear(), currentYearMonth.getMonth(), day);
+        LocalDate today = LocalDate.now();
+        
+        // Highlight today's date
+        if (cellDate.equals(today)) {
+            cell.setStyle(
+                "-fx-background-color: rgba(59, 130, 246, 0.3); -fx-background-radius: 8; -fx-border-color: #3b82f6; -fx-border-width: 2; -fx-border-radius: 8;");
+        } else {
+            cell.setStyle(
                 "-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 8; -fx-border-color: rgba(255,255,255,0.1); -fx-border-radius: 8;");
+        }
 
         Label dayLabel = new Label(String.valueOf(day));
         dayLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
-        dayLabel.setTextFill(Color.WHITE);
+        dayLabel.setTextFill(cellDate.equals(today) ? Color.web("#60a5fa") : Color.WHITE);
         cell.getChildren().add(dayLabel);
 
         if (events != null) {

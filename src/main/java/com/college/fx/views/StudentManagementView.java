@@ -38,12 +38,15 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
     private VBox root;
     private TableView<Student> tableView;
     private ObservableList<Student> studentData;
+    private ObservableList<Student> allStudents;
     private StudentDAO studentDAO;
     private DepartmentDAO departmentDAO;
     private String role;
     @SuppressWarnings("unused")
     private int userId;
     private TextField searchField;
+    private ComboBox<String> deptFilter;
+    private Label statsLabel;
 
     public StudentManagementView(String role, int userId) {
         this.role = role;
@@ -51,6 +54,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         this.studentDAO = new StudentDAO();
         this.departmentDAO = new DepartmentDAO();
         this.studentData = FXCollections.observableArrayList();
+        this.allStudents = FXCollections.observableArrayList();
         createView();
         loadStudents();
     }
@@ -86,32 +90,33 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        statsLabel = new Label();
+        statsLabel.getStyleClass().add("text-white");
+        statsLabel.setStyle("-fx-font-size: 14px;");
+
         // Search
         searchField = new TextField();
         searchField.setPromptText("Search students...");
         searchField.setPrefWidth(250);
-        searchField.setStyle(
-                "-fx-background-radius: 8;" +
-                        "-fx-border-radius: 8;" +
-                        "-fx-border-color: #e2e8f0;");
+        searchField.getStyleClass().add("search-field");
+        searchField.textProperty().addListener((obs, old, newVal) -> filterStudents());
 
-        Button searchBtn = new Button("Search");
-        searchBtn.setStyle(
-                "-fx-background-color: #14b8a6;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
-        searchBtn.setOnAction(e -> searchStudents());
+        Label filterLabel = new Label("Dept:");
+        filterLabel.getStyleClass().add("text-white");
+
+        deptFilter = new ComboBox<>();
+        deptFilter.getItems().add("All");
+        deptFilter.getItems().addAll(departmentDAO.getAllDepartments().stream()
+                .map(Department::getName).collect(Collectors.toList()));
+        deptFilter.setValue("All");
+        deptFilter.getStyleClass().add("combo-box");
+        deptFilter.setOnAction(e -> filterStudents());
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle(
-                "-fx-background-color: #3b82f6;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
+        refreshBtn.getStyleClass().add("icon-button");
         refreshBtn.setOnAction(e -> loadStudents());
 
-        header.getChildren().addAll(title, spacer, searchField, searchBtn, refreshBtn);
+        header.getChildren().addAll(title, spacer, statsLabel, searchField, filterLabel, deptFilter, refreshBtn);
         return header;
     }
 
@@ -174,26 +179,32 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         SessionManager session = SessionManager.getInstance();
 
         if (session.hasPermission("MANAGE_STUDENTS")) {
-            Button addBtn = createButton("Add Student", "#22c55e");
+            Button addBtn = new Button("+ Add Student");
+            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> addStudent());
 
-            Button editBtn = createButton("Edit Student", "#3b82f6");
+            Button editBtn = new Button("Edit");
+            editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             editBtn.setOnAction(e -> editStudent());
 
-            Button deleteBtn = createButton("Delete Student", "#ef4444");
+            Button deleteBtn = new Button("Delete");
+            deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             deleteBtn.setOnAction(e -> deleteStudent());
 
-            Button importBtn = createButton("Import CSV", "#8b5cf6");
+            Button importBtn = new Button("Import CSV");
+            importBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             importBtn.setOnAction(e -> importStudentsFromCSV());
 
             section.getChildren().addAll(addBtn, editBtn, deleteBtn, importBtn);
         }
 
-        Button viewProfileBtn = createButton("View Profile", "#f59e0b"); // Amber color
+        Button viewProfileBtn = new Button("View Profile");
+        viewProfileBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         viewProfileBtn.setOnAction(e -> viewStudentProfile());
         section.getChildren().add(viewProfileBtn);
 
-        Button exportBtn = createButton("Export", "#64748b");
+        Button exportBtn = new Button("Export");
+        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
@@ -204,36 +215,54 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         Button btn = new Button(text);
         btn.setPrefWidth(140);
         btn.setPrefHeight(40);
-        btn.setStyle(
-                "-fx-background-color: " + color + ";" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-cursor: hand;");
+        btn.getStyleClass().add("icon-button");
         return btn;
     }
 
     private void loadStudents() {
-        studentData.clear();
+        allStudents.clear();
         List<Student> students;
         if ("WARDEN".equals(role)) {
             students = studentDAO.getHostelStudents();
         } else {
             students = studentDAO.getAllStudents();
         }
-        studentData.addAll(students);
+        allStudents.addAll(students);
+        filterStudents();
+        updateStats();
+    }
+
+    private void filterStudents() {
+        if (allStudents == null) return;
+
+        String searchText = searchField.getText().toLowerCase().trim();
+        String deptValue = deptFilter.getValue();
+
+        List<Student> filtered = allStudents.stream()
+                .filter(s -> {
+                    boolean matchesSearch = searchText.isEmpty() ||
+                            s.getName().toLowerCase().contains(searchText) ||
+                            (s.getEmail() != null && s.getEmail().toLowerCase().contains(searchText)) ||
+                            (s.getUsername() != null && s.getUsername().toLowerCase().contains(searchText)) ||
+                            (s.getBatch() != null && s.getBatch().toLowerCase().contains(searchText));
+
+                    boolean matchesDept = deptValue.equals("All") ||
+                            (s.getDepartment() != null && s.getDepartment().equals(deptValue));
+
+                    return matchesSearch && matchesDept;
+                })
+                .collect(Collectors.toList());
+
+        studentData.setAll(filtered);
+    }
+
+    private void updateStats() {
+        if (allStudents == null) return;
+        statsLabel.setText(String.format("Total: %d students", allStudents.size()));
     }
 
     private void searchStudents() {
-        String keyword = searchField.getText().trim();
-        if (keyword.isEmpty()) {
-            loadStudents();
-            return;
-        }
-
-        studentData.clear();
-        List<Student> students = studentDAO.searchStudents(keyword);
-        studentData.addAll(students);
+        filterStudents();
     }
 
     private void addStudent() {
