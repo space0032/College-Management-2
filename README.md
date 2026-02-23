@@ -98,6 +98,69 @@ A comprehensive, modernized JavaFX-based college management system with role-bas
 
 ---
 
+## 🌐 Web Application
+
+The system now works as a **hybrid application** — both as a desktop JavaFX app AND as a React web app.
+
+### Running the Web API
+
+Start the REST API server (runs on port 7000):
+```bash
+./run-api.sh
+```
+
+The API will be available at `http://localhost:7000/api`.
+
+### Running the Web Frontend
+
+```bash
+cd web-app
+npm install
+npm start
+```
+
+The web app will be available at `http://localhost:3000`.
+
+### Architecture
+
+```
+┌─────────────────────┐         ┌──────────────────────┐
+│  JavaFX Desktop App │         │  React Web App       │
+│  (Local / ./run.sh) │         │  (Browser / :3000)   │
+└──────────┬──────────┘         └──────────┬───────────┘
+           │                               │
+           │ Direct DAO                    │ REST API (port 7000)
+           │                               │
+           └───────────┬───────────────────┘
+                       │
+              ┌────────▼─────────┐
+              │  PostgreSQL DB   │
+              └──────────────────┘
+```
+
+Both apps share the same database. The desktop app uses DAOs directly; the web app connects via the REST API.
+
+### Web App Pages
+- Login
+- Dashboard with sidebar navigation
+- Student Management (CRUD)
+- Faculty Management (CRUD + search)
+- Course Management (CRUD)
+- Attendance (single + bulk marking)
+- Library (book management)
+- Fees (pending fees)
+- Timetable (by department/semester)
+- Placement Drives & Companies
+- Hostel Management (hostels, rooms, allocations)
+- Announcements (CRUD)
+- Notifications
+- Departments (CRUD)
+- Profile
+
+See [docs/API.md](docs/API.md) for full API documentation.
+
+---
+
 ## 🔒 Security
 
 This project follows security best practices:
@@ -140,33 +203,65 @@ All test users have password: **`123`**
 ```
 College-Management-2/
 ├── src/main/java/com/college/
-│   ├── api/                    # Native REST API Handlers
+│   ├── api/                    # REST API Handlers (native Java HTTP server)
+│   │   ├── ApiServer.java      # Server entry point (port 7000)
+│   │   ├── AuthController.java
+│   │   ├── StudentController.java
+│   │   ├── FacultyController.java
+│   │   ├── CourseController.java
+│   │   ├── AttendanceController.java
+│   │   ├── LibraryController.java
+│   │   ├── TimetableController.java
+│   │   ├── PlacementController.java
+│   │   ├── HostelController.java
+│   │   ├── AnnouncementController.java
+│   │   ├── NotificationController.java
+│   │   ├── DepartmentController.java
+│   │   ├── FeeController.java
+│   │   ├── RoleController.java
+│   │   └── UserController.java
 │   ├── dao/                    # Data Access Objects (SQL)
 │   ├── fx/views/               # JavaFX UI Controllers
 │   ├── models/                 # POJOs
-│   ├── utils/                  # Helpers (MigrationRunner, Session, etc.)
-│   └── Launcher.java           # App Entry Point
+│   └── utils/                  # Helpers
 ├── src/main/resources/
-│   └── db/migration/           # SQL Migration Scripts (V1__...)
-├── src/test/java/              # JUnit Tests
-├── .github/workflows/          # CI/CD Configuration
-├── lib/                        # Managed Dependencies (Mockito, AtlantaFX, etc.)
-├── build.sh                    # Main Build Script
-├── run.sh                      # Main Run Script
-├── test.sh                     # Test Runner Script
-└── pom.xml                     # Maven Project Configuration
+│   ├── application.properties  # API configuration
+│   └── db/migration/           # SQL Migration Scripts
+├── web-app/                    # React web frontend
+│   ├── src/pages/              # 14 page components
+│   ├── src/components/         # Reusable UI components
+│   ├── src/services/           # API service layer
+│   └── package.json
+├── docs/
+│   ├── API.md                  # REST API documentation
+│   └── testing-checklist.md
+├── build.sh                    # Build desktop app
+├── run.sh                      # Run JavaFX desktop app
+├── run-api.sh                  # Run REST API server
+├── deploy-frontend.sh          # Build React app
+└── pom.xml                     # Maven configuration
 ```
 
 ---
 
 ## 💻 Technology Stack
 
-- **Language**: Java 17
+### Desktop Application
+- **Language**: Java 17+
 - **UI Framework**: JavaFX + AtlantaFX (Theme) + Custom CSS (Glassmorphism)
-- **Database**: MySQL 8.0 (JDBC)
+- **Database**: PostgreSQL (JDBC + HikariCP)
 - **Testing**: JUnit 5, Mockito
-- **Build**: Custom Bash Scripts + Maven (for dependency resolution)
+- **Build**: Maven
+
+### Web Application
+- **Frontend**: React 18 (JavaScript), React Router v6, Axios
+- **Styling**: CSS3 with AtlantaFX-inspired variables
+- **API**: Native Java HTTP server (com.sun.net.httpserver)
+- **Auth**: Bearer token sessions (in-memory store)
+
+### Shared
 - **CI/CD**: GitHub Actions
+- **Build**: Maven + Bash scripts
 
 ---
 

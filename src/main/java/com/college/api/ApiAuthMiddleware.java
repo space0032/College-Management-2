@@ -5,18 +5,19 @@ import java.io.IOException;
 
 public class ApiAuthMiddleware {
 
-    // Simple API Key for demonstration. In prod, use real JWT/OAuth
-    private static final String API_KEY = "Bearer college-erp-secret-key";
-
     public static boolean isAuthenticated(HttpExchange t) {
         String authHeader = t.getRequestHeaders().getFirst("Authorization");
-        return authHeader != null && authHeader.equals(API_KEY);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) return false;
+        return TokenStore.getTokenInfo(authHeader.substring(7)) != null;
     }
 
     public static void sendUnauthorized(HttpExchange t) throws IOException {
-        String resp = "{\"error\": \"Unauthorized - Invalid API Key\"}";
-        t.sendResponseHeaders(401, resp.length());
-        t.getResponseBody().write(resp.getBytes());
+        String resp = "{\"error\": \"Unauthorized - Invalid or expired token\"}";
+        t.getResponseHeaders().set("Content-Type", "application/json");
+        t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        byte[] bytes = resp.getBytes();
+        t.sendResponseHeaders(401, bytes.length);
+        t.getResponseBody().write(bytes);
         t.getResponseBody().close();
     }
 }

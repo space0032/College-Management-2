@@ -10,15 +10,29 @@ import java.net.InetSocketAddress;
 public class ApiServer {
 
     public static void main(String[] args) throws IOException {
-        // Create server on port 7000
         HttpServer server = HttpServer.create(new InetSocketAddress(7000), 0);
 
-        // Define routes (Protected)
-        server.createContext("/", new RootHandler()); // Public
-        server.createContext("/students", new ProtectedHandler(new StudentController()));
-        server.createContext("/fees", new ProtectedHandler(new FeeController()));
+        // Public endpoints
+        server.createContext("/", new RootHandler());
+        server.createContext("/api/auth/", new AuthController());
 
-        server.setExecutor(null); // default executor
+        // Protected endpoints
+        server.createContext("/api/students", new ProtectedHandler(new StudentController()));
+        server.createContext("/api/fees", new ProtectedHandler(new FeeController()));
+        server.createContext("/api/faculty", new ProtectedHandler(new FacultyController()));
+        server.createContext("/api/courses", new ProtectedHandler(new CourseController()));
+        server.createContext("/api/attendance", new ProtectedHandler(new AttendanceController()));
+        server.createContext("/api/library", new ProtectedHandler(new LibraryController()));
+        server.createContext("/api/timetable", new ProtectedHandler(new TimetableController()));
+        server.createContext("/api/placements", new ProtectedHandler(new PlacementController()));
+        server.createContext("/api/hostels", new ProtectedHandler(new HostelController()));
+        server.createContext("/api/announcements", new ProtectedHandler(new AnnouncementController()));
+        server.createContext("/api/notifications", new ProtectedHandler(new NotificationController()));
+        server.createContext("/api/departments", new ProtectedHandler(new DepartmentController()));
+        server.createContext("/api/roles", new ProtectedHandler(new RoleController()));
+        server.createContext("/api/users", new ProtectedHandler(new UserController()));
+
+        server.setExecutor(null);
         server.start();
         System.out.println("API Server started on port 7000");
     }
@@ -26,8 +40,18 @@ public class ApiServer {
     static class RootHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            // Public endpoint check
-            String response = "College Management API (Native) is Running. Use /students, /fees endpoints.";
+            // Handle CORS preflight for root
+            if ("OPTIONS".equals(t.getRequestMethod())) {
+                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                t.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                t.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                t.sendResponseHeaders(204, -1);
+                t.getResponseBody().close();
+                return;
+            }
+            String response = "{\"status\":\"College Management API is running\",\"version\":\"2.0\"}";
+            t.getResponseHeaders().set("Content-Type", "application/json");
+            t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
@@ -35,7 +59,6 @@ public class ApiServer {
         }
     }
 
-    // Wrapper to enforce Auth on other handlers
     static class ProtectedHandler implements HttpHandler {
         private final HttpHandler delegate;
 
@@ -45,8 +68,37 @@ public class ApiServer {
 
         @Override
         public void handle(HttpExchange t) throws IOException {
-            if (!ApiAuthMiddleware.isAuthenticated(t)) {
-                ApiAuthMiddleware.sendUnauthorized(t);
+            // Handle CORS preflight
+            if ("OPTIONS".equals(t.getRequestMethod())) {
+                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                t.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                t.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                t.sendResponseHeaders(204, -1);
+                t.getResponseBody().close();
+                return;
+            }
+
+            String auth = t.getRequestHeaders().getFirst("Authorization");
+            if (auth == null || !auth.startsWith("Bearer ")) {
+                String resp = "{\"error\":\"Unauthorized - Token required\"}";
+                t.getResponseHeaders().set("Content-Type", "application/json");
+                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                byte[] bytes = resp.getBytes();
+                t.sendResponseHeaders(401, bytes.length);
+                t.getResponseBody().write(bytes);
+                t.getResponseBody().close();
+                return;
+            }
+
+            TokenStore.TokenInfo info = TokenStore.getTokenInfo(auth.substring(7));
+            if (info == null) {
+                String resp = "{\"error\":\"Unauthorized - Invalid or expired token\"}";
+                t.getResponseHeaders().set("Content-Type", "application/json");
+                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                byte[] bytes = resp.getBytes();
+                t.sendResponseHeaders(401, bytes.length);
+                t.getResponseBody().write(bytes);
+                t.getResponseBody().close();
                 return;
             }
             delegate.handle(t);
