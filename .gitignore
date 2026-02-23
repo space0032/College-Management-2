@@ -45,3 +45,14 @@ temp/
 # Secrets
 .env
 env
+
+# React / Node
+web-app/node_modules/
+web-app/build/
+web-app/.env
+web-app/.env.local
+web-app/.env.development.local
+web-app/.env.test.local
+web-app/.env.production.local
+web-app/npm-debug.log*
+web-app/yarn-error.log
