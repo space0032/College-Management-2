@@ -18,6 +18,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/departments', label: 'Departments', icon: '🏛️' },
       { to: '/dashboard/attendance', label: 'Attendance', icon: '📋' },
       { to: '/dashboard/timetable', label: 'Timetable', icon: '🗓️' },
+      { to: '/dashboard/grades', label: 'Grades', icon: 'A+' },
     ],
   },
   {
@@ -27,6 +28,8 @@ const NAV_SECTIONS = [
       { to: '/dashboard/fees', label: 'Fees', icon: '💰' },
       { to: '/dashboard/hostel', label: 'Hostel', icon: '🏠' },
       { to: '/dashboard/placements', label: 'Placements', icon: '💼' },
+      { to: '/dashboard/clubs', label: 'Clubs', icon: '🎭' },
+      { to: '/dashboard/events', label: 'Events', icon: '🎟️' },
     ],
   },
   {

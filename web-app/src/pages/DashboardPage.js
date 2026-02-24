@@ -12,6 +12,9 @@ import FeesPage from './FeesPage';
 import TimetablePage from './TimetablePage';
 import PlacementPage from './PlacementPage';
 import HostelPage from './HostelPage';
+import ClubsPage from './ClubsPage';
+import EventsPage from './EventsPage';
+import GradesPage from './GradesPage';
 import AnnouncementPage from './AnnouncementPage';
 import NotificationPage from './NotificationPage';
 import DepartmentPage from './DepartmentPage';
@@ -36,6 +39,9 @@ const DashboardPage = () => {
             <Route path="timetable" element={<TimetablePage />} />
             <Route path="placements" element={<PlacementPage />} />
             <Route path="hostel" element={<HostelPage />} />
+            <Route path="clubs" element={<ClubsPage />} />
+            <Route path="events" element={<EventsPage />} />
+            <Route path="grades" element={<GradesPage />} />
             <Route path="announcements" element={<AnnouncementPage />} />
             <Route path="notifications" element={<NotificationPage />} />
             <Route path="departments" element={<DepartmentPage />} />

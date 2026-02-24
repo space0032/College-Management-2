@@ -83,6 +83,49 @@ public class SeedJava {
                                                         + ", 'Software Engineer', 10.0, 'SDE Role', '2026-12-31', '2026-11-30', 'B.Tech') ON CONFLICT DO NOTHING");
 
                         System.out.println("Seeded Placement Data");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO clubs (name, description, category, member_count, status) " +
+                                                        "VALUES ('Coding Club', 'For programming enthusiasts', 'Technical', 0, 'ACTIVE') ON CONFLICT DO NOTHING");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO clubs (name, description, category, member_count, status) " +
+                                                        "VALUES ('Drama Club', 'Theatrical acts and plays', 'Cultural', 0, 'ACTIVE') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Clubs Data");
+
+                        // Seed Events
+                        stmt.executeUpdate(
+                                        "INSERT INTO events (name, description, event_type, location, start_time, end_time, max_participants, registration_deadline, created_by, status) "
+                                                        +
+                                                        "VALUES ('Tech Symposium', 'Annual technology conference', 'SEMINAR', 'Main Auditorium', '2026-03-15 09:00:00', '2026-03-15 17:00:00', 500, '2026-03-10 23:59:59', 1, 'UPCOMING') ON CONFLICT DO NOTHING");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO events (name, description, event_type, location, start_time, end_time, max_participants, registration_deadline, created_by, status) "
+                                                        +
+                                                        "VALUES ('Hackathon 2026', '24-hour coding challenge', 'WORKSHOP', 'Lab 1 & 2', '2026-04-20 10:00:00', '2026-04-21 10:00:00', 100, '2026-04-15 23:59:59', 1, 'UPCOMING') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Events Data");
+
+                        // Seed Grades
+                        com.college.dao.GradeDAO gradeDAO = new com.college.dao.GradeDAO();
+                        com.college.models.Grade grade1 = new com.college.models.Grade();
+                        grade1.setStudentId(1);
+                        grade1.setCourseId(cId);
+                        grade1.setExamType("MID TERM");
+                        grade1.setMarksObtained(85.5);
+                        grade1.setGrade("A");
+                        gradeDAO.saveGrade(grade1);
+
+                        com.college.models.Grade grade2 = new com.college.models.Grade();
+                        grade2.setStudentId(2);
+                        grade2.setCourseId(cId);
+                        grade2.setExamType("MID TERM");
+                        grade2.setMarksObtained(75.0);
+                        grade2.setGrade("B");
+                        gradeDAO.saveGrade(grade2);
+
+                        System.out.println("Seeded Grades Data");
                 }
         }
 }
