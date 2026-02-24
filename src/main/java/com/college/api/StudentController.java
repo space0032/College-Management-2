@@ -6,17 +6,19 @@ import com.college.dao.StudentDAO;
 import com.college.models.Student;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class StudentController implements HttpHandler {
+public class StudentController extends BaseController implements HttpHandler {
 
     private final StudentDAO studentDAO = new StudentDAO();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
+        if (handleOptions(t))
+            return;
+
         String method = t.getRequestMethod();
         String path = t.getRequestURI().getPath();
 
@@ -108,14 +110,5 @@ public class StudentController implements HttpHandler {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
         }
-    }
-
-    private void sendResponse(HttpExchange t, int statusCode, String response) throws IOException {
-        t.getResponseHeaders().set("Content-Type", "application/json");
-        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
-        t.sendResponseHeaders(statusCode, bytes.length);
-        OutputStream os = t.getResponseBody();
-        os.write(bytes);
-        os.close();
     }
 }

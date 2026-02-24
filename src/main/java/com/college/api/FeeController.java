@@ -5,40 +5,57 @@ import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.EnhancedFeeDAO;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 
-public class FeeController implements HttpHandler {
+public class FeeController extends BaseController implements HttpHandler {
 
     private final EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
-        if ("GET".equals(t.getRequestMethod())) {
-            String path = t.getRequestURI().getPath();
-            // Expected /fees/pending
-            if (path.endsWith("/pending")) {
-                try {
-                    var fees = feeDAO.getPendingFees();
-                    String json = JsonHelper.toJson(fees);
-                    sendResponse(t, 200, json);
-                } catch (Exception e) {
-                    sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
+        if (handleOptions(t))
+            return;
+
+        String method = t.getRequestMethod();
+        String path = t.getRequestURI().getPath();
+
+        try {
+            if ("GET".equals(method)) {
+                if (path.endsWith("/pending")) {
+                    sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPendingFees()));
+                } else if (path.equals("/api/fees")) {
+                    sendResponse(t, 200, JsonHelper.toJson(feeDAO.getAllFees()));
+                } else if (path.matches(".*/fees/history/\\d+")) {
+                    int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+                    sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPaymentHistory(id)));
+                } else {
+                    sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
+                }
+            } else if ("POST".equals(method)) {
+                if (path.endsWith("/pay")) {
+                    String body = readBody(t);
+                    com.college.models.FeePayment payment = new com.google.gson.Gson().fromJson(body,
+                            com.college.models.FeePayment.class);
+                    if (payment == null || payment.getAmount() <= 0) {
+                        sendResponse(t, 400, "{\"error\":\"Invalid payment data\"}");
+                        return;
+                    }
+                    if (payment.getPaymentDate() == null) {
+                        payment.setPaymentDate(new java.util.Date());
+                    }
+                    boolean ok = feeDAO.recordPayment(payment);
+                    if (ok) {
+                        sendResponse(t, 200, "{\"status\":\"Payment recorded successfully\"}");
+                    } else {
+                        sendResponse(t, 400, "{\"error\":\"Failed to record payment\"}");
+                    }
+                } else {
+                    sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
                 }
             } else {
-                sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
+                sendResponse(t, 405, "Method Not Allowed");
             }
-        } else {
-            sendResponse(t, 405, "Method Not Allowed");
+        } catch (Exception e) {
+            sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
         }
-    }
-
-    private void sendResponse(HttpExchange t, int statusCode, String response) throws IOException {
-        t.getResponseHeaders().set("Content-Type", "application/json");
-        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
-        t.sendResponseHeaders(statusCode, bytes.length);
-        OutputStream os = t.getResponseBody();
-        os.write(bytes);
-        os.close();
     }
 }

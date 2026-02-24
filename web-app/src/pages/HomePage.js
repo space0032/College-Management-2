@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { getAnnouncements } from '../services/announcementService';
 
-const STATS = [
-  { icon: '🎓', label: 'Total Students', value: '—', color: '#0366d6' },
-  { icon: '👩‍🏫', label: 'Total Faculty', value: '—', color: '#28a745' },
-  { icon: '📚', label: 'Active Courses', value: '—', color: '#e36209' },
-  { icon: '🏛️', label: 'Departments', value: '—', color: '#6f42c1' },
+const STATS_CONFIG = [
+  { key: 'totalStudents', icon: '🎓', label: 'Total Students', color: '#0366d6' },
+  { key: 'totalFaculty', icon: '👩‍🏫', label: 'Total Faculty', color: '#28a745' },
+  { key: 'activeCourses', icon: '📚', label: 'Active Courses', color: '#e36209' },
+  { key: 'departments', icon: '🏛️', label: 'Departments', color: '#6f42c1' },
 ];
 
 const HomePage = () => {
   const [announcements, setAnnouncements] = useState([]);
+  const [stats, setStats] = useState({ totalStudents: '—', totalFaculty: '—', activeCourses: '—', departments: '—' });
   const [loading, setLoading] = useState(true);
   const user = (() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
   })();
 
   useEffect(() => {
+    import('../services/dashboardService').then(({ getDashboardStats }) => {
+      getDashboardStats()
+        .then(res => setStats(res.data || {}))
+        .catch(err => console.error('Failed to load stats', err));
+    }).catch(err => console.error('Failed to load dashboard service', err));
+
     getAnnouncements()
       .then((res) => setAnnouncements(res.data?.slice(0, 5) || []))
       .catch(() => setAnnouncements([]))
@@ -30,10 +37,12 @@ const HomePage = () => {
       </div>
 
       <div className="stats-grid">
-        {STATS.map((stat) => (
+        {STATS_CONFIG.map((stat) => (
           <div className="stat-card" key={stat.label}>
             <div className="stat-card-icon">{stat.icon}</div>
-            <div className="stat-card-value" style={{ color: stat.color }}>{stat.value}</div>
+            <div className="stat-card-value" style={{ color: stat.color }}>
+              {stats[stat.key] !== undefined ? stats[stat.key] : '—'}
+            </div>
             <div className="stat-card-label">{stat.label}</div>
           </div>
         ))}

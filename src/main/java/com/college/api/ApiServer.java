@@ -31,6 +31,7 @@ public class ApiServer {
         server.createContext("/api/departments", new ProtectedHandler(new DepartmentController()));
         server.createContext("/api/roles", new ProtectedHandler(new RoleController()));
         server.createContext("/api/users", new ProtectedHandler(new UserController()));
+        server.createContext("/api/dashboard/stats", new ProtectedHandler(new DashboardController()));
 
         server.setExecutor(null);
         server.start();

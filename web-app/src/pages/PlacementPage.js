@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getDrives, addDrive, deleteDrive, getCompanies, addCompany, deleteCompany } from '../services/placementService';
+import { getDrives, addDrive, deleteDrive, getCompanies, addCompany, deleteCompany, getApplicationsForStudent, getApplicationsForDrive, applyForDrive, updateAppStatus } from '../services/placementService';
 
 const COMPANY_COLS = [
   { key: 'id', label: 'ID' },
@@ -17,6 +17,13 @@ const DRIVE_COLS = [
   { key: 'date', label: 'Date' },
   { key: 'ctc', label: 'CTC' },
   { key: 'eligibility', label: 'Eligibility' },
+  { key: 'hasApplied', label: 'Status', render: (_, d) => d.hasApplied ? <span className="badge badge-success">Applied</span> : <span className="badge badge-secondary">Not Applied</span> }
+];
+
+const APPLICATION_COLS = [
+  { key: 'id', label: 'App ID' },
+  { key: 'studentName', label: 'Student' },
+  { key: 'status', label: 'Status', render: (v) => <span className={`badge badge-${v === 'OFFERED' ? 'success' : v === 'REJECTED' ? 'danger' : 'primary'}`}>{v}</span> },
 ];
 
 const EMPTY_COMPANY = { name: '', industry: '', website: '' };
@@ -26,9 +33,12 @@ const PlacementPage = () => {
   const [tab, setTab] = useState('companies');
   const [companies, setCompanies] = useState([]);
   const [drives, setDrives] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [selectedDrive, setSelectedDrive] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewAppsModal, setViewAppsModal] = useState(false);
   const [companyForm, setCompanyForm] = useState(EMPTY_COMPANY);
   const [driveForm, setDriveForm] = useState(EMPTY_DRIVE);
   const [formError, setFormError] = useState('');
@@ -36,8 +46,17 @@ const PlacementPage = () => {
 
   const fetchAll = () => {
     setLoading(true);
-    Promise.all([getCompanies(), getDrives()])
-      .then(([c, d]) => { setCompanies(c.data || []); setDrives(d.data || []); })
+    Promise.all([getCompanies(), getDrives(), getApplicationsForStudent(2)]) // Assuming student ID 2 for demo purposes, representing the current user
+      .then(([c, d, a]) => {
+        setCompanies(c.data || []);
+        const apps = a.data || [];
+        // Map hasApplied boolean to drives
+        const mappedDrives = (d.data || []).map(drive => ({
+          ...drive,
+          hasApplied: apps.some(app => app.driveId === drive.id)
+        }));
+        setDrives(mappedDrives);
+      })
       .catch(() => setError('Failed to load placement data.'))
       .finally(() => setLoading(false));
   };
@@ -84,6 +103,50 @@ const PlacementPage = () => {
     try { await deleteDrive(row.id); fetchAll(); } catch { setError('Failed to delete drive.'); }
   };
 
+  const handleApply = async (drive) => {
+    if (!window.confirm(`Apply for ${drive.role} at ${drive.companyName}?`)) return;
+    try {
+      await applyForDrive({ driveId: drive.id, studentId: 2 });
+      fetchAll();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to apply.');
+    }
+  };
+
+  const loadApplicationsForDrive = async (drive) => {
+    setSelectedDrive(drive);
+    setViewAppsModal(true);
+    try {
+      const res = await getApplicationsForDrive(drive.id);
+      setApplications(res.data || []);
+    } catch {
+      setApplications([]);
+    }
+  };
+
+  const handleUpdateStatus = async (appId, newStatus) => {
+    try {
+      await updateAppStatus(appId, newStatus);
+      // reload apps
+      const res = await getApplicationsForDrive(selectedDrive.id);
+      setApplications(res.data || []);
+    } catch (err) {
+      alert('Failed to update status');
+    }
+  };
+
+  const extendedDriveCols = [
+    ...DRIVE_COLS,
+    {
+      key: 'actions', label: 'Actions', render: (_, drive) => (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {!drive.hasApplied && <button className="btn btn-sm btn-primary" onClick={() => handleApply(drive)}>Apply</button>}
+          <button className="btn btn-sm btn-secondary" onClick={() => loadApplicationsForDrive(drive)}>View Apps</button>
+        </div>
+      )
+    }
+  ];
+
   const openModal = () => { setFormError(''); setModalOpen(true); };
 
   return (
@@ -105,7 +168,7 @@ const PlacementPage = () => {
       ) : tab === 'companies' ? (
         <DataTable columns={COMPANY_COLS} data={companies} onDelete={handleDeleteCompany} emptyMessage="No companies added yet." />
       ) : (
-        <DataTable columns={DRIVE_COLS} data={drives} onDelete={handleDeleteDrive} emptyMessage="No placement drives added yet." />
+        <DataTable columns={extendedDriveCols} data={drives} onDelete={handleDeleteDrive} emptyMessage="No placement drives added yet." />
       )}
 
       <Modal
@@ -134,6 +197,31 @@ const PlacementPage = () => {
               </div>
             ))}
           </>
+        )}
+      </Modal>
+
+      <Modal isOpen={viewAppsModal} title={`Applications: ${selectedDrive?.role} at ${selectedDrive?.companyName}`} onClose={() => setViewAppsModal(false)}>
+        {applications.length === 0 ? <p>No applications yet.</p> : (
+          <DataTable
+            columns={[
+              ...APPLICATION_COLS,
+              {
+                key: 'update', label: 'Update Status', render: (_, app) => (
+                  <select
+                    className="form-control"
+                    style={{ width: '120px', padding: '4px' }}
+                    value={app.status}
+                    onChange={(e) => handleUpdateStatus(app.id, e.target.value)}>
+                    <option value="APPLIED">Applied</option>
+                    <option value="INTERVIEWING">Interviewing</option>
+                    <option value="OFFERED">Offered</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                )
+              }
+            ]}
+            data={applications}
+          />
         )}
       </Modal>
     </div>

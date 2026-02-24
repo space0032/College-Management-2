@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getAttendance, markAttendance, bulkMarkAttendance } from '../services/attendanceService';
+import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -23,6 +23,7 @@ const AttendancePage = () => {
   const [bulkForm, setBulkForm] = useState({ courseId: '', date: '', status: 'PRESENT' });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [stats, setStats] = useState(null);
 
   const handleFetch = async () => {
     if (!filterCourse || !filterDate) { setError('Please enter both Course ID and Date.'); return; }
@@ -31,6 +32,13 @@ const AttendancePage = () => {
     try {
       const res = await getAttendance(filterCourse, filterDate);
       setRecords(res.data || []);
+      try {
+        const statsRes = await getCourseStats(filterCourse);
+        setStats(statsRes.data.stats || []);
+      } catch (err) {
+        console.error("Failed to fetch stats", err);
+        setStats(null);
+      }
     } catch {
       setError('Failed to fetch attendance records.');
     } finally {
@@ -106,6 +114,42 @@ const AttendancePage = () => {
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+      {stats && stats.length > 0 && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <h3>📊 Attendance Analytics</h3>
+          </div>
+          <div className="card-body">
+            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+              {stats.map(s => (
+                <div key={s.studentId} style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  padding: 12,
+                  minWidth: 150,
+                  backgroundColor: s.isLow ? '#fff1f0' : 'var(--surface)',
+                  borderColor: s.isLow ? '#ffa39e' : 'var(--border)'
+                }}>
+                  <div style={{ fontWeight: 600 }}>{s.studentName}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    ID: {s.studentId}
+                  </div>
+                  <div style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    color: s.isLow ? '#cf1322' : 'var(--primary)',
+                    marginTop: 8
+                  }}>
+                    {s.percentage.toFixed(1)}%
+                  </div>
+                  {s.isLow && <div style={{ fontSize: '0.75rem', color: '#cf1322', marginTop: 4, fontWeight: 500 }}>⚠️ Low Attendance</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading attendance…</span></div>

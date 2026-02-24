@@ -32,6 +32,9 @@ public class JsonHelper {
         if (obj instanceof java.util.Date) {
             return "\"" + obj.toString() + "\"";
         }
+        if (obj instanceof java.time.LocalDate || obj instanceof java.time.LocalDateTime) {
+            return "\"" + obj.toString() + "\"";
+        }
         // Object serialization (Refection)
         StringBuilder sb = new StringBuilder("{");
         Field[] fields = obj.getClass().getDeclaredFields();
@@ -96,6 +99,14 @@ public class JsonHelper {
                 field.set(obj, Double.parseDouble(valueVal));
             } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                 field.set(obj, Boolean.parseBoolean(valueVal));
+            } else if (field.getType() == java.time.LocalDate.class) {
+                if (valueVal.startsWith("\"") && valueVal.endsWith("\""))
+                    valueVal = valueVal.substring(1, valueVal.length() - 1);
+                field.set(obj, java.time.LocalDate.parse(valueVal));
+            } else if (field.getType() == java.time.LocalDateTime.class) {
+                if (valueVal.startsWith("\"") && valueVal.endsWith("\""))
+                    valueVal = valueVal.substring(1, valueVal.length() - 1);
+                field.set(obj, java.time.LocalDateTime.parse(valueVal.replace(" ", "T")));
             }
             // Add date handling if needed (rudimentary)
         } catch (Exception e) {
