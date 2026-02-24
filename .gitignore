@@ -56,3 +56,5 @@ web-app/.env.test.local
 web-app/.env.production.local
 web-app/npm-debug.log*
 web-app/yarn-error.log
+.zip
+maven.zip
