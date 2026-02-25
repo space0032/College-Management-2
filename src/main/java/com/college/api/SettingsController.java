@@ -36,7 +36,7 @@ public class SettingsController extends BaseController implements HttpHandler {
         // Return a predefined set of settings, or everything if we query the DB
         // For simplicity, we just fetch known keys
         String[] keys = {
-            "college_name", "college_logo_url", "google_drive_folder_id", "timezone", "default_theme"
+            "college_name", "college_logo_url", "dropbox_api_key", "timezone", "default_theme"
         };
         
         Map<String, String> settings = new HashMap<>();

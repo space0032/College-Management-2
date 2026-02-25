@@ -58,3 +58,4 @@ web-app/npm-debug.log*
 web-app/yarn-error.log
 .zip
 maven.zip
+credentials.json

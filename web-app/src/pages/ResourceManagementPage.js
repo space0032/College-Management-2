@@ -225,7 +225,7 @@ const ResourceManagementPage = () => {
                             </div>
 
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>External File URL (S3, GDrive, OneDrive)</label>
+                                <label>External File URL (S3, Dropbox, GDrive)</label>
                                 <input required type="url" name="filePath" value={formData.filePath} onChange={handleInputChange} placeholder="https://..." />
                             </div>
 

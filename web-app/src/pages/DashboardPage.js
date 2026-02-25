@@ -27,6 +27,9 @@ import SettingsPage from './SettingsPage';
 import ResourceManagementPage from './ResourceManagementPage';
 import EmployeeManagementPage from './EmployeeManagementPage';
 import LeaveApprovalPage from './LeaveApprovalPage';
+import RoomAvailabilityPage from './RoomAvailabilityPage';
+import FacultyWorkloadPage from './FacultyWorkloadPage';
+import StudentActivitiesPage from './StudentActivitiesPage';
 import AnnouncementPage from './AnnouncementPage';
 import NotificationPage from './NotificationPage';
 import DepartmentPage from './DepartmentPage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps DepartmentPage.
@@ -68,6 +71,9 @@ const DashboardPage = () => {
             <Route path="management" element={<InstituteManagementPage />} />
             <Route path="employees" element={<EmployeeManagementPage />} />
             <Route path="leaves" element={<LeaveApprovalPage />} />
+            <Route path="rooms" element={<RoomAvailabilityPage />} />
+            <Route path="workload" element={<FacultyWorkloadPage />} />
+            <Route path="activities" element={<StudentActivitiesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="resources" element={<ResourceManagementPage />} />
             <Route path="*" element={<NotFoundPage />} />

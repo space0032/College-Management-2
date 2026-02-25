@@ -16,6 +16,7 @@ const Sidebar = () => {
       { to: '/dashboard/departments', label: 'Departments', icon: '🏛️' },
       { to: '/dashboard/attendance', label: 'Attendance', icon: '📋' },
       { to: '/dashboard/timetable', label: 'Timetable', icon: '🗓️' },
+      { to: '/dashboard/rooms', label: 'Room Availability', icon: '🚪' },
       { to: '/dashboard/grades', label: 'Grades', icon: 'A+' },
       { to: '/dashboard/assignments', label: 'Assignments', icon: '📝' },
       { to: '/dashboard/resources', label: 'Resources', icon: '📚' },
@@ -43,13 +44,15 @@ const Sidebar = () => {
       { to: '/dashboard/management', label: 'Institute Mgmt', icon: '🏛️' },
       { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼' },
       { to: '/dashboard/leaves', label: 'Leave Approvals', icon: '📅' },
+      { to: '/dashboard/workload', label: 'Faculty Workload', icon: '👨‍🏫' },
       { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
       { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
     ];
   } else if (userRole === 'FACULTY' || userRole === 'STUDENT') {
-    navSections['My Requests'] = [
-      { to: '/dashboard/gatepass', label: 'Gate Pass', icon: '🎟️' },
-      { to: '/dashboard/leaves', label: 'Leave Requests', icon: '📅' },
+    navSections['Campus Life'] = [
+      { to: '/dashboard/activities', label: 'Activities Hub', icon: '🎯' },
+      { to: '/dashboard/events', label: 'Events', icon: '🎪' },
+      { to: '/dashboard/clubs', label: 'Clubs & Societies', icon: '👥' },
     ];
   }
 

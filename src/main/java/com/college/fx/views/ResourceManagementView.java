@@ -446,14 +446,14 @@ public class ResourceManagementView {
         if (path.startsWith("http") || path.startsWith("www")) {
             showInAppViewer(r.getTitle(), path, "web");
         } else {
-            // It's a file (Local or Cloud)
+            // It's a file (Local or Dropbox)
             try {
                 // Determine type
                 String type = r.getFileType() != null ? r.getFileType().toLowerCase() : "";
                 if (type.equals("jpg") || type.equals("png") || type.equals("jpeg") || type.equals("gif")) {
                     // Images can be loaded directly from URL (if dropbox link is direct) or local
                     // path
-                    // For Cloud, we'd need a direct link. For now, let's download to temp.
+                    // For Dropbox, we'd need a direct link. For now, let's download to temp.
                     downloadAndShow(r, "image");
                 } else if (type.equals("txt") || type.equals("md") || type.equals("csv")) {
                     downloadAndShow(r, "text");
