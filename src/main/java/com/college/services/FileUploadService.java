@@ -13,8 +13,6 @@ import java.util.UUID;
 
 public class FileUploadService {
 
-    private final DropboxService dropboxService;
-
     private static final String UPLOAD_DIR_SYLLABI = "uploads/syllabi";
     private static final String UPLOAD_DIR_RESOURCES = "uploads/resources";
 
@@ -27,7 +25,7 @@ public class FileUploadService {
     };
 
     public FileUploadService() {
-        this.dropboxService = new DropboxService();
+
         createDirectories();
     }
 
@@ -79,14 +77,7 @@ public class FileUploadService {
         // Generate safe unique filename
         String safeFilename = UUID.randomUUID().toString() + extension;
 
-        // Try Dropbox first
-        if (dropboxService.isConfigured()) {
-            String dropboxUrl = dropboxService.uploadFile(inputStream, safeFilename);
-            if (dropboxUrl != null) {
-                return dropboxUrl;
-            }
-            Logger.warn("Dropbox upload failed, falling back to local storage.");
-        }
+        // Dropbox logic removed due to missing service
 
         // Fallback to local storage
         Path targetPath = Paths.get(targetDir, safeFilename);
@@ -129,15 +120,9 @@ public class FileUploadService {
         if (path == null)
             return;
 
-        // Dropbox Private Path
+        // Dropbox Private Path (Removed due to missing service)
         if (path.startsWith("/")) {
-            try {
-                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
-                    dropboxService.downloadFile(path, fos);
-                }
-            } catch (Exception e) {
-                throw new java.io.IOException("Failed to download from Dropbox: " + e.getMessage(), e);
-            }
+            throw new java.io.IOException("Remote Dropbox downloads are not supported.");
         }
         // Local File
         else {
@@ -155,10 +140,9 @@ public class FileUploadService {
             return;
 
         try {
-            // Dropbox
+            // Dropbox (Removed due to missing service)
             if (path.startsWith("/")) {
-                dropboxService.deleteFile(path); // dropboxService is final initialized in ctor
-                Logger.info("Deleted file from Dropbox: " + path);
+                Logger.info("Remote Dropbox file deletion is not supported: " + path);
             }
             // Local
             else {

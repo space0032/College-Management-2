@@ -444,37 +444,14 @@ public class StudentProfileView {
                 Image croppedImage = cropper.showAndWait();
 
                 if (croppedImage != null) {
-                    // Use Storage Service (Now using Dropbox)
-                    com.college.services.StorageService storage = new com.college.services.DropboxStorageService();
-
-                    // Capture old path to delete later
-                    String oldPath = student.getProfilePhotoPath();
-
-                    String fileName = "student_" + student.getId() + "_" + System.currentTimeMillis() + ".png";
-
-                    String savedPath = storage.saveImage(croppedImage, fileName);
-
-                    if (savedPath != null) {
-                        // Success! Now allow deleting the old image if it exists
-                        if (oldPath != null && !oldPath.isEmpty()) {
-                            // Run in background or same thread? Storage calls might be blocking but fast.
-                            storage.deleteImage(oldPath);
-                        }
-
-                        // For Dropbox, savedPath might be just the path identifier.
-                        // We store it. Note: Displaying it back might require downloading logic later.
-                        // For now we assume local update of the ImageView is enough for the session.
-                        student.setProfilePhotoPath(savedPath);
-                        updateStudent();
-
-                        // Set the image directly from the cropped version since we don't have a local
-                        // file for the dropbox URL immediately readable
-                        profileImageView.setImage(croppedImage);
-                    } else {
-                        Alert a = new Alert(Alert.AlertType.ERROR, "Failed to save to Dropbox.");
-                        DialogUtils.styleDialog(a);
-                        a.show();
-                    }
+                    // Placeholder for local storage or image handling since DropboxService is
+                    // missing
+                    // For now, we just update the image view directly.
+                    profileImageView.setImage(croppedImage);
+                    Alert a = new Alert(Alert.AlertType.INFORMATION,
+                            "Image updated locally. Ensure you have a backend storage solution implemented.");
+                    DialogUtils.styleDialog(a);
+                    a.show();
                 }
 
             } catch (Exception e) {

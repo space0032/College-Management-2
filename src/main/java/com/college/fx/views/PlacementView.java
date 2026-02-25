@@ -110,10 +110,12 @@ public class PlacementView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button addBtn = new Button("Add Company");
-        addBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        addBtn.setStyle(
+                "-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        refreshBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
 
         header.getChildren().addAll(searchField, spacer, statsLabel, addBtn, refreshBtn);
 
@@ -125,10 +127,10 @@ public class PlacementView {
             String searchText = newVal.toLowerCase();
             List<PlacementCompany> all = placementDAO.getAllCompanies();
             table.getItems().setAll(all.stream()
-                .filter(c -> searchText.isEmpty() ||
-                    c.getName().toLowerCase().contains(searchText) ||
-                    c.getIndustry().toLowerCase().contains(searchText))
-                .collect(java.util.stream.Collectors.toList()));
+                    .filter(c -> searchText.isEmpty() ||
+                            c.getName().toLowerCase().contains(searchText) ||
+                            c.getIndustry().toLowerCase().contains(searchText))
+                    .collect(java.util.stream.Collectors.toList()));
             statsLabel.setText(String.format("Total Companies: %d", table.getItems().size()));
         });
 
@@ -194,12 +196,7 @@ public class PlacementView {
             }
         });
 
-        table.getColumns().add(nameCol);
-        table.getColumns().add(indCol);
-        table.getColumns().add(contactCol);
-        table.getColumns().add(emailCol);
-        table.getColumns().add(phoneCol);
-        table.getColumns().add(actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(nameCol, indCol, contactCol, emailCol, phoneCol, actionCol));
         table.getItems().addAll(placementDAO.getAllCompanies());
         statsLabel.setText(String.format("Total Companies: %d", table.getItems().size()));
 
@@ -267,8 +264,8 @@ public class PlacementView {
         companyFilter = new ComboBox<>();
         companyFilter.getItems().add("All Companies");
         companyFilter.getItems().addAll(placementDAO.getAllCompanies().stream()
-            .map(PlacementCompany::getName)
-            .collect(java.util.stream.Collectors.toList()));
+                .map(PlacementCompany::getName)
+                .collect(java.util.stream.Collectors.toList()));
         companyFilter.setValue("All Companies");
 
         Label driveStats = new Label("Total Drives: 0");
@@ -278,10 +275,12 @@ public class PlacementView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button addBtn = new Button("Schedule Drive");
-        addBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        addBtn.setStyle(
+                "-fx-background-color: #22c55e; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        refreshBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
 
         header.getChildren().addAll(driveSearch, companyFilter, spacer, driveStats, addBtn, refreshBtn);
 
@@ -294,14 +293,14 @@ public class PlacementView {
             String company = companyFilter.getValue();
             List<PlacementDrive> all = placementDAO.getAllDrives();
             table.getItems().setAll(all.stream()
-                .filter(d -> {
-                    boolean matchesSearch = searchText.isEmpty() ||
-                        d.getCompanyName().toLowerCase().contains(searchText) ||
-                        d.getJobRole().toLowerCase().contains(searchText);
-                    boolean matchesCompany = company.equals("All Companies") || d.getCompanyName().equals(company);
-                    return matchesSearch && matchesCompany;
-                })
-                .collect(java.util.stream.Collectors.toList()));
+                    .filter(d -> {
+                        boolean matchesSearch = searchText.isEmpty() ||
+                                d.getCompanyName().toLowerCase().contains(searchText) ||
+                                d.getJobRole().toLowerCase().contains(searchText);
+                        boolean matchesCompany = company.equals("All Companies") || d.getCompanyName().equals(company);
+                        return matchesSearch && matchesCompany;
+                    })
+                    .collect(java.util.stream.Collectors.toList()));
             driveStats.setText(String.format("Total Drives: %d", table.getItems().size()));
         };
 
@@ -378,12 +377,7 @@ public class PlacementView {
             }
         });
 
-        table.getColumns().add(compCol);
-        table.getColumns().add(roleCol);
-        table.getColumns().add(pkgCol);
-        table.getColumns().add(dateCol);
-        table.getColumns().add(deadCol);
-        table.getColumns().add(actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(compCol, roleCol, pkgCol, dateCol, deadCol, actionCol));
         table.getItems().addAll(placementDAO.getAllDrives());
         driveStats.setText(String.format("Total Drives: %d", table.getItems().size()));
 
@@ -478,10 +472,7 @@ public class PlacementView {
             }
         });
 
-        table.getColumns().add(nameCol);
-        table.getColumns().add(dateCol);
-        table.getColumns().add(statusCol);
-        table.getColumns().add(updateCol);
+        table.getColumns().addAll(java.util.Arrays.asList(nameCol, dateCol, statusCol, updateCol));
         table.getItems().addAll(placementDAO.getApplicationsForDrive(drive.getId()));
 
         VBox content = new VBox(10, table);
@@ -643,11 +634,12 @@ public class PlacementView {
                 applyBtn.setDisable(true);
                 applyBtn.setStyle("-fx-background-color: #475569; -fx-opacity: 0.7;");
                 DialogUtils.showSuccess("Success", "Successfully applied for " + d.getCompanyName());
-                
+
                 // Refresh applications table if it exists
-                TableView<PlacementApplication> appTable = (TableView<PlacementApplication>) root.lookupAll(".table-view").stream()
-                    .filter(node -> node.getParent() != null && node.getParent().getParent() instanceof VBox)
-                    .findFirst().orElse(null);
+                TableView<PlacementApplication> appTable = (TableView<PlacementApplication>) root
+                        .lookupAll(".table-view").stream()
+                        .filter(node -> node.getParent() != null && node.getParent().getParent() instanceof VBox)
+                        .findFirst().orElse(null);
                 if (appTable != null) {
                     appTable.getItems().setAll(placementDAO.getApplicationsForStudent(userId));
                 }
@@ -675,7 +667,8 @@ public class PlacementView {
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: white;");
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        refreshBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
 
         HBox header = new HBox(15);
         header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
@@ -775,11 +768,7 @@ public class PlacementView {
             }
         });
 
-        table.getColumns().add(compCol);
-        table.getColumns().add(roleCol);
-        table.getColumns().add(statusCol);
-        table.getColumns().add(dateCol);
-        table.getColumns().add(actionCol);
+        table.getColumns().addAll(java.util.Arrays.asList(compCol, roleCol, statusCol, dateCol, actionCol));
         table.getItems().addAll(placementDAO.getApplicationsForStudent(userId));
 
         vbox.getChildren().addAll(header, table);

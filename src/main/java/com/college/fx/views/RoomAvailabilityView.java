@@ -384,7 +384,7 @@ public class RoomAvailabilityView {
         });
         actionCol.setPrefWidth(150);
 
-        roomTable.getColumns().addAll(roomCol, nameCol, actionCol);
+        roomTable.getColumns().addAll(java.util.Arrays.asList(roomCol, nameCol, actionCol));
         roomTable.getItems().addAll(timetableDAO.getAllRooms());
         VBox.setVgrow(roomTable, Priority.ALWAYS);
 

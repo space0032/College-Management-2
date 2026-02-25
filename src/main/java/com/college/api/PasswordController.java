@@ -6,7 +6,7 @@ import com.college.dao.UserDAO;
 import com.college.models.User;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.PasswordUtils;
-import com.college.utils.JsonHelper;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -19,7 +19,8 @@ public class PasswordController extends BaseController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange t) throws IOException {
-        if (handleOptions(t)) return;
+        if (handleOptions(t))
+            return;
 
         String method = t.getRequestMethod();
         String path = t.getRequestURI().getPath();
@@ -42,11 +43,12 @@ public class PasswordController extends BaseController implements HttpHandler {
 
         String body = readBody(t);
         Map<String, String> map = new com.google.gson.Gson().fromJson(body, Map.class);
-        
+
         String oldPassword = map.get("oldPassword");
         String newPassword = map.get("newPassword");
 
-        if (oldPassword == null || oldPassword.trim().isEmpty() || newPassword == null || newPassword.trim().isEmpty()) {
+        if (oldPassword == null || oldPassword.trim().isEmpty() || newPassword == null
+                || newPassword.trim().isEmpty()) {
             sendResponse(t, 400, errorJson("Old and new passwords required"));
             return;
         }

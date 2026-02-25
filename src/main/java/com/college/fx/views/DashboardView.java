@@ -13,9 +13,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import com.college.dao.SystemSettingsDAO;
-import com.college.services.DropboxStorageService;
+
 import javafx.scene.image.ImageView;
-import javafx.scene.image.Image;
 
 /**
  * JavaFX Dashboard View
@@ -87,27 +86,13 @@ public class DashboardView {
         final String collegeName = (collegeNameSetting == null || collegeNameSetting.isEmpty())
                 ? "College Manager"
                 : collegeNameSetting;
-        String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
+        // TODO: Load logo from local storage when a new storage backend is implemented
+        // String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
 
         ImageView logoView = new ImageView();
         logoView.setFitHeight(40);
         logoView.setFitWidth(40);
         logoView.setPreserveRatio(true);
-
-        // Async Load Logo
-        if (logoPath != null && !logoPath.isEmpty()) {
-            final String fLogoPath = logoPath;
-            new Thread(() -> {
-                String tempLink = storageService.getTemporaryLink(fLogoPath);
-                if (tempLink != null) {
-                    javafx.application.Platform.runLater(() -> {
-                        logoView.setImage(new Image(tempLink, true));
-                    });
-                }
-            }).start();
-        } else {
-            // Optional: Set default logo or hide
-        }
 
         Label titleLabel = new Label(collegeName);
         titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
@@ -195,7 +180,6 @@ public class DashboardView {
     private static final String SVG_SETTINGS = "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z";
 
     private final SystemSettingsDAO systemSettingsDAO = new SystemSettingsDAO();
-    private final DropboxStorageService storageService = new DropboxStorageService();
 
     private javafx.scene.shape.SVGPath createIcon(String pathContent) {
         javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();

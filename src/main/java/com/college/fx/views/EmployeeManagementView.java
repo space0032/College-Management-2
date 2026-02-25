@@ -189,8 +189,10 @@ public class EmployeeManagementView extends VBox {
             }
         });
 
-        table.getColumns().addAll(colId, colName, colEmail, colPhone, colDesignation, colSalary, colJoinDate,
-                colStatus);
+        table.getColumns()
+                .addAll(java.util.Arrays.asList(colId, colName, colEmail, colPhone, colDesignation, colSalary,
+                        colJoinDate,
+                        colStatus));
     }
 
     private void refreshTable() {

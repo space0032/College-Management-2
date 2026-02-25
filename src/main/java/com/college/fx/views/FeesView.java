@@ -8,14 +8,13 @@ import com.college.models.FeePayment;
 import com.college.utils.SessionManager;
 import com.college.utils.DialogUtils;
 import com.college.dao.SystemSettingsDAO; // Added
-import com.college.services.DropboxStorageService; // Added
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.image.Image; // Added
 import javafx.scene.image.ImageView; // Added
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -36,7 +35,7 @@ public class FeesView {
     private EnhancedFeeDAO feeDAO;
     private StudentDAO studentDAO;
     private SystemSettingsDAO systemSettingsDAO; // Added
-    private DropboxStorageService storageService; // Added
+
     private TextField searchField;
     private String role;
     private int userId;
@@ -47,7 +46,7 @@ public class FeesView {
         this.feeDAO = new EnhancedFeeDAO();
         this.studentDAO = new StudentDAO();
         this.systemSettingsDAO = new SystemSettingsDAO();
-        this.storageService = new DropboxStorageService();
+
         this.feeData = FXCollections.observableArrayList();
         this.allFeeData = FXCollections.observableArrayList();
         createView();
@@ -495,14 +494,15 @@ public class FeesView {
             logoView.setPreserveRatio(true);
 
             // Async load
-            final ImageView fLogo = logoView;
-            new Thread(() -> {
-                String url = storageService.getTemporaryLink(logoPath);
-                if (url != null) {
-                    javafx.application.Platform.runLater(() -> fLogo.setImage(new Image(url, true)));
-                }
-            }).start();
-            headerBox.getChildren().add(logoView);
+            // final ImageView fLogo = logoView;
+            // new Thread(() -> {
+            // String url = storageService.getTemporaryLink(logoPath);
+            // if (url != null) {
+            // javafx.application.Platform.runLater(() -> fLogo.setImage(new Image(url,
+            // true)));
+            // }
+            // }).start();
+            // headerBox.getChildren().add(logoView);
         }
 
         Label collegeName = new Label(collegeNameStr);

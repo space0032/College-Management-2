@@ -1,7 +1,7 @@
 package com.college.fx.views;
 
 import com.college.dao.SystemSettingsDAO;
-import com.college.services.DropboxStorageService;
+
 import com.college.utils.DialogUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -19,7 +19,7 @@ import java.io.File;
 public class CollegeSettingsView extends VBox {
 
     private final SystemSettingsDAO systemSettingsDAO = new SystemSettingsDAO();
-    private final DropboxStorageService storageService = new DropboxStorageService();
+
     private TextField collegeNameField;
     private ImageView logoPreview;
     private File selectedLogoFile;
@@ -182,12 +182,12 @@ public class CollegeSettingsView extends VBox {
         if (logoPath != null && !logoPath.isEmpty()) {
             // Load asynchronously
             new Thread(() -> {
-                String url = storageService.getTemporaryLink(logoPath);
-                if (url != null) {
-                    javafx.application.Platform.runLater(() -> {
-                        logoPreview.setImage(new Image(url, true));
-                    });
-                }
+                // String url = storageService.getTemporaryLink(logoPath);
+                // if (url != null) {
+                // javafx.application.Platform.runLater(() -> {
+                // logoPreview.setImage(new Image(url, true));
+                // });
+                // }
             }).start();
         }
     }
@@ -199,24 +199,13 @@ public class CollegeSettingsView extends VBox {
         }
 
         if (selectedLogoFile != null) {
-            // Upload to Dropbox
-            String fileName = "college_logo_" + System.currentTimeMillis() + ".png";
+            // TODO: Implement new file upload mechanism (local storage / backend API)
             new Thread(() -> {
-                String result = storageService.saveImage(selectedLogoFile, fileName);
-                if (result != null) {
-                    javafx.application.Platform.runLater(() -> {
-                        systemSettingsDAO.updateSetting("COLLEGE_LOGO_PATH", result);
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "Settings saved successfully!");
-                        DialogUtils.styleDialog(alert);
-                        alert.showAndWait();
-                    });
-                } else {
-                    javafx.application.Platform.runLater(() -> {
-                        Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to upload logo.");
-                        DialogUtils.styleDialog(alert);
-                        alert.showAndWait();
-                    });
-                }
+                javafx.application.Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Logo upload is not yet implemented.");
+                    DialogUtils.styleDialog(alert);
+                    alert.showAndWait();
+                });
             }).start();
         } else {
             // Just name saved

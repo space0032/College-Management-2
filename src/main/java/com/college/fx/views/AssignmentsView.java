@@ -317,26 +317,13 @@ public class AssignmentsView {
             if (btn == submitBtnType) {
                 String finalPath = filePathField.getText();
 
-                // Dropbox Upload
+                // Dropbox Upload (Removed as DropboxService is no longer available)
                 if (finalPath != null && !finalPath.isEmpty() && !finalPath.startsWith("http")) {
                     java.io.File file = new java.io.File(finalPath);
                     if (file.exists()) {
-                        com.college.services.DropboxService dbService = new com.college.services.DropboxService();
-                        if (dbService.isConfigured()) {
-                            try (java.io.InputStream is = new java.io.FileInputStream(file)) {
-                                String fileName = "submission_" + student.getId() + "_" + selected.getId() + "_"
-                                        + file.getName();
-                                String sharableLink = dbService.uploadFile(is, fileName);
-                                if (sharableLink != null) {
-                                    finalPath = sharableLink;
-                                    System.out.println("File uploaded to Dropbox: " + finalPath);
-                                } else {
-                                    System.err.println("Dropbox upload failed, falling back to local path.");
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
+                        // Logic to upload the file to a different back-end storage system should go
+                        // here
+                        System.out.println("Local file attached: " + finalPath);
                     }
                 }
 
