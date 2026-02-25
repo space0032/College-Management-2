@@ -167,6 +167,28 @@ public class SeedJava {
                                                         "VALUES ('Project Submission Deadline', '2026-04-15', 'DEADLINE', 'Final year projects due') ON CONFLICT DO NOTHING");
 
                         System.out.println("Seeded Calendar Event Data");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO scholarships (title, description, amount, donor_name, created_by, status) "
+                                                        +
+                                                        "VALUES ('Merit Scholarship 2026', 'For top performers', 50000.0, 'Alumni Assoc', 1, 'OPEN') ON CONFLICT DO NOTHING");
+                        stmt.executeUpdate(
+                                        "INSERT INTO scholarships (title, description, amount, donor_name, created_by, status) "
+                                                        +
+                                                        "VALUES ('Need-Based Grant', 'Financial assistance program', 25000.0, 'Global Trust', 1, 'OPEN') ON CONFLICT DO NOTHING");
+
+                        ResultSet rsSchol = stmt.executeQuery("SELECT id FROM scholarships LIMIT 1");
+                        int sId = 1;
+                        if (rsSchol.next())
+                                sId = rsSchol.getInt(1);
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO scholarship_applications (scholarship_id, student_id, statement, status) "
+                                                        +
+                                                        "VALUES (" + sId
+                                                        + ", 1, 'I maintain a 3.9 GPA across all subjects.', 'APPLIED') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Scholarship Data");
                 }
         }
 }
