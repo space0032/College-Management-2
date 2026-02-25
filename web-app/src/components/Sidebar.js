@@ -18,6 +18,7 @@ const Sidebar = () => {
       { to: '/dashboard/timetable', label: 'Timetable', icon: '🗓️' },
       { to: '/dashboard/grades', label: 'Grades', icon: 'A+' },
       { to: '/dashboard/assignments', label: 'Assignments', icon: '📝' },
+      { to: '/dashboard/resources', label: 'Resources', icon: '📚' },
     ],
     Campus: [
       { to: '/dashboard/library', label: 'Library', icon: '📖' },
@@ -40,6 +41,7 @@ const Sidebar = () => {
   if (userRole === 'ADMIN') {
     navSections['Admin'] = [
       { to: '/dashboard/management', label: 'Institute Mgmt', icon: '🏛️' },
+      { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼' },
       { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
       { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
     ];

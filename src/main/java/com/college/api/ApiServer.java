@@ -44,6 +44,8 @@ public class ApiServer {
         server.createContext("/api/submissions", new ProtectedHandler(new AssignmentController()));
         server.createContext("/api/campaigns", new ProtectedHandler(new CrowdfundingController()));
         server.createContext("/api/settings", new ProtectedHandler(new SettingsController()));
+        server.createContext("/api/resources", new ProtectedHandler(new ResourceController()));
+        server.createContext("/api/employees", new ProtectedHandler(new EmployeeController()));
 
         server.setExecutor(null);
         server.start();

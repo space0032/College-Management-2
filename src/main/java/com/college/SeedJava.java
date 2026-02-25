@@ -64,7 +64,23 @@ public class SeedJava {
                         System.out.println("Seeded Course ID: " + cId);
                         System.out.println("Seeded student 1 attendance: " + ok1);
                         System.out.println("Seeded student 2 attendance: " + ok2);
-                        System.out.println("Seeded Fees");
+                        System.out.println("Seeded Departments");
+
+                        stmt.executeUpdate(
+                                        "CREATE TABLE IF NOT EXISTS resource_categories (" +
+                                                        "id SERIAL PRIMARY KEY," +
+                                                        "name VARCHAR(100) NOT NULL UNIQUE," +
+                                                        "description TEXT" +
+                                                        ")");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO resource_categories (name, description) VALUES ('Lecture Notes', 'PDFs and slides from class') ON CONFLICT DO NOTHING");
+                        stmt.executeUpdate(
+                                        "INSERT INTO resource_categories (name, description) VALUES ('Video Tutorials', 'Recorded lectures and tutorials') ON CONFLICT DO NOTHING");
+                        stmt.executeUpdate(
+                                        "INSERT INTO resource_categories (name, description) VALUES ('Past Papers', 'Previous year exam papers') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Resource Categories");
 
                         stmt.executeUpdate(
                                         "INSERT INTO placement_companies (name, industry, contact_person, email, phone, website) "
@@ -218,6 +234,59 @@ public class SeedJava {
                                                         "VALUES ('Robotics Lab Equipment', 'Fund the purchase of new robotic arms', 150000.0, 160000.0, 1, 'COMPLETED') ON CONFLICT DO NOTHING");
 
                         System.out.println("Seeded Crowdfunding Data");
+
+                        stmt.executeUpdate(
+                                        "CREATE TABLE IF NOT EXISTS learning_resources (" +
+                                                        "id SERIAL PRIMARY KEY," +
+                                                        "title VARCHAR(200) NOT NULL," +
+                                                        "description TEXT," +
+                                                        "course_id INTEGER REFERENCES courses(id)," +
+                                                        "category_id INTEGER REFERENCES resource_categories(id)," +
+                                                        "file_path VARCHAR(500) NOT NULL," +
+                                                        "file_type VARCHAR(50)," +
+                                                        "file_size BIGINT," +
+                                                        "uploaded_by INTEGER REFERENCES users(id)," +
+                                                        "download_count INTEGER DEFAULT 0," +
+                                                        "is_public BOOLEAN DEFAULT true," +
+                                                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                                                        ")");
+
+                        int catId1 = 1, catId2 = 2; // Assuming IDs align with earlier inserts
+                        stmt.executeUpdate(
+                                        "INSERT INTO learning_resources (title, description, course_id, category_id, file_path, file_type, file_size, uploaded_by, is_public) " +
+                                                        "VALUES ('Intro to CS Slides', 'First week introduction', 1, " + catId1 + ", 'https://example.com/slides.pdf', 'pdf', 1048576, 1, true) ON CONFLICT DO NOTHING"
+                        );
+                        stmt.executeUpdate(
+                                        "INSERT INTO learning_resources (title, description, course_id, category_id, file_path, file_type, file_size, uploaded_by, is_public) " +
+                                                        "VALUES ('CS 101 Lecture Video', 'Recording of week 1', 1, " + catId2 + ", 'https://example.com/vid.mp4', 'mp4', 52428800, 1, false) ON CONFLICT DO NOTHING"
+                        );
+
+                        System.out.println("Seeded Learning Resources Data");
+
+                        stmt.executeUpdate(
+                                        "CREATE TABLE IF NOT EXISTS employees (" +
+                                                        "id SERIAL PRIMARY KEY," +
+                                                        "employee_id VARCHAR(50) UNIQUE NOT NULL," +
+                                                        "first_name VARCHAR(100)," +
+                                                        "last_name VARCHAR(100)," +
+                                                        "email VARCHAR(100)," +
+                                                        "phone VARCHAR(20)," +
+                                                        "designation VARCHAR(100)," +
+                                                        "join_date DATE," +
+                                                        "salary DECIMAL(10, 2)," +
+                                                        "status VARCHAR(20) DEFAULT 'ACTIVE'" +
+                                                        ")");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO employees (employee_id, first_name, last_name, email, phone, designation, join_date, salary, status) " +
+                                                        "VALUES ('admin', 'System', 'Administrator', 'admin@example.com', '1234567890', 'Principal', '2020-01-01', 120000.00, 'ACTIVE') ON CONFLICT DO NOTHING"
+                        );
+                        stmt.executeUpdate(
+                                        "INSERT INTO employees (employee_id, first_name, last_name, email, phone, designation, join_date, salary, status) " +
+                                                        "VALUES ('E001', 'John', 'Smith', 'john.smith@example.com', '9876543210', 'Librarian', '2021-05-15', 45000.00, 'ACTIVE') ON CONFLICT DO NOTHING"
+                        );
+
+                        System.out.println("Seeded Employees Data");
                 }
         }
 }
