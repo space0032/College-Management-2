@@ -4,6 +4,7 @@ import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
 import { getAllStudents } from '../services/studentService';
 import { exportToCSV } from '../utils/exportUtils';
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -149,6 +150,24 @@ const AttendancePage = () => {
             <h3>📊 Attendance Analytics</h3>
           </div>
           <div className="card-body">
+            <div style={{ width: '100%', height: 250, marginBottom: '20px' }}>
+              <ResponsiveContainer>
+                <BarChart data={stats} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="studentName" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                  <YAxis axisLine={false} tickLine={false} domain={[0, 100]} />
+                  <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                  <ReferenceLine y={75} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: 'Min 75%', fill: '#ef4444', fontSize: 12 }} />
+                  <Bar dataKey="percentage" radius={[4, 4, 0, 0]} barSize={40}>
+                    {
+                      stats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.isLow ? '#ef4444' : '#10b981'} />
+                      ))
+                    }
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
             <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
               {stats.map(s => (
                 <div key={s.studentId} style={{

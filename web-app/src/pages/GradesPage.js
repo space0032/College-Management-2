@@ -5,6 +5,9 @@ import {
 import { getAllCourses } from '../services/courseService';
 import { getAllStudents } from '../services/studentService';
 import { exportToCSV } from '../utils/exportUtils';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const GRADES = ['A', 'B', 'C', 'D', 'E', 'F'];
 const EXAM_TYPES = ['MID TERM', 'END TERM', 'ASSIGNMENT', 'PRACTICAL'];
@@ -164,6 +167,56 @@ const GradesPage = () => {
         setBulkResult({ saved, failed, total: filled.length });
     };
 
+    const generateTranscript = () => {
+        if (!grades.length) return;
+        const studentName = user.role === 'STUDENT' ? userStr ? JSON.parse(userStr).name : 'Student' : grades[0].studentName || 'Student';
+        const enrollmentNo = user.role === 'STUDENT' ? userStr ? JSON.parse(userStr).enrollmentNumber : 'N/A' : grades[0].enrollmentNumber || 'N/A';
+
+        const doc = new jsPDF();
+
+        doc.setFontSize(22);
+        doc.text("Official Academic Transcript", 14, 20);
+
+        doc.setFontSize(11);
+        doc.text(`Student Name: ${studentName}`, 14, 30);
+        if (enrollmentNo) doc.text(`Enrollment Number: ${enrollmentNo}`, 14, 35);
+        if (cgpa !== null) {
+            doc.text(`Cumulative GPA: ${cgpa.toFixed(2)} / 10.0`, 14, 40);
+        }
+
+        const tableColumn = ["Course Name", "Credits", "Exam Type", "Marks (%)", "Grade"];
+        const tableRows = [];
+
+        grades.forEach(g => {
+            tableRows.push([
+                g.courseName,
+                g.credits,
+                g.examType,
+                g.marksObtained,
+                g.grade
+            ]);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 45,
+            theme: 'striped',
+            headStyles: { fillColor: [99, 102, 241] }
+        });
+
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            const date = new Date().toLocaleDateString();
+            doc.text(`Generated on: ${date}`, 14, doc.internal.pageSize.getHeight() - 10);
+            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() - 30, doc.internal.pageSize.getHeight() - 10);
+        }
+
+        doc.save(`${studentName.replace(/\s+/g, '_')}_Transcript.pdf`);
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -192,18 +245,25 @@ const GradesPage = () => {
                         </button>
                     )}
                 </div>
-                {activeTab === 'view' && grades.length > 0 && (
-                    <button className="btn btn-secondary" onClick={() => exportToCSV(
-                        user.role !== 'STUDENT'
-                            ? ['Student', 'Enrollment No', 'Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
-                            : ['Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
-                        grades.map(g => user.role !== 'STUDENT'
-                            ? [g.studentName, g.enrollmentNumber, g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
-                            : [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
-                        ),
-                        'grades_export'
-                    )}>⬇ Export CSV</button>
-                )}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    {activeTab === 'view' && grades.length > 0 && (
+                        <button className="btn btn-secondary" onClick={() => exportToCSV(
+                            user.role !== 'STUDENT'
+                                ? ['Student', 'Enrollment No', 'Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
+                                : ['Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
+                            grades.map(g => user.role !== 'STUDENT'
+                                ? [g.studentName, g.enrollmentNumber, g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
+                                : [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
+                            ),
+                            'grades_export'
+                        )}>⬇ Export CSV</button>
+                    )}
+                    {activeTab === 'view' && grades.length > 0 && user.role === 'STUDENT' && (
+                        <button className="btn btn-primary" onClick={generateTranscript}>
+                            📄 Download Transcript
+                        </button>
+                    )}
+                </div>
             </div>
 
             {activeTab === 'view' && (
@@ -213,6 +273,27 @@ const GradesPage = () => {
                             <h3>Cumulative Grade Point Average (CGPA)</h3>
                             <h1 style={{ fontSize: '3rem', margin: '10px 0' }}>{cgpa.toFixed(2)}</h1>
                             <p>Scale: 10.0</p>
+                        </div>
+                    )}
+
+                    {grades.length > 0 && (
+                        <div className="stat-card" style={{ marginBottom: '20px' }}>
+                            <h3>📊 Grade Distribution</h3>
+                            <div style={{ width: '100%', height: 250, marginTop: '20px' }}>
+                                <ResponsiveContainer>
+                                    <BarChart data={(() => {
+                                        const dist = { 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0 };
+                                        grades.forEach(g => { if (dist[g.grade] !== undefined) dist[g.grade]++; });
+                                        return Object.keys(dist).map(k => ({ grade: k, count: dist[k] }));
+                                    })()} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="grade" axisLine={false} tickLine={false} />
+                                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} />
+                                        <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                                        <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     )}
 

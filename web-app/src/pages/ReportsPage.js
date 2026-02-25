@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateVisitorReportPdf, getPlacementStats } from '../services/reportService';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 
 const ReportsPage = () => {
     const [activeTab, setActiveTab] = useState('attendance'); // attendance, fees, grades, visitors, placements
@@ -98,10 +99,24 @@ const ReportsPage = () => {
                         <h3>💰 Finance Intelligence</h3>
                         <button className="btn btn-sm btn-secondary">⬇ Revenue Summary</button>
                     </div>
-                    <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '15px', padding: '20px' }}>
-                        {[65, 45, 85, 70, 95, 60, 40].map((h, i) => (
-                            <div key={i} style={{ flex: 1, background: 'linear-gradient(to top, #6366f1, #a855f7)', height: `${h}%`, borderRadius: '4px 4px 0 0' }} />
-                        ))}
+                    <div style={{ height: '300px', width: '100%', padding: '20px 0' }}>
+                        <ResponsiveContainer>
+                            <BarChart data={[
+                                { week: 'Week 1', revenue: 65000 },
+                                { week: 'Week 2', revenue: 45000 },
+                                { week: 'Week 3', revenue: 85000 },
+                                { week: 'Week 4', revenue: 70000 },
+                                { week: 'Week 5', revenue: 95000 },
+                                { week: 'Week 6', revenue: 60000 },
+                                { week: 'Week 7', revenue: 40000 }
+                            ]} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="week" axisLine={false} tickLine={false} />
+                                <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `$${value / 1000}k`} />
+                                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} formatter={(value) => `$${value.toLocaleString()}`} />
+                                <Bar dataKey="revenue" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                     <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>Weekly Revenue Collection (Simulated)</p>
                 </div>
@@ -111,13 +126,24 @@ const ReportsPage = () => {
                 <div className="stat-card">
                     <h3>🎓 Academic Grade Curve</h3>
                     <p className="text-muted">Distribution of grades across the current semester.</p>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                        {['A+', 'A', 'B+', 'B', 'C', 'D', 'F'].map(g => (
-                            <div key={g} style={{ flex: 1, textAlign: 'center' }}>
-                                <div style={{ height: `${Math.random() * 80 + 20}%`, background: '#e2e8f0', borderRadius: '4px', marginBottom: '10px' }} />
-                                <div style={{ fontWeight: 'bold' }}>{g}</div>
-                            </div>
-                        ))}
+                    <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
+                        <ResponsiveContainer>
+                            <AreaChart data={[
+                                { grade: 'A+', students: 12 },
+                                { grade: 'A', students: 45 },
+                                { grade: 'B+', students: 68 },
+                                { grade: 'B', students: 110 },
+                                { grade: 'C', students: 85 },
+                                { grade: 'D', students: 30 },
+                                { grade: 'F', students: 15 }
+                            ]} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="grade" axisLine={false} tickLine={false} />
+                                <YAxis axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                                <Area type="monotone" dataKey="students" stroke="#3b82f6" fill="#bfdbfe" strokeWidth={3} />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             )}

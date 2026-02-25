@@ -5,14 +5,14 @@ const StudentAffairsPage = () => {
 
     const tabs = [
         { id: 'scholarships', label: 'Scholarships', icon: '🎓' },
-        { id: 'discipline', label: 'Conduct & Discipline', icon: '⚖️' },
+        { id: 'discipline', label: 'Disciplinary Records', icon: '⚖️' },
+        { id: 'grievance', label: 'Grievance System', icon: '📢' },
+        { id: 'parents', label: 'Parent Communication', icon: '👪' },
         { id: 'wellness', label: 'Wellness & Health', icon: '🏥' },
         { id: 'career', label: 'Career Services', icon: '💼' },
         { id: 'housing', label: 'Housing & Residential', icon: '🏠' },
         { id: 'gov', label: 'Student Government', icon: '🗳️' },
-        { id: 'aid', label: 'Financial Aid', icon: '💰' },
-        { id: 'activities', label: 'Extracurriculars', icon: '🎭' },
-        { id: 'international', label: 'International Student Office', icon: '🌍' }
+        { id: 'activities', label: 'Extracurriculars', icon: '🎭' }
     ];
 
     const renderContent = () => {
@@ -52,12 +52,127 @@ const StudentAffairsPage = () => {
                 );
             case 'discipline':
                 return (
-                    <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
-                        <h3>Conduct & Grievance Registry</h3>
-                        <p className="text-muted">Tracking behavioral incidents and resolution statuses.</p>
-                        <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
-                            <div style={{ fontSize: '3rem' }}>⚖️</div>
-                            <p>No major conduct violations reported in the current term.</p>
+                    <div className="stat-card" style={{ borderTop: '4px solid #ef4444' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div>
+                                <h3>⚖️ Disciplinary Records</h3>
+                                <p className="text-muted">Tracking behavioral incidents, violations, and resolutions.</p>
+                            </div>
+                            <button className="btn btn-primary">+ Log Incident</button>
+                        </div>
+                        <div className="data-table-container">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Student</th>
+                                        <th>Date</th>
+                                        <th>Violation Type</th>
+                                        <th>Severity</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#DISC-104</td>
+                                        <td>S2023-401 (John Doe)</td>
+                                        <td>Oct 12, 2024</td>
+                                        <td>Plagiarism</td>
+                                        <td><span className="badge badge-danger">High</span></td>
+                                        <td><span className="badge badge-warning">Under Review</span></td>
+                                        <td><button className="btn-icon" title="View Details">👁️</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>#DISC-103</td>
+                                        <td>S2023-112 (Jane Smith)</td>
+                                        <td>Sep 28, 2024</td>
+                                        <td>Hostel Curfew Breach</td>
+                                        <td><span className="badge badge-warning" style={{ background: '#fef3c7', color: '#d97706' }}>Medium</span></td>
+                                        <td><span className="badge badge-success">Resolved</span></td>
+                                        <td><button className="btn-icon" title="View Details">👁️</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            case 'grievance':
+                return (
+                    <div className="stat-card" style={{ borderTop: '4px solid #3b82f6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div>
+                                <h3>📢 Grievance System</h3>
+                                <p className="text-muted">Anonymous and identified complaints and feedback tickets.</p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', background: '#f8fafc' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                    <span style={{ fontWeight: 'bold' }}>TKT-8842</span>
+                                    <span className="badge badge-warning">Open</span>
+                                </div>
+                                <h4 style={{ margin: '0 0 10px 0' }}>Heating issue in Library Wing B</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '15px' }}>Reported by: Anonymous Student<br />Date: Oct 20, 2024</p>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>Assign to Maintenance</button>
+                                </div>
+                            </div>
+                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', background: '#f8fafc' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                    <span style={{ fontWeight: 'bold' }}>TKT-8841</span>
+                                    <span className="badge badge-success">Resolved</span>
+                                </div>
+                                <h4 style={{ margin: '0 0 10px 0' }}>WiFi disconnection in CS Lab 3</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '15px' }}>Reported by: S2022-819<br />Date: Oct 18, 2024</p>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="btn btn-secondary btn-sm" style={{ flex: 1 }}>View Resolution</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'parents':
+                return (
+                    <div className="stat-card" style={{ borderTop: '4px solid #10b981' }}>
+                        <h3>👪 Parent Communication Portal</h3>
+                        <p className="text-muted">Send broadcasts, academic alerts, and conduct notices to parents/guardians.</p>
+
+                        <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                            <div style={{ flex: 1, padding: '20px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <h4>Compose New Message</h4>
+                                <div className="form-group" style={{ marginTop: '15px' }}>
+                                    <label>Recipient Group</label>
+                                    <select className="form-control">
+                                        <option>All Parents (Broadcast)</option>
+                                        <option>Year 1 Parents</option>
+                                        <option>Specific Student's Guardian</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Subject</label>
+                                    <input type="text" className="form-control" placeholder="e.g. End of Semester Updates" />
+                                </div>
+                                <div className="form-group">
+                                    <label>Message</label>
+                                    <textarea className="form-control" rows="4" placeholder="Type your message here..."></textarea>
+                                </div>
+                                <button className="btn btn-primary" style={{ width: '100%' }}>✉️ Send Communication</button>
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                                <h4>Recent Communications</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+                                    <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '6px', borderLeft: '4px solid #3b82f6' }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Campus Closure Notice - Diwali Holidays</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>Sent to: All Parents • Oct 15, 2024</div>
+                                    </div>
+                                    <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '6px', borderLeft: '4px solid #10b981' }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Mid-Term Grade Reports Available</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>Sent to: All Parents • Oct 05, 2024</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 );

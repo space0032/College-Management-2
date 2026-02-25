@@ -52,6 +52,14 @@ const TimetablePage = () => {
 
   const handleSave = async () => {
     if (!form.day || !form.timeSlot || !form.subject) { setFormError('Day, time slot, and subject are required.'); return; }
+
+    // Conflict Detection
+    const conflict = entries.find(e => e.day === form.day && e.timeSlot === form.timeSlot);
+    if (conflict) {
+      setFormError(`Conflict Detected: The slot ${form.timeSlot} on ${form.day} is already scheduled with ${conflict.subject}. Please choose a different time or delete the existing entry first.`);
+      return;
+    }
+
     setSaving(true);
     try {
       await saveTimetableEntry({ ...form, department: dept, semester });

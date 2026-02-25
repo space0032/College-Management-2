@@ -2,6 +2,7 @@ import API from './api';
 
 export const getHostels = () => API.get('/hostels');
 export const addHostel = (hostel) => API.post('/hostels', hostel);
+export const updateHostel = (id, hostel) => API.put(`/hostels/${id}`, hostel);
 export const getRooms = () => API.get('/hostels/rooms');
 export const addRoom = (room) => API.post('/hostels/rooms', room);
 export const deleteHostel = (id) => API.delete(`/hostels/${id}`);

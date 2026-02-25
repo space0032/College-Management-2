@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getHostels, addHostel, getRooms, addRoom, getAllocations, allocateRoom, vacateRoom, deleteHostel, deleteRoom } from '../services/hostelService';
+import { getHostels, addHostel, updateHostel, getRooms, addRoom, getAllocations, allocateRoom, vacateRoom, deleteHostel, deleteRoom } from '../services/hostelService';
 
 const HOSTEL_TYPES = ['Boys', 'Girls', 'Co-ed'];
 
@@ -54,7 +54,10 @@ const HostelPage = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (tab === 'hostels') await addHostel(hostelForm);
+      if (tab === 'hostels') {
+        if (editTarget) await updateHostel(editTarget.id, hostelForm);
+        else await addHostel(hostelForm);
+      }
       else if (tab === 'rooms') await addRoom(roomForm);
       else await allocateRoom(allocForm);
       setModalOpen(false);
@@ -122,7 +125,22 @@ const HostelPage = () => {
               { label: 'Warden', key: 'wardenName' },
               { label: 'Rooms', key: 'totalRooms' },
               { label: 'Capacity', key: 'totalCapacity' },
-              { label: 'Actions', key: 'id', render: (v) => isAdmin && <button className="btn btn-sm btn-danger" onClick={() => handleDelete('hostel', v)}>Delete</button> }
+              {
+                label: 'Actions', key: 'id', render: (_, row) => isAdmin && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-sm btn-secondary" onClick={() => {
+                      setEditTarget(row);
+                      setHostelForm({
+                        name: row.name, type: row.type, totalCapacity: row.totalCapacity,
+                        wardenName: row.wardenName, wardenContact: row.wardenContact, address: row.address
+                      });
+                      setModalTitle('Assign/Edit Warden');
+                      setModalOpen(true);
+                    }}>⚙️ Manage Warden</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete('hostel', row.id)}>Delete</button>
+                  </div>
+                )
+              }
             ]}
             data={hostels}
           />
