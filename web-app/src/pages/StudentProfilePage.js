@@ -14,6 +14,7 @@ const StudentProfilePage = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('academic');
     const [error, setError] = useState(null);
 

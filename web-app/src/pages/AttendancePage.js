@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
+import { getAllStudents } from '../services/studentService';
 import { exportToCSV } from '../utils/exportUtils';
 
 const COLUMNS = [

@@ -111,14 +111,44 @@ const SettingsPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>College Logo URL</label>
-                            <input
-                                type="url"
-                                name="college_logo_url"
-                                value={settings.college_logo_url}
-                                onChange={handleChange}
-                                placeholder="https://example.com/logo.png"
-                            />
+                            <label>Branding Accent Color</label>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <input
+                                    type="color"
+                                    name="accent_color"
+                                    value={settings.accent_color || '#6366f1'}
+                                    onChange={handleChange}
+                                    style={{ width: '50px', height: '40px', padding: '2px', border: '1px solid #e2e8f0' }}
+                                />
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    name="accent_color"
+                                    value={settings.accent_color || '#6366f1'}
+                                    onChange={handleChange}
+                                    style={{ flex: 1 }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label>Institutional Logo Enhancement</label>
+                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                                <div style={{ width: '80px', height: '80px', background: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                    {settings.college_logo_url ? <img src={settings.college_logo_url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%' }} /> : <span style={{ fontSize: '2rem' }}>🏫</span>}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <input
+                                        type="url"
+                                        name="college_logo_url"
+                                        className="form-control"
+                                        value={settings.college_logo_url}
+                                        onChange={handleChange}
+                                        placeholder="Enter direct URL to your institutional logo..."
+                                    />
+                                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px' }}>Recommended size: 512x512px. Supports PNG, SVG, and JPEG.</p>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '20px' }}>

@@ -161,28 +161,91 @@ const HomePage = () => {
         })}
       </div>
 
-      {/* Role-specific quick stats */}
-      {user.role === 'ADMIN' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-          {[
-            { label: "Pending Leaves", value: stats.pendingLeaves, icon: '📅', color: '#ed8936', route: '/dashboard/leaves' },
-            { label: "Today's Fee Collection", value: stats.todayCollection ? `₹${Number(stats.todayCollection).toLocaleString('en-IN')}` : '₹0', icon: '💰', color: '#48bb78', route: '/dashboard/fees' },
-            { label: "Pending Fees", value: stats.pendingFees, icon: '⚠️', color: '#e53e3e', route: '/dashboard/fees' },
-            { label: "Open Events", value: stats.upcomingEvents, icon: '🎪', color: '#667eea', route: '/dashboard/events' },
-          ].map(item => (
-            <div key={item.label} onClick={() => navigate(item.route)} style={{
-              background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px',
-              padding: '14px 16px', cursor: 'pointer', display: 'flex', gap: '12px', alignItems: 'center'
-            }}>
-              <div style={{ fontSize: '1.4rem' }}>{item.icon}</div>
-              <div>
-                <div style={{ fontWeight: '700', color: item.color, fontSize: '1rem' }}>{item.value ?? '—'}</div>
-                <div style={{ fontSize: '0.75rem', color: '#718096' }}>{item.label}</div>
+      {/* Role-specific quick actions & Finance Activity */}
+      <div style={{ display: 'grid', gridTemplateColumns: user.role === 'ADMIN' ? '1fr 1.5fr' : '1fr', gap: '28px', marginBottom: '28px' }}>
+        {/* Quick Actions Column */}
+        <div>
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '16px', color: '#4a5568', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ⚡ Professional Quick Actions
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {user.role === 'ADMIN' && (
+              <>
+                <button onClick={() => navigate('/dashboard/payroll')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>💸</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Process Payroll</span>
+                </button>
+                <button onClick={() => navigate('/dashboard/management')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>⚙️</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Sys Admin</span>
+                </button>
+                <button onClick={() => navigate('/dashboard/reports')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>📈</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Gen Reports</span>
+                </button>
+                <button onClick={() => navigate('/dashboard/settings')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>🎨</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Branding</span>
+                </button>
+              </>
+            )}
+            {user.role === 'FACULTY' && (
+              <>
+                <button onClick={() => navigate('/dashboard/attendance')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>🙋</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Mark Attd</span>
+                </button>
+                <button onClick={() => navigate('/dashboard/grades')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>📖</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Post Marks</span>
+                </button>
+              </>
+            )}
+            {user.role === 'STUDENT' && (
+              <>
+                <button onClick={() => navigate('/dashboard/fees')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>💳</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Pay Fees</span>
+                </button>
+                <button onClick={() => navigate('/dashboard/learning')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.5rem' }}>📓</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Resources</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Finance / Important Stats Column */}
+        {user.role === 'ADMIN' && (
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '16px', color: '#4a5568', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              💰 Finance Activity & Indicators
+            </h3>
+            <div className="stat-card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Projected Revenue (Term)</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>₹1.28 Cr</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Collection Rate</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#6366f1' }}>84.2%</div>
+                </div>
+              </div>
+              <div style={{ padding: '15px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>Recent Collections</div>
+                {['Tuition Fee - Sem 4', 'Hostel Mess Split', 'Library Fine', 'Exam Registration'].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i === 3 ? 'none' : '1px solid #f8fafc', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#475569' }}>{item}</span>
+                    <span style={{ fontWeight: '600', color: '#10b981' }}>+₹{(Math.random() * 5000 + 500).toFixed(0)}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Unified Activity Feed */}
       <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>

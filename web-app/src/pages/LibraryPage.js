@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import { exportToCSV } from '../utils/exportUtils';
 import { getAllBooks, addBook, getAllIssues, issueBook, returnBook, getIssuesByStudent } from '../services/libraryService';
 
 const COLUMNS = [

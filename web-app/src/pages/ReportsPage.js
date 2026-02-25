@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { generateVisitorReportPdf, getPlacementStats } from '../services/reportService';
 
 const ReportsPage = () => {
-    const [activeTab, setActiveTab] = useState('analytics'); // analytics, visitors, placements
+    const [activeTab, setActiveTab] = useState('attendance'); // attendance, fees, grades, visitors, placements
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [pdfMessage, setPdfMessage] = useState('');
@@ -55,110 +55,69 @@ const ReportsPage = () => {
                     <h1 className="page-title">📊 Intelligence & Reports</h1>
                     <p className="page-subtitle">Extract insights, generate regulatory PDFs, and monitor campus performance</p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
-                    <button
-                        className={`btn btn-sm ${activeTab === 'analytics' ? 'btn-primary' : ''}`}
-                        style={activeTab !== 'analytics' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}}
-                        onClick={() => setActiveTab('analytics')}
-                    >
-                        Dashboard
-                    </button>
-                    <button
-                        className={`btn btn-sm ${activeTab === 'visitors' ? 'btn-primary' : ''}`}
-                        style={activeTab !== 'visitors' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}}
-                        onClick={() => setActiveTab('visitors')}
-                    >
-                        Export PDF
-                    </button>
-                    <button
-                        className={`btn btn-sm ${activeTab === 'placements' ? 'btn-primary' : ''}`}
-                        style={activeTab !== 'placements' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}}
-                        onClick={() => setActiveTab('placements')}
-                    >
-                        Placements
-                    </button>
+                <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '8px', overflowX: 'auto' }}>
+                    {['attendance', 'fees', 'grades', 'visitors', 'placements'].map(t => (
+                        <button
+                            key={t}
+                            className={`btn btn-sm ${activeTab === t ? 'btn-primary' : ''}`}
+                            style={activeTab !== t ? { background: 'transparent', border: 'none', color: '#64748b', whiteSpace: 'nowrap' } : { whiteSpace: 'nowrap' }}
+                            onClick={() => setActiveTab(t)}
+                        >
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {activeTab === 'analytics' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, auto)', gap: '25px' }}>
-                    {/* Top Row: Quick Stats */}
-                    <div className="stat-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', color: 'white' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Total Revenue (MTD)</span>
-                            <span>📈</span>
-                        </div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '10px 0' }}>$142,500</div>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>+12% vs last month</div>
+            {activeTab === 'attendance' && (
+                <div className="stat-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3>📈 Attendance Analytics</h3>
+                        <button className="btn btn-sm btn-secondary">⬇ Download CSV</button>
                     </div>
-                    <div className="stat-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                            <span style={{ fontSize: '0.8rem' }}>Course Completion</span>
-                            <span>🎓</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Avg. Daily Percentage</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>92.4%</div>
                         </div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '10px 0', color: '#0f172a' }}>88.4%</div>
-                        <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ width: '88%', height: '100%', background: '#10b981' }} />
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Absenteeism Rate</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ef4444' }}>7.6%</div>
+                        </div>
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Consistent Performers</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>842</div>
                         </div>
                     </div>
-                    <div className="stat-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                            <span style={{ fontSize: '0.8rem' }}>System Uptime</span>
-                            <span>⚡</span>
-                        </div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '10px 0', color: '#0f172a' }}>99.98%</div>
-                        <div style={{ fontSize: '0.75rem', color: '#10b981' }}>● All services operational</div>
-                    </div>
-                    <div className="stat-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                            <span style={{ fontSize: '0.8rem' }}>Avg. Attendance</span>
-                            <span>🙋</span>
-                        </div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '10px 0', color: '#0f172a' }}>92%</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Across 24 departments</div>
-                    </div>
+                </div>
+            )}
 
-                    {/* Middle Row: Detailed Insights */}
-                    <div className="stat-card" style={{ gridColumn: '1 / span 2', minHeight: '300px' }}>
-                        <h4 style={{ margin: '0 0 20px 0' }}>Department Performance Index</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {[
-                                { name: 'Comp. Science', score: 94, color: '#6366f1' },
-                                { name: 'Mechanical', score: 82, color: '#f59e0b' },
-                                { name: 'Business Admn', score: 89, color: '#10b981' },
-                                { name: 'Electronics', score: 76, color: '#ef4444' }
-                            ].map(dept => (
-                                <div key={dept.name}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '5px' }}>
-                                        <span>{dept.name}</span>
-                                        <strong>{dept.score}%</strong>
-                                    </div>
-                                    <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${dept.score}%`, height: '100%', background: dept.color }} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+            {activeTab === 'fees' && (
+                <div className="stat-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3>💰 Finance Intelligence</h3>
+                        <button className="btn btn-sm btn-secondary">⬇ Revenue Summary</button>
                     </div>
+                    <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '15px', padding: '20px' }}>
+                        {[65, 45, 85, 70, 95, 60, 40].map((h, i) => (
+                            <div key={i} style={{ flex: 1, background: 'linear-gradient(to top, #6366f1, #a855f7)', height: `${h}%`, borderRadius: '4px 4px 0 0' }} />
+                        ))}
+                    </div>
+                    <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>Weekly Revenue Collection (Simulated)</p>
+                </div>
+            )}
 
-                    <div className="stat-card" style={{ gridColumn: '3 / span 2' }}>
-                        <h4 style={{ margin: '0 0 15px 0' }}>Recent System Events</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {[
-                                { event: 'PDF Report Generated', time: '10 mins ago', user: 'Admin' },
-                                { event: 'Bulk Marks Uploaded', time: '1 hour ago', user: 'Prof. Sarah' },
-                                { event: 'Hostel Maintenance Split', time: '3 hours ago', user: 'System' },
-                                { event: 'New Club Approved', time: '5 hours ago', user: 'Moderator' }
-                            ].map((e, i) => (
-                                <div key={i} style={{ display: 'flex', gap: '12px', fontSize: '0.85rem', paddingBottom: '12px', borderBottom: i === 3 ? 'none' : '1px solid #f1f5f9' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#cbd5e1', alignSelf: 'center' }} />
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: '600' }}>{e.event}</div>
-                                        <div style={{ color: '#94a3b8' }}>by {e.user} • {e.time}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+            {activeTab === 'grades' && (
+                <div className="stat-card">
+                    <h3>🎓 Academic Grade Curve</h3>
+                    <p className="text-muted">Distribution of grades across the current semester.</p>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                        {['A+', 'A', 'B+', 'B', 'C', 'D', 'F'].map(g => (
+                            <div key={g} style={{ flex: 1, textAlign: 'center' }}>
+                                <div style={{ height: `${Math.random() * 80 + 20}%`, background: '#e2e8f0', borderRadius: '4px', marginBottom: '10px' }} />
+                                <div style={{ fontWeight: 'bold' }}>{g}</div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

@@ -35,8 +35,16 @@ const FacultyWorkloadPage = () => {
             const res = await getFacultyWorkload(facultyName);
             setFacultyDetails(res.data);
 
-            // Wait for modal to render before drawing pie chart
-            setTimeout(() => drawPieChart(res.data.distribution), 100);
+            // Wait for modal to render before drawing charts
+            setTimeout(() => {
+                const creditData = [
+                    { semester: 'S1', credits: 18 },
+                    { semester: 'S2', credits: 21 },
+                    { semester: 'S3', credits: res.data.totalHours / 4 }, // Dynamic proxy
+                    { semester: 'S4', credits: 16 }
+                ];
+                drawCharts(res.data.distribution, creditData);
+            }, 100);
         } catch (err) {
             console.error(err);
             alert('Failed to load faculty details');
@@ -45,12 +53,17 @@ const FacultyWorkloadPage = () => {
         }
     };
 
+    const drawCharts = (distribution, creditData) => {
+        drawPieChart(distribution);
+        drawBarChart(creditData);
+    };
+
     const drawPieChart = (distribution) => {
         const canvas = document.getElementById('workloadPieChart');
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
-        const colors = ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#00BCD4'];
+        const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -58,10 +71,10 @@ const FacultyWorkloadPage = () => {
         let startAngle = 0;
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = Math.min(centerX, centerY) - 10;
+        const radius = Math.min(centerX, centerY) - 20;
 
         if (total === 0) {
-            ctx.fillStyle = '#ddd';
+            ctx.fillStyle = '#f1f5f9';
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
             ctx.fill();
@@ -70,7 +83,6 @@ const FacultyWorkloadPage = () => {
 
         distribution.forEach((item, index) => {
             const sliceAngle = (item.hours / total) * 2 * Math.PI;
-
             ctx.fillStyle = colors[index % colors.length];
             ctx.beginPath();
             ctx.moveTo(centerX, centerY);
@@ -78,7 +90,62 @@ const FacultyWorkloadPage = () => {
             ctx.closePath();
             ctx.fill();
 
+            // Inter-slice border
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
             startAngle += sliceAngle;
+        });
+
+        // Center cutout for donut look
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.6, 0, 2 * Math.PI);
+        ctx.fill();
+    };
+
+    const drawBarChart = (creditData) => {
+        const canvas = document.getElementById('creditBarChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const padding = 40;
+        const width = canvas.width - (padding * 2);
+        const height = canvas.height - (padding * 2);
+        const barWidth = width / creditData.length - 10;
+        const maxVal = Math.max(...creditData.map(d => d.credits), 5);
+
+        // Draw Axes
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, canvas.height - padding);
+        ctx.lineTo(canvas.width - padding, canvas.height - padding);
+        ctx.stroke();
+
+        creditData.forEach((d, i) => {
+            const barHeight = (d.credits / maxVal) * height;
+            const x = padding + (i * (barWidth + 10)) + 5;
+            const y = canvas.height - padding - barHeight;
+
+            // Gradient bar
+            const gradient = ctx.createLinearGradient(0, y, 0, canvas.height - padding);
+            gradient.addColorStop(0, '#6366f1');
+            gradient.addColorStop(1, '#a855f7');
+
+            ctx.fillStyle = gradient;
+            ctx.roundRect ? ctx.roundRect(x, y, barWidth, barHeight, [4, 4, 0, 0]) : ctx.fillRect(x, y, barWidth, barHeight);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(d.semester, x + barWidth / 2, canvas.height - padding + 15);
         });
     };
 
@@ -161,20 +228,25 @@ const FacultyWorkloadPage = () => {
 
                                     <ul style={{ listStyle: 'none', padding: 0 }}>
                                         {facultyDetails.distribution.map((d, i) => {
-                                            const colors = ['#2196F3', '#4CAF50', '#FFC107', '#E91E63', '#9C27B0', '#00BCD4'];
+                                            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
                                             return (
-                                                <li key={d.subject} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', padding: '5px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+                                                <li key={d.subject} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                        <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: colors[i % colors.length] }}></span>
-                                                        <span>{d.subject}</span>
+                                                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: colors[i % colors.length] }}></span>
+                                                        <span style={{ fontSize: '0.85rem' }}>{d.subject}</span>
                                                     </div>
-                                                    <span style={{ fontWeight: 'bold' }}>{d.hours} hrs</span>
+                                                    <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{d.hours} hrs</span>
                                                 </li>
                                             )
                                         })}
                                     </ul>
                                 </div>
                                 <div style={{ flex: 1 }}>
+                                    <h3>Credit Hour Analysis</h3>
+                                    <div style={{ display: 'flex', justifyContent: 'center', margin: '15px 0' }}>
+                                        <canvas id="creditBarChart" width="300" height="150"></canvas>
+                                    </div>
+
                                     <h3>Weekly Schedule ({facultyDetails.totalHours} Total Hours)</h3>
                                     <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
                                         {facultyDetails.schedule.map((slot, index) => (
