@@ -126,6 +126,32 @@ public class SeedJava {
                         gradeDAO.saveGrade(grade2);
 
                         System.out.println("Seeded Grades Data");
+
+                        // Seed Visitor Data
+                        stmt.executeUpdate(
+                                        "INSERT INTO visitor_logs (visitor_name, visitor_phone, purpose, person_to_meet, entry_time, status) "
+                                                        +
+                                                        "VALUES ('Alice Smith', '9876543210', 'Guest Lecture', 'Dr. Bob', '2026-02-24 10:00:00', 'IN') ON CONFLICT DO NOTHING");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO visitor_logs (visitor_name, visitor_phone, purpose, person_to_meet, entry_time, exit_time, status) "
+                                                        +
+                                                        "VALUES ('Charlie Brown', '5551234567', 'Delivery', 'Admin Office', '2026-02-24 11:30:00', '2026-02-24 11:45:00', 'OUT') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Visitor Data");
+
+                        // Seed Gate Passes
+                        stmt.executeUpdate(
+                                        "INSERT INTO gate_passes (student_id, from_date, to_date, reason, destination, parent_contact, status) "
+                                                        +
+                                                        "VALUES (1, '2026-03-01', '2026-03-05', 'Family Function', 'Hometown', '9876543210', 'PENDING') ON CONFLICT DO NOTHING");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO gate_passes (student_id, from_date, to_date, reason, destination, parent_contact, status, approved_by, approved_at, approval_comment) "
+                                                        +
+                                                        "VALUES (2, '2026-02-15', '2026-02-16', 'Medical Issue', 'City Hospital', '5551234567', 'APPROVED', 1, '2026-02-14 10:00:00', 'Approved for health reasons') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Gate Pass Data");
                 }
         }
 }

@@ -22,11 +22,20 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: 'Admin',
+    items: [
+      { to: '/dashboard/users', label: 'Users', icon: '👥' },
+      { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
+      { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
+    ],
+  },
+  {
     label: 'Campus',
     items: [
       { to: '/dashboard/library', label: 'Library', icon: '📖' },
       { to: '/dashboard/fees', label: 'Fees', icon: '💰' },
       { to: '/dashboard/hostel', label: 'Hostel', icon: '🏠' },
+      { to: '/dashboard/gatepass', label: 'Gate Pass', icon: '🎫' },
       { to: '/dashboard/placements', label: 'Placements', icon: '💼' },
       { to: '/dashboard/clubs', label: 'Clubs', icon: '🎭' },
       { to: '/dashboard/events', label: 'Events', icon: '🎟️' },
