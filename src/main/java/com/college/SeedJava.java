@@ -287,6 +287,43 @@ public class SeedJava {
                         );
 
                         System.out.println("Seeded Employees Data");
+
+                        stmt.executeUpdate(
+                                        "CREATE TABLE IF NOT EXISTS staff_leaves (" +
+                                                        "id SERIAL PRIMARY KEY," +
+                                                        "user_id INTEGER REFERENCES users(id)," +
+                                                        "leave_type VARCHAR(50)," +
+                                                        "start_date DATE," +
+                                                        "end_date DATE," +
+                                                        "reason TEXT," +
+                                                        "status VARCHAR(20) DEFAULT 'PENDING'," +
+                                                        "approved_by INTEGER REFERENCES users(id)," +
+                                                        "approval_date TIMESTAMP," +
+                                                        "comments TEXT," +
+                                                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                                                        ")");
+
+                        stmt.executeUpdate(
+                                        "CREATE TABLE IF NOT EXISTS student_leaves (" +
+                                                        "id SERIAL PRIMARY KEY," +
+                                                        "student_id INTEGER REFERENCES students(id)," +
+                                                        "leave_type VARCHAR(50)," +
+                                                        "start_date DATE," +
+                                                        "end_date DATE," +
+                                                        "reason TEXT," +
+                                                        "status VARCHAR(20) DEFAULT 'PENDING'," +
+                                                        "approved_by INTEGER REFERENCES users(id)," +
+                                                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                                                        ")");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO staff_leaves (user_id, leave_type, start_date, end_date, reason) VALUES (3, 'SICK', '2023-10-01', '2023-10-03', 'Fever and cold') ON CONFLICT DO NOTHING"
+                        );
+                        stmt.executeUpdate(
+                                        "INSERT INTO student_leaves (student_id, leave_type, start_date, end_date, reason) VALUES (1, 'MEDICAL', '2023-11-05', '2023-11-07', 'Doctor appointment') ON CONFLICT DO NOTHING"
+                        );
+
+                        System.out.println("Seeded Leave Data");
                 }
         }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getResources, getResourceCategories, addResource, deleteResource, incrementDownload } from '../services/resourceService';
-import { getCourses } from '../services/courseService';
+import { getAllCourses } from '../services/courseService';
 
 const ResourceManagementPage = () => {
     const [resources, setResources] = useState([]);
@@ -36,7 +36,7 @@ const ResourceManagementPage = () => {
             const [resRes, catRes, crsRes] = await Promise.all([
                 getResources(),
                 getResourceCategories(),
-                getCourses()
+                getAllCourses()
             ]);
             setResources(resRes.data || []);
             setCategories(catRes.data || []);

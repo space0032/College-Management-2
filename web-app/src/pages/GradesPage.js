@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     getAllGrades, getStudentGrades, getStudentCGPA, saveGrade
 } from '../services/gradeService';
-import { getCourses } from '../services/courseService';
-import { getStudents } from '../services/studentService';
+import { getAllCourses } from '../services/courseService';
+import { getAllStudents } from '../services/studentService';
 
 const GradesPage = () => {
     const [activeTab, setActiveTab] = useState('view');
@@ -61,8 +61,8 @@ const GradesPage = () => {
 
     const loadFormData = async () => {
         try {
-            const pStudents = getStudents();
-            const pCourses = getCourses();
+            const pStudents = getAllStudents();
+            const pCourses = getAllCourses();
             const [rStud, rCour] = await Promise.all([pStudents, pCourses]);
             setStudents(rStud.data || []);
             setCourses(rCour.data || []);

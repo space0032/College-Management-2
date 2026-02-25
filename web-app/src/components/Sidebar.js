@@ -42,8 +42,14 @@ const Sidebar = () => {
     navSections['Admin'] = [
       { to: '/dashboard/management', label: 'Institute Mgmt', icon: '🏛️' },
       { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼' },
+      { to: '/dashboard/leaves', label: 'Leave Approvals', icon: '📅' },
       { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
       { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
+    ];
+  } else if (userRole === 'FACULTY' || userRole === 'STUDENT') {
+    navSections['My Requests'] = [
+      { to: '/dashboard/gatepass', label: 'Gate Pass', icon: '🎟️' },
+      { to: '/dashboard/leaves', label: 'Leave Requests', icon: '📅' },
     ];
   }
 
