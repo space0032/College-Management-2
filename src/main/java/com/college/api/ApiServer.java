@@ -37,6 +37,7 @@ public class ApiServer {
         server.createContext("/api/grades", new ProtectedHandler(new GradeController()));
         server.createContext("/api/reports", new ProtectedHandler(new ReportController()));
         server.createContext("/api/gatepass", new ProtectedHandler(new GatePassController()));
+        server.createContext("/api/visitors", new ProtectedHandler(new VisitorController()));
 
         server.setExecutor(null);
         server.start();

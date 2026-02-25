@@ -36,6 +36,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/fees', label: 'Fees', icon: '💰' },
       { to: '/dashboard/hostel', label: 'Hostel', icon: '🏠' },
       { to: '/dashboard/gatepass', label: 'Gate Pass', icon: '🎫' },
+      { to: '/dashboard/visitors', label: 'Visitors', icon: '🧍' },
       { to: '/dashboard/placements', label: 'Placements', icon: '💼' },
       { to: '/dashboard/clubs', label: 'Clubs', icon: '🎭' },
       { to: '/dashboard/events', label: 'Events', icon: '🎟️' },
