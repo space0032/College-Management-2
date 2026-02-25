@@ -41,6 +41,7 @@ const Sidebar = () => {
     navSections['Admin'] = [
       { to: '/dashboard/management', label: 'Institute Mgmt', icon: '🏛️' },
       { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼' },
+      { to: '/dashboard/payroll', label: 'Payroll', icon: '💸' },
       { to: '/dashboard/leaves', label: 'Leave Approvals', icon: '📅' },
       { to: '/dashboard/workload', label: 'Faculty Workload', icon: '👨‍🏫' },
       { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
