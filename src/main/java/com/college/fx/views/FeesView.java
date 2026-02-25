@@ -8,7 +8,7 @@ import com.college.models.FeePayment;
 import com.college.utils.SessionManager;
 import com.college.utils.DialogUtils;
 import com.college.dao.SystemSettingsDAO; // Added
-import com.college.services.DropboxStorageService; // Added
+import com.college.services.FileUploadService; // Added
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -36,7 +36,7 @@ public class FeesView {
     private EnhancedFeeDAO feeDAO;
     private StudentDAO studentDAO;
     private SystemSettingsDAO systemSettingsDAO; // Added
-    private DropboxStorageService storageService; // Added
+    private FileUploadService storageService; // Added
     private TextField searchField;
     private String role;
     private int userId;
@@ -47,7 +47,7 @@ public class FeesView {
         this.feeDAO = new EnhancedFeeDAO();
         this.studentDAO = new StudentDAO();
         this.systemSettingsDAO = new SystemSettingsDAO();
-        this.storageService = new DropboxStorageService();
+        this.storageService = new FileUploadService();
         this.feeData = FXCollections.observableArrayList();
         this.allFeeData = FXCollections.observableArrayList();
         createView();
@@ -497,9 +497,14 @@ public class FeesView {
             // Async load
             final ImageView fLogo = logoView;
             new Thread(() -> {
-                String url = storageService.getTemporaryLink(logoPath);
-                if (url != null) {
-                    javafx.application.Platform.runLater(() -> fLogo.setImage(new Image(url, true)));
+                try {
+                    java.io.File logoFile = storageService.getFile(logoPath);
+                    if (logoFile != null && logoFile.exists()) {
+                        String url = logoFile.toURI().toString();
+                        javafx.application.Platform.runLater(() -> fLogo.setImage(new Image(url, true)));
+                    }
+                } catch (Exception e) {
+                    com.college.utils.Logger.error("Failed to load custom logo in receipt", e);
                 }
             }).start();
             headerBox.getChildren().add(logoView);

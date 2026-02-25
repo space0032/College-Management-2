@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class FileUploadService {
 
-    private final DropboxService dropboxService;
+    private final GoogleDriveService googleDriveService;
 
     private static final String UPLOAD_DIR_SYLLABI = "uploads/syllabi";
     private static final String UPLOAD_DIR_RESOURCES = "uploads/resources";
@@ -27,7 +27,7 @@ public class FileUploadService {
     };
 
     public FileUploadService() {
-        this.dropboxService = new DropboxService();
+        this.googleDriveService = new GoogleDriveService();
         createDirectories();
     }
 
@@ -79,13 +79,36 @@ public class FileUploadService {
         // Generate safe unique filename
         String safeFilename = UUID.randomUUID().toString() + extension;
 
-        // Try Dropbox first
-        if (dropboxService.isConfigured()) {
-            String dropboxUrl = dropboxService.uploadFile(inputStream, safeFilename);
-            if (dropboxUrl != null) {
-                return dropboxUrl;
+        // Try Google Drive first
+        if (googleDriveService.isConfigured()) {
+            try {
+                // Determine mime type
+                String mimeType = "application/octet-stream";
+                if (extension.equals(".pdf")) mimeType = "application/pdf";
+                else if (extension.equals(".doc") || extension.equals(".docx")) mimeType = "application/msword";
+                else if (extension.equals(".ppt") || extension.equals(".pptx")) mimeType = "application/vnd.ms-powerpoint";
+                else if (extension.equals(".xls") || extension.equals(".xlsx")) mimeType = "application/vnd.ms-excel";
+                else if (extension.equals(".txt")) mimeType = "text/plain";
+                else if (extension.equals(".zip")) mimeType = "application/zip";
+                else if (extension.equals(".jpg") || extension.equals(".jpeg")) mimeType = "image/jpeg";
+                else if (extension.equals(".png")) mimeType = "image/png";
+
+                // We need to write InputStream to a temporary file because Drive API expects a File
+                File tempFile = File.createTempFile("upload-", safeFilename);
+                Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                
+                String driveUrl = googleDriveService.uploadFile(tempFile, mimeType);
+                
+                // Delete temp file after upload attempt
+                tempFile.delete();
+                
+                if (driveUrl != null) {
+                    return driveUrl;
+                }
+                Logger.warn("Google Drive upload failed, falling back to local storage.");
+            } catch (Exception e) {
+                Logger.error("Failed to upload to Google Drive: " + e.getMessage(), e);
             }
-            Logger.warn("Dropbox upload failed, falling back to local storage.");
         }
 
         // Fallback to local storage
@@ -129,14 +152,19 @@ public class FileUploadService {
         if (path == null)
             return;
 
-        // Dropbox Private Path
-        if (path.startsWith("/")) {
+        // Web Link (Assume Google Drive)
+        if (path.startsWith("http")) {
             try {
-                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
-                    dropboxService.downloadFile(path, fos);
+                String fileId = GoogleDriveService.extractFileIdFromUrl(path);
+                if (fileId != null) {
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
+                        googleDriveService.downloadFile(fileId, fos);
+                    }
+                } else {
+                    throw new java.io.IOException("Could not extract Google Drive File ID from URL: " + path);
                 }
             } catch (Exception e) {
-                throw new java.io.IOException("Failed to download from Dropbox: " + e.getMessage(), e);
+                throw new java.io.IOException("Failed to download from Google Drive: " + e.getMessage(), e);
             }
         }
         // Local File
@@ -155,10 +183,13 @@ public class FileUploadService {
             return;
 
         try {
-            // Dropbox
-            if (path.startsWith("/")) {
-                dropboxService.deleteFile(path); // dropboxService is final initialized in ctor
-                Logger.info("Deleted file from Dropbox: " + path);
+            // Google Drive Web Link
+            if (path.startsWith("http")) {
+                String fileId = GoogleDriveService.extractFileIdFromUrl(path);
+                if (fileId != null) {
+                    googleDriveService.deleteFile(fileId);
+                    Logger.info("Deleted file from Google Drive: " + fileId);
+                }
             }
             // Local
             else {

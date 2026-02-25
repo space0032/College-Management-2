@@ -4,8 +4,9 @@ import { getSettings, updateSettings } from '../services/settingsService';
 const SettingsPage = () => {
     const [settings, setSettings] = useState({
         college_name: '',
+        college_name: '',
         college_logo_url: '',
-        dropbox_api_key: '',
+        google_drive_folder_id: '',
         timezone: '',
         default_theme: 'light'
     });
@@ -25,8 +26,9 @@ const SettingsPage = () => {
             if (res.data) {
                 setSettings({
                     college_name: res.data.college_name || '',
+                    college_name: res.data.college_name || '',
                     college_logo_url: res.data.college_logo_url || '',
-                    dropbox_api_key: res.data.dropbox_api_key || '',
+                    google_drive_folder_id: res.data.google_drive_folder_id || '',
                     timezone: res.data.timezone || 'UTC',
                     default_theme: res.data.default_theme || 'light'
                 });
@@ -149,15 +151,15 @@ const SettingsPage = () => {
                         </div>
 
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label>Dropbox API Key (Cloud Storage)</label>
+                            <label>Google Drive Folder ID (Cloud Storage)</label>
                             <input
                                 type="password"
-                                name="dropbox_api_key"
-                                value={settings.dropbox_api_key}
+                                name="google_drive_folder_id"
+                                value={settings.google_drive_folder_id}
                                 onChange={handleChange}
-                                placeholder="Enter API Key to enable cloud backups..."
+                                placeholder="Enter Folder ID to enable Google Drive storage..."
                             />
-                            <small style={{ color: 'var(--text-muted)' }}>Required for automated database backups and large assignment submissions.</small>
+                            <small style={{ color: 'var(--text-muted)' }}>Required for cloud backups and large assignment submissions.</small>
                         </div>
 
                         <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '20px' }}>

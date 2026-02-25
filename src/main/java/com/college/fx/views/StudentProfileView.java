@@ -2,6 +2,7 @@ package com.college.fx.views;
 
 import com.college.dao.StudentDAO;
 import com.college.models.Student;
+import com.college.services.FileUploadService;
 import com.college.services.TranscriptService;
 
 import com.college.models.StudentFeedback;
@@ -444,21 +445,26 @@ public class StudentProfileView {
                 Image croppedImage = cropper.showAndWait();
 
                 if (croppedImage != null) {
-                    // Use Storage Service (Now using Dropbox)
-                    com.college.services.StorageService storage = new com.college.services.DropboxStorageService();
+                    // Use Storage Service
+                    FileUploadService storage = new FileUploadService();
 
                     // Capture old path to delete later
                     String oldPath = student.getProfilePhotoPath();
 
                     String fileName = "student_" + student.getId() + "_" + System.currentTimeMillis() + ".png";
 
-                    String savedPath = storage.saveImage(croppedImage, fileName);
+                    java.io.File tempFile = java.io.File.createTempFile("cropped_", ".png");
+                    javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(croppedImage, null), "png", tempFile);
+                    java.io.InputStream is = new java.io.FileInputStream(tempFile);
+
+                    String savedPath = storage.uploadResource(is, fileName, tempFile.length());
+                    is.close();
+                    tempFile.delete();
 
                     if (savedPath != null) {
                         // Success! Now allow deleting the old image if it exists
                         if (oldPath != null && !oldPath.isEmpty()) {
-                            // Run in background or same thread? Storage calls might be blocking but fast.
-                            storage.deleteImage(oldPath);
+                            storage.deleteFile(oldPath);
                         }
 
                         // For Dropbox, savedPath might be just the path identifier.
@@ -467,11 +473,11 @@ public class StudentProfileView {
                         student.setProfilePhotoPath(savedPath);
                         updateStudent();
 
-                        // Set the image directly from the cropped version since we don't have a local
-                        // file for the dropbox URL immediately readable
+                        // For Google Drive, savedPath might be just the path identifier.
+                        // Or we can just use the generated local temp file / google drive URI immediately readable
                         profileImageView.setImage(croppedImage);
                     } else {
-                        Alert a = new Alert(Alert.AlertType.ERROR, "Failed to save to Dropbox.");
+                        Alert a = new Alert(Alert.AlertType.ERROR, "Failed to save to Google Drive.");
                         DialogUtils.styleDialog(a);
                         a.show();
                     }

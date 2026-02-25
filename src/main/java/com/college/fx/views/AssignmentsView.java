@@ -317,25 +317,22 @@ public class AssignmentsView {
             if (btn == submitBtnType) {
                 String finalPath = filePathField.getText();
 
-                // Dropbox Upload
+                // Cloud Upload
                 if (finalPath != null && !finalPath.isEmpty() && !finalPath.startsWith("http")) {
                     java.io.File file = new java.io.File(finalPath);
                     if (file.exists()) {
-                        com.college.services.DropboxService dbService = new com.college.services.DropboxService();
-                        if (dbService.isConfigured()) {
-                            try (java.io.InputStream is = new java.io.FileInputStream(file)) {
-                                String fileName = "submission_" + student.getId() + "_" + selected.getId() + "_"
-                                        + file.getName();
-                                String sharableLink = dbService.uploadFile(is, fileName);
-                                if (sharableLink != null) {
-                                    finalPath = sharableLink;
-                                    System.out.println("File uploaded to Dropbox: " + finalPath);
-                                } else {
-                                    System.err.println("Dropbox upload failed, falling back to local path.");
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                        com.college.services.FileUploadService fileUploadService = new com.college.services.FileUploadService();
+                        try (java.io.InputStream is = new java.io.FileInputStream(file)) {
+                            String fileName = "submission_" + student.getId() + "_" + selected.getId() + "_" + file.getName();
+                            String sharableLink = fileUploadService.uploadResource(is, fileName, file.length());
+                            if (sharableLink != null) {
+                                finalPath = sharableLink;
+                                System.out.println("File uploaded: " + finalPath);
+                            } else {
+                                System.err.println("Upload failed, falling back to local path.");
                             }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                 }
