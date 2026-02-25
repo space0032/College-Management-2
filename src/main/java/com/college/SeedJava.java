@@ -152,6 +152,21 @@ public class SeedJava {
                                                         "VALUES (2, '2026-02-15', '2026-02-16', 'Medical Issue', 'City Hospital', '5551234567', 'APPROVED', 1, '2026-02-14 10:00:00', 'Approved for health reasons') ON CONFLICT DO NOTHING");
 
                         System.out.println("Seeded Gate Pass Data");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO calendar_events (title, event_date, event_type, description) "
+                                                        +
+                                                        "VALUES ('Spring Break', '2026-03-20', 'HOLIDAY', 'Campus closed for spring break') ON CONFLICT DO NOTHING");
+                        stmt.executeUpdate(
+                                        "INSERT INTO calendar_events (title, event_date, event_type, description) "
+                                                        +
+                                                        "VALUES ('Final Exams Begin', '2026-05-10', 'EXAM', 'All library hours extended') ON CONFLICT DO NOTHING");
+                        stmt.executeUpdate(
+                                        "INSERT INTO calendar_events (title, event_date, event_type, description) "
+                                                        +
+                                                        "VALUES ('Project Submission Deadline', '2026-04-15', 'DEADLINE', 'Final year projects due') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Calendar Event Data");
                 }
         }
 }
