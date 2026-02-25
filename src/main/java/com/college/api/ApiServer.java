@@ -52,6 +52,7 @@ public class ApiServer {
         server.createContext("/api/payroll", new ProtectedHandler(new PayrollController()));
         server.createContext("/api/syllabus", new ProtectedHandler(new SyllabusController()));
         server.createContext("/api/volunteers", new ProtectedHandler(new VolunteerController()));
+        server.createContext("/api/audit", new ProtectedHandler(new AuditController()));
 
         server.setExecutor(null);
         server.start();

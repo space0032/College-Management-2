@@ -20,7 +20,7 @@ const PayrollManagementPage = () => {
     const [payrollData, setPayrollData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [editModal, setEditModal] = useState(null); // { entry, bonuses, deductions }
+    const [editModal, setEditModal] = useState(null);
 
     const currentUser = (() => {
         try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
@@ -32,86 +32,28 @@ const PayrollManagementPage = () => {
         try {
             const res = await getPayroll(month, year);
             setPayrollData(res.data?.data || []);
-        } catch (err) {
-            console.error(err);
-            setError('Failed to load payroll data.');
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { setError('Failed to bridge with payroll ledger.'); }
+        finally { setLoading(false); }
     }, [month, year]);
 
-    useEffect(() => {
-        fetchPayroll();
-    }, [fetchPayroll]);
+    useEffect(() => { fetchPayroll(); }, [fetchPayroll]);
 
     if (currentUser.role !== 'ADMIN') {
         return (
-            <div className="page-container" style={{ textAlign: 'center', paddingTop: '60px' }}>
-                <h2>🔒 Access Restricted</h2>
-                <p className="text-muted">Only administrators can manage payroll.</p>
+            <div className="page-container" style={{ textAlign: 'center', paddingTop: '100px' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🔐</div>
+                <h2>Institutional Access Restricted</h2>
+                <p style={{ color: '#64748b' }}>Payroll operations require Administrative tier credentials.</p>
             </div>
         );
     }
 
-    const handleGenerate = async () => {
-        if (!window.confirm(`Generate payroll for ${MONTHS[month - 1]} ${year}? This will create entries for all active employees not yet included.`)) return;
-        try {
-            const res = await generatePayroll(month, year);
-            alert(res.data?.message || 'Payroll generated.');
-            fetchPayroll();
-        } catch (err) {
-            alert('Failed to generate payroll.');
-        }
-    };
-
     const handleMarkPaid = async (entry) => {
-        if (!window.confirm(`Mark payroll for ${entry.employeeName} as PAID?`)) return;
+        if (!window.confirm(`Finalize salary disbursement for ${entry.employeeName}?`)) return;
         try {
             await markAsPaid(entry.id);
             fetchPayroll();
-        } catch (err) {
-            alert('Failed to mark as paid.');
-        }
-    };
-
-    const handleMarkAllPaid = async () => {
-        const pending = payrollData.filter(p => p.status !== 'PAID');
-        if (pending.length === 0) { alert('No pending entries.'); return; }
-        if (!window.confirm(`Mark ALL ${pending.length} pending entries for ${MONTHS[month - 1]} ${year} as PAID?`)) return;
-        try {
-            await markAllAsPaid(month, year);
-            fetchPayroll();
-        } catch (err) {
-            alert('Failed to mark all as paid.');
-        }
-    };
-
-    const handleDelete = async (entry) => {
-        if (!window.confirm(`Delete payroll entry for ${entry.employeeName}?`)) return;
-        try {
-            await deletePayrollEntry(entry.id);
-            fetchPayroll();
-        } catch (err) {
-            alert('Failed to delete entry.');
-        }
-    };
-
-    const openEditModal = (entry) => {
-        setEditModal({
-            entry,
-            bonuses: entry.bonuses || 0,
-            deductions: entry.deductions || 0
-        });
-    };
-
-    const handleEditSave = async () => {
-        try {
-            await updatePayrollEntry(editModal.entry.id, editModal.bonuses, editModal.deductions);
-            setEditModal(null);
-            fetchPayroll();
-        } catch (err) {
-            alert('Failed to update entry.');
-        }
+        } catch (err) { alert('Disbursement failed'); }
     };
 
     const formatCurrency = (amount) =>
@@ -119,140 +61,113 @@ const PayrollManagementPage = () => {
 
     const totalNet = payrollData.reduce((sum, p) => sum + (parseFloat(p.netSalary) || 0), 0);
     const paidCount = payrollData.filter(p => p.status === 'PAID').length;
-    const pendingCount = payrollData.length - paidCount;
-
-    const yearOptions = [];
-    for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 1; y++) yearOptions.push(y);
 
     return (
-        <div className="page-container">
-            {/* Header */}
-            <div className="page-header">
-                <div>
-                    <h2>💰 Payroll Management</h2>
-                    <p className="text-muted">Monthly salary disbursement tracking and payroll generation.</p>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <select
-                        value={month}
-                        onChange={e => setMonth(parseInt(e.target.value))}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                    >
-                        {MONTHS.map((m, i) => (
-                            <option key={i + 1} value={i + 1}>{m}</option>
-                        ))}
-                    </select>
-                    <select
-                        value={year}
-                        onChange={e => setYear(parseInt(e.target.value))}
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                    >
-                        {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                    <button className="btn btn-secondary" onClick={handleGenerate}>⚙️ Generate Payroll</button>
-                    <button className="btn btn-primary" onClick={handleMarkAllPaid} disabled={pendingCount === 0}>
-                        ✅ Mark All Paid
-                    </button>
+        <div className="page-container" style={{ background: '#f1f5f9', minHeight: '100vh', padding: '30px' }}>
+            <div className="page-header" style={{ marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div>
+                        <h1 className="page-title">💳 Payroll & Treasury</h1>
+                        <p className="page-subtitle">Monthly salary architecture, tax adjustments, and disbursement tracking</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'white', padding: '10px 20px', borderRadius: '15px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                        <select className="form-control" style={{ border: 'none', background: 'none', fontWeight: 'bold', width: 'auto' }} value={month} onChange={e => setMonth(parseInt(e.target.value))}>
+                            {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                        </select>
+                        <div style={{ width: '1px', height: '20px', background: '#e2e8f0' }} />
+                        <select className="form-control" style={{ border: 'none', background: 'none', fontWeight: 'bold', width: 'auto' }} value={year} onChange={e => setYear(parseInt(e.target.value))}>
+                            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '20px' }}>
-                <div className="stat-card" style={{ padding: '20px', background: '#f0f7ff', borderRadius: '10px', border: '1px solid #bee3f8' }}>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#2b6cb0' }}>{payrollData.length}</div>
-                    <div style={{ color: '#4a5568', fontSize: '0.9rem' }}>Total Employees</div>
+            {/* Premium Payout Dashboard */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1fr', gap: '30px', marginBottom: '30px' }}>
+                <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.8, letterSpacing: '1px' }}>MONTHLY TREASURY OUTFLOW</div>
+                        <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '10px 0' }}>{formatCurrency(totalNet)}</div>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <div style={{ fontSize: '0.8rem' }}><span style={{ opacity: 0.6 }}>BASE:</span> {formatCurrency(payrollData.reduce((s, p) => s + (p.basicSalary || 0), 0))}</div>
+                            <div style={{ fontSize: '0.8rem' }}><span style={{ opacity: 0.6 }}>ADJUSTS:</span> <span style={{ color: '#10b981' }}>+{formatCurrency(payrollData.reduce((s, p) => s + (p.bonuses || 0), 0))}</span></div>
+                        </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '3.5rem', opacity: 0.2 }}>📊</div>
+                    </div>
                 </div>
-                <div className="stat-card" style={{ padding: '20px', background: '#f0fff4', borderRadius: '10px', border: '1px solid #9ae6b4' }}>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#276749' }}>{paidCount}</div>
-                    <div style={{ color: '#4a5568', fontSize: '0.9rem' }}>Paid ✓</div>
-                </div>
-                <div className="stat-card" style={{ padding: '20px', background: '#fffaf0', borderRadius: '10px', border: '1px solid #fbd38d' }}>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#7b341e' }}>{pendingCount}</div>
-                    <div style={{ color: '#4a5568', fontSize: '0.9rem' }}>Pending Payment</div>
+
+                <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: '15px' }}>
+                    <div className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>DISBURSEMENT RATIO</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{payrollData.length > 0 ? Math.round((paidCount / payrollData.length) * 100) : 0}%</div>
+                        </div>
+                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', border: '4px solid #f1f5f9', borderTopColor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>✓</div>
+                    </div>
+                    <div className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>PENDING PAYMENTS</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{payrollData.length - paidCount} Staff</div>
+                        </div>
+                        <button className="btn btn-sm btn-primary" onClick={() => markAllAsPaid(month, year).then(fetchPayroll)}>Mark All Paid</button>
+                    </div>
                 </div>
             </div>
-
-            {/* Total Payout Banner */}
-            {payrollData.length > 0 && (
-                <div style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white', borderRadius: '10px', padding: '16px 24px',
-                    marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                    <span style={{ fontSize: '1rem', opacity: 0.9 }}>Total Payout — {MONTHS[month - 1]} {year}</span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 'bold' }}>{formatCurrency(totalNet)}</span>
-                </div>
-            )}
-
-            {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading payroll data...</div>
+                <div style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>🧮 Auditor is computing payroll sequence...</div>
             ) : (
-                <div className="data-table-container">
+                <div className="data-table-container" style={{ boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Employee</th>
-                                <th>Designation</th>
-                                <th style={{ textAlign: 'right' }}>Basic Salary</th>
-                                <th style={{ textAlign: 'right' }}>Bonuses</th>
-                                <th style={{ textAlign: 'right' }}>Deductions</th>
-                                <th style={{ textAlign: 'right' }}>Net Salary</th>
+                                <th>Staff Member</th>
+                                <th>Unit</th>
+                                <th style={{ textAlign: 'right' }}>Formula (Basic+B-D)</th>
+                                <th style={{ textAlign: 'right' }}>Net Disbursement</th>
                                 <th>Status</th>
-                                <th>Payment Date</th>
-                                <th>Actions</th>
+                                <th style={{ textAlign: 'center' }}>Ops</th>
                             </tr>
                         </thead>
                         <tbody>
                             {payrollData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
-                                        No payroll data for {MONTHS[month - 1]} {year}. Click "Generate Payroll" to create entries.
+                                    <td colSpan="6" style={{ textAlign: 'center', padding: '60px' }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📅</div>
+                                        <div style={{ color: '#64748b' }}>No ledger entries for this cycle.</div>
+                                        <button className="btn btn-secondary" style={{ marginTop: '15px' }} onClick={() => generatePayroll(month, year).then(fetchPayroll)}>Generate Records</button>
                                     </td>
                                 </tr>
                             ) : (
-                                payrollData.map(entry => (
-                                    <tr key={entry.id}>
-                                        <td style={{ fontWeight: '500' }}>{entry.employeeName}</td>
-                                        <td><span className="status-badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>{entry.designation}</span></td>
-                                        <td style={{ textAlign: 'right' }}>{formatCurrency(entry.basicSalary)}</td>
-                                        <td style={{ textAlign: 'right', color: '#38a169' }}>+{formatCurrency(entry.bonuses)}</td>
-                                        <td style={{ textAlign: 'right', color: '#e53e3e' }}>-{formatCurrency(entry.deductions)}</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(entry.netSalary)}</td>
+                                payrollData.map(p => (
+                                    <tr key={p.id}>
                                         <td>
-                                            {entry.status === 'PAID'
-                                                ? <span className="status-badge status-active">✓ PAID</span>
-                                                : entry.status === 'CANCELLED'
-                                                    ? <span className="status-badge status-rejected">CANCELLED</span>
-                                                    : <span className="status-badge status-pending">PENDING</span>
-                                            }
+                                            <div style={{ fontWeight: '600' }}>{p.employeeName}</div>
+                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ID: {p.employeeId || 'EMP-' + p.id}</div>
                                         </td>
-                                        <td style={{ color: '#718096', fontSize: '0.85rem' }}>
-                                            {entry.paymentDate || '—'}
+                                        <td><span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>{p.designation}</span></td>
+                                        <td style={{ textAlign: 'right', fontSize: '0.85rem' }}>
+                                            <span style={{ color: '#64748b' }}>{formatCurrency(p.basicSalary)}</span>
+                                            <span style={{ color: '#10b981' }}> +{formatCurrency(p.bonuses)}</span>
+                                            <span style={{ color: '#ef4444' }}> -{formatCurrency(p.deductions)}</span>
                                         </td>
+                                        <td style={{ textAlign: 'right', fontWeight: '800', color: '#1e293b' }}>{formatCurrency(p.netSalary)}</td>
                                         <td>
-                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                                {entry.status !== 'PAID' && (
-                                                    <>
-                                                        <button
-                                                            className="btn btn-secondary"
-                                                            style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                                                            onClick={() => openEditModal(entry)}
-                                                        >Edit</button>
-                                                        <button
-                                                            className="btn btn-primary"
-                                                            style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                                                            onClick={() => handleMarkPaid(entry)}
-                                                        >Mark Paid</button>
-                                                    </>
-                                                )}
-                                                <button
-                                                    className="btn"
-                                                    style={{ padding: '4px 8px', fontSize: '0.8rem', background: '#fed7d7', color: '#c53030', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                                    onClick={() => handleDelete(entry)}
-                                                >Delete</button>
-                                            </div>
+                                            <span className={`badge ${p.status === 'PAID' ? 'badge-success' : 'badge-warning'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', width: 'fit-content' }}>
+                                                {p.status === 'PAID' ? '✓ DISBURSED' : '⌛ PENDING'}
+                                            </span>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            {p.status !== 'PAID' ? (
+                                                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                                                    <button className="btn btn-sm btn-secondary" onClick={() => setEditModal({ ...p, bonusesInput: p.bonuses, deductionsInput: p.deductions })}>Edit</button>
+                                                    <button className="btn btn-sm btn-primary" onClick={() => handleMarkPaid(p)}>Pay</button>
+                                                </div>
+                                            ) : (
+                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{p.paymentDate}</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
@@ -262,48 +177,28 @@ const PayrollManagementPage = () => {
                 </div>
             )}
 
-            {/* Edit Modal */}
             {editModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '420px' }}>
-                        <div className="modal-header">
-                            <h2>✏️ Edit Payroll Entry</h2>
-                            <button className="modal-close" onClick={() => setEditModal(null)}>×</button>
+                    <div className="modal-content" style={{ maxWidth: '400px', borderRadius: '20px', padding: '30px' }}>
+                        <h2 style={{ marginBottom: '5px' }}>Adjust Payroll</h2>
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '25px' }}>{editModal.employeeName}</p>
+                        <div className="form-group">
+                            <label>Bonus Incentives (₹)</label>
+                            <input className="form-control" type="number" value={editModal.bonusesInput} onChange={e => setEditModal({ ...editModal, bonusesInput: e.target.value })} />
                         </div>
-                        <div style={{ padding: '20px' }}>
-                            <p style={{ marginBottom: '16px', color: '#555' }}>
-                                Employee: <strong>{editModal.entry.employeeName}</strong><br />
-                                Basic Salary: <strong>{formatCurrency(editModal.entry.basicSalary)}</strong>
-                            </p>
-                            <div className="form-group">
-                                <label>Bonuses (₹)</label>
-                                <input
-                                    type="number" min="0" step="0.01"
-                                    value={editModal.bonuses}
-                                    onChange={e => setEditModal(prev => ({ ...prev, bonuses: e.target.value }))}
-                                />
+                        <div className="form-group">
+                            <label>Deductions / Adjustments (₹)</label>
+                            <input className="form-control" type="number" value={editModal.deductionsInput} onChange={e => setEditModal({ ...editModal, deductionsInput: e.target.value })} />
+                        </div>
+                        <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', marginTop: '20px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>CALCULATED NET DISBURSEMENT</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>
+                                {formatCurrency(parseFloat(editModal.basicSalary) + parseFloat(editModal.bonusesInput || 0) - parseFloat(editModal.deductionsInput || 0))}
                             </div>
-                            <div className="form-group">
-                                <label>Deductions (₹)</label>
-                                <input
-                                    type="number" min="0" step="0.01"
-                                    value={editModal.deductions}
-                                    onChange={e => setEditModal(prev => ({ ...prev, deductions: e.target.value }))}
-                                />
-                            </div>
-                            <div style={{ marginTop: '8px', padding: '10px', background: '#f7fafc', borderRadius: '6px', fontSize: '0.9rem' }}>
-                                Net Salary Preview: <strong style={{ color: '#2b6cb0' }}>
-                                    {formatCurrency(
-                                        parseFloat(editModal.entry.basicSalary || 0) +
-                                        parseFloat(editModal.bonuses || 0) -
-                                        parseFloat(editModal.deductions || 0)
-                                    )}
-                                </strong>
-                            </div>
-                            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditModal(null)}>Cancel</button>
-                                <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleEditSave}>Save Changes</button>
-                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '25px' }}>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditModal(null)}>Discard</button>
+                            <button className="btn btn-primary" style={{ flex: 2 }} onClick={() => updatePayrollEntry(editModal.id, editModal.bonusesInput, editModal.deductionsInput).then(() => { setEditModal(null); fetchPayroll(); })}>Commit Ledger</button>
                         </div>
                     </div>
                 </div>

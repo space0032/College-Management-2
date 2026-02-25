@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     getEvents, registerEvent, getStudentEvents, unregisterEvent,
-    getEventRegistrations, markAttendance
+    getEventRegistrations, markAttendance, createEvent
 } from '../services/eventService';
 
 const EventsPage = () => {
@@ -12,6 +12,12 @@ const EventsPage = () => {
     // Management state
     const [selectedEventId, setSelectedEventId] = useState('');
     const [eventRegistrations, setEventRegistrations] = useState([]);
+
+    // Create event form
+    const EMPTY_EVENT = { name: '', eventType: 'Workshop', description: '', location: '', startTime: '', endTime: '', maxParticipants: '', status: 'UPCOMING' };
+    const [createForm, setCreateForm] = useState(EMPTY_EVENT);
+    const [createError, setCreateError] = useState('');
+    const [createSaving, setCreateSaving] = useState(false);
 
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : { id: 2, role: 'STUDENT' };
@@ -87,6 +93,23 @@ const EventsPage = () => {
         }
     };
 
+    const handleCreateEvent = async (e) => {
+        e.preventDefault();
+        if (!createForm.name || !createForm.startTime) { setCreateError('Name and start time are required.'); return; }
+        setCreateSaving(true);
+        setCreateError('');
+        try {
+            await createEvent(createForm);
+            setCreateForm(EMPTY_EVENT);
+            loadEvents();
+            setActiveTab('browse');
+        } catch (err) {
+            setCreateError(err.response?.data?.error || 'Failed to create event.');
+        } finally {
+            setCreateSaving(false);
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -110,6 +133,14 @@ const EventsPage = () => {
                             onClick={() => setActiveTab('manage')}
                         >
                             Manage Attendance
+                        </button>
+                    )}
+                    {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                        <button
+                            className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setActiveTab('create')}
+                        >
+                            + Create Event
                         </button>
                     )}
                 </div>
@@ -255,6 +286,66 @@ const EventsPage = () => {
                             </table>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ===== CREATE EVENT TAB ===== */}
+            {activeTab === 'create' && (
+                <div style={{ maxWidth: '700px' }}>
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '28px' }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '24px', color: '#2d3748' }}>🎪 Create New Event</h3>
+                        {createError && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{createError}</div>}
+                        <form onSubmit={handleCreateEvent} className="form-grid">
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Event Name *</label>
+                                <input type="text" required value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Annual Tech Fest 2026" />
+                            </div>
+                            <div className="form-group">
+                                <label>Event Type</label>
+                                <select value={createForm.eventType} onChange={e => setCreateForm(p => ({ ...p, eventType: e.target.value }))}>
+                                    {['Workshop', 'Seminar', 'Hackathon', 'Cultural', 'Sports', 'Academic', 'Guest Lecture', 'Other'].map(t => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Status</label>
+                                <select value={createForm.status} onChange={e => setCreateForm(p => ({ ...p, status: e.target.value }))}>
+                                    <option value="UPCOMING">Upcoming</option>
+                                    <option value="ONGOING">Ongoing</option>
+                                    <option value="COMPLETED">Completed</option>
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Description</label>
+                                <textarea rows="3" value={createForm.description} onChange={e => setCreateForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe this event…" style={{ resize: 'vertical' }} />
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Location / Venue</label>
+                                <input type="text" value={createForm.location} onChange={e => setCreateForm(p => ({ ...p, location: e.target.value }))} placeholder="e.g. Main Auditorium, Block B" />
+                            </div>
+                            <div className="form-group">
+                                <label>Start Date & Time *</label>
+                                <input type="datetime-local" required value={createForm.startTime} onChange={e => setCreateForm(p => ({ ...p, startTime: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label>End Date & Time</label>
+                                <input type="datetime-local" value={createForm.endTime} onChange={e => setCreateForm(p => ({ ...p, endTime: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label>Max Participants</label>
+                                <input type="number" min="1" value={createForm.maxParticipants} onChange={e => setCreateForm(p => ({ ...p, maxParticipants: e.target.value }))} placeholder="Leave blank for unlimited" />
+                            </div>
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
+                                <button type="submit" className="btn btn-primary" disabled={createSaving} style={{ flex: 1 }}>
+                                    {createSaving ? 'Creating…' : '🎪 Create Event'}
+                                </button>
+                                <button type="button" className="btn btn-secondary" onClick={() => { setCreateForm(EMPTY_EVENT); setCreateError(''); }}>
+                                    Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getPendingFees, getAllFees, recordPayment, getPaymentHistory } from '../services/feesService';
+import { exportToCSV } from '../utils/exportUtils';
+import ReceiptModal from '../components/ReceiptModal';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -29,6 +31,7 @@ const FeesPage = () => {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [receiptFee, setReceiptFee] = useState(null);
 
   const fetchFees = () => {
     setLoading(true);
@@ -93,6 +96,9 @@ const FeesPage = () => {
           {fee.status !== 'PAID' && (
             <button className="btn-icon" onClick={() => handlePayClick(fee)} title="Pay Now">💳</button>
           )}
+          {fee.status === 'PAID' && (
+            <button className="btn-icon" onClick={() => setReceiptFee(fee)} title="View Receipt">🧾</button>
+          )}
           <button className="btn-icon" onClick={() => handleHistoryClick(fee)} title="View History">📜</button>
         </div>
       )
@@ -104,6 +110,15 @@ const FeesPage = () => {
       <div className="page-header">
         <h1 className="page-title">💰 Fee Management</h1>
         <div className="page-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportToCSV(
+              ['Student', 'Fee Type', 'Amount', 'Due Date', 'Status', 'Total', 'Paid'],
+              fees.map(f => [f.studentName, f.feeType, f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
+              'fees_export'
+            )}>
+            ⬇ Export CSV
+          </button>
           <button
             className={allFees ? "btn btn-secondary" : "btn btn-primary"}
             onClick={() => setAllFees(false)}>
@@ -165,6 +180,10 @@ const FeesPage = () => {
             />
           )}
         </Modal>
+      )}
+
+      {receiptFee && (
+        <ReceiptModal fee={receiptFee} onClose={() => setReceiptFee(null)} />
       )}
     </div>
   );

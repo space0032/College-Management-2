@@ -46,6 +46,7 @@ const Sidebar = () => {
       { to: '/dashboard/leaves', label: 'Leave Approvals', icon: '📅' },
       { to: '/dashboard/workload', label: 'Faculty Workload', icon: '👨‍🏫' },
       { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
+      { to: '/dashboard/audit', label: 'Audit Log', icon: '🗒️' },
       { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
     ];
   } else if (userRole === 'FACULTY' || userRole === 'STUDENT') {

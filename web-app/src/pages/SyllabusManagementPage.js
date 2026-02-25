@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSyllabiBycourse, getAllSyllabi, addSyllabus, deleteSyllabus } from '../services/syllabusService';
-import { getCourses } from '../services/courseService';
+import { getSyllabiBycourse, addSyllabus, deleteSyllabus } from '../services/syllabusService';
+import { getAllCourses } from '../services/courseService';
 
 const getFileIcon = (path) => {
     if (!path) return '📄';
@@ -9,18 +9,13 @@ const getFileIcon = (path) => {
     if (ext.startsWith('doc')) return '📘';
     if (ext.startsWith('xls')) return '📊';
     if (ext.startsWith('ppt')) return '📽️';
-    if (['jpg', 'png', 'jpeg'].includes(ext)) return '🖼️';
-    if (['zip', 'rar'].includes(ext)) return '📦';
     return '📄';
 };
 
 const SyllabusManagementPage = () => {
-    const user = (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    })();
-    const isAdmin = user.role === 'ADMIN';
-    const isFaculty = user.role === 'FACULTY';
-    const canManage = isAdmin || isFaculty;
+    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
+    const userId = parseInt(localStorage.getItem('userId') || '1');
 
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
@@ -28,10 +23,9 @@ const SyllabusManagementPage = () => {
     const [loading, setLoading] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [form, setForm] = useState({ title: '', version: '1.0', description: '', filePath: '' });
-    const [error, setError] = useState(null);
 
     useEffect(() => {
-        getCourses().then(res => {
+        getAllCourses().then(res => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
             setCourses(list);
             if (list.length > 0) setSelectedCourse(String(list[0].id));
@@ -41,10 +35,9 @@ const SyllabusManagementPage = () => {
     const fetchSyllabi = useCallback(() => {
         if (!selectedCourse) return;
         setLoading(true);
-        setError(null);
         getSyllabiBycourse(selectedCourse)
             .then(res => setSyllabi(Array.isArray(res.data) ? res.data : []))
-            .catch(() => setError('Failed to load syllabi.'))
+            .catch(() => setSyllabi([]))
             .finally(() => setLoading(false));
     }, [selectedCourse]);
 
@@ -53,159 +46,143 @@ const SyllabusManagementPage = () => {
     const handleAdd = async (e) => {
         e.preventDefault();
         try {
-            await addSyllabus({
-                courseId: parseInt(selectedCourse),
-                title: form.title,
-                version: form.version,
-                description: form.description,
-                filePath: form.filePath,
-                uploadedBy: user.id
-            });
+            await addSyllabus({ ...form, courseId: parseInt(selectedCourse), uploadedBy: userId });
             setShowAdd(false);
             setForm({ title: '', version: '1.0', description: '', filePath: '' });
             fetchSyllabi();
-        } catch (err) {
-            alert('Failed to add syllabus.');
-        }
+        } catch (err) { alert('Upload failed'); }
     };
 
-    const handleDelete = async (id, title) => {
-        if (!window.confirm(`Delete syllabus "${title}"?`)) return;
+    const handleDelete = async (s) => {
+        if (!window.confirm(`Expunge syllabus "${s.title}" from institutional records?`)) return;
         try {
-            await deleteSyllabus(id);
+            await deleteSyllabus(s.id);
             fetchSyllabi();
-        } catch {
-            alert('Failed to delete syllabus.');
-        }
+        } catch { alert('Deletion failed'); }
     };
 
-    const selectedCourseName = courses.find(c => String(c.id) === selectedCourse)?.name || '';
+    const selCourseObj = courses.find(c => String(c.id) === selectedCourse);
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div>
-                    <h2>📋 Syllabus Management</h2>
-                    <p className="text-muted">Browse and manage course syllabi.</p>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
+            <div className="page-header" style={{ marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h1 className="page-title">📋 Curriculum & Syllabus</h1>
+                        <p className="page-subtitle">Centralized repository for academic frameworks, course maps, and learning objectives</p>
+                    </div>
+                    {canManage && (
+                        <button className="btn btn-primary" onClick={() => setShowAdd(true)} disabled={!selectedCourse}>
+                            + Upload Framework
+                        </button>
+                    )}
                 </div>
-                {canManage && (
-                    <button className="btn btn-primary" onClick={() => setShowAdd(true)} disabled={!selectedCourse}>
-                        + Upload Syllabus
-                    </button>
-                )}
             </div>
 
-            {/* Course Filter */}
-            <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontWeight: 500, marginRight: '10px' }}>Course:</label>
-                <select
-                    value={selectedCourse}
-                    onChange={e => setSelectedCourse(e.target.value)}
-                    style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #ddd', minWidth: '250px' }}
-                >
-                    <option value="">-- Select a Course --</option>
-                    {courses.map(c => (
-                        <option key={c.id} value={String(c.id)}>{c.name || c.courseName}</option>
-                    ))}
-                </select>
-            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) 1fr', gap: '30px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                    {/* Course Header Stat Card */}
+                    <div className="stat-card" style={{ background: 'white', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', display: 'flex', gap: '20px', alignItems: 'center' }}>
+                        <div style={{ width: '60px', height: '60px', background: '#3b82f6', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📚</div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Curriculum for</div>
+                            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{selCourseObj?.name || 'Academic Course'}</h2>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>TOTAL MANUALS</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{syllabi.length}</div>
+                        </div>
+                    </div>
 
-            {error && <div style={{ color: '#e53e3e', marginBottom: '15px' }}>{error}</div>}
-
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading syllabi...</div>
-            ) : (
-                <div className="data-table-container">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Version</th>
-                                <th>Description</th>
-                                <th>Uploaded By</th>
-                                <th>Date</th>
-                                {canManage && <th>Actions</th>}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {syllabi.length === 0 ? (
-                                <tr>
-                                    <td colSpan={canManage ? 6 : 5} style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
-                                        {selectedCourse
-                                            ? `No syllabi uploaded for ${selectedCourseName} yet.`
-                                            : 'Select a course to view syllabi.'}
-                                    </td>
-                                </tr>
-                            ) : (
-                                syllabi.map(s => (
-                                    <tr key={s.id}>
-                                        <td>
-                                            <a
-                                                href={s.filePath || '#'}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}
-                                            >
-                                                {getFileIcon(s.filePath)} {s.title}
-                                            </a>
-                                        </td>
-                                        <td><span className="status-badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>v{s.version}</span></td>
-                                        <td style={{ maxWidth: '280px', color: '#555' }}>{s.description || '—'}</td>
-                                        <td>{s.uploaderName || '—'}</td>
-                                        <td style={{ fontSize: '0.85rem', color: '#718096' }}>
-                                            {s.uploadedAt ? s.uploadedAt.split('T')[0] : '—'}
-                                        </td>
-                                        {canManage && (
-                                            <td>
-                                                <button
-                                                    className="btn"
-                                                    style={{ padding: '4px 10px', fontSize: '0.8rem', background: '#fed7d7', color: '#c53030', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                                    onClick={() => handleDelete(s.id, s.title)}
-                                                >Delete</button>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>📂 Retriving curriculum files...</div>
+                    ) : (
+                        <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+                            {syllabi.map(s => (
+                                <div key={s.id} className="stat-card" style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', borderLeft: '6px solid #3b82f6' }}>
+                                    <div style={{ fontSize: '2rem' }}>{getFileIcon(s.filePath)}</div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem' }}>{s.title}</h4>
+                                            <span className="badge" style={{ background: '#eff6ff', color: '#3b82f6', fontSize: '0.65rem' }}>v{s.version}</span>
+                                        </div>
+                                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '15px', lineHeight: '1.5' }}>{s.description || 'Institutional academic guide for ' + (selCourseObj?.name || 'course')}</p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Uploaded: {s.uploadedAt?.split('T')[0]}</span>
+                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                {canManage && <button onClick={() => handleDelete(s)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>}
+                                                <a href={s.filePath} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>Download ⬇</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {syllabi.length === 0 && (
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px', color: '#94a3b8' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📁</div>
+                                    <p>No curriculum frameworks found for this unit.</p>
+                                </div>
                             )}
-                        </tbody>
-                    </table>
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {/* Add Modal */}
+                {/* Sidebar Filter */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="stat-card">
+                        <h4 style={{ marginBottom: '15px' }}>Course Select</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {courses.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => setSelectedCourse(String(c.id))}
+                                    style={{
+                                        textAlign: 'left', padding: '12px 15px', borderRadius: '10px',
+                                        background: selectedCourse === String(c.id) ? '#3b82f6' : 'transparent',
+                                        color: selectedCourse === String(c.id) ? 'white' : '#475569',
+                                        border: '1px solid ' + (selectedCourse === String(c.id) ? '#3b82f6' : '#e2e8f0'),
+                                        cursor: 'pointer', fontSize: '0.85rem', fontWeight: selectedCourse === String(c.id) ? '600' : '400',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {c.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: '#f0f9ff', borderColor: '#bae6fd' }}>
+                        <h4 style={{ color: '#0369a1', marginBottom: '10px' }}>Integrity Tip</h4>
+                        <p style={{ fontSize: '0.75rem', color: '#0c4a6e', lineHeight: '1.5' }}>Ensure versions are incremented correctly (e.g. 1.0 &rarr; 1.1) to maintain historical curriculum accuracy.</p>
+                    </div>
+                </div>
+            </div>
+
             {showAdd && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '480px' }}>
-                        <div className="modal-header">
-                            <h2>📋 Add Syllabus — {selectedCourseName}</h2>
-                            <button className="modal-close" onClick={() => setShowAdd(false)}>×</button>
-                        </div>
-                        <form onSubmit={handleAdd} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div className="form-group">
-                                <label>Title *</label>
-                                <input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g., Data Structures Syllabus 2025" />
+                    <div className="modal-content" style={{ maxWidth: '450px', borderRadius: '20px', padding: '30px' }}>
+                        <h2 style={{ marginBottom: '5px' }}>Publish Syllabus</h2>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '25px' }}>Unit: <strong>{selCourseObj?.name}</strong></p>
+                        <form onSubmit={handleAdd} className="form-grid">
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Framework Title *</label>
+                                <input required className="form-control" type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Data Structures 2025 Revised" />
                             </div>
                             <div className="form-group">
-                                <label>Version</label>
-                                <input value={form.version} onChange={e => setForm(f => ({ ...f, version: e.target.value }))} placeholder="e.g., 1.0, 2.1" />
+                                <label>Iteration / Version</label>
+                                <input className="form-control" type="text" value={form.version} onChange={e => setForm({ ...form, version: e.target.value })} placeholder="e.g. 1.1" />
                             </div>
                             <div className="form-group">
-                                <label>Description</label>
-                                <textarea
-                                    value={form.description}
-                                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                    rows={3}
-                                    placeholder="Brief description of this syllabus version..."
-                                />
+                                <label>File Location (URL) *</label>
+                                <input required className="form-control" type="text" value={form.filePath} onChange={e => setForm({ ...form, filePath: e.target.value })} placeholder="https://..." />
                             </div>
-                            <div className="form-group">
-                                <label>File URL *</label>
-                                <input required value={form.filePath} onChange={e => setForm(f => ({ ...f, filePath: e.target.value }))} placeholder="https://drive.google.com/... or /path/to/file.pdf" />
-                                <small style={{ color: '#718096' }}>Paste a link to a Google Drive PDF, URL, or local path</small>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Abstract / Scope</label>
+                                <textarea className="form-control" rows="4" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Outline the modules and expected outcomes..."></textarea>
                             </div>
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAdd(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>Upload Syllabus</button>
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '10px' }}>
+                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAdd(false)}>Discard</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '12px', fontWeight: 'bold' }}>Authorize Publication</button>
                             </div>
                         </form>
                     </div>

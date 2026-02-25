@@ -37,6 +37,7 @@ import SyllabusManagementPage from './SyllabusManagementPage';
 import LearningPortalPage from './LearningPortalPage';
 import VolunteerTasksPage from './VolunteerTasksPage';
 import StudentProfilePage from './StudentProfilePage';
+import AuditLogPage from './AuditLogPage';
 import DepartmentPage from './DepartmentPage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps DepartmentPage.
 import ProfilePage from './ProfilePage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps ProfilePage.
 import NotFoundPage from './NotFoundPage';
@@ -83,6 +84,7 @@ const DashboardPage = () => {
             <Route path="learning" element={<LearningPortalPage />} />
             <Route path="volunteer" element={<VolunteerTasksPage />} />
             <Route path="student-profile" element={<StudentProfilePage />} />
+            <Route path="audit" element={<AuditLogPage />} />
             <Route path="activities" element={<StudentActivitiesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="resources" element={<ResourceManagementPage />} />

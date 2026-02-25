@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
+import { exportToCSV } from '../utils/exportUtils';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -93,6 +94,13 @@ const AttendancePage = () => {
           <button className="btn btn-secondary" onClick={() => { setBulkForm({ courseId: filterCourse, date: filterDate, status: 'PRESENT' }); setFormError(''); setBulkModal(true); }}>
             Bulk Mark
           </button>
+          {records.length > 0 && (
+            <button className="btn btn-secondary" onClick={() => exportToCSV(
+              ['Student ID', 'Course ID', 'Date', 'Status'],
+              records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+              'attendance_export'
+            )}>⬇ Export CSV</button>
+          )}
         </div>
       </div>
 

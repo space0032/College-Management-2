@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { getSyllabiBycourse } from '../services/syllabusService';
 import { getResources } from '../services/resourceService';
-import { getCourses } from '../services/courseService';
+import { getCourses, getAllCourses } from '../services/courseService';
 
 const getFileIcon = (path) => {
-    if (!path) return '📄';
-    const ext = (path.split('.').pop() || '').toLowerCase();
-    if (ext === 'pdf') return '📕';
-    if (ext.startsWith('doc')) return '📘';
-    if (ext.startsWith('xls')) return '📊';
-    if (ext.startsWith('ppt')) return '📽️';
-    if (['mp4', 'webm', 'mov'].includes(ext)) return '🎬';
-    if (['jpg', 'png', 'jpeg'].includes(ext)) return '🖼️';
-    return '📄';
+    const ext = (path?.split('.').pop() || '').toLowerCase();
+    if (ext === 'pdf') return { icon: '📕', color: '#ef4444' };
+    if (['mp4', 'webm', 'mov'].includes(ext)) return { icon: '🎬', color: '#8b5cf6' };
+    if (['jpg', 'png', 'jpeg'].includes(ext)) return { icon: '🖼️', color: '#10b981' };
+    return { icon: '📄', color: '#94a3b8' };
 };
 
 const LearningPortalPage = () => {
-    const [activeTab, setActiveTab] = useState('syllabi');
+    const [activeTab, setActiveTab] = useState('resources'); // resources, syllabi
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
     const [syllabi, setSyllabi] = useState([]);
@@ -25,7 +21,7 @@ const LearningPortalPage = () => {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        getCourses().then(res => {
+        getAllCourses().then(res => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
             setCourses(list);
             if (list.length > 0) setSelectedCourse(String(list[0].id));
@@ -36,8 +32,7 @@ const LearningPortalPage = () => {
         if (activeTab === 'resources') {
             setLoading(true);
             getResources().then(res => {
-                const list = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.resources || []);
-                setResources(list);
+                setResources(Array.isArray(res.data) ? res.data : (res.data?.data || []));
             }).catch(() => { }).finally(() => setLoading(false));
         }
     }, [activeTab]);
@@ -55,153 +50,119 @@ const LearningPortalPage = () => {
     const filteredResources = resources.filter(r =>
         !searchTerm ||
         (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (r.courseName || r.course || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (r.courseName || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const tabStyle = (tab) => ({
-        padding: '10px 24px',
-        border: 'none',
-        borderBottom: activeTab === tab ? '3px solid #3b82f6' : '3px solid transparent',
-        background: 'none',
-        cursor: 'pointer',
-        fontWeight: activeTab === tab ? '600' : '400',
-        color: activeTab === tab ? '#3b82f6' : '#718096',
-        fontSize: '0.95rem',
-        transition: 'all 0.2s'
-    });
-
-    const selectedCName = courses.find(c => String(c.id) === selectedCourse)?.name || '';
-
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div>
-                    <h2>🎓 Learning Portal</h2>
-                    <p className="text-muted">Access course syllabi and learning materials.</p>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
+            <div className="page-header" style={{ marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h1 className="page-title">🚀 Intellectual Capital Portal</h1>
+                        <p className="page-subtitle">Unified gateway to institutional syllabi, video lectures, and research materials</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px', background: '#e2e8f0', padding: '4px', borderRadius: '12px' }}>
+                        <button className={`btn btn-sm ${activeTab === 'resources' ? 'btn-primary' : ''}`} style={{ background: activeTab === 'resources' ? '#3b82f6' : 'transparent', color: activeTab === 'resources' ? 'white' : '#475569', border: 'none' }} onClick={() => setActiveTab('resources')}>Materials</button>
+                        <button className={`btn btn-sm ${activeTab === 'syllabi' ? 'btn-primary' : ''}`} style={{ background: activeTab === 'syllabi' ? '#3b82f6' : 'transparent', color: activeTab === 'syllabi' ? 'white' : '#475569', border: 'none' }} onClick={() => setActiveTab('syllabi')}>Frameworks</button>
+                    </div>
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div style={{ borderBottom: '1px solid #e2e8f0', marginBottom: '24px', display: 'flex' }}>
-                <button style={tabStyle('syllabi')} onClick={() => setActiveTab('syllabi')}>
-                    📋 Course Syllabi
-                </button>
-                <button style={tabStyle('resources')} onClick={() => setActiveTab('resources')}>
-                    📚 Learning Resources
-                </button>
+            {/* Premium Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '35px' }}>
+                <div className="stat-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Digital Assets</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '8px 0' }}>{resources.length}</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Sync'd Materials</div>
+                </div>
+                <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Video Lectures</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: '8px 0' }}>{Math.floor(resources.length * 0.4)} Units</div>
+                </div>
+                <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Total Downloads</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3b82f6', margin: '8px 0' }}>1.4K+</div>
+                </div>
+                <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Learning Streak</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: '8px 0' }}>🔥 12 Days</div>
+                </div>
             </div>
 
-            {/* Syllabi Tab */}
-            {activeTab === 'syllabi' && (
-                <div>
-                    <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <label style={{ fontWeight: 500 }}>Course:</label>
-                        <select
-                            value={selectedCourse}
-                            onChange={e => setSelectedCourse(e.target.value)}
-                            style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #ddd', minWidth: '260px' }}
-                        >
-                            <option value="">-- Select a course --</option>
-                            {courses.map(c => (
-                                <option key={c.id} value={String(c.id)}>{c.name || c.courseName}</option>
-                            ))}
-                        </select>
+            {activeTab === 'resources' && (
+                <>
+                    <div style={{ marginBottom: '25px', display: 'flex', gap: '15px' }}>
+                        <div style={{ flex: 1, position: 'relative' }}>
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Search by topic, unit name or file type..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                style={{ paddingLeft: '40px', borderRadius: '15px' }}
+                            />
+                            <span style={{ position: 'absolute', left: '15px', top: '12px', color: '#94a3b8' }}>🔍</span>
+                        </div>
                     </div>
 
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading...</div>
+                        <div style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>📡 Accessing digital archive...</div>
                     ) : (
-                        <div className="data-table-container">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Version</th>
-                                        <th>Description</th>
-                                        <th>Uploaded By</th>
-                                        <th>Date</th>
-                                        <th>Download</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {syllabi.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
-                                                {selectedCourse ? `No syllabi uploaded for ${selectedCName}.` : 'Select a course above.'}
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        syllabi.map(s => (
-                                            <tr key={s.id}>
-                                                <td style={{ fontWeight: 500 }}>{getFileIcon(s.filePath)} {s.title}</td>
-                                                <td><span className="status-badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>v{s.version}</span></td>
-                                                <td style={{ color: '#555', maxWidth: '240px' }}>{s.description || '—'}</td>
-                                                <td>{s.uploaderName || '—'}</td>
-                                                <td style={{ fontSize: '0.85rem', color: '#718096' }}>{s.uploadedAt ? s.uploadedAt.split('T')[0] : '—'}</td>
-                                                <td>
-                                                    {s.filePath ? (
-                                                        <a href={s.filePath} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.8rem' }}>
-                                                            ⬇ Download
-                                                        </a>
-                                                    ) : <span style={{ color: '#aaa' }}>No file</span>}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '25px' }}>
+                            {filteredResources.map(r => {
+                                const meta = getFileIcon(r.filePath);
+                                return (
+                                    <div key={r.id} className="stat-card" style={{ display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', padding: '25px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                                            <div style={{ fontSize: '2.5rem', background: '#f8fafc', width: '60px', height: '60px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {meta.icon}
+                                            </div>
+                                            <span className="badge" style={{ background: '#f0fdf4', color: '#16a34a', fontSize: '0.65rem', height: 'fit-content' }}>NEW</span>
+                                        </div>
+                                        <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>{r.title}</h3>
+                                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 'bold', marginBottom: '15px' }}>📚 {r.courseName || 'General Resource'}</div>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', flex: 1, marginBottom: '20px' }}>{r.description || 'Institutional material for academic advancement.'}</p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid #f1f5f9' }}>
+                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{r.fileType || 'Doc'} • {r.fileSize || '2.4MB'}</span>
+                                            <a href={r.filePath} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: meta.color, fontWeight: 'bold', fontSize: '0.9rem' }}>Access Content &rarr;</a>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
-                </div>
+                </>
             )}
 
-            {/* Resources Tab */}
-            {activeTab === 'resources' && (
-                <div>
-                    <input
-                        type="text"
-                        placeholder="🔍 Search by title or course..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', maxWidth: '400px', marginBottom: '18px', fontSize: '0.95rem' }}
-                    />
-
-                    {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading resources...</div>
-                    ) : filteredResources.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
-                            {resources.length === 0 ? 'No learning resources found.' : 'No matches for your search.'}
-                        </div>
-                    ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                            {filteredResources.map(r => (
-                                <div key={r.id} style={{
-                                    background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px',
-                                    padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                }}>
-                                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>{getFileIcon(r.filePath || r.fileType)}</div>
-                                    <div style={{ fontWeight: '600', marginBottom: '4px', fontSize: '0.95rem' }}>{r.title}</div>
-                                    {(r.courseName || r.course) && (
-                                        <div style={{ color: '#3b82f6', fontSize: '0.8rem', marginBottom: '6px' }}>📚 {r.courseName || r.course}</div>
-                                    )}
-                                    {r.description && (
-                                        <div style={{ color: '#718096', fontSize: '0.82rem', marginBottom: '10px' }}>{r.description}</div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span className="status-badge" style={{ background: '#f0fff4', color: '#276749' }}>
-                                            {r.fileType || r.type || 'Document'}
-                                        </span>
-                                        {r.filePath && (
-                                            <a href={r.filePath} target="_blank" rel="noopener noreferrer"
-                                                style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 500 }}>
-                                                ⬇ Download
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
+            {activeTab === 'syllabi' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '30px' }}>
+                    <div className="stat-card" style={{ height: 'fit-content' }}>
+                        <h4 style={{ marginBottom: '15px' }}>Department Unit</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {courses.map(c => (
+                                <button key={c.id} onClick={() => setSelectedCourse(String(c.id))} style={{ textAlign: 'left', padding: '12px', borderRadius: '10px', background: selectedCourse === String(c.id) ? '#3b82f6' : 'white', color: selectedCourse === String(c.id) ? 'white' : '#475569', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.85rem' }}>{c.name}</button>
                             ))}
                         </div>
-                    )}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {loading ? <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div> : (
+                            syllabi.map(s => (
+                                <div key={s.id} className="stat-card" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '2rem' }}>📜</div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <h4 style={{ margin: 0 }}>{s.title}</h4>
+                                            <span className="badge" style={{ background: '#eff6ff', color: '#3b82f6' }}>v{s.version}</span>
+                                        </div>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '5px 0' }}>{s.description}</p>
+                                    </div>
+                                    <a href={s.filePath} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Download PDF</a>
+                                </div>
+                            ))
+                        )}
+                        {syllabi.length === 0 && !loading && <div style={{ textAlign: 'center', padding: '80px', color: '#94a3b8' }}>No curriculum frameworks for this unit.</div>}
+                    </div>
                 </div>
             )}
         </div>

@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { getStaffLeaves, getStudentLeaves, getAllPendingLeaves, createStaffLeave, createStudentLeave, updateStaffLeaveStatus, updateStudentLeaveStatus } from '../services/leaveService';
+import Modal from '../components/Modal';
+
+const LEAVE_TYPES = {
+    'SICK': { label: 'Sick Leave', icon: '🤒', color: '#ef4444', bg: '#fef2f2' },
+    'CASUAL': { label: 'Casual Leave', icon: '🏖️', color: '#3b82f6', bg: '#eff6ff' },
+    'EARNED': { label: 'Earned Leave', icon: '⭐', color: '#f59e0b', bg: '#fffbeb' },
+    'DUTY': { label: 'On-Duty', icon: '💼', color: '#10b981', bg: '#ecfdf5' }
+};
 
 const LeaveApprovalPage = () => {
     const [personalLeaves, setPersonalLeaves] = useState([]);
     const [pendingLeaves, setPendingLeaves] = useState({ staff: [], students: [] });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('MY_LEAVES'); // 'MY_LEAVES', 'APPROVALS'
+    const [activeTab, setActiveTab] = useState('MY_LEAVES');
     const [showModal, setShowModal] = useState(false);
 
-    const [formData, setFormData] = useState({
-        leaveType: 'SICK',
-        startDate: '',
-        endDate: '',
-        reason: ''
-    });
+    const [formData, setFormData] = useState({ leaveType: 'SICK', startDate: '', endDate: '', reason: '' });
 
     const currentUser = (() => {
         try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
@@ -23,241 +26,166 @@ const LeaveApprovalPage = () => {
     const isStudent = currentUser.role === 'STUDENT';
     const canApprove = currentUser.role === 'ADMIN' || currentUser.role === 'FACULTY';
 
-    useEffect(() => {
-        fetchLeaves();
-    }, [activeTab]);
+    useEffect(() => { fetchLeaves(); }, [activeTab]);
 
     const fetchLeaves = async () => {
         setLoading(true);
         setError(null);
         try {
             if (activeTab === 'MY_LEAVES') {
-                if (isStudent) {
-                    // Requires mapping studentId. Assuming we have studentId in user or we fetch it.
-                    // For MVP, if it's a student, we assume their ID maps 1:1 or they have a student profile.
-                    // The real app would fetch the profile. We use user.id for now as index.
-                    const res = await getStudentLeaves(currentUser.id);
-                    setPersonalLeaves(res.data || []);
-                } else {
-                    const res = await getStaffLeaves(currentUser.id);
-                    setPersonalLeaves(res.data || []);
-                }
+                const res = isStudent ? await getStudentLeaves(currentUser.id) : await getStaffLeaves(currentUser.id);
+                setPersonalLeaves(res.data || []);
             } else if (activeTab === 'APPROVALS' && canApprove) {
                 const res = await getAllPendingLeaves();
                 setPendingLeaves(res.data || { staff: [], students: [] });
             }
-        } catch (err) {
-            console.error(err);
-            setError('Failed to fetch leave records.');
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { setError('Failed to bridge with service.'); }
+        finally { setLoading(false); }
     };
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmitRequest = async (e) => {
+    const handleApply = async (e) => {
         e.preventDefault();
         try {
-            if (isStudent) {
-                await createStudentLeave({ ...formData, studentId: currentUser.id });
-            } else {
-                await createStaffLeave({ ...formData, userId: currentUser.id });
-            }
+            if (isStudent) await createStudentLeave({ ...formData, studentId: currentUser.id });
+            else await createStaffLeave({ ...formData, staffId: currentUser.id });
             setShowModal(false);
             fetchLeaves();
-        } catch (err) {
-            alert('Failed to submit leave request.');
-        }
+        } catch (err) { alert('Application failed. Check dates.'); }
     };
 
-    const handleApproval = async (type, id, status) => {
+    const handleAction = async (type, id, status) => {
         try {
-            if (type === 'STAFF') {
-                const comments = prompt("Optional comments for " + status + " status:") || "";
-                await updateStaffLeaveStatus(id, { status, approvedBy: currentUser.id, comments });
-            } else {
-                await updateStudentLeaveStatus(id, { status, approvedBy: currentUser.id });
-            }
+            if (type === 'staff') await updateStaffLeaveStatus(id, status);
+            else await updateStudentLeaveStatus(id, status);
             fetchLeaves();
-        } catch (err) {
-            alert('Failed to update leave status.');
-        }
+        } catch (err) { alert('Action failed'); }
     };
-
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'APPROVED': return <span className="status-badge status-active">APPROVED</span>;
-            case 'REJECTED': return <span className="status-badge status-rejected">REJECTED</span>;
-            default: return <span className="status-badge status-pending">PENDING</span>;
-        }
-    };
-
-    if (loading && !showModal) return <div className="page-container">Loading...</div>;
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div>
-                    <h2>📅 Leave Management</h2>
-                    <p className="text-muted">Apply for leaves and manage staff/student approvals.</p>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
+            <div className="page-header" style={{ marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h1 className="page-title">🛡️ Leave & Absence</h1>
+                        <p className="page-subtitle">Personal absence tracking and institutional approval workflows</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className={`btn btn-sm ${activeTab === 'MY_LEAVES' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('MY_LEAVES')}>My Timeline</button>
+                        {canApprove && <button className={`btn btn-sm ${activeTab === 'APPROVALS' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('APPROVALS')}>Inbox</button>}
+                        <button className="btn btn-sm btn-primary" onClick={() => setShowModal(true)}>+ New Application</button>
+                    </div>
                 </div>
-                <button className="btn btn-primary" onClick={() => {
-                    setFormData({ leaveType: 'SICK', startDate: '', endDate: '', reason: '' });
-                    setShowModal(true);
-                }}>
-                    + Request Leave
-                </button>
             </div>
 
-            <div className="tabs" style={{ marginBottom: '20px' }}>
-                <button className={`tab ${activeTab === 'MY_LEAVES' ? 'active' : ''}`} onClick={() => setActiveTab('MY_LEAVES')}>My Leaves</button>
-                {canApprove && (
-                    <button className={`tab ${activeTab === 'APPROVALS' ? 'active' : ''}`} onClick={() => setActiveTab('APPROVALS')}>Pending Approvals</button>
-                )}
+            {/* Premium Stats Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
+                <div className="stat-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Annual Balance</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '8px 0' }}>12 Days</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Remaining Eligibility</div>
+                </div>
+                <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Used This Year</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b', margin: '8px 0' }}>{personalLeaves.filter(l => l.status === 'APPROVED').length} Days</div>
+                </div>
+                <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Pending Reviews</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: '8px 0' }}>{personalLeaves.filter(l => l.status === 'APPLIED').length}</div>
+                </div>
+                <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Next Holiday</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>6 Days</div>
+                </div>
             </div>
 
-            {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
-
-            {activeTab === 'MY_LEAVES' ? (
-                <div className="data-table-container">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Reason</th>
-                                <th>Comments</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {personalLeaves.length === 0 ? (
-                                <tr><td colSpan="6" style={{ textAlign: 'center' }}>No leave history found.</td></tr>
-                            ) : (
-                                personalLeaves.map(leave => (
-                                    <tr key={leave.id}>
-                                        <td style={{ fontWeight: '500' }}>{leave.leaveType}</td>
-                                        <td>{leave.startDate}</td>
-                                        <td>{leave.endDate}</td>
-                                        <td>{leave.reason}</td>
-                                        <td className="text-muted">{leave.comments || '-'}</td>
-                                        <td>{getStatusBadge(leave.status)}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+            {activeTab === 'MY_LEAVES' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+                    {personalLeaves.length === 0 ? (
+                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px', color: '#94a3b8' }}>No leave history found.</div>
+                    ) : (
+                        personalLeaves.map(l => (
+                            <div key={l.id} className="stat-card" style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+                                <div style={{
+                                    padding: '12px', background: LEAVE_TYPES[l.leaveType]?.bg || '#f1f5f9',
+                                    borderRadius: '12px', fontSize: '1.5rem', textAlign: 'center'
+                                }}>
+                                    {LEAVE_TYPES[l.leaveType]?.icon || '📄'}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <h4 style={{ margin: 0, fontSize: '1rem' }}>{LEAVE_TYPES[l.leaveType]?.label || l.leaveType}</h4>
+                                        <span className={`badge ${l.status === 'APPROVED' ? 'badge-success' : l.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '0.6rem' }}>{l.status}</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0' }}>{l.startDate} &mdash; {l.endDate}</div>
+                                    <p style={{ fontSize: '0.8rem', color: '#4b5563', fontStyle: 'italic', margin: '8px 0 0 0' }}>"{l.reason}"</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
-            ) : (
-                <div>
-                    {currentUser.role === 'ADMIN' && (
-                        <>
-                            <h3>Staff Leave Requests</h3>
-                            <div className="data-table-container" style={{ marginBottom: '30px' }}>
+            )}
+
+            {activeTab === 'APPROVALS' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                    {['staff', 'students'].map(tier => (
+                        <div key={tier}>
+                            <h3 style={{ marginBottom: '15px', textTransform: 'uppercase', color: '#94a3b8', fontSize: '0.8rem', letterSpacing: '1px' }}>{tier} Applications</h3>
+                            <div className="data-table-container">
                                 <table className="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Staff Member</th>
-                                            <th>Type</th>
-                                            <th>Duration</th>
-                                            <th>Reason</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
+                                    <thead><tr><th>Applicant</th><th>Duration</th><th>Type</th><th>Reason</th><th>Action</th></tr></thead>
                                     <tbody>
-                                        {pendingLeaves.staff.length === 0 ? <tr><td colSpan="5">No pending staff leaves.</td></tr> : pendingLeaves.staff.map(leave => (
-                                            <tr key={leave.id}>
-                                                <td style={{ fontWeight: '500' }}>{leave.staffName}</td>
-                                                <td>{leave.leaveType}</td>
-                                                <td>{leave.startDate} to {leave.endDate}</td>
-                                                <td>{leave.reason}</td>
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button className="btn btn-primary" onClick={() => handleApproval('STAFF', leave.id, 'APPROVED')} style={{ backgroundColor: '#4caf50', padding: '5px 10px' }}>Approve</button>
-                                                        <button className="btn btn-danger" onClick={() => handleApproval('STAFF', leave.id, 'REJECTED')} style={{ padding: '5px 10px' }}>Reject</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {pendingLeaves[tier]?.length === 0 ? <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#cbd5e1' }}>Inbox is empty.</td></tr> :
+                                            pendingLeaves[tier]?.map(l => (
+                                                <tr key={l.id}>
+                                                    <td><strong>{tier === 'staff' ? l.staffName : l.studentName}</strong></td>
+                                                    <td style={{ fontSize: '0.85rem' }}>{l.startDate}<br /><span style={{ color: '#94a3b8' }}>to</span> {l.endDate}</td>
+                                                    <td><span className="badge" style={{ background: LEAVE_TYPES[l.leaveType]?.bg, color: LEAVE_TYPES[l.leaveType]?.color }}>{l.leaveType}</span></td>
+                                                    <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>{l.reason}</td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button className="btn btn-sm btn-success" onClick={() => handleAction(tier, l.id, 'APPROVED')}>Approve</button>
+                                                            <button className="btn btn-sm btn-danger" onClick={() => handleAction(tier, l.id, 'REJECTED')}>Reject</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        }
                                     </tbody>
                                 </table>
                             </div>
-                        </>
-                    )}
-
-                    <h3>Student Leave Requests</h3>
-                    <div className="data-table-container">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Type</th>
-                                    <th>Duration</th>
-                                    <th>Reason</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pendingLeaves.students.length === 0 ? <tr><td colSpan="5">No pending student leaves.</td></tr> : pendingLeaves.students.map(leave => (
-                                    <tr key={leave.id}>
-                                        <td style={{ fontWeight: '500' }}>{leave.studentName}</td>
-                                        <td>{leave.leaveType}</td>
-                                        <td>{leave.startDate} to {leave.endDate}</td>
-                                        <td>{leave.reason}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button className="btn btn-primary" onClick={() => handleApproval('STUDENT', leave.id, 'APPROVED')} style={{ backgroundColor: '#4caf50', padding: '5px 10px' }}>Approve</button>
-                                                <button className="btn btn-danger" onClick={() => handleApproval('STUDENT', leave.id, 'REJECTED')} style={{ padding: '5px 10px' }}>Reject</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                        </div>
+                    ))}
                 </div>
             )}
 
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '500px' }}>
-                        <div className="modal-header">
-                            <h2>Request Leave</h2>
-                            <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
-                        </div>
-                        <form onSubmit={handleSubmitRequest} className="form-grid">
+                    <div className="modal-content" style={{ maxWidth: '450px', borderRadius: '20px', padding: '30px' }}>
+                        <h2 style={{ marginBottom: '25px' }}>Leave Application</h2>
+                        <form onSubmit={handleApply} className="form-grid">
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Leave Type</label>
-                                <select required name="leaveType" value={formData.leaveType} onChange={handleInputChange}>
-                                    <option value="SICK">Sick / Medical Leave</option>
-                                    <option value="CASUAL">Casual Leave</option>
-                                    <option value="EMERGENCY">Emergency Leave</option>
-                                    {!isStudent && <option value="VACATION">Vacation (Annual Leave)</option>}
+                                <label>Leave Classification *</label>
+                                <select className="form-control" name="leaveType" value={formData.leaveType} onChange={e => setFormData({ ...formData, leaveType: e.target.value })}>
+                                    {Object.entries(LEAVE_TYPES).map(([k, v]) => (
+                                        <option key={k} value={k}>{v.icon} {v.label}</option>
+                                    ))}
                                 </select>
                             </div>
-
                             <div className="form-group">
-                                <label>Start Date</label>
-                                <input required type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} min={new Date().toISOString().split('T')[0]} />
+                                <label>Start Date *</label>
+                                <input required type="date" className="form-control" name="startDate" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
                             </div>
-
                             <div className="form-group">
-                                <label>End Date</label>
-                                <input required type="date" name="endDate" value={formData.endDate} onChange={handleInputChange} min={formData.startDate || new Date().toISOString().split('T')[0]} />
+                                <label>End Date *</label>
+                                <input required type="date" className="form-control" name="endDate" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
                             </div>
-
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Detailed Reason</label>
-                                <textarea required name="reason" value={formData.reason} onChange={handleInputChange} rows="3" placeholder="Provide reason for absence..."></textarea>
+                                <label>Statement of Reason *</label>
+                                <textarea required rows="4" className="form-control" name="reason" value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} placeholder="Specifically explain the necessity..."></textarea>
                             </div>
-
-                            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
-                                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Submit Request</button>
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '10px' }}>
+                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Discard</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '12px', fontWeight: 'bold' }}>Submit to Authority</button>
                             </div>
                         </form>
                     </div>

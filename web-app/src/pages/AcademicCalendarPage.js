@@ -17,21 +17,14 @@ const AcademicCalendarPage = () => {
     const loadEvents = async () => {
         try {
             const year = currentDate.getFullYear();
-            const month = currentDate.getMonth() + 1; // 1-12
+            const month = currentDate.getMonth() + 1;
             const res = await getMonthEvents(year, month);
             setEvents(res.data || []);
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
-    const handlePrevMonth = () => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    };
-
-    const handleNextMonth = () => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    };
+    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
     const handleDayClick = (dayStr) => {
         setSelectedDate(dayStr);
@@ -40,156 +33,165 @@ const AcademicCalendarPage = () => {
 
     const handleSaveEvent = async (e) => {
         e.preventDefault();
-        if (!selectedDate) return;
-
         try {
-            await addCalendarEvent({
-                ...formData,
-                eventDate: selectedDate
-            });
+            await addCalendarEvent({ ...formData, eventDate: selectedDate });
             setIsModalOpen(false);
             setFormData({ title: '', eventType: 'EVENT', description: '' });
             loadEvents();
-        } catch (err) {
-            alert('Failed to add event');
-        }
+        } catch (err) { alert('Failed to add event'); }
     };
 
     const handleDeleteEvent = async (id) => {
-        if (!window.confirm('Delete this event?')) return;
+        if (!window.confirm('Remove from calendar?')) return;
         try {
             await deleteCalendarEvent(id);
             loadEvents();
-        } catch (err) {
-            alert('Failed to delete event');
-        }
+        } catch (err) { alert('Deletion failed'); }
     };
 
-    // Calendar rendering logic
-    const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-    const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
-
-    const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-    const firstDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const month = currentDate.getMonth();
+    const year = currentDate.getFullYear();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
 
     const blanks = Array.from({ length: firstDay }, (_, i) => <div key={`blank-${i}`} className="calendar-day empty"></div>);
-
-    const days = Array.from({ length: daysInMonth }, (_, i) => {
-        const dayNum = i + 1;
-        const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-
-        // Find events for this day
-        const dayEvents = events.filter(e => e.eventDate === dateStr);
-
+    const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
+        const d = i + 1;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayEvents = events.filter(ev => ev.eventDate === dateStr);
         const isToday = new Date().toDateString() === new Date(dateStr).toDateString();
 
         return (
-            <div key={`day-${dayNum}`} className={`calendar-day ${isToday ? 'today' : ''}`} onClick={() => handleDayClick(dateStr)}>
-                <span className="day-number">{dayNum}</span>
+            <div key={d} className={`calendar-day ${isToday ? 'today' : ''}`} onClick={() => handleDayClick(dateStr)}>
+                <span className="day-number">{d}</span>
                 <div className="day-events">
                     {dayEvents.map((ev, idx) => (
-                        <div key={idx} className={`event-badge event-${ev.eventType.toLowerCase()}`} title={ev.description}>
-                            {ev.title}
-                        </div>
+                        <div key={idx} className={`event-dot event-${ev.eventType.toLowerCase()}`} title={ev.title} />
                     ))}
                 </div>
             </div>
         );
     });
 
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    // Premium Analytics
+    const holidayCount = events.filter(e => e.eventType === 'HOLIDAY').length;
+    const examCount = events.filter(e => e.eventType === 'EXAM').length;
 
     return (
-        <div className="page-container">
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2>Academic Calendar</h2>
-                <div className="calendar-controls">
-                    <button className="btn btn-secondary" onClick={handlePrevMonth}>&lt; Prev</button>
-                    <h3 style={{ margin: '0 20px', minWidth: '200px', textAlign: 'center' }}>
-                        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                    </h3>
-                    <button className="btn btn-secondary" onClick={handleNextMonth}>Next &gt;</button>
-                </div>
-            </div>
-
-            <div className="stat-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div className="calendar-grid">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="calendar-header-day">{d}</div>
-                    ))}
-                    {blanks}
-                    {days}
-                </div>
-            </div>
-
-            {/* Upcoming/Legend Sidebar Area */}
-            <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-                <div className="stat-card" style={{ flex: 1 }}>
-                    <h3>Event Types</h3>
-                    <ul style={{ listStyle: 'none', padding: 0, marginTop: '15px' }}>
-                        <li style={{ marginBottom: '10px' }}><span className="badge event-holiday">HOLIDAY</span> Institutional Holidays</li>
-                        <li style={{ marginBottom: '10px' }}><span className="badge event-exam">EXAM</span> Academic Examinations</li>
-                        <li style={{ marginBottom: '10px' }}><span className="badge event-deadline">DEADLINE</span> Project/Fee Deadlines</li>
-                        <li style={{ marginBottom: '10px' }}><span className="badge event-event">EVENT</span> Extracurricular & System Events</li>
-                    </ul>
-                </div>
-
-                <div className="stat-card" style={{ flex: 2 }}>
-                    <h3>Manage This Month's Events</h3>
-                    <div className="data-table-container mt-2">
-                        <table className="data-table">
-                            <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Action</th></tr></thead>
-                            <tbody>
-                                {events.length === 0 ? <tr><td colSpan="4" style={{ textAlign: 'center' }}>No events this month</td></tr> :
-                                    events.map(ev => (
-                                        <tr key={ev.id}>
-                                            <td>{ev.eventDate}</td>
-                                            <td><span className={`badge event-${ev.eventType.toLowerCase()}`}>{ev.eventType}</span></td>
-                                            <td>{ev.title}</td>
-                                            <td>
-                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteEvent(ev.id)}>Delete</button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                }
-                            </tbody>
-                        </table>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
+            <div className="page-header" style={{ marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div>
+                        <h1 className="page-title">📅 Academic Chronology</h1>
+                        <p className="page-subtitle">Synchronized institutional schedule and milestone tracking</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', background: 'white', padding: '8px 15px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                        <button className="btn btn-sm btn-secondary" onClick={handlePrevMonth}>◀</button>
+                        <h3 style={{ margin: 0, minWidth: '160px', textAlign: 'center', color: '#1e293b' }}>{monthNames[month]} {year}</h3>
+                        <button className="btn btn-sm btn-secondary" onClick={handleNextMonth}>▶</button>
                     </div>
                 </div>
             </div>
 
-            {/* Add Event Modal */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1fr', gap: '30px' }}>
+                {/* Main Calendar Card */}
+                <div className="stat-card" style={{ padding: '0', overflow: 'hidden', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                    <div className="calendar-grid" style={{ gap: '1px', background: '#e2e8f0', padding: '1px' }}>
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                            <div key={d} className="calendar-header-day" style={{ background: '#f1f5f9', color: '#64748b', padding: '15px 0', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 'bold' }}>{d}</div>
+                        ))}
+                        {blanks}
+                        {calendarDays}
+                    </div>
+                </div>
+
+                {/* Sidebar Analytics */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="stat-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white' }}>
+                        <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Month Productivity</div>
+                        <div style={{ fontSize: '2.4rem', fontWeight: 'bold', margin: '10px 0' }}>{daysInMonth - holidayCount - examCount}</div>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Standard Academic Days</div>
+                    </div>
+
+                    <div className="stat-card">
+                        <h4 style={{ margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }} />
+                            Quick Legend
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Holidays</div>
+                                <div style={{ fontWeight: 'bold' }}>{holidayCount}</div>
+                            </div>
+                            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Exams</div>
+                                <div style={{ fontWeight: 'bold' }}>{examCount}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="stat-card" style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 20px 0' }}>Upcoming Milestones</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            {events.length === 0 ? (
+                                <div style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No events logged for this period.</div>
+                            ) : (
+                                events.slice(0, 5).map(ev => (
+                                    <div key={ev.id} style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+                                        <div style={{
+                                            padding: '8px', background: '#f1f5f9', borderRadius: '8px', textAlign: 'center', minWidth: '55px',
+                                            borderTop: `3px solid var(--event-${ev.eventType.toLowerCase()}-color, #cbd5e1)`
+                                        }}>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#64748b' }}>{new Date(ev.eventDate).toLocaleString('default', { month: 'short' })}</div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{new Date(ev.eventDate).getDate()}</div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{ev.title}</div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{ev.eventType}</span>
+                                                <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>×</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {isModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '400px' }}>
-                        <h2>Add Event on {selectedDate}</h2>
-                        <form onSubmit={handleSaveEvent} style={{ marginTop: '20px' }}>
-                            <div className="form-group">
-                                <label>Event Title *</label>
-                                <input required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                    <div className="modal-content" style={{ maxWidth: '450px', borderRadius: '20px', padding: '30px' }}>
+                        <h2 style={{ marginBottom: '5px' }}>Draft Event</h2>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '25px' }}>Scheduled for: <strong>{selectedDate}</strong></p>
+                        <form onSubmit={handleSaveEvent} className="form-grid">
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Subject / Title *</label>
+                                <input required className="form-control" type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Mid-term Physics" />
                             </div>
-                            <div className="form-group">
-                                <label>Event Type *</label>
-                                <select value={formData.eventType} onChange={e => setFormData({ ...formData, eventType: e.target.value })}>
-                                    <option value="EVENT">System Event</option>
-                                    <option value="HOLIDAY">Holiday</option>
-                                    <option value="EXAM">Examination</option>
-                                    <option value="DEADLINE">Deadline</option>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Classification *</label>
+                                <select className="form-control" value={formData.eventType} onChange={e => setFormData({ ...formData, eventType: e.target.value })}>
+                                    <option value="EVENT">General Event</option>
+                                    <option value="HOLIDAY">Holiday (Campus Closed)</option>
+                                    <option value="EXAM">Institutional Exam</option>
+                                    <option value="DEADLINE">Academic Deadline</option>
                                 </select>
                             </div>
-                            <div className="form-group">
-                                <label>Description</label>
-                                <textarea rows="3" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}></textarea>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Context / Details</label>
+                                <textarea className="form-control" rows="3" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Optional description..."></textarea>
                             </div>
-                            <div className="form-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Create Event</button>
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '10px' }}>
+                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '12px' }} onClick={() => setIsModalOpen(false)}>Discard</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '12px' }}>Publish to Calendar</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
         </div>
     );
 };

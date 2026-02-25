@@ -230,13 +230,35 @@ const ResourceManagementPage = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>File Type Extension</label>
-                                <input required type="text" name="fileType" value={formData.fileType} onChange={handleInputChange} placeholder="pdf, mp4, docx" />
+                                <label>File Type</label>
+                                <select name="fileType" value={formData.fileType} onChange={handleInputChange} required>
+                                    <option value="pdf">PDF Document</option>
+                                    <option value="doc">Word Document (.doc)</option>
+                                    <option value="docx">Word Document (.docx)</option>
+                                    <option value="ppt">PowerPoint (.ppt)</option>
+                                    <option value="pptx">PowerPoint (.pptx)</option>
+                                    <option value="xls">Excel Spreadsheet (.xls)</option>
+                                    <option value="xlsx">Excel Spreadsheet (.xlsx)</option>
+                                    <option value="mp4">Video (.mp4)</option>
+                                    <option value="mkv">Video (.mkv)</option>
+                                    <option value="zip">Archive (.zip)</option>
+                                    <option value="rar">Archive (.rar)</option>
+                                    <option value="txt">Text File (.txt)</option>
+                                    <option value="link">External Link / URL</option>
+                                    <option value="other">Other</option>
+                                </select>
                             </div>
 
                             <div className="form-group">
-                                <label>Estimated Size (Bytes)</label>
-                                <input required type="number" name="fileSize" value={formData.fileSize} onChange={handleInputChange} />
+                                <label>File Size (MB)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0.1"
+                                    placeholder="e.g. 2.5"
+                                    value={formData.fileSize > 0 ? (formData.fileSize / 1048576).toFixed(1) : ''}
+                                    onChange={e => setFormData(prev => ({ ...prev, fileSize: Math.round(parseFloat(e.target.value || '0') * 1048576) }))}
+                                />
                             </div>
 
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
