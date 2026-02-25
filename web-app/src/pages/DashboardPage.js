@@ -18,10 +18,11 @@ import GradesPage from './GradesPage';
 import ReportsPage from './ReportsPage';
 import GatePassPage from './GatePassPage';
 import VisitorPage from './VisitorPage';
+import InstituteManagementPage from './InstituteManagementPage';
 import AnnouncementPage from './AnnouncementPage';
 import NotificationPage from './NotificationPage';
-import DepartmentPage from './DepartmentPage';
-import ProfilePage from './ProfilePage';
+import DepartmentPage from './DepartmentPage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps DepartmentPage.
+import ProfilePage from './ProfilePage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps ProfilePage.
 import NotFoundPage from './NotFoundPage';
 
 const DashboardPage = () => {
@@ -52,6 +53,7 @@ const DashboardPage = () => {
             <Route path="notifications" element={<NotificationPage />} />
             <Route path="departments" element={<DepartmentPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="institute" element={<InstituteManagementPage />} /> {/* Added InstituteManagementPage route */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

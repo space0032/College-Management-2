@@ -24,7 +24,7 @@ const NAV_SECTIONS = [
   {
     label: 'Admin',
     items: [
-      { to: '/dashboard/users', label: 'Users', icon: '👥' },
+      { to: '/dashboard/institute', label: 'Institute Mgmt', icon: '🏛️' },
       { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
       { to: '/dashboard/reports', label: 'Reports', icon: '📊' },
     ],
