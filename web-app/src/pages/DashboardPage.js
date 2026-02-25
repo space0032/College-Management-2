@@ -23,6 +23,7 @@ import ScholarshipPage from './ScholarshipPage';
 import AssignmentPage from './AssignmentPage';
 import CrowdfundingPage from './CrowdfundingPage';
 import InstituteManagementPage from './InstituteManagementPage';
+import SettingsPage from './SettingsPage';
 import AnnouncementPage from './AnnouncementPage';
 import NotificationPage from './NotificationPage';
 import DepartmentPage from './DepartmentPage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps DepartmentPage.
@@ -61,7 +62,8 @@ const DashboardPage = () => {
             <Route path="notifications" element={<NotificationPage />} />
             <Route path="departments" element={<DepartmentPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="institute" element={<InstituteManagementPage />} /> {/* Added InstituteManagementPage route */}
+            <Route path="management" element={<InstituteManagementPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
