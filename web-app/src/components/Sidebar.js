@@ -30,8 +30,6 @@ const Sidebar = () => {
       { to: '/dashboard/placements', label: 'Placements', icon: '💼' },
       { to: '/dashboard/scholarships', label: 'Scholarships', icon: '💰' },
       { to: '/dashboard/crowdfunding', label: 'Crowdfunding', icon: '🤝' },
-      { to: '/dashboard/clubs', label: 'Clubs', icon: '🎭' },
-      { to: '/dashboard/events', label: 'Events', icon: '🎟️' },
     ],
     Communication: [
       { to: '/dashboard/announcements', label: 'Announcements', icon: '📢' },
