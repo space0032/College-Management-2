@@ -377,7 +377,8 @@ public class CourseManagementView {
         deptFilter.setOnAction(e -> filterCourses());
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        refreshBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadCourses());
 
         header.getChildren().addAll(title, spacer, statsLabel, searchField, filterLabel, deptFilter, refreshBtn);
@@ -446,22 +447,26 @@ public class CourseManagementView {
 
         if (session.hasPermission("MANAGE_ALL_COURSES") || session.hasPermission("MANAGE_OWN_COURSES")) {
             Button addBtn = new Button("+ Add Course");
-            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            addBtn.setStyle(
+                    "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> showAddCourseDialog());
 
             Button editBtn = new Button("Edit");
-            editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            editBtn.setStyle(
+                    "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             editBtn.setOnAction(e -> editCourse());
 
             Button deleteBtn = new Button("Delete");
-            deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            deleteBtn.setStyle(
+                    "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             deleteBtn.setOnAction(e -> deleteCourse());
 
             section.getChildren().addAll(addBtn, editBtn, deleteBtn);
         }
 
         Button exportBtn = new Button("Export");
-        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        exportBtn.setStyle(
+                "-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
@@ -512,7 +517,8 @@ public class CourseManagementView {
     }
 
     private void filterCourses() {
-        if (allCourses == null) return;
+        if (allCourses == null)
+            return;
 
         String searchText = searchField.getText().toLowerCase().trim();
         String deptValue = deptFilter.getValue();
@@ -534,12 +540,9 @@ public class CourseManagementView {
     }
 
     private void updateStats() {
-        if (allCourses == null) return;
+        if (allCourses == null)
+            return;
         statsLabel.setText(String.format("Total: %d courses", allCourses.size()));
-    }
-
-    private void searchCourses() {
-        filterCourses();
     }
 
     private void editCourse() {

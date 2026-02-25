@@ -155,8 +155,4 @@
             </plugin>
         </plugins>
     </build>
-
-
-    <dependencyManagement>
-    </dependencyManagement>
 </project>

@@ -10,8 +10,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import com.college.utils.SessionManager;
 import com.college.utils.DialogUtils;
 import java.math.BigDecimal;
@@ -37,17 +35,17 @@ public class EmployeeManagementView extends VBox {
         // Header with stats
         HBox headerBox = new HBox(20);
         headerBox.setAlignment(Pos.CENTER_LEFT);
-        
+
         Label header = new Label("👥 Employee Management");
         header.getStyleClass().add("section-title");
-        
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        
+
         statsLabel = new Label();
         statsLabel.getStyleClass().addAll("text-white");
         statsLabel.setStyle("-fx-font-size: 14px;");
-        
+
         headerBox.getChildren().addAll(header, spacer, statsLabel);
 
         // Search and Filter Bar
@@ -170,16 +168,19 @@ public class EmployeeManagementView extends VBox {
                     Label badge = new Label(status);
                     badge.setPadding(new Insets(4, 12, 4, 12));
                     badge.setStyle("-fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;");
-                    
+
                     switch (status) {
                         case "ACTIVE":
-                            badge.setStyle(badge.getStyle() + "-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #10b981;");
+                            badge.setStyle(badge.getStyle()
+                                    + "-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #10b981;");
                             break;
                         case "INACTIVE":
-                            badge.setStyle(badge.getStyle() + "-fx-background-color: rgba(239, 68, 68, 0.2); -fx-text-fill: #ef4444;");
+                            badge.setStyle(badge.getStyle()
+                                    + "-fx-background-color: rgba(239, 68, 68, 0.2); -fx-text-fill: #ef4444;");
                             break;
                         case "ON_LEAVE":
-                            badge.setStyle(badge.getStyle() + "-fx-background-color: rgba(251, 191, 36, 0.2); -fx-text-fill: #fbbf24;");
+                            badge.setStyle(badge.getStyle()
+                                    + "-fx-background-color: rgba(251, 191, 36, 0.2); -fx-text-fill: #fbbf24;");
                             break;
                     }
                     setGraphic(badge);
@@ -188,7 +189,8 @@ public class EmployeeManagementView extends VBox {
             }
         });
 
-        table.getColumns().addAll(colId, colName, colEmail, colPhone, colDesignation, colSalary, colJoinDate, colStatus);
+        table.getColumns().addAll(colId, colName, colEmail, colPhone, colDesignation, colSalary, colJoinDate,
+                colStatus);
     }
 
     private void refreshTable() {
@@ -198,7 +200,8 @@ public class EmployeeManagementView extends VBox {
     }
 
     private void filterEmployees() {
-        if (allEmployees == null) return;
+        if (allEmployees == null)
+            return;
 
         String searchText = searchField.getText().toLowerCase().trim();
         String statusValue = statusFilter.getValue();
@@ -222,11 +225,12 @@ public class EmployeeManagementView extends VBox {
     }
 
     private void updateStats() {
-        if (allEmployees == null) return;
-        
+        if (allEmployees == null)
+            return;
+
         long activeCount = allEmployees.stream().filter(e -> e.getStatus() == Employee.Status.ACTIVE).count();
         long totalCount = allEmployees.size();
-        
+
         statsLabel.setText(String.format("Total: %d | Active: %d", totalCount, activeCount));
     }
 

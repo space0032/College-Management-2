@@ -73,7 +73,6 @@ public class GatePassController extends BaseController implements HttpHandler {
         sendResponse(t, 200, JsonHelper.toJson(passes));
     }
 
-    @SuppressWarnings("unchecked")
     private void handleCreateRequest(HttpExchange t) throws IOException {
         String body = readBody(t);
         GatePass gatePass = JsonHelper.fromJson(body, GatePass.class);

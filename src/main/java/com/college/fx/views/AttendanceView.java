@@ -77,7 +77,8 @@ public class AttendanceView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        refreshBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadAttendance());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -152,23 +153,19 @@ public class AttendanceView {
 
         if (session.hasPermission("MANAGE_ATTENDANCE")) {
             Button markBtn = new Button("+ Mark Attendance");
-            markBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            markBtn.setStyle(
+                    "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             markBtn.setOnAction(e -> showMarkAttendanceDialog());
 
             Button bulkMarkBtn = new Button("Bulk Mark");
-            bulkMarkBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            bulkMarkBtn.setStyle(
+                    "-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             bulkMarkBtn.setOnAction(e -> showBulkAttendanceDialog());
 
             section.getChildren().addAll(markBtn, bulkMarkBtn);
         }
 
         return section;
-    }
-
-    private Button createButton(String text) {
-        Button btn = new Button(text);
-        // Style classes are added by caller
-        return btn;
     }
 
     private void loadAttendance() {
@@ -287,19 +284,20 @@ public class AttendanceView {
         courseLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         selectionGrid.add(courseLabel, 0, 0);
         selectionGrid.add(courseCombo, 1, 0);
-        
+
         Label semesterLabel = new Label("Semester:");
         semesterLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         selectionGrid.add(semesterLabel, 0, 1);
         selectionGrid.add(semesterCombo, 1, 1);
-        
+
         Label dateLabel = new Label("Date:");
         dateLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         selectionGrid.add(dateLabel, 0, 2);
         selectionGrid.add(datePicker, 1, 2);
 
         Button loadBtn = new Button("Load Students");
-        loadBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16;");
+        loadBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16;");
 
         TableView<BulkAttendanceRecord> attendanceTable = new TableView<>();
         attendanceTable.setPrefHeight(350);

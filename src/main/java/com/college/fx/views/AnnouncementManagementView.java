@@ -12,8 +12,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import java.util.List;
-
 /**
  * JavaFX Announcement Management View
  */
@@ -176,22 +174,23 @@ public class AnnouncementManagementView {
 
         announcementData.clear();
         announcementData.addAll(allAnnouncements.stream()
-            .filter(ann -> {
-                boolean matchesSearch = searchText.isEmpty() ||
-                    ann.getTitle().toLowerCase().contains(searchText) ||
-                    ann.getContent().toLowerCase().contains(searchText);
-                boolean matchesTarget = target.equals("All Targets") || ann.getTargetAudience().equals(target);
-                boolean matchesPriority = priority.equals("All Priorities") || ann.getPriority().equals(priority);
-                return matchesSearch && matchesTarget && matchesPriority;
-            })
-            .collect(java.util.stream.Collectors.toList()));
+                .filter(ann -> {
+                    boolean matchesSearch = searchText.isEmpty() ||
+                            ann.getTitle().toLowerCase().contains(searchText) ||
+                            ann.getContent().toLowerCase().contains(searchText);
+                    boolean matchesTarget = target.equals("All Targets") || ann.getTargetAudience().equals(target);
+                    boolean matchesPriority = priority.equals("All Priorities") || ann.getPriority().equals(priority);
+                    return matchesSearch && matchesTarget && matchesPriority;
+                })
+                .collect(java.util.stream.Collectors.toList()));
         updateStats();
     }
 
     private void updateStats() {
         long active = announcementData.stream().filter(Announcement::isActive).count();
         long urgent = announcementData.stream().filter(a -> "URGENT".equals(a.getPriority())).count();
-        statsLabel.setText(String.format("Total: %d | Active: %d | Urgent: %d", announcementData.size(), active, urgent));
+        statsLabel
+                .setText(String.format("Total: %d | Active: %d | Urgent: %d", announcementData.size(), active, urgent));
     }
 
     private void addAnnouncement() {

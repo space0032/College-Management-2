@@ -80,7 +80,8 @@ public class AssignmentsView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button refreshBtn = new Button("Refresh");
-        refreshBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        refreshBtn.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         refreshBtn.setOnAction(e -> loadAssignments());
 
         header.getChildren().addAll(title, spacer, refreshBtn);
@@ -155,28 +156,25 @@ public class AssignmentsView {
 
         if (session.hasPermission("MANAGE_ASSIGNMENTS")) {
             Button addBtn = new Button("+ New Assignment");
-            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            addBtn.setStyle(
+                    "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> showAddAssignmentDialog());
 
             Button reviewBtn = new Button("Review Submissions");
-            reviewBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            reviewBtn.setStyle(
+                    "-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             reviewBtn.setOnAction(e -> showReviewSubmissionsDialog());
 
             section.getChildren().addAll(addBtn, reviewBtn);
         } else if (role.equals("STUDENT")) {
             Button submitBtn = new Button("Submit Assignment");
-            submitBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            submitBtn.setStyle(
+                    "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             submitBtn.setOnAction(e -> showSubmitAssignmentDialog());
             section.getChildren().add(submitBtn);
         }
 
         return section;
-    }
-
-    private Button createButton(String text) {
-        Button btn = new Button(text);
-        // Style classes are added by caller
-        return btn;
     }
 
     private void showAddAssignmentDialog() {

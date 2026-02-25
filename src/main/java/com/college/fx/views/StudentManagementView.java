@@ -180,43 +180,41 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
 
         if (session.hasPermission("MANAGE_STUDENTS")) {
             Button addBtn = new Button("+ Add Student");
-            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            addBtn.setStyle(
+                    "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> addStudent());
 
             Button editBtn = new Button("Edit");
-            editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            editBtn.setStyle(
+                    "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             editBtn.setOnAction(e -> editStudent());
 
             Button deleteBtn = new Button("Delete");
-            deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            deleteBtn.setStyle(
+                    "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             deleteBtn.setOnAction(e -> deleteStudent());
 
             Button importBtn = new Button("Import CSV");
-            importBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            importBtn.setStyle(
+                    "-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             importBtn.setOnAction(e -> importStudentsFromCSV());
 
             section.getChildren().addAll(addBtn, editBtn, deleteBtn, importBtn);
         }
 
         Button viewProfileBtn = new Button("View Profile");
-        viewProfileBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        viewProfileBtn.setStyle(
+                "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         viewProfileBtn.setOnAction(e -> viewStudentProfile());
         section.getChildren().add(viewProfileBtn);
 
         Button exportBtn = new Button("Export");
-        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        exportBtn.setStyle(
+                "-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
         return section;
-    }
-
-    private Button createButton(String text, String color) {
-        Button btn = new Button(text);
-        btn.setPrefWidth(140);
-        btn.setPrefHeight(40);
-        btn.getStyleClass().add("icon-button");
-        return btn;
     }
 
     private void loadStudents() {
@@ -233,7 +231,8 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
     }
 
     private void filterStudents() {
-        if (allStudents == null) return;
+        if (allStudents == null)
+            return;
 
         String searchText = searchField.getText().toLowerCase().trim();
         String deptValue = deptFilter.getValue();
@@ -257,12 +256,9 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
     }
 
     private void updateStats() {
-        if (allStudents == null) return;
+        if (allStudents == null)
+            return;
         statsLabel.setText(String.format("Total: %d students", allStudents.size()));
-    }
-
-    private void searchStudents() {
-        filterStudents();
     }
 
     private void addStudent() {

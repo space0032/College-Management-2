@@ -172,38 +172,35 @@ public class FacultyManagementView {
 
         if (session.hasPermission("MANAGE_FACULTY")) {
             Button addBtn = new Button("+ Add Faculty");
-            addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            addBtn.setStyle(
+                    "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             addBtn.setOnAction(e -> showAddFacultyDialog());
 
             Button editBtn = new Button("Edit");
-            editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            editBtn.setStyle(
+                    "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             editBtn.setOnAction(e -> editFaculty());
 
             Button deleteBtn = new Button("Delete");
-            deleteBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            deleteBtn.setStyle(
+                    "-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             deleteBtn.setOnAction(e -> deleteFaculty());
 
             Button roleBtn = new Button("Assign Role");
-            roleBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            roleBtn.setStyle(
+                    "-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
             roleBtn.setOnAction(e -> assignRole());
 
             section.getChildren().addAll(addBtn, editBtn, deleteBtn, roleBtn);
         }
 
         Button exportBtn = new Button("Export");
-        exportBtn.setStyle("-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+        exportBtn.setStyle(
+                "-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
         exportBtn.setOnAction(e -> exportData());
         section.getChildren().add(exportBtn);
 
         return section;
-    }
-
-    private Button createButton(String text, String color) {
-        Button btn = new Button(text);
-        btn.setPrefWidth(140);
-        btn.setPrefHeight(40);
-        btn.getStyleClass().add("icon-button");
-        return btn;
     }
 
     private void loadFaculty() {
@@ -215,7 +212,8 @@ public class FacultyManagementView {
     }
 
     private void filterFaculty() {
-        if (allFaculty == null) return;
+        if (allFaculty == null)
+            return;
 
         String searchText = searchField.getText().toLowerCase().trim();
         String deptValue = deptFilter.getValue();
@@ -239,12 +237,9 @@ public class FacultyManagementView {
     }
 
     private void updateStats() {
-        if (allFaculty == null) return;
+        if (allFaculty == null)
+            return;
         statsLabel.setText(String.format("Total: %d faculty", allFaculty.size()));
-    }
-
-    private void searchFaculty() {
-        filterFaculty();
     }
 
     private void editFaculty() {
