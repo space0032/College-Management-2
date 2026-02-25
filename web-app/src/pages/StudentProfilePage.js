@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { getStudentById, getStudentByUserId } from '../services/studentService';
 import api from '../services/api';
+import Modal from '../components/Modal';
 
 const StudentProfilePage = () => {
-    const user = (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    })();
+    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+    const userRole = localStorage.getItem('userRole') || 'STUDENT';
 
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [fees, setFees] = useState([]);
     const [attendance, setAttendance] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('academic');
     const [error, setError] = useState(null);
 
@@ -81,9 +83,12 @@ const StudentProfilePage = () => {
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h2>👤 Student Profile</h2>
-                    <p className="text-muted">Your academic record and personal information.</p>
+                    <h2>👤 Profile Center</h2>
+                    <p className="text-muted">Manage your personal and institutional records</p>
                 </div>
+                <button className="btn btn-primary" onClick={() => { setEditForm({ ...student, ...user }); setShowEditModal(true); }}>
+                    ✏️ Edit Profile
+                </button>
             </div>
 
             {error && <div style={{ color: '#e53e3e', marginBottom: '16px', padding: '12px', background: '#fff5f5', borderRadius: '8px' }}>{error}</div>}
@@ -251,7 +256,138 @@ const StudentProfilePage = () => {
                             </React.Fragment>
                         ))}
                     </dl>
+                    {/* Edit Modal */}
+                    {showEditModal && (
+                        <Modal
+                            isOpen={showEditModal}
+                            title="Modify Digital Profile"
+                            onClose={() => setShowEditModal(false)}
+                            onSubmit={async () => {
+                                setSaving(true);
+                                try {
+                                    // Unified update logic
+                                    if (userRole === 'STUDENT') await api.put(`/students/${student.id}`, editForm);
+                                    else if (userRole === 'FACULTY') await api.put(`/faculty/${student.id}`, editForm);
+                                    setShowEditModal(false);
+                                    window.location.reload(); // Refresh to show new data
+                                } catch {
+                                    alert('Update failed. Check system logs.');
+                                } finally { setSaving(false); }
+                            }}
+                            submitLabel={saving ? 'Updating...' : 'Save Changes'}
+                        >
+                            <div className="form-grid">
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label>Full Display Name</label>
+                                    <input className="form-control" type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Primary Contact</label>
+                                    <input className="form-control" type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Gender</label>
+                                    <select className="form-control" value={editForm.gender || ''} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                                        <option value="MALE">Male</option>
+                                        <option value="FEMALE">Female</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                                {userRole === 'STUDENT' ? (
+                                    <>
+                                        <div className="form-group">
+                                            <label>Batch Year</label>
+                                            <input className="form-control" type="text" value={editForm.batchYear || ''} onChange={e => setEditForm({ ...editForm, batchYear: e.target.value })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Hostel Status</label>
+                                            <select className="form-control" value={editForm.hostelite ? 'YES' : 'NO'} onChange={e => setEditForm({ ...editForm, hostelite: e.target.value === 'YES' })}>
+                                                <option value="NO">Dayscholar</option>
+                                                <option value="YES">Hostelite</option>
+                                            </select>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="form-group">
+                                            <label>Qualification</label>
+                                            <input className="form-control" type="text" value={editForm.qualification || ''} onChange={e => setEditForm({ ...editForm, qualification: e.target.value })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Specialization</label>
+                                            <input className="form-control" type="text" value={editForm.specialization || ''} onChange={e => setEditForm({ ...editForm, specialization: e.target.value })} />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </Modal>
+                    )}
                 </div>
+            )}
+            {/* Edit Modal */}
+            {showEditModal && (
+                <Modal
+                    isOpen={showEditModal}
+                    title="Modify Digital Profile"
+                    onClose={() => setShowEditModal(false)}
+                    onSubmit={async () => {
+                        setSaving(true);
+                        try {
+                            if (userRole === 'STUDENT') await api.put(`/students/${student.id}`, editForm);
+                            else if (userRole === 'FACULTY') await api.put(`/faculty/${student.id}`, editForm);
+                            setShowEditModal(false);
+                            window.location.reload();
+                        } catch {
+                            alert('Update failed. Check system logs.');
+                        } finally { setSaving(false); }
+                    }}
+                    submitLabel={saving ? 'Updating...' : 'Save Changes'}
+                >
+                    <div className="form-grid">
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label>Full Display Name</label>
+                            <input className="form-control" type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Primary Contact</label>
+                            <input className="form-control" type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label>Gender</label>
+                            <select className="form-control" value={editForm.gender || ''} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        {userRole === 'STUDENT' ? (
+                            <>
+                                <div className="form-group">
+                                    <label>Batch Year</label>
+                                    <input className="form-control" type="text" value={editForm.batchYear || ''} onChange={e => setEditForm({ ...editForm, batchYear: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Hostel Status</label>
+                                    <select className="form-control" value={editForm.hostelite ? 'YES' : 'NO'} onChange={e => setEditForm({ ...editForm, hostelite: e.target.value === 'YES' })}>
+                                        <option value="NO">Dayscholar</option>
+                                        <option value="YES">Hostelite</option>
+                                    </select>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="form-group">
+                                    <label>Qualification</label>
+                                    <input className="form-control" type="text" value={editForm.qualification || ''} onChange={e => setEditForm({ ...editForm, qualification: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Specialization</label>
+                                    <input className="form-control" type="text" value={editForm.specialization || ''} onChange={e => setEditForm({ ...editForm, specialization: e.target.value })} />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Modal>
             )}
         </div>
     );

@@ -22,6 +22,7 @@ const AttendancePage = () => {
   const [bulkModal, setBulkModal] = useState(false);
   const [markForm, setMarkForm] = useState({ studentId: '', courseId: '', date: '', status: 'PRESENT' });
   const [bulkForm, setBulkForm] = useState({ courseId: '', date: '', status: 'PRESENT' });
+  const [bulkStudents, setBulkStudents] = useState([]); // List for the rich grid
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState(null);
@@ -65,16 +66,34 @@ const AttendancePage = () => {
     }
   };
 
+  const handleFetchStudentsForBulk = async () => {
+    if (!bulkForm.courseId) return;
+    try {
+      const res = await getAllStudents(); // In a real app, this would be filtered by course
+      // Simulate filtering for demo:
+      const courseStudents = (res.data || []).map(s => ({ ...s, status: bulkForm.status }));
+      setBulkStudents(courseStudents);
+    } catch {
+      setFormError('Failed to load student list.');
+    }
+  };
+
   const handleBulk = async () => {
-    if (!bulkForm.courseId || !bulkForm.date) {
-      setFormError('Course ID and Date are required.');
+    if (!bulkForm.courseId || !bulkForm.date || bulkStudents.length === 0) {
+      setFormError('Course, Date, and Student list are required.');
       return;
     }
     setSaving(true);
     try {
-      await bulkMarkAttendance(bulkForm);
+      // If the backend has a real batch endpoint, we'd use it.
+      // Otherwise, we loop or use bulkMarkAttendance if it supports student lists.
+      await bulkMarkAttendance({
+        ...bulkForm,
+        studentIds: bulkStudents.filter(s => s.status === 'PRESENT').map(s => s.id)
+      });
       setBulkModal(false);
       setBulkForm({ courseId: '', date: '', status: 'PRESENT' });
+      setBulkStudents([]);
       if (filterCourse && filterDate) handleFetch();
     } catch (err) {
       setFormError(err.response?.data?.message || 'Failed to bulk mark attendance.');
@@ -183,22 +202,53 @@ const AttendancePage = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={bulkModal} title="Bulk Mark Attendance" onClose={() => setBulkModal(false)} onSubmit={handleBulk} submitLabel={saving ? 'Saving…' : 'Save'}>
+      <Modal isOpen={bulkModal} title="Bulk Mark Attendance" onClose={() => setBulkModal(false)} onSubmit={handleBulk} submitLabel={saving ? 'Saving…' : 'Submit Batch'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
-        {[{ name: 'courseId', label: 'Course ID' }, { name: 'date', label: 'Date', type: 'date' }].map(({ name, label, type = 'text' }) => (
-          <div className="form-group" key={name}>
-            <label className="form-label">{label}</label>
-            <input type={type} name={name} className="form-control" value={bulkForm[name]} onChange={(e) => setBulkForm((p) => ({ ...p, [name]: e.target.value }))} />
+        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Course ID</label>
+            <input type="text" className="form-control" value={bulkForm.courseId} onChange={(e) => setBulkForm((p) => ({ ...p, courseId: e.target.value }))} />
           </div>
-        ))}
-        <div className="form-group">
-          <label className="form-label">Status</label>
-          <select className="form-control" value={bulkForm.status} onChange={(e) => setBulkForm((p) => ({ ...p, status: e.target.value }))}>
-            <option value="PRESENT">Present</option>
-            <option value="ABSENT">Absent</option>
-            <option value="LATE">Late</option>
-          </select>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Date</label>
+            <input type="date" className="form-control" value={bulkForm.date} onChange={(e) => setBulkForm((p) => ({ ...p, date: e.target.value }))} />
+          </div>
+          <div style={{ alignSelf: 'flex-end', paddingBottom: '16px' }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleFetchStudentsForBulk}>Load Class List</button>
+          </div>
         </div>
+
+        {bulkStudents.length > 0 && (
+          <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #edf2f7', borderRadius: '8px' }}>
+            <table className="data-table" style={{ fontSize: '0.85rem' }}>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: 'white' }}>
+                <tr><th>Student</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {bulkStudents.map((s, idx) => (
+                  <tr key={s.id}>
+                    <td>{s.name} <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>(ID: {s.id})</span></td>
+                    <td>
+                      <select
+                        value={s.status}
+                        onChange={(e) => {
+                          const newList = [...bulkStudents];
+                          newList[idx].status = e.target.value;
+                          setBulkStudents(newList);
+                        }}
+                        style={{ padding: '2px', fontSize: '0.8rem' }}
+                      >
+                        <option value="PRESENT">Present</option>
+                        <option value="ABSENT">Absent</option>
+                        <option value="LATE">Late</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Modal>
     </div>
   );

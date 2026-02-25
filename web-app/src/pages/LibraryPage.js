@@ -244,6 +244,13 @@ const LibraryPage = () => {
       <div className="page-header">
         <h1 className="page-title">📖 Library</h1>
         <div className="page-actions">
+          <button className="btn btn-secondary" onClick={() => {
+            if (view === 'books' || view === 'requests') {
+              exportToCSV(['ID', 'Title', 'Author', 'ISBN', 'Available'], books.map(b => [b.id, b.title, b.author, b.isbn, b.available]), 'library_catalog_export');
+            } else {
+              exportToCSV(['ID', 'Book', 'Student', 'Issue Date', 'Due Date', 'Fine'], issues.map(i => [i.id, i.bookTitle, i.studentName, i.issueDate, i.dueDate, i.fineAmount]), 'library_issues_export');
+            }
+          }}>⬇ Export CSV</button>
           <button className={view === 'books' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setView('books')}>Catalog</button>
           {isAdmin && <button className={view === 'issues' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setView('issues')}>Issued Books</button>}
           {isAdmin && (

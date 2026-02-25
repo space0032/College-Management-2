@@ -78,6 +78,16 @@ const PayrollManagementPage = () => {
                         <select className="form-control" style={{ border: 'none', background: 'none', fontWeight: 'bold', width: 'auto' }} value={year} onChange={e => setYear(parseInt(e.target.value))}>
                             {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
+                        <button className="btn btn-primary" onClick={() => {
+                            if (window.confirm(`Generate payroll records for ${MONTHS[month - 1]} ${year}?`)) {
+                                generatePayroll(month, year).then(() => {
+                                    alert('Payroll batch generated successfully.');
+                                    fetchPayroll();
+                                }).catch(() => alert('Failed to generate batch. Check if records already exist.'));
+                            }
+                        }}>
+                            ⚡ Bulk Generate
+                        </button>
                     </div>
                 </div>
             </div>

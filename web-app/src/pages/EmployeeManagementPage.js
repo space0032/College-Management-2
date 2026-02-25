@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getEmployees, addEmployee, updateEmployee } from '../services/employeeService';
 import Modal from '../components/Modal';
+import { exportToCSV } from '../utils/exportUtils';
 
 const EmployeeManagementPage = () => {
     const [employees, setEmployees] = useState([]);
@@ -81,9 +82,16 @@ const EmployeeManagementPage = () => {
                         <h1 className="page-title">👥 Human Capital Management</h1>
                         <p className="page-subtitle">Unified staff directory, lifecycle management, and organizational hierarchy</p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => { setFormData({ id: 0, employeeId: '', firstName: '', lastName: '', email: '', phone: '', designation: '', joinDate: '', salary: 0, status: 'ACTIVE' }); setIsEditing(false); setShowModal(true); }}>
-                        + Onboard Staff
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn btn-secondary" onClick={() => exportToCSV(
+                            ['Employee ID', 'Name', 'Designation', 'Join Date', 'Salary', 'Status'],
+                            filteredEmployees.map(e => [e.employeeId, `${e.firstName} ${e.lastName}`, e.designation, e.joinDate, e.salary, e.status]),
+                            'employee_export'
+                        )}>⬇ Export CSV</button>
+                        <button className="btn btn-primary" onClick={() => { setFormData({ id: 0, employeeId: '', firstName: '', lastName: '', email: '', phone: '', designation: '', joinDate: '', salary: 0, status: 'ACTIVE' }); setIsEditing(false); setShowModal(true); }}>
+                            + Onboard Staff
+                        </button>
+                    </div>
                 </div>
             </div>
 

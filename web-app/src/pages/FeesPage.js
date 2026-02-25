@@ -174,7 +174,12 @@ const FeesPage = () => {
                 { key: 'receiptNumber', label: 'Receipt' },
                 { key: 'paymentDate', label: 'Date' },
                 { key: 'amount', label: 'Amount' },
-                { key: 'paymentMode', label: 'Mode' }
+                { key: 'paymentMode', label: 'Mode' },
+                {
+                  key: 'actions', label: 'Receipt', render: (_, p) => (
+                    <button className="btn-icon" onClick={() => setReceiptFee({ ...selectedFee, amount: p.amount, id: p.id, receiptNumber: p.receiptNumber, paidDate: p.paymentDate })} title="Print Receipt">🧾</button>
+                  )
+                }
               ]}
               data={history}
             />

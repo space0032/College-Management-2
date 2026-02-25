@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getDrives, addDrive, deleteDrive, getCompanies, addCompany, deleteCompany, getApplicationsForStudent, getApplicationsForDrive, applyForDrive, updateAppStatus } from '../services/placementService';
+import { exportToCSV } from '../utils/exportUtils';
 
 const COMPANY_COLS = [
   { key: 'id', label: 'ID' },
@@ -153,7 +154,16 @@ const PlacementPage = () => {
     <div>
       <div className="page-header">
         <h1 className="page-title">💼 Placements</h1>
-        <button className="btn btn-primary" onClick={openModal}>+ Add {tab === 'companies' ? 'Company' : 'Drive'}</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" onClick={() => {
+            if (tab === 'companies') {
+              exportToCSV(['ID', 'Name', 'Industry', 'Website'], companies.map(c => [c.id, c.name, c.industry, c.website]), 'companies_export');
+            } else {
+              exportToCSV(['ID', 'Company', 'Role', 'Date', 'CTC', 'Eligibility'], drives.map(d => [d.id, d.companyName, d.role, d.date, d.ctc, d.eligibility]), 'placement_drives_export');
+            }
+          }}>⬇ Export CSV</button>
+          <button className="btn btn-primary" onClick={openModal}>+ Add {tab === 'companies' ? 'Company' : 'Drive'}</button>
+        </div>
       </div>
 
       <div className="tab-buttons">

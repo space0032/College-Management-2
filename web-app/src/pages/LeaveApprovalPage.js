@@ -19,12 +19,9 @@ const LeaveApprovalPage = () => {
 
     const [formData, setFormData] = useState({ leaveType: 'SICK', startDate: '', endDate: '', reason: '' });
 
-    const currentUser = (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    })();
-
-    const isStudent = currentUser.role === 'STUDENT';
-    const canApprove = currentUser.role === 'ADMIN' || currentUser.role === 'FACULTY';
+    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const isStudent = userRole === 'STUDENT';
+    const canApprove = userRole === 'ADMIN' || userRole === 'FACULTY';
 
     useEffect(() => { fetchLeaves(); }, [activeTab]);
 
