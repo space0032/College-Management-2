@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/attendance', label: 'Attendance', icon: '📋' },
       { to: '/dashboard/timetable', label: 'Timetable', icon: '🗓️' },
       { to: '/dashboard/grades', label: 'Grades', icon: 'A+' },
+      { to: '/dashboard/assignments', label: 'Assignments', icon: '📝' },
     ],
   },
   {
@@ -39,6 +40,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/visitors', label: 'Visitors', icon: '🧍' },
       { to: '/dashboard/placements', label: 'Placements', icon: '💼' },
       { to: '/dashboard/scholarships', label: 'Scholarships', icon: '💰' },
+      { to: '/dashboard/crowdfunding', label: 'Crowdfunding', icon: '🤝' },
       { to: '/dashboard/clubs', label: 'Clubs', icon: '🎭' },
       { to: '/dashboard/events', label: 'Events', icon: '🎟️' },
     ],

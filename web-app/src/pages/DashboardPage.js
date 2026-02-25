@@ -20,6 +20,8 @@ import GatePassPage from './GatePassPage';
 import VisitorPage from './VisitorPage';
 import AcademicCalendarPage from './AcademicCalendarPage';
 import ScholarshipPage from './ScholarshipPage';
+import AssignmentPage from './AssignmentPage';
+import CrowdfundingPage from './CrowdfundingPage';
 import InstituteManagementPage from './InstituteManagementPage';
 import AnnouncementPage from './AnnouncementPage';
 import NotificationPage from './NotificationPage';
@@ -53,6 +55,8 @@ const DashboardPage = () => {
             <Route path="visitors" element={<VisitorPage />} />
             <Route path="calendar" element={<AcademicCalendarPage />} />
             <Route path="scholarships" element={<ScholarshipPage />} />
+            <Route path="assignments" element={<AssignmentPage />} />
+            <Route path="crowdfunding" element={<CrowdfundingPage />} />
             <Route path="announcements" element={<AnnouncementPage />} />
             <Route path="notifications" element={<NotificationPage />} />
             <Route path="departments" element={<DepartmentPage />} />

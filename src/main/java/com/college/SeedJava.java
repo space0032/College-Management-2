@@ -189,6 +189,35 @@ public class SeedJava {
                                                         + ", 1, 'I maintain a 3.9 GPA across all subjects.', 'APPLIED') ON CONFLICT DO NOTHING");
 
                         System.out.println("Seeded Scholarship Data");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO assignments (course_id, title, description, due_date, created_by, semester) "
+                                                        +
+                                                        "VALUES (1, 'Data Structures Project', 'Implement an AVL Tree in Java', '2026-03-01 23:59:59', 1, 1) ON CONFLICT DO NOTHING");
+
+                        ResultSet rsAssign = stmt.executeQuery("SELECT id FROM assignments LIMIT 1");
+                        int aId = 1;
+                        if (rsAssign.next())
+                                aId = rsAssign.getInt(1);
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO submissions (assignment_id, student_id, submission_text, submission_date, grade, feedback, is_graded) "
+                                                        +
+                                                        "VALUES (" + aId
+                                                        + ", 1, 'github.com/student/avl-tree-java', '2026-02-24 12:00:00', NULL, NULL, FALSE) ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Assignment Data");
+
+                        stmt.executeUpdate(
+                                        "INSERT INTO campaigns (title, description, goal_amount, raised_amount, created_by, status) "
+                                                        +
+                                                        "VALUES ('New Library Wing', 'Help us build a state-of-the-art reading room', 500000.0, 125000.0, 1, 'ACTIVE') ON CONFLICT DO NOTHING");
+                        stmt.executeUpdate(
+                                        "INSERT INTO campaigns (title, description, goal_amount, raised_amount, created_by, status) "
+                                                        +
+                                                        "VALUES ('Robotics Lab Equipment', 'Fund the purchase of new robotic arms', 150000.0, 160000.0, 1, 'COMPLETED') ON CONFLICT DO NOTHING");
+
+                        System.out.println("Seeded Crowdfunding Data");
                 }
         }
 }
