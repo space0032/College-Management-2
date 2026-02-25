@@ -20,6 +20,7 @@ const Sidebar = () => {
       { to: '/dashboard/grades', label: 'Grades', icon: 'A+' },
       { to: '/dashboard/assignments', label: 'Assignments', icon: '📝' },
       { to: '/dashboard/resources', label: 'Resources', icon: '📚' },
+      { to: '/dashboard/syllabus', label: 'Syllabus', icon: '📋' },
     ],
     Campus: [
       { to: '/dashboard/library', label: 'Library', icon: '📖' },
@@ -52,6 +53,8 @@ const Sidebar = () => {
       { to: '/dashboard/activities', label: 'Activities Hub', icon: '🎯' },
       { to: '/dashboard/events', label: 'Events', icon: '🎪' },
       { to: '/dashboard/clubs', label: 'Clubs & Societies', icon: '👥' },
+      { to: '/dashboard/volunteer', label: 'Volunteer', icon: '🤝' },
+      { to: '/dashboard/learning', label: 'Learning Portal', icon: '🎓' },
     ];
   }
 
