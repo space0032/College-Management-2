@@ -2,6 +2,8 @@ package com.college.dao;
 
 import com.college.models.Event;
 import com.college.models.EventRegistration;
+import com.college.models.EventBudget;
+import com.college.models.EventPoll;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
 
@@ -311,6 +313,136 @@ public class EventDAO {
         event.setCreatorName(rs.getString("creator_name"));
         event.setRegistrationCount(rs.getInt("registration_count"));
         return event;
+    }
+
+    // Budget methods
+    public List<EventBudget> getEventBudgets(int eventId) {
+        List<EventBudget> budgets = new ArrayList<>();
+        String sql = "SELECT * FROM event_budgets WHERE event_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, eventId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                EventBudget b = new EventBudget();
+                b.setId(rs.getInt("id"));
+                b.setEventId(rs.getInt("event_id"));
+                b.setItem(rs.getString("item"));
+                b.setEstimatedCost(rs.getDouble("estimated_cost"));
+                b.setActualCost(rs.getDouble("actual_cost"));
+                b.setStatus(rs.getString("status"));
+                budgets.add(b);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching budgets: " + e.getMessage());
+        }
+        return budgets;
+    }
+
+    public boolean addBudget(EventBudget budget) {
+        String sql = "INSERT INTO event_budgets (event_id, item, estimated_cost, actual_cost, status) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, budget.getEventId());
+            pstmt.setString(2, budget.getItem());
+            pstmt.setDouble(3, budget.getEstimatedCost());
+            pstmt.setDouble(4, budget.getActualCost());
+            pstmt.setString(5, budget.getStatus());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error adding budget: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateBudget(EventBudget budget) {
+        String sql = "UPDATE event_budgets SET item = ?, estimated_cost = ?, actual_cost = ?, status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, budget.getItem());
+            pstmt.setDouble(2, budget.getEstimatedCost());
+            pstmt.setDouble(3, budget.getActualCost());
+            pstmt.setString(4, budget.getStatus());
+            pstmt.setInt(5, budget.getId());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error updating budget: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deleteBudget(int id) {
+        String sql = "DELETE FROM event_budgets WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error deleting budget: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Poll methods
+    public List<EventPoll> getEventPolls(int eventId) {
+        List<EventPoll> polls = new ArrayList<>();
+        String sql = "SELECT * FROM event_polls WHERE event_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, eventId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                EventPoll p = new EventPoll();
+                p.setId(rs.getInt("id"));
+                p.setEventId(rs.getInt("event_id"));
+                p.setQuestion(rs.getString("question"));
+                p.setOptions(rs.getString("options"));
+                p.setStatus(rs.getString("status"));
+                polls.add(p);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching polls: " + e.getMessage());
+        }
+        return polls;
+    }
+
+    public boolean createPoll(EventPoll poll) {
+        String sql = "INSERT INTO event_polls (event_id, question, options, status) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, poll.getEventId());
+            pstmt.setString(2, poll.getQuestion());
+            pstmt.setString(3, poll.getOptions());
+            pstmt.setString(4, poll.getStatus());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error creating poll: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean closePoll(int id) {
+        String sql = "UPDATE event_polls SET status = 'CLOSED' WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error closing poll: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deletePoll(int id) {
+        String sql = "DELETE FROM event_polls WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error deleting poll: " + e.getMessage());
+            return false;
+        }
     }
 
     public void updateEventStatuses() {

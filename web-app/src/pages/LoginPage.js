@@ -25,6 +25,7 @@ const LoginPage = () => {
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('userRole', user.role);
       navigate('/dashboard');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Please try again.';

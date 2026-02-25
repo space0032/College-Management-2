@@ -5,6 +5,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.EventDAO;
 import com.college.models.Event;
 import com.college.models.EventRegistration;
+import com.college.models.EventBudget;
+import com.college.models.EventPoll;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
 import java.util.List;
@@ -61,6 +63,30 @@ public class EventController extends BaseController implements HttpHandler {
                     handleGetEvents(t);
                 else if ("POST".equals(method))
                     handleAddEvent(t);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events/\\d+/budget")) {
+                if ("GET".equals(method))
+                    handleGetEventBudgets(t, path);
+                else if ("POST".equals(method))
+                    handleAddEventBudget(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events/budget/\\d+")) {
+                if ("DELETE".equals(method))
+                    handleDeleteEventBudget(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events/\\d+/polls")) {
+                if ("GET".equals(method))
+                    handleGetEventPolls(t, path);
+                else if ("POST".equals(method))
+                    handleCreateEventPoll(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events/polls/\\d+/close")) {
+                if ("PUT".equals(method))
+                    handleCloseEventPoll(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
             } else {
@@ -201,6 +227,74 @@ public class EventController extends BaseController implements HttpHandler {
         int studentId = extractId(path); // .../events/student/{id}
         List<Event> events = eventDAO.getStudentRegisteredEvents(studentId);
         sendResponse(t, 200, JsonHelper.toJson(events));
+    }
+
+    private void handleGetEventBudgets(HttpExchange t, String path) throws IOException {
+        int eventId = extractId(path);
+        List<EventBudget> budgets = eventDAO.getEventBudgets(eventId);
+        sendResponse(t, 200, JsonHelper.toJson(budgets));
+    }
+
+    private void handleAddEventBudget(HttpExchange t, String path) throws IOException {
+        int eventId = extractId(path);
+        String body = readBody(t);
+        EventBudget budget = JsonHelper.fromJson(body, EventBudget.class);
+        if (budget == null) {
+            sendResponse(t, 400, errorJson("Invalid JSON"));
+            return;
+        }
+        budget.setEventId(eventId);
+        boolean success = eventDAO.addBudget(budget);
+        if (success) {
+            sendResponse(t, 201, "{\"message\":\"Budget item added\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to add budget item"));
+        }
+    }
+
+    private void handleDeleteEventBudget(HttpExchange t, String path) throws IOException {
+        int id = extractId(path);
+        boolean success = eventDAO.deleteBudget(id);
+        if (success) {
+            sendResponse(t, 200, "{\"status\":\"Deleted\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to delete budget item"));
+        }
+    }
+
+    private void handleGetEventPolls(HttpExchange t, String path) throws IOException {
+        int eventId = extractId(path);
+        List<EventPoll> polls = eventDAO.getEventPolls(eventId);
+        sendResponse(t, 200, JsonHelper.toJson(polls));
+    }
+
+    private void handleCreateEventPoll(HttpExchange t, String path) throws IOException {
+        int eventId = extractId(path);
+        String body = readBody(t);
+        EventPoll poll = JsonHelper.fromJson(body, EventPoll.class);
+        if (poll == null) {
+            sendResponse(t, 400, errorJson("Invalid JSON"));
+            return;
+        }
+        poll.setEventId(eventId);
+        poll.setStatus("ACTIVE");
+        boolean success = eventDAO.createPoll(poll);
+        if (success) {
+            sendResponse(t, 201, "{\"message\":\"Poll created\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to create poll"));
+        }
+    }
+
+    private void handleCloseEventPoll(HttpExchange t, String path) throws IOException {
+        String[] parts = path.split("/");
+        int pollId = Integer.parseInt(parts[parts.length - 2]); // .../polls/{id}/close
+        boolean success = eventDAO.closePoll(pollId);
+        if (success) {
+            sendResponse(t, 200, "{\"message\":\"Poll closed\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to close poll"));
+        }
     }
 
     private int extractId(String path) {
