@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import SessionManager from '../utils/SessionManager';
 
 const Sidebar = () => {
-  const userRole = localStorage.getItem('userRole') || 'STUDENT';
+  const userRole = SessionManager.getUserRole() || 'STUDENT';
 
   const navSections = {
     Overview: [

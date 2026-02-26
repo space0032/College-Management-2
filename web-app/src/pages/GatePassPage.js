@@ -3,6 +3,7 @@ import {
     getStudentGatePasses, getPendingGatePasses, getAllGatePasses,
     requestGatePass, approveGatePass, rejectGatePass
 } from '../services/gatePassService';
+import SessionManager from '../utils/SessionManager';
 
 const GatePassPage = () => {
     const [activeTab, setActiveTab] = useState('my_passes');
@@ -21,8 +22,7 @@ const GatePassPage = () => {
     // Admin Action State
     const [actionComment, setActionComment] = useState('');
 
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
+    const user = SessionManager.getUser() || {};
 
     useEffect(() => {
         if (user.role === 'STUDENT' && activeTab !== 'my_passes' && activeTab !== 'request') {

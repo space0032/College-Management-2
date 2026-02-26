@@ -8,6 +8,7 @@ import { exportToCSV } from '../utils/exportUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import SessionManager from '../utils/SessionManager';
 
 const GRADES = ['A', 'B', 'C', 'D', 'E', 'F'];
 const EXAM_TYPES = ['MID TERM', 'END TERM', 'ASSIGNMENT', 'PRACTICAL'];
@@ -37,8 +38,7 @@ const GradesPage = () => {
     const [bulkSaving, setBulkSaving] = useState(false);
     const [bulkResult, setBulkResult] = useState(null);
 
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
+    const user = SessionManager.getUser() || {};
 
     useEffect(() => {
         if (activeTab === 'view') {
@@ -169,8 +169,8 @@ const GradesPage = () => {
 
     const generateTranscript = () => {
         if (!grades.length) return;
-        const studentName = user.role === 'STUDENT' ? userStr ? JSON.parse(userStr).name : 'Student' : grades[0].studentName || 'Student';
-        const enrollmentNo = user.role === 'STUDENT' ? userStr ? JSON.parse(userStr).enrollmentNumber : 'N/A' : grades[0].enrollmentNumber || 'N/A';
+        const studentName = user.role === 'STUDENT' ? (user.name || 'Student') : grades[0].studentName || 'Student';
+        const enrollmentNo = user.role === 'STUDENT' ? (user.enrollmentNumber || 'N/A') : grades[0].enrollmentNumber || 'N/A';
 
         const doc = new jsPDF();
 

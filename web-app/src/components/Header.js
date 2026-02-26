@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GlobalSearch from './GlobalSearch';
+import SessionManager from '../utils/SessionManager';
 
 const Header = () => {
   const navigate = useNavigate();
   const [showSearch, setShowSearch] = useState(false);
-  const user = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || '{}');
-    } catch {
-      return {};
-    }
-  })();
+  const user = SessionManager.getUser() || {};
 
   React.useEffect(() => {
     const handleKeyDown = (e) => {
@@ -25,7 +20,7 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.clear();
+    SessionManager.clearSession();
     navigate('/');
   };
 
