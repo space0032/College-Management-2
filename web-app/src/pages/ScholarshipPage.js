@@ -9,7 +9,7 @@ const ScholarshipPage = () => {
     const [scholarships, setScholarships] = useState([]);
     const [selectedScholarship, setSelectedScholarship] = useState(null);
     const [applications, setApplications] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); // eslint-disable-line no-unused-vars
 
     // Forms
     const [scholarshipForm, setScholarshipForm] = useState({ title: '', description: '', amount: '', donorName: '', status: 'OPEN' });

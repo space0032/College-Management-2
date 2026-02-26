@@ -10,8 +10,8 @@ const HostelPage = () => {
   const [hostels, setHostels] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [allocations, setAllocations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true); // eslint-disable-line no-unused-vars
+  const [error, setError] = useState(''); // eslint-disable-line no-unused-vars
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
@@ -21,10 +21,8 @@ const HostelPage = () => {
   const [roomForm, setRoomForm] = useState({ roomNumber: '', hostelId: '', capacity: '2', floor: '1', roomType: 'AC' });
   const [allocForm, setAllocForm] = useState({ studentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
 
-  const [saving, setSaving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [saving, setSaving] = useState(false); // eslint-disable-line no-unused-vars
 
-  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
   const userRole = localStorage.getItem('userRole') || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
 

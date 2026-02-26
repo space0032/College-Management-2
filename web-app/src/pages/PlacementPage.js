@@ -31,6 +31,8 @@ const EMPTY_COMPANY = { name: '', industry: '', website: '' };
 const EMPTY_DRIVE = { companyName: '', role: '', date: '', ctc: '', eligibility: '' };
 
 const PlacementPage = () => {
+  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: null, role: 'STUDENT' }; } })();
+
   const [tab, setTab] = useState('companies');
   const [companies, setCompanies] = useState([]);
   const [drives, setDrives] = useState([]);
@@ -47,7 +49,7 @@ const PlacementPage = () => {
 
   const fetchAll = () => {
     setLoading(true);
-    Promise.all([getCompanies(), getDrives(), getApplicationsForStudent(2)]) // Assuming student ID 2 for demo purposes, representing the current user
+    Promise.all([getCompanies(), getDrives(), user.id ? getApplicationsForStudent(user.id) : Promise.resolve({ data: [] })])
       .then(([c, d, a]) => {
         setCompanies(c.data || []);
         const apps = a.data || [];

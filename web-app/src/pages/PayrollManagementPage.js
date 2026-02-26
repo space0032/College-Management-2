@@ -4,8 +4,7 @@ import {
     generatePayroll,
     markAsPaid,
     markAllAsPaid,
-    updatePayrollEntry,
-    deletePayrollEntry
+    updatePayrollEntry
 } from '../services/payrollService';
 
 const MONTHS = [
@@ -19,7 +18,7 @@ const PayrollManagementPage = () => {
     const [year, setYear] = useState(now.getFullYear());
     const [payrollData, setPayrollData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState(null); // eslint-disable-line no-unused-vars
     const [editModal, setEditModal] = useState(null);
 
     const currentUser = (() => {

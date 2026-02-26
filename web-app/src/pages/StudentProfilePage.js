@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getStudentById, getStudentByUserId } from '../services/studentService';
+import { getStudents } from '../services/studentService';
 import api from '../services/api';
 import Modal from '../components/Modal';
 

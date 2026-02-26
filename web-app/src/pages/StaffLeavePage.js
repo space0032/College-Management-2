@@ -19,7 +19,7 @@ const StaffLeavePage = () => {
 
     useEffect(() => {
         fetchLeaves();
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchLeaves = async () => {
         setLoading(true);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSyllabiBycourse } from '../services/syllabusService';
 import { getResources } from '../services/resourceService';
-import { getCourses, getAllCourses } from '../services/courseService';
+import { getAllCourses } from '../services/courseService';
 
 const getFileIcon = (path) => {
     const ext = (path?.split('.').pop() || '').toLowerCase();

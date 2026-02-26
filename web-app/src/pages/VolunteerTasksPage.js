@@ -23,7 +23,7 @@ const VolunteerTasksPage = () => {
     useEffect(() => {
         if (activeTab === 'opportunities') fetchOpportunities();
         else fetchMyTasks();
-    }, [activeTab]);
+    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchMyTasks = () => {
         setLoading(true);

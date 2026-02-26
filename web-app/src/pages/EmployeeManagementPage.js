@@ -20,7 +20,7 @@ const EmployeeManagementPage = () => {
     });
 
     useEffect(() => { fetchEmployees(); }, []);
-    useEffect(() => { filterData(); }, [employees, searchQuery, statusFilter]);
+    useEffect(() => { filterData(); }, [employees, searchQuery, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchEmployees = async () => {
         try {

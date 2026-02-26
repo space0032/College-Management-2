@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateVisitorReportPdf, getPlacementStats } from '../services/reportService';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 
 const ReportsPage = () => {
     const [activeTab, setActiveTab] = useState('attendance'); // attendance, fees, grades, visitors, placements

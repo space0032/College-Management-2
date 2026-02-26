@@ -44,7 +44,7 @@ const FeesPage = () => {
 
   useEffect(() => {
     fetchFees();
-  }, [allFees]);
+  }, [allFees]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePayClick = (fee) => {
     setSelectedFee(fee);

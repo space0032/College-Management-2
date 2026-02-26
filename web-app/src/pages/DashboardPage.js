@@ -23,7 +23,6 @@ import ScholarshipPage from './ScholarshipPage';
 import AssignmentPage from './AssignmentPage';
 import CrowdfundingPage from './CrowdfundingPage';
 import InstituteManagementPage from './InstituteManagementPage';
-import SettingsPage from './SettingsPage';
 import ResourceManagementPage from './ResourceManagementPage';
 import EmployeeManagementPage from './EmployeeManagementPage';
 import LeaveApprovalPage from './LeaveApprovalPage';
