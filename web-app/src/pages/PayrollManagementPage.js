@@ -240,11 +240,11 @@ const PayrollManagementPage = () => {
                         <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '25px' }}>{editModal.employeeName}</p>
                         <div className="form-group">
                             <label>Bonus Incentives (₹)</label>
-                            <input className="form-control" type="number" value={editModal.bonusesInput} onChange={e => setEditModal({ ...editModal, bonusesInput: e.target.value })} />
+                            <input className="form-control" type="number" min="0" value={editModal.bonusesInput} onChange={e => setEditModal({ ...editModal, bonusesInput: e.target.value })} />
                         </div>
                         <div className="form-group">
                             <label>Deductions / Adjustments (₹)</label>
-                            <input className="form-control" type="number" value={editModal.deductionsInput} onChange={e => setEditModal({ ...editModal, deductionsInput: e.target.value })} />
+                            <input className="form-control" type="number" min="0" value={editModal.deductionsInput} onChange={e => setEditModal({ ...editModal, deductionsInput: e.target.value })} />
                         </div>
                         <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', marginTop: '20px', border: '1px solid #e2e8f0' }}>
                             <div style={{ fontSize: '0.7rem', color: '#64748b' }}>CALCULATED NET DISBURSEMENT</div>
@@ -254,7 +254,11 @@ const PayrollManagementPage = () => {
                         </div>
                         <div style={{ display: 'flex', gap: '10px', marginTop: '25px' }}>
                             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditModal(null)}>Discard</button>
-                            <button className="btn btn-primary" style={{ flex: 2 }} onClick={() => updatePayrollEntry(editModal.id, editModal.bonusesInput, editModal.deductionsInput).then(() => { setEditModal(null); fetchPayroll(); })}>Commit Ledger</button>
+                            <button className="btn btn-primary" style={{ flex: 2 }} onClick={() => {
+                                const net = parseFloat(editModal.basicSalary) + parseFloat(editModal.bonusesInput || 0) - parseFloat(editModal.deductionsInput || 0);
+                                if (net < 0) { alert('Net salary cannot be negative. Please adjust bonuses or deductions.'); return; }
+                                updatePayrollEntry(editModal.id, editModal.bonusesInput, editModal.deductionsInput).then(() => { setEditModal(null); fetchPayroll(); });
+                            }}>Commit Ledger</button>
                         </div>
                     </div>
                 </div>

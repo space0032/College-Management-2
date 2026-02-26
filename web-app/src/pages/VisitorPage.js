@@ -60,7 +60,7 @@ const VisitorPage = () => {
             }
         } catch (err) {
             setIsVisitorFound(false);
-            setFormData({ ...formData, phone: phoneSearch, name: '', email: '', idProofNumber: '' });
+            setFormData({ phone: phoneSearch, name: '', email: '', idProofType: 'AADHAAR', idProofNumber: '' });
         } finally {
             setIsSearching(false);
         }

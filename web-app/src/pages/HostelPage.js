@@ -22,6 +22,7 @@ const HostelPage = () => {
   const [allocForm, setAllocForm] = useState({ studentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
 
   const [saving, setSaving] = useState(false); // eslint-disable-line no-unused-vars
+  const [searchQuery, setSearchQuery] = useState('');
 
   const userRole = localStorage.getItem('userRole') || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
@@ -106,12 +107,15 @@ const HostelPage = () => {
         ))}
       </div>
 
-      <div className="tab-buttons" style={{ marginBottom: '25px', background: '#edf2f7', padding: '5px', borderRadius: '12px', display: 'inline-flex' }}>
-        {['hostels', 'rooms', 'allocations'].map(t => (
-          <button key={t} className={`btn-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)} style={{ padding: '10px 25px', borderRadius: '8px' }}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="tab-buttons" style={{ background: '#edf2f7', padding: '5px', borderRadius: '12px', display: 'inline-flex' }}>
+          {['hostels', 'rooms', 'allocations'].map(t => (
+            <button key={t} className={`btn-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)} style={{ padding: '10px 25px', borderRadius: '8px' }}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+        <input className="form-control" style={{ maxWidth: '260px' }} placeholder={`Search ${tab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
       </div>
 
       <div className="stat-card" style={{ padding: '0px', overflow: 'hidden' }}>
@@ -140,7 +144,7 @@ const HostelPage = () => {
                 )
               }
             ]}
-            data={hostels}
+            data={hostels.filter(h => !searchQuery || (h.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (h.wardenName || '').toLowerCase().includes(searchQuery.toLowerCase()))}
           />
         )}
         {tab === 'rooms' && (
@@ -154,7 +158,7 @@ const HostelPage = () => {
               { label: 'Status', key: 'status', render: (v) => <span className={`badge ${v === 'AVAILABLE' ? 'badge-success' : 'badge-warning'}`}>{v}</span> },
               { label: 'Actions', key: 'id', render: (v) => isAdmin && <button className="btn btn-sm btn-danger" onClick={() => handleDelete('room', v)}>Remove</button> }
             ]}
-            data={rooms}
+            data={rooms.filter(r => !searchQuery || (r.roomNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) || (r.hostelName || '').toLowerCase().includes(searchQuery.toLowerCase()))}
           />
         )}
         {tab === 'allocations' && (
@@ -167,7 +171,7 @@ const HostelPage = () => {
               { label: 'Status', key: 'status', render: (v) => <span className="badge badge-primary">{v}</span> },
               { label: 'Actions', key: 'id', render: (v) => isAdmin && <button className="btn btn-sm btn-danger" onClick={() => vacateRoom(v).then(fetchAll)}>Vacate</button> }
             ]}
-            data={allocations}
+            data={allocations.filter(a => !searchQuery || (a.studentName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (a.hostelName || '').toLowerCase().includes(searchQuery.toLowerCase()))}
           />
         )}
       </div>

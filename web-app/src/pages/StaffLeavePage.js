@@ -32,6 +32,10 @@ const StaffLeavePage = () => {
 
     const handleApply = async (e) => {
         e.preventDefault();
+        const today = new Date().toISOString().split('T')[0];
+        if (!formData.startDate || !formData.endDate) { alert('Start date and end date are required.'); return; }
+        if (formData.startDate < today) { alert('Start date cannot be in the past.'); return; }
+        if (formData.endDate < formData.startDate) { alert('End date cannot be before start date.'); return; }
         try {
             await createStaffLeave({ ...formData, staffId: currentUser.id });
             setShowModal(false);

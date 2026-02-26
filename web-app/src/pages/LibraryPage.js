@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { exportToCSV } from '../utils/exportUtils';
-import { getAllBooks, addBook, getAllIssues, issueBook, returnBook, getIssuesByStudent } from '../services/libraryService';
+import { getAllBooks, addBook, getAllIssues, issueBook, returnBook, getIssuesByStudent, requestBook, getBookRequests, approveBookRequest, rejectBookRequest } from '../services/libraryService';
 import SessionManager from '../utils/SessionManager';
 
 const COLUMNS = [
@@ -85,7 +85,7 @@ const LibraryPage = () => {
     if (view === 'books') fetchBooks();
     else if (view === 'issues') fetchIssues();
     else if (view === 'my') fetchMyIssues();
-    else if (view === 'requests') fetchBooks(); // show books for request form
+    else if (view === 'requests') { fetchBooks(); fetchRequests(); }
   }, [view]); // eslint-disable-line
 
   const handleFormChange = (e) => {
@@ -150,38 +150,58 @@ const LibraryPage = () => {
     }
   };
 
-  const handleBookRequest = () => {
+  const fetchRequests = () => {
+    getBookRequests()
+      .then(res => setRequests(res.data || []))
+      .catch(() => { }); // graceful fallback if endpoint not yet on backend
+  };
+
+  const handleBookRequest = async () => {
     if (!requestForm.bookId) { setFormError('Please select a book.'); return; }
-    const book = books.find(b => String(b.id) === String(requestForm.bookId));
-    const newRequest = {
-      id: Date.now(),
-      studentName: user.name || user.username || 'You',
-      studentId: user.id,
-      bookTitle: book?.title || 'Unknown',
-      bookId: requestForm.bookId,
-      reason: requestForm.reason,
-      preferredReturn: requestForm.returnDate,
-      status: 'PENDING',
-      requestedAt: new Date().toISOString()
-    };
-    setRequests(prev => [newRequest, ...prev]);
-    setRequestModalOpen(false);
-    setRequestForm({ bookId: '', reason: '', returnDate: '' });
-    alert('Book request submitted! The librarian will review your request.');
+    setSaving(true);
+    try {
+      await requestBook({
+        studentId: user.id,
+        bookId: requestForm.bookId,
+        reason: requestForm.reason,
+        preferredReturn: requestForm.returnDate,
+      });
+      setRequestModalOpen(false);
+      setRequestForm({ bookId: '', reason: '', returnDate: '' });
+      fetchRequests();
+      alert('Book request submitted! The librarian will review your request.');
+    } catch {
+      // Fallback: save in-memory if backend endpoint isn't ready
+      const book = books.find(b => String(b.id) === String(requestForm.bookId));
+      const newRequest = { id: Date.now(), studentName: user.name || user.username || 'You', studentId: user.id, bookTitle: book?.title || 'Unknown', bookId: requestForm.bookId, reason: requestForm.reason, preferredReturn: requestForm.returnDate, status: 'PENDING', requestedAt: new Date().toISOString() };
+      setRequests(prev => [newRequest, ...prev]);
+      setRequestModalOpen(false);
+      setRequestForm({ bookId: '', reason: '', returnDate: '' });
+      alert('Book request submitted (pending API).');
+    } finally { setSaving(false); }
   };
 
-  const handleApproveRequest = (reqId) => {
-    const req = requests.find(r => r.id === reqId);
-    if (!req) return;
-    setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'APPROVED' } : r));
-    // Issue the book via API
-    issueBook({ studentId: req.studentId, bookId: req.bookId, issuedBy: user.id || 1 })
-      .then(() => fetchBooks())
-      .catch(() => { });
+  const handleApproveRequest = async (reqId) => {
+    try {
+      await approveBookRequest(reqId);
+      fetchRequests();
+    } catch {
+      // Fallback: in-memory approve
+      const req = requests.find(r => r.id === reqId);
+      if (req) {
+        setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'APPROVED' } : r));
+        issueBook({ studentId: req.studentId, bookId: req.bookId, issuedBy: user.id || 1 }).then(() => fetchBooks()).catch(() => { });
+      }
+    }
   };
 
-  const handleRejectRequest = (reqId) => {
-    setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'REJECTED' } : r));
+  const handleRejectRequest = async (reqId) => {
+    try {
+      await rejectBookRequest(reqId);
+      fetchRequests();
+    } catch {
+      setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'REJECTED' } : r));
+    }
   };
 
   const filteredBooks = searchQuery

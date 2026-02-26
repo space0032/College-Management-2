@@ -45,9 +45,11 @@ const CrowdfundingPage = () => {
 
     const handleDonateSubmit = async (e) => {
         e.preventDefault();
+        const amount = parseFloat(donationAmount);
+        if (!amount || amount < 1) { alert('Minimum donation amount is ₹1.'); return; }
         setIsProcessing(true);
         try {
-            await donateToCampaign(selectedCampaign.id, parseFloat(donationAmount));
+            await donateToCampaign(selectedCampaign.id, amount);
             alert('Contribution confirmed! You are now a donor.');
             setDonationAmount('');
             setSelectedCampaign(null);

@@ -62,6 +62,10 @@ const GatePassPage = () => {
 
     const handleRequestPass = async (e) => {
         e.preventDefault();
+        // Date validation — no past dates
+        const today = new Date().toISOString().split('T')[0];
+        if (formData.fromDate < today) { alert('From date cannot be in the past.'); return; }
+        if (formData.toDate && formData.toDate < formData.fromDate) { alert('Return date must be after departure date.'); return; }
         setIsSubmitting(true);
         try {
             await requestGatePass({ ...formData, studentId: user.id });
