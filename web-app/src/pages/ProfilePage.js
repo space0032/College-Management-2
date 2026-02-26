@@ -37,6 +37,19 @@ const ProfilePage = () => {
   const [pwMessage, setPwMessage] = useState(null);
   const [isError, setIsError] = useState(false);
 
+  const getPwStrength = (pw) => {
+    if (!pw) return null;
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (score <= 1) return { label: 'Weak', color: '#ef4444', width: '33%' };
+    if (score <= 2) return { label: 'Medium', color: '#f59e0b', width: '66%' };
+    return { label: 'Strong', color: '#10b981', width: '100%' };
+  };
+  const pwStrength = getPwStrength(newPassword);
+
   // Role-specific profile data
   const [profileData, setProfileData] = useState(null);
   const [activeTab, setActiveTab] = useState('info');
@@ -63,6 +76,11 @@ const ProfilePage = () => {
     setIsError(false);
     if (newPassword !== confirmPassword) {
       setPwMessage('New passwords do not match.');
+      setIsError(true);
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwMessage('Password must be at least 8 characters long.');
       setIsError(true);
       return;
     }
@@ -210,6 +228,16 @@ const ProfilePage = () => {
             <div className="form-group">
               <label>New Password</label>
               <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              {pwStrength && (
+                <div style={{ marginTop: '6px' }}>
+                  <div style={{ height: '5px', borderRadius: '4px', background: '#e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ width: pwStrength.width, height: '100%', background: pwStrength.color, transition: 'width 0.3s, background 0.3s', borderRadius: '4px' }} />
+                  </div>
+                  <div style={{ fontSize: '0.75rem', marginTop: '4px', color: pwStrength.color, fontWeight: '600' }}>
+                    {pwStrength.label} — {newPassword.length < 8 ? 'Min 8 chars' : 'Use uppercase, numbers & symbols for a stronger password.'}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label>Confirm New Password</label>

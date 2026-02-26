@@ -31,7 +31,7 @@ const EventsPage = () => {
     const [budgetForm, setBudgetForm] = useState({ item: '', estimatedCost: '', actualCost: '0', status: 'PLANNED' });
     const [pollForm, setPollForm] = useState({ question: '', options: '', status: 'ACTIVE' });
 
-    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: 2 }; } })();
+    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: null }; } })();
     const userRole = localStorage.getItem('userRole') || 'STUDENT';
     const isAdmin = userRole === 'ADMIN' || userRole === 'FACULTY';
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents } from '../services/studentService';
@@ -17,6 +17,7 @@ const StudentManagementPage = () => {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // table, grid
+  const searchDebounce = useRef(null);
 
   // Filters
   const [filterDept, setFilterDept] = useState('');
@@ -38,18 +39,25 @@ const StudentManagementPage = () => {
     fetchStudents();
   }, []);
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    if (!search.trim()) return fetchStudents();
+  const handleSearch = async (query) => {
+    const q = query !== undefined ? query : search;
+    if (!q.trim()) return fetchStudents();
     setLoading(true);
     try {
-      const res = await searchStudents(search);
+      const res = await searchStudents(q);
       setStudents(res.data || []);
     } catch {
       setError('Search failed.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearch(val);
+    clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(() => handleSearch(val), 300);
   };
 
   const handleFormChange = (e) => {
@@ -192,13 +200,13 @@ const StudentManagementPage = () => {
 
       {/* Controls Bar */}
       <div className="card" style={{ padding: '15px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', borderRadius: '12px', border: '1px solid #edf2f7' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', flex: 1, maxWidth: '500px' }}>
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} style={{ display: 'flex', gap: '10px', flex: 1, maxWidth: '500px' }}>
           <input
             type="text"
             className="form-control"
             placeholder="Search by name, email, or ID..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleSearchChange}
           />
           <button type="submit" className="btn btn-primary">Search</button>
         </form>

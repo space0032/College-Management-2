@@ -22,7 +22,7 @@ const GatePassPage = () => {
     const [actionComment, setActionComment] = useState('');
 
     const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: 2, role: 'STUDENT' };
+    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
 
     useEffect(() => {
         if (user.role === 'STUDENT' && activeTab !== 'my_passes' && activeTab !== 'request') {

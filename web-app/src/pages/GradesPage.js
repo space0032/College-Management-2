@@ -38,7 +38,7 @@ const GradesPage = () => {
     const [bulkResult, setBulkResult] = useState(null);
 
     const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: 2, role: 'STUDENT' };
+    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
 
     useEffect(() => {
         if (activeTab === 'view') {

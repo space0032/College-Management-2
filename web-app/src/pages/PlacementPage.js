@@ -105,9 +105,10 @@ const PlacementPage = () => {
   };
 
   const handleApply = async (drive) => {
+    if (!user.id) { alert('Could not identify your account. Please log in again.'); return; }
     if (!window.confirm(`Apply for ${drive.role} at ${drive.companyName}?`)) return;
     try {
-      await applyForDrive({ driveId: drive.id, studentId: 2 });
+      await applyForDrive({ driveId: drive.id, studentId: user.id });
       fetchAll();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to apply.');

@@ -24,7 +24,7 @@ const ClubsPage = () => {
     const [pendingMemberships, setPendingMemberships] = useState([]);
 
     const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: 2, role: 'STUDENT' };
+    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
 
     useEffect(() => {
         if (activeTab === 'browse' || activeTab === 'manage') loadClubs();

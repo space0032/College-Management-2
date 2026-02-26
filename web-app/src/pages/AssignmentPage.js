@@ -17,7 +17,7 @@ const AssignmentPage = () => {
     const [selectedSubmission, setSelectedSubmission] = useState(null);
 
     const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: 2, role: 'STUDENT' };
+    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
     const userId = user.id;
     const userRole = user.role;
 
