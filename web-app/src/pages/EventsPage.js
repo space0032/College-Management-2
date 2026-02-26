@@ -7,6 +7,7 @@ import {
 } from '../services/eventService';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import SessionManager from '../utils/SessionManager';
 
 const EventsPage = () => {
     const [activeTab, setActiveTab] = useState('browse');
@@ -31,8 +32,8 @@ const EventsPage = () => {
     const [budgetForm, setBudgetForm] = useState({ item: '', estimatedCost: '', actualCost: '0', status: 'PLANNED' });
     const [pollForm, setPollForm] = useState({ question: '', options: '', status: 'ACTIVE' });
 
-    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: null }; } })();
-    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const user = SessionManager.getUser() || {};
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
     const isAdmin = userRole === 'ADMIN' || userRole === 'FACULTY';
 
     const loadData = useCallback(async () => {

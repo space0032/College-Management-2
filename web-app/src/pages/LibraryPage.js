@@ -3,6 +3,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { exportToCSV } from '../utils/exportUtils';
 import { getAllBooks, addBook, getAllIssues, issueBook, returnBook, getIssuesByStudent } from '../services/libraryService';
+import SessionManager from '../utils/SessionManager';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -51,7 +52,7 @@ const LibraryPage = () => {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+  const user = SessionManager.getUser() || {};
   const isAdmin = user.role === 'ADMIN';
   const isStudent = user.role === 'STUDENT';
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../services/authService';
+import SessionManager from '../utils/SessionManager';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -23,9 +24,7 @@ const LoginPage = () => {
     try {
       const response = await loginUser(form);
       const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('userRole', user.role);
+      SessionManager.setSession(user, token);
       navigate('/dashboard');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Please try again.';

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAnnouncements } from '../services/announcementService';
 import { getAuditLogs } from '../services/auditService';
+import SessionManager from '../utils/SessionManager';
 
 const STATS_CONFIG = [
   {
@@ -40,9 +41,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('announcements');
 
-  const user = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-  })();
+  const user = SessionManager.getUser() || {};
 
   useEffect(() => {
     import('../services/dashboardService').then(({ getDashboardStats }) => {

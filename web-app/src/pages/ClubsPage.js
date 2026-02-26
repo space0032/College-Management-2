@@ -3,6 +3,7 @@ import {
     getClubs, joinClub, getMyMemberships, leaveClub,
     getPendingMemberships, approveMembership, rejectMembership
 } from '../services/clubService';
+import SessionManager from '../utils/SessionManager';
 
 const CATEGORY_COLORS = {
     'Technical': { bg: '#ebf8ff', text: '#2b6cb0', icon: '💻' },
@@ -23,8 +24,7 @@ const ClubsPage = () => {
     const [selectedClubId, setSelectedClubId] = useState('');
     const [pendingMemberships, setPendingMemberships] = useState([]);
 
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
+    const user = SessionManager.getUser() || {};
 
     useEffect(() => {
         if (activeTab === 'browse' || activeTab === 'manage') loadClubs();
