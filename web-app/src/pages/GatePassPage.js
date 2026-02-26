@@ -92,8 +92,9 @@ const GatePassPage = () => {
     };
 
     // Stats
+    const today = new Date().toISOString().split('T')[0];
     const pendingCount = user.role !== 'STUDENT' ? passes.filter(p => p.status === 'PENDING').length : 0;
-    const approvedToday = passes.filter(p => p.status === 'APPROVED').length; // Simulating "today"
+    const approvedToday = passes.filter(p => p.status === 'APPROVED' && (p.approvedAt || p.requestDate || '').startsWith(today)).length;
 
     return (
         <div className="page-container">

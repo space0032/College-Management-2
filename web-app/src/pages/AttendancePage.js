@@ -5,6 +5,8 @@ import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } fro
 import { getAllStudents } from '../services/studentService';
 import { exportToCSV } from '../utils/exportUtils';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -116,11 +118,32 @@ const AttendancePage = () => {
             Bulk Mark
           </button>
           {records.length > 0 && (
-            <button className="btn btn-secondary" onClick={() => exportToCSV(
-              ['Student ID', 'Course ID', 'Date', 'Status'],
-              records.map(r => [r.studentId, r.courseId, r.date, r.status]),
-              'attendance_export'
-            )}>⬇ Export CSV</button>
+            <>
+              <button className="btn btn-secondary" onClick={() => exportToCSV(
+                ['Student ID', 'Course ID', 'Date', 'Status'],
+                records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+                'attendance_export'
+              )}>⬇ Export CSV</button>
+              <button className="btn btn-secondary" onClick={() => {
+                const doc = new jsPDF();
+                doc.setFontSize(16);
+                doc.text('Attendance Report', 14, 18);
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(`Course: ${filterCourse}   Date: ${filterDate}   Generated: ${new Date().toLocaleString()}`, 14, 26);
+                const present = records.filter(r => r.status === 'PRESENT').length;
+                doc.text(`Present: ${present}  Absent: ${records.length - present}  Total: ${records.length}`, 14, 33);
+                doc.autoTable({
+                  startY: 38,
+                  head: [['Student ID', 'Course ID', 'Date', 'Status']],
+                  body: records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+                  styles: { fontSize: 9 },
+                  headStyles: { fillColor: [59, 130, 246] },
+                  alternateRowStyles: { fillColor: [248, 250, 252] }
+                });
+                doc.save(`attendance_${filterCourse}_${filterDate}.pdf`);
+              }}>📄 Export PDF</button>
+            </>
           )}
         </div>
       </div>

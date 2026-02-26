@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getEmployees, addEmployee, updateEmployee } from '../services/employeeService';
-import Modal from '../components/Modal';
 import { exportToCSV } from '../utils/exportUtils';
 
 const EmployeeManagementPage = () => {

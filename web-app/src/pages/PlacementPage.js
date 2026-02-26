@@ -64,7 +64,7 @@ const PlacementPage = () => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddCompany = async () => {
     if (!companyForm.name) { setFormError('Company name is required.'); return; }

@@ -6,6 +6,7 @@ import {
     markAllAsPaid,
     updatePayrollEntry
 } from '../services/payrollService';
+import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -60,6 +61,22 @@ const PayrollManagementPage = () => {
 
     const totalNet = payrollData.reduce((sum, p) => sum + (parseFloat(p.netSalary) || 0), 0);
     const paidCount = payrollData.filter(p => p.status === 'PAID').length;
+    const pendingCount2 = payrollData.length - paidCount;
+
+    // Chart data
+    const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+    const designationData = Object.entries(
+        payrollData.reduce((acc, p) => {
+            const key = p.designation || 'Other';
+            acc[key] = (acc[key] || 0) + (parseFloat(p.netSalary) || 0);
+            return acc;
+        }, {})
+    ).map(([name, value]) => ({ name, value: Math.round(value) }));
+
+    const statusBarData = [
+        { name: 'Paid', count: paidCount, fill: '#10b981' },
+        { name: 'Pending', count: pendingCount2, fill: '#f59e0b' },
+    ];
 
     return (
         <div className="page-container" style={{ background: '#f1f5f9', minHeight: '100vh', padding: '30px' }}>
@@ -124,6 +141,36 @@ const PayrollManagementPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Charts */}
+            {payrollData.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                    <div className="stat-card">
+                        <h4 style={{ margin: '0 0 12px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>SALARY BY DESIGNATION</h4>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                                <Pie data={designationData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                                    {designationData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip formatter={(v) => formatCurrency(v)} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="stat-card">
+                        <h4 style={{ margin: '0 0 12px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>PAYMENT STATUS</h4>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={statusBarData} barSize={50}>
+                                <XAxis dataKey="name" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="count" name="Staff Count">
+                                    {statusBarData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>🧮 Auditor is computing payroll sequence...</div>

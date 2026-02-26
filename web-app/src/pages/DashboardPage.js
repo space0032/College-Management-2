@@ -43,6 +43,7 @@ import StaffLeavePage from './StaffLeavePage';
 // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps ProfilePage.
 import ChangePasswordPage from './ChangePasswordPage';
 import StudentAffairsPage from './StudentAffairsPage';
+import RoleManagementPage from './RoleManagementPage';
 import NotFoundPage from './NotFoundPage';
 
 const DashboardPage = () => {
@@ -93,6 +94,7 @@ const DashboardPage = () => {
             <Route path="staff-leave" element={<StaffLeavePage />} />
             <Route path="student-affairs" element={<StudentAffairsPage />} />
             <Route path="change-password" element={<ChangePasswordPage />} />
+            <Route path="roles" element={<RoleManagementPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

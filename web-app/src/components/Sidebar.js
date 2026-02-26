@@ -42,6 +42,7 @@ const Sidebar = () => {
   if (userRole === 'ADMIN') {
     navSections['Admin'] = [
       { to: '/dashboard/management', label: 'Institute Mgmt', icon: '🏛️' },
+      { to: '/dashboard/roles', label: 'Role Management', icon: '🔑' },
       { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼' },
       { to: '/dashboard/payroll', label: 'Payroll', icon: '💸' },
       { to: '/dashboard/leaves', label: 'Leave Approvals', icon: '📅' },

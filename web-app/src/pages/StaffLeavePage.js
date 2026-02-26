@@ -49,25 +49,38 @@ const StaffLeavePage = () => {
                 <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Request Leave</button>
             </div>
 
-            {/* Balances Card */}
-            <div className="stat-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
-                <div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Sick Leave</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>8/12</div>
-                </div>
-                <div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Casual Leave</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>3/5</div>
-                </div>
-                <div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Earned Leave</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>12/15</div>
-                </div>
-                <div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Pending</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{leaves.filter(l => l.status === 'APPLIED').length}</div>
-                </div>
-            </div>
+            {/* Balances Card — computed from actual approved leave records */}
+            {(() => {
+                const approved = leaves.filter(l => l.status === 'APPROVED');
+                const used = (type) => approved.filter(l => l.leaveType === type).length;
+                const pending = leaves.filter(l => l.status === 'APPLIED').length;
+                const LIMITS = { SICK: 12, CASUAL: 5, EARNED: 15 };
+                return (
+                    <div className="stat-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
+                        {['SICK', 'CASUAL', 'EARNED'].map(type => {
+                            const usedCount = used(type);
+                            const limit = LIMITS[type];
+                            const remaining = limit - usedCount;
+                            const pct = (usedCount / limit) * 100;
+                            return (
+                                <div key={type}>
+                                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{type.charAt(0) + type.slice(1).toLowerCase()} Leave</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: remaining < 3 ? '#f87171' : 'white' }}>{remaining}/{limit}</div>
+                                    <div style={{ marginTop: '6px', height: '4px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px' }}>
+                                        <div style={{ width: `${pct}%`, height: '100%', background: pct > 80 ? '#f87171' : '#34d399', borderRadius: '4px', transition: 'width 0.5s' }} />
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', opacity: 0.7, marginTop: '3px' }}>{usedCount} used</div>
+                                </div>
+                            );
+                        })}
+                        <div>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Pending</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{pending}</div>
+                            <div style={{ fontSize: '0.72rem', opacity: 0.7, marginTop: '3px' }}>awaiting approval</div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
                 {loading ? <p>Loading history...</p> : leaves.map(l => (
