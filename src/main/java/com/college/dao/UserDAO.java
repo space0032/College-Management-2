@@ -92,7 +92,7 @@ public class UserDAO {
 
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT u.*, r.name as role_name FROM users u " +
+        String sql = "SELECT u.*, r.code as role_name FROM users u " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
                 "ORDER BY u.username";
 
@@ -126,7 +126,7 @@ public class UserDAO {
         // Exclude users with roles STUDENT or FACULTY
         // Assuming roles are stored as 'STUDENT' and 'FACULTY' in the 'role' column or
         // joined via role table
-        String sql = "SELECT u.*, r.name as role_name, r.code as role_code FROM users u " +
+        String sql = "SELECT u.*, r.code as role_name, r.code as role_code FROM users u " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
                 "WHERE (r.code NOT IN ('STUDENT', 'FACULTY', 'WARDEN') OR r.code IS NULL) " +
                 "AND (u.role NOT IN ('STUDENT', 'FACULTY', 'WARDEN')) " + // Legacy check
@@ -185,7 +185,7 @@ public class UserDAO {
     }
 
     public User getUserById(int userId) {
-        String sql = "SELECT u.*, r.name as role_name FROM users u " +
+        String sql = "SELECT u.*, r.code as role_name FROM users u " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
                 "WHERE u.id = ?";
 

@@ -26,7 +26,7 @@ if [ -s sources.txt ]; then
     echo "Compilation successful."
 else
     echo "No source files found."sh
-fi
+fi                                                                          
 
 # Copy Resources (fxml, images, css) if any
 # Copy Resources (fxml, images, css) if any
