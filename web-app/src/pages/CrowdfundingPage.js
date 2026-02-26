@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import { getCampaigns, createCampaign, donateToCampaign } from '../services/crowdfundingService';
 
@@ -13,8 +14,8 @@ const CrowdfundingPage = () => {
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [donationAmount, setDonationAmount] = useState('');
 
-    const userRole = localStorage.getItem('userRole') || 'STUDENT';
-    const userId = parseInt(localStorage.getItem('userId') || '1');
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
+    const userId = SessionManager.getUserId();
 
     useEffect(() => {
         loadCampaigns();

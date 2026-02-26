@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getMyVolunteerTasks, getVolunteerOpportunities, applyToVolunteer, completeVolunteerTask } from '../services/volunteerService';
+import SessionManager from '../utils/SessionManager';
 
 const STATUS_MAP = {
     REGISTERED: { label: 'Registered', color: '#f59e0b', bg: '#fffbeb', icon: '📝' },
@@ -9,9 +10,7 @@ const STATUS_MAP = {
 };
 
 const VolunteerTasksPage = () => {
-    const user = (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    })();
+    const user = SessionManager.getUser() || {};
 
     const [activeTab, setActiveTab] = useState('opportunities'); // opportunities, my-tasks
     const [myTasks, setMyTasks] = useState([]);
@@ -20,26 +19,26 @@ const VolunteerTasksPage = () => {
     const [applyModal, setApplyModal] = useState(null);
     const [taskDesc, setTaskDesc] = useState('');
 
-    useEffect(() => {
-        if (activeTab === 'opportunities') fetchOpportunities();
-        else fetchMyTasks();
-    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const fetchMyTasks = () => {
+    const fetchMyTasks = React.useCallback(() => {
         setLoading(true);
         getMyVolunteerTasks(user.id)
             .then(res => setMyTasks(Array.isArray(res.data) ? res.data : []))
             .catch(() => setMyTasks([]))
             .finally(() => setLoading(false));
-    };
+    }, [user.id]);
 
-    const fetchOpportunities = () => {
+    const fetchOpportunities = React.useCallback(() => {
         setLoading(true);
         getVolunteerOpportunities()
             .then(res => setOpportunities(Array.isArray(res.data) ? res.data : []))
             .catch(() => setOpportunities([]))
             .finally(() => setLoading(false));
-    };
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'opportunities') fetchOpportunities();
+        else fetchMyTasks();
+    }, [activeTab, fetchMyTasks, fetchOpportunities]);
 
     const handleApply = async (e) => {
         e.preventDefault();

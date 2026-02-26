@@ -15,6 +15,22 @@ const RoleManagementPage = () => {
     const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState('');
 
+    const fetchAll = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const [r, u] = await Promise.all([getRoles(), getUsers()]);
+            setRoles(r.data || []);
+            setUsers(u.data || []);
+        } catch { console.error('Failed to load roles/users'); }
+        finally { setLoading(false); }
+    }, []);
+
+    useEffect(() => {
+        if (user.role === 'ADMIN') {
+            fetchAll();
+        }
+    }, [user.role, fetchAll]);
+
     if (user.role !== 'ADMIN') {
         return (
             <div className="page-container" style={{ textAlign: 'center', paddingTop: '80px' }}>
@@ -24,19 +40,6 @@ const RoleManagementPage = () => {
             </div>
         );
     }
-
-    const fetchAll = async () => {
-        setLoading(true);
-        try {
-            const [r, u] = await Promise.all([getRoles(), getUsers()]);
-            setRoles(r.data || []);
-            setUsers(u.data || []);
-        } catch { console.error('Failed to load roles/users'); }
-        finally { setLoading(false); }
-    };
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleAddRole = async (e) => {
         e.preventDefault();

@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import { getSettings, updateSettings } from '../services/settingsService';
 
@@ -13,7 +14,7 @@ const SettingsPage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState(null);
 
-    const userRole = localStorage.getItem('userRole');
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
 
     useEffect(() => {
         loadSettings();

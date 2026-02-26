@@ -51,7 +51,6 @@ const DashboardPage = () => {
   const userRole = SessionManager.getUserRole() || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
   const isFaculty = userRole === 'FACULTY';
-  const isStudent = userRole === 'STUDENT';
 
   return (
     <div className="app-layout">

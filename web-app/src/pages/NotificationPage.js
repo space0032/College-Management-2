@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
 import { getNotifications, createNotification } from '../services/notificationService';
@@ -31,7 +32,6 @@ const NotificationPage = () => {
     try { return new Set(JSON.parse(localStorage.getItem('readNotifications') || '[]')); } catch { return new Set(); }
   });
 
-  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
   const isAdmin = SessionManager.hasRole('ADMIN');
 
   const fetchData = () => {

@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import { getStaffLeaves, getStudentLeaves, getAllPendingLeaves, createStaffLeave, createStudentLeave, updateStaffLeaveStatus, updateStudentLeaveStatus } from '../services/leaveService';
 
@@ -9,23 +10,23 @@ const LEAVE_TYPES = {
 };
 
 const LeaveApprovalPage = () => {
+    const [, setLoading] = useState(true);
+    const [, setError] = useState(null);
     const [personalLeaves, setPersonalLeaves] = useState([]);
     const [pendingLeaves, setPendingLeaves] = useState({ staff: [], students: [] });
-    const [loading, setLoading] = useState(true); // eslint-disable-line no-unused-vars
-    const [error, setError] = useState(null); // eslint-disable-line no-unused-vars
+
+
     const [activeTab, setActiveTab] = useState('MY_LEAVES');
     const [showModal, setShowModal] = useState(false);
 
     const [formData, setFormData] = useState({ leaveType: 'SICK', startDate: '', endDate: '', reason: '' });
 
-    const currentUser = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const currentUser = SessionManager.getUser() || {};
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
     const isStudent = userRole === 'STUDENT';
     const canApprove = userRole === 'ADMIN' || userRole === 'FACULTY';
 
-    useEffect(() => { fetchLeaves(); }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const fetchLeaves = async () => {
+    const fetchLeaves = React.useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -38,7 +39,9 @@ const LeaveApprovalPage = () => {
             }
         } catch (err) { setError('Failed to bridge with service.'); }
         finally { setLoading(false); }
-    };
+    }, [activeTab, canApprove, currentUser.id, isStudent]);
+
+    useEffect(() => { fetchLeaves(); }, [fetchLeaves]);
 
     const handleApply = async (e) => {
         e.preventDefault();

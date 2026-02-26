@@ -19,7 +19,7 @@ const AuditLogPage = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
-    useEffect(() => { fetchLogs(); }, []); // eslint-disable-line
+    useEffect(() => { fetchLogs(); }, []);
 
     const fetchLogs = async (params = {}) => {
         setLoading(true);

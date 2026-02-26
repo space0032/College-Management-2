@@ -5,12 +5,15 @@
 class SessionManager {
   static USER_KEY = 'user';
   static TOKEN_KEY = 'token';
+  static cachedUser = null;
 
   /**
    * Get current user from localStorage with validation
    * @returns {Object|null} User object or null if not authenticated
    */
   static getUser() {
+    if (this.cachedUser) return this.cachedUser;
+
     try {
       const userStr = localStorage.getItem(this.USER_KEY);
       if (!userStr) return null;
@@ -24,6 +27,7 @@ class SessionManager {
         return null;
       }
 
+      this.cachedUser = user;
       return user;
     } catch (error) {
       console.error('Error parsing user from localStorage:', error);
@@ -67,6 +71,7 @@ class SessionManager {
     if (!user || !user.id || !user.role) {
       throw new Error(`Invalid user object: missing ${!user ? 'user' : !user.id ? 'id' : 'role'}`);
     }
+    this.cachedUser = user;
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     if (token) {
       localStorage.setItem(this.TOKEN_KEY, token);
@@ -77,6 +82,7 @@ class SessionManager {
    * Clear user session
    */
   static clearSession() {
+    this.cachedUser = null;
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.TOKEN_KEY);
   }

@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -6,12 +7,15 @@ import { getHostels, addHostel, updateHostel, getRooms, addRoom, getAllocations,
 const HOSTEL_TYPES = ['Boys', 'Girls', 'Co-ed'];
 
 const HostelPage = () => {
+  const [, setLoading] = useState(true);
+  const [, setError] = useState('');
+  const [, setSaving] = useState(false);
   const [tab, setTab] = useState('hostels');
   const [hostels, setHostels] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [allocations, setAllocations] = useState([]);
-  const [loading, setLoading] = useState(true); // eslint-disable-line no-unused-vars
-  const [error, setError] = useState(''); // eslint-disable-line no-unused-vars
+
+
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
@@ -21,10 +25,10 @@ const HostelPage = () => {
   const [roomForm, setRoomForm] = useState({ roomNumber: '', hostelId: '', capacity: '2', floor: '1', roomType: 'AC' });
   const [allocForm, setAllocForm] = useState({ studentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
 
-  const [saving, setSaving] = useState(false); // eslint-disable-line no-unused-vars
+
   const [searchQuery, setSearchQuery] = useState('');
 
-  const userRole = localStorage.getItem('userRole') || 'STUDENT';
+  const userRole = SessionManager.getUserRole() || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
 
   const fetchAll = useCallback(() => {

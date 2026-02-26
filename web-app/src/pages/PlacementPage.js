@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -31,7 +32,7 @@ const EMPTY_COMPANY = { name: '', industry: '', website: '' };
 const EMPTY_DRIVE = { companyName: '', role: '', date: '', ctc: '', eligibility: '' };
 
 const PlacementPage = () => {
-  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: null, role: 'STUDENT' }; } })();
+  const user = SessionManager.getUser() || {};
   const canManage = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
 
   const [tab, setTab] = useState('companies');
@@ -48,7 +49,7 @@ const PlacementPage = () => {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const fetchAll = () => {
+  const fetchAll = React.useCallback(() => {
     setLoading(true);
     Promise.all([getCompanies(), getDrives(), user.id ? getApplicationsForStudent(user.id) : Promise.resolve({ data: [] })])
       .then(([c, d, a]) => {
@@ -63,9 +64,9 @@ const PlacementPage = () => {
       })
       .catch(() => setError('Failed to load placement data.'))
       .finally(() => setLoading(false));
-  };
+  }, [user.id]);
 
-  useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleAddCompany = async () => {
     if (!companyForm.name) { setFormError('Company name is required.'); return; }

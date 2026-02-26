@@ -36,7 +36,7 @@ const ReportsPage = () => {
         if (activeTab === 'placements') loadPlacementStats();
         if (activeTab === 'fees') loadFeesSummary();
         if (activeTab === 'grades') loadGradeDistribution();
-    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab]);
 
     const loadPlacementStats = async () => {
         try { const res = await getPlacementStats(); setPlacementStats(res.data); }

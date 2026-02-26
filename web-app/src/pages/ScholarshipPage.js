@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import {
     getScholarships, createScholarship, applyForScholarship,
@@ -5,18 +6,19 @@ import {
 } from '../services/scholarshipService';
 
 const ScholarshipPage = () => {
+    const [, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('browse');
     const [scholarships, setScholarships] = useState([]);
     const [selectedScholarship, setSelectedScholarship] = useState(null);
     const [applications, setApplications] = useState([]);
-    const [isLoading, setIsLoading] = useState(false); // eslint-disable-line no-unused-vars
+
 
     // Forms
     const [scholarshipForm, setScholarshipForm] = useState({ title: '', description: '', amount: '', donorName: '', status: 'OPEN' });
     const [statement, setStatement] = useState('');
 
-    const studentId = parseInt(localStorage.getItem('userId') || '1');
-    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const studentId = SessionManager.getUserId();
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
 
     useEffect(() => {
         loadScholarships();

@@ -10,10 +10,11 @@ import Modal from '../components/Modal';
 import SessionManager from '../utils/SessionManager';
 
 const EventsPage = () => {
+    const [, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('browse');
     const [events, setEvents] = useState([]);
     const [myEvents, setMyEvents] = useState([]);
-    const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
+
 
     // Management state
     const [selectedEventId, setSelectedEventId] = useState('');

@@ -41,8 +41,20 @@ const RoomAvailabilityPage = () => {
             setAllRooms(Array.isArray(res.data) ? res.data : []);
         }).catch(() => { });
         // Auto-check today
-        handleCheck(null, getTodayDay(), getCurrentSlot());
-    }, []); // eslint-disable-line
+        const runInit = async () => {
+            setLoading(true);
+            try {
+                const res = await checkAvailability(getTodayDay(), getCurrentSlot());
+                setAvailability(Array.isArray(res.data) ? res.data : []);
+                setHasQueried(true);
+            } catch {
+                setError('Failed to query room availability.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        runInit();
+    }, []);
 
     const handleCheck = async (e, overrideDay, overrideSlot) => {
         if (e) e.preventDefault();

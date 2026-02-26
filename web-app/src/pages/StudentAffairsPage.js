@@ -368,7 +368,6 @@ const GrievanceTab = () => {
 // ─── Tab: Parent Communication ────────────────────────────────────────────────
 const ParentCommTab = () => {
     const [comms, setComms] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
@@ -379,8 +378,7 @@ const ParentCommTab = () => {
             .catch(() => setComms([
                 { id: 1, subject: 'Campus Closure Notice - Diwali Holidays', recipient: 'All Parents', channel: 'Email', date: '2024-10-15', sentBy: 'Admin Office' },
                 { id: 2, subject: 'Mid-Term Grade Reports Available', recipient: 'All Parents', channel: 'SMS + Email', date: '2024-10-05', sentBy: 'Academic Office' },
-            ]))
-            .finally(() => setLoading(false));
+            ]));
     }, []);
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });

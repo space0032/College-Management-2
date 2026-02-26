@@ -57,7 +57,7 @@ const HomePage = () => {
       setAnnouncements(ann.slice(0, 8));
       setRecentActivity(audit.slice(0, 15));
     }).finally(() => setLoading(false));
-  }, []); // eslint-disable-line
+  }, []);
 
   const ACTION_ICONS = { CREATE: '✅', LOGIN: '🔑', DELETE: '🗑️', UPDATE: '✏️', LOGOUT: '🚪' };
   const getActionIcon = (action) => {

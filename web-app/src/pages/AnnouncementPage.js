@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
 import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement } from '../services/announcementService';
@@ -30,14 +31,13 @@ const AnnouncementPage = () => {
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [editId, setEditId] = useState(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [filterRole, setFilterRole] = useState('ALL');
   const [filterPriority, setFilterPriority] = useState('ALL');
   const [searchQ, setSearchQ] = useState('');
+  const [editId, setEditId] = useState(null);
 
-  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
   const isAdmin = SessionManager.hasRole('ADMIN');
 
   const fetchData = () => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { updatePassword } from '../services/authService';
 import api from '../services/api';
+import SessionManager from '../utils/SessionManager';
 
 const AVATAR_COLORS = [
   'linear-gradient(135deg, #667eea, #764ba2)',
@@ -20,9 +21,7 @@ const getAvatarColor = (name = '') => {
 };
 
 const ProfilePage = () => {
-  const user = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-  })();
+  const user = SessionManager.getUser() || {};
 
   const isStudent = user.role === 'STUDENT';
   const isFaculty = user.role === 'FACULTY';
@@ -71,7 +70,7 @@ const ProfilePage = () => {
         if (found) setProfileData(found);
       }).catch(() => { });
     }
-  }, []); // eslint-disable-line
+  }, [isFaculty, isStudent, user.email, user.id, user.name]);
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();

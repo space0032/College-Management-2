@@ -1,10 +1,11 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
 const StudentProfilePage = () => {
-    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const user = SessionManager.getUser() || {};
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
 
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
@@ -53,7 +54,7 @@ const StudentProfilePage = () => {
             }
         };
         fetchAll();
-    }, [user.id, user.email]); // eslint-disable-line
+    }, [user.id, user.email]);
 
     const cgpa = grades.length > 0
         ? (grades.reduce((s, g) => s + (parseFloat(g.gpa) || parseFloat(g.grade) || 0), 0) / grades.length).toFixed(2)

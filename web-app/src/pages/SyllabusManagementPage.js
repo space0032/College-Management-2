@@ -1,5 +1,6 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSyllabiBycourse, addSyllabus, deleteSyllabus } from '../services/syllabusService';
+import { getSyllabiBycourse, addSyllabus, deleteSyllabus, downloadSyllabus } from '../services/syllabusService';
 import { getAllCourses } from '../services/courseService';
 
 const getFileIcon = (path) => {
@@ -13,16 +14,19 @@ const getFileIcon = (path) => {
 };
 
 const SyllabusManagementPage = () => {
-    const userRole = localStorage.getItem('userRole') || 'STUDENT';
+    const userRole = SessionManager.getUserRole() || 'STUDENT';
     const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
-    const userId = parseInt(localStorage.getItem('userId') || '1');
+    const userId = SessionManager.getUserId();
 
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
     const [syllabi, setSyllabi] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
+
+    // File upload state
     const [form, setForm] = useState({ title: '', version: '1.0', description: '', filePath: '' });
+    const [selectedFile, setSelectedFile] = useState(null);
 
     useEffect(() => {
         getAllCourses().then(res => {
@@ -43,14 +47,45 @@ const SyllabusManagementPage = () => {
 
     useEffect(() => { fetchSyllabi(); }, [fetchSyllabi]);
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setSelectedFile(e.target.files[0]);
+            // Auto-fill title if empty
+            if (!form.title) {
+                setForm(prev => ({ ...prev, title: e.target.files[0].name.split('.')[0] }));
+            }
+        }
+    };
+
     const handleAdd = async (e) => {
         e.preventDefault();
+
+        let fileData = null;
+        let fileName = '';
+
+        if (selectedFile) {
+            fileName = selectedFile.name;
+            fileData = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(selectedFile);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
         try {
-            await addSyllabus({ ...form, courseId: parseInt(selectedCourse), uploadedBy: userId });
+            await addSyllabus({
+                ...form,
+                courseId: parseInt(selectedCourse),
+                uploadedBy: userId,
+                fileName,
+                fileData
+            });
             setShowAdd(false);
             setForm({ title: '', version: '1.0', description: '', filePath: '' });
+            setSelectedFile(null);
             fetchSyllabi();
-        } catch (err) { alert('Upload failed'); }
+        } catch (err) { alert('Upload failed. Check if file is too large.'); }
     };
 
     const handleDelete = async (s) => {
@@ -59,6 +94,26 @@ const SyllabusManagementPage = () => {
             await deleteSyllabus(s.id);
             fetchSyllabi();
         } catch { alert('Deletion failed'); }
+    };
+
+    const handleDownload = async (s) => {
+        if (s.filePath && (s.filePath.startsWith('http') || s.filePath.startsWith('www'))) {
+            window.open(s.filePath, '_blank');
+            return;
+        }
+        try {
+            const res = await downloadSyllabus(s.id);
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const fileName = s.filePath ? s.filePath.split('/').pop().split('\\').pop() : `syllabus_${s.id}`;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            alert('Failed to download file.');
+        }
     };
 
     const selCourseObj = courses.find(c => String(c.id) === selectedCourse);
@@ -111,7 +166,7 @@ const SyllabusManagementPage = () => {
                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Uploaded: {s.uploadedAt?.split('T')[0]}</span>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 {canManage && <button onClick={() => handleDelete(s)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>}
-                                                <a href={s.filePath} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>Download ⬇</a>
+                                                <button onClick={() => handleDownload(s)} style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', cursor: 'pointer' }}>Download ⬇</button>
                                             </div>
                                         </div>
                                     </div>
@@ -173,8 +228,8 @@ const SyllabusManagementPage = () => {
                                 <input className="form-control" type="text" value={form.version} onChange={e => setForm({ ...form, version: e.target.value })} placeholder="e.g. 1.1" />
                             </div>
                             <div className="form-group">
-                                <label>File Location (URL) *</label>
-                                <input required className="form-control" type="text" value={form.filePath} onChange={e => setForm({ ...form, filePath: e.target.value })} placeholder="https://..." />
+                                <label>Framework File (PDF/DOC) *</label>
+                                <input required className="form-control" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
                             </div>
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                 <label>Abstract / Scope</label>

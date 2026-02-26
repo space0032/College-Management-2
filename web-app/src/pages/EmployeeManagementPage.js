@@ -18,10 +18,7 @@ const EmployeeManagementPage = () => {
         phone: '', designation: '', joinDate: '', salary: 0, status: 'ACTIVE'
     });
 
-    useEffect(() => { fetchEmployees(); }, []);
-    useEffect(() => { filterData(); }, [employees, searchQuery, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const fetchEmployees = async () => {
+    const fetchEmployees = React.useCallback(async () => {
         try {
             setLoading(true);
             const res = await getEmployees();
@@ -30,9 +27,9 @@ const EmployeeManagementPage = () => {
         } catch (err) {
             setError('System error retrieving staff records.');
         } finally { setLoading(false); }
-    };
+    }, []);
 
-    const filterData = () => {
+    const filterData = React.useCallback(() => {
         let result = employees;
         if (statusFilter !== 'ALL') result = result.filter(e => e.status === statusFilter);
         if (searchQuery) {
@@ -44,7 +41,10 @@ const EmployeeManagementPage = () => {
             );
         }
         setFilteredEmployees(result);
-    };
+    }, [employees, statusFilter, searchQuery]);
+
+    useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+    useEffect(() => { filterData(); }, [filterData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

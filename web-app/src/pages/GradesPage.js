@@ -50,7 +50,6 @@ const GradesPage = () => {
         } else if (activeTab === 'manage' || activeTab === 'bulk') {
             loadFormData();
         }
-        // eslint-disable-next-line
     }, [activeTab, user.id, user.role]);
 
     const loadStudentGrades = async (studentId) => {

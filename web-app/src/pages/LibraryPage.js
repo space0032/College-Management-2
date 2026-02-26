@@ -56,37 +56,43 @@ const LibraryPage = () => {
   const isAdmin = SessionManager.hasRole('ADMIN');
   const isStudent = user.role === 'STUDENT';
 
-  const fetchBooks = () => {
+  const fetchBooks = React.useCallback(() => {
     setLoading(true);
     getAllBooks()
       .then((res) => setBooks(res.data || []))
       .catch(() => setError('Failed to load books.'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  const fetchIssues = () => {
+  const fetchIssues = React.useCallback(() => {
     setLoading(true);
     getAllIssues()
       .then((res) => setIssues(res.data || []))
       .catch(() => setError('Failed to load issued books.'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  const fetchMyIssues = () => {
+  const fetchMyIssues = React.useCallback(() => {
     if (!user.id) return;
     setLoading(true);
     getIssuesByStudent(user.id)
       .then(res => setMyIssues(res.data || []))
       .catch(() => setError('Failed to load your issues.'))
       .finally(() => setLoading(false));
-  };
+  }, [user.id]);
+
+  const fetchRequests = React.useCallback(() => {
+    getBookRequests()
+      .then(res => setRequests(res.data || []))
+      .catch(() => { }); // graceful fallback if endpoint not yet on backend
+  }, []);
 
   useEffect(() => {
     if (view === 'books') fetchBooks();
     else if (view === 'issues') fetchIssues();
     else if (view === 'my') fetchMyIssues();
     else if (view === 'requests') { fetchBooks(); fetchRequests(); }
-  }, [view]); // eslint-disable-line
+  }, [view, fetchBooks, fetchIssues, fetchMyIssues, fetchRequests]);
 
   const handleFormChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -148,12 +154,6 @@ const LibraryPage = () => {
         alert(`✅ System successfully dispatched payment and return reminders to ${overdueCount} students.`);
       }, 1000);
     }
-  };
-
-  const fetchRequests = () => {
-    getBookRequests()
-      .then(res => setRequests(res.data || []))
-      .catch(() => { }); // graceful fallback if endpoint not yet on backend
   };
 
   const handleBookRequest = async () => {

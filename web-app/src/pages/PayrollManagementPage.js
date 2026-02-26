@@ -7,6 +7,7 @@ import {
     updatePayrollEntry
 } from '../services/payrollService';
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import SessionManager from '../utils/SessionManager';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -14,17 +15,16 @@ const MONTHS = [
 ];
 
 const PayrollManagementPage = () => {
+    const [, setError] = useState(null);
     const now = new Date();
     const [month, setMonth] = useState(now.getMonth() + 1);
     const [year, setYear] = useState(now.getFullYear());
     const [payrollData, setPayrollData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null); // eslint-disable-line no-unused-vars
+
     const [editModal, setEditModal] = useState(null);
 
-    const currentUser = (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    })();
+    const currentUser = SessionManager.getUser() || {};
 
     const fetchPayroll = useCallback(async () => {
         setLoading(true);

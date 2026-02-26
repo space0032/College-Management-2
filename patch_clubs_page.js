@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+
+const clubsPageCode = `import React, { useState, useEffect } from 'react';
 import {
     getClubs, joinClub, getMyMemberships, leaveClub,
     getPendingMemberships, approveMembership, rejectMembership,
@@ -44,16 +46,25 @@ const ClubsPage = () => {
     const user = SessionManager.getUser() || {};
     const isAdminOrFaculty = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
 
-    const loadClubs = React.useCallback(async () => {
+    useEffect(() => {
+        if (activeTab === 'browse' || activeTab === 'manage') loadClubs();
+        if (activeTab === 'my_clubs') loadMyMemberships();
+        if (activeTab === 'manage') {
+            loadUsers();
+        }
+        // eslint-disable-next-line
+    }, [activeTab]);
+
+    const loadClubs = async () => {
         try {
             const res = await getClubs();
             setClubs(res.data || []);
         } catch (err) {
             console.error(err);
         }
-    }, []);
+    };
 
-    const loadUsers = React.useCallback(async () => {
+    const loadUsers = async () => {
         try {
             const stuRes = await getAllStudents();
             setStudents(stuRes.data || []);
@@ -62,22 +73,16 @@ const ClubsPage = () => {
         } catch (err) {
             console.error(err);
         }
-    }, []);
+    };
 
-    const loadMyMemberships = React.useCallback(async () => {
+    const loadMyMemberships = async () => {
         try {
             const res = await getMyMemberships(user.id);
             setMyMemberships(res.data || []);
         } catch (err) {
             console.error(err);
         }
-    }, [user.id]);
-
-    useEffect(() => {
-        if (activeTab === 'browse' || activeTab === 'manage') loadClubs();
-        if (activeTab === 'my_clubs') loadMyMemberships();
-        if (activeTab === 'manage') loadUsers();
-    }, [activeTab, loadClubs, loadMyMemberships, loadUsers]);
+    };
 
     const handleJoin = async (clubId) => {
         try {
@@ -184,7 +189,6 @@ const ClubsPage = () => {
             await approveMembership(membershipId);
             const res = await getPendingMemberships(selectedClub.id);
             setPendingMemberships(res.data || []);
-            loadClubs();
         } catch (err) {
             alert('Failed to approve membership.');
         }
@@ -215,18 +219,6 @@ const ClubsPage = () => {
         }
     };
 
-    const handleRemoveMember = async (memberId) => {
-        if (!window.confirm('Remove this member?')) return;
-        try {
-            await leaveClub(selectedClub.id, memberId);
-            const res = await getClubMembers(selectedClub.id);
-            setCurrentMembers(res.data || []);
-            loadClubs();
-        } catch (err) {
-            alert('Failed to remove member.');
-        }
-    };
-
     const filteredClubs = clubs.filter(c => {
         const matchesCategory = !filterCategory || c.category === filterCategory;
         const matchesSearch = !searchTerm || c.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -244,10 +236,10 @@ const ClubsPage = () => {
                     <p className="page-subtitle">Explore student-led organizations, join communities, and lead events</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className={`btn ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>Browse Clubs</button>
-                    <button className={`btn ${activeTab === 'my_clubs' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('my_clubs')}>My Memberships</button>
+                    <button className={\`btn \${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}\`} onClick={() => setActiveTab('browse')}>Browse Clubs</button>
+                    <button className={\`btn \${activeTab === 'my_clubs' ? 'btn-primary' : 'btn-secondary'}\`} onClick={() => setActiveTab('my_clubs')}>My Memberships</button>
                     {isAdminOrFaculty && (
-                        <button className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('manage')}>Administration</button>
+                        <button className={\`btn \${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}\`} onClick={() => setActiveTab('manage')}>Administration</button>
                     )}
                 </div>
             </div>
@@ -336,7 +328,7 @@ const ClubsPage = () => {
                                         <tr key={m.id}>
                                             <td style={{ fontWeight: 'bold' }}>{m.clubName}</td>
                                             <td><span className="badge badge-secondary">{m.role}</span></td>
-                                            <td><span className={`badge ${m.status === 'APPROVED' ? 'badge-success' : m.status === 'PENDING' ? 'badge-warning' : 'badge-danger'}`}>{m.status}</span></td>
+                                            <td><span className={\`badge \${m.status === 'APPROVED' ? 'badge-success' : m.status === 'PENDING' ? 'badge-warning' : 'badge-danger'}\`}>{m.status}</span></td>
                                             <td>{new Date(m.joinedAt).toLocaleDateString()}</td>
                                             <td><button className="btn btn-sm btn-danger" onClick={() => handleLeave(m.clubId)}>{m.status === 'PENDING' ? 'Revoke Request' : 'Leave Club'}</button></td>
                                         </tr>
@@ -364,7 +356,7 @@ const ClubsPage = () => {
                                     <th>Leads</th>
                                     <th>Members</th>
                                     <th>Status</th>
-                                    <th style={{ textAlign: 'right', minWidth: '280px' }}>Actions</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -380,10 +372,10 @@ const ClubsPage = () => {
                                         </td>
                                         <td>{club.memberCount}</td>
                                         <td>
-                                            <span className={`badge ${club.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'}`}>{club.status}</span>
+                                            <span className={\`badge \${club.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'}\`}>{club.status}</span>
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end', flexWrap: 'wrap', width: '250px' }}>
                                                 <button className="btn btn-sm" style={{ backgroundColor: '#3b82f6', color: 'white' }} onClick={() => openEditModal(club)}>Edit</button>
                                                 <button className="btn btn-sm" style={{ backgroundColor: '#8b5cf6', color: 'white' }} onClick={() => openMembersModal(club)}>Members</button>
                                                 <button className="btn btn-sm" style={{ backgroundColor: '#f59e0b', color: 'white' }} onClick={() => openRequestsModal(club)}>Requests</button>
@@ -422,14 +414,14 @@ const ClubsPage = () => {
                     </div>
                     <div>
                         <label>President</label>
-                        <select className="form-control" value={clubFormData.presidentStudentId || ''} onChange={e => setClubFormData({ ...clubFormData, presidentStudentId: e.target.value })}>
+                        <select className="form-control" value={clubFormData.presidentStudentId} onChange={e => setClubFormData({ ...clubFormData, presidentStudentId: e.target.value })}>
                             <option value="">-- None --</option>
                             {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label>Faculty Coordinator</label>
-                        <select className="form-control" value={clubFormData.facultyCoordinatorId || ''} onChange={e => setClubFormData({ ...clubFormData, facultyCoordinatorId: e.target.value })}>
+                        <select className="form-control" value={clubFormData.facultyCoordinatorId} onChange={e => setClubFormData({ ...clubFormData, facultyCoordinatorId: e.target.value })}>
                             <option value="">-- None --</option>
                             {faculty.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                         </select>
@@ -444,16 +436,16 @@ const ClubsPage = () => {
                 </div>
             </Modal>
 
-            <Modal isOpen={isMembersModalOpen} onClose={() => setIsMembersModalOpen(false)} title={`Members of ${selectedClub?.name}`}>
+            <Modal isOpen={isMembersModalOpen} onClose={() => setIsMembersModalOpen(false)} title={\`Members of \${selectedClub?.name}\`}>
                 <div className="data-table-container">
                     <table className="data-table">
-                        <thead><tr><th>Name</th><th>Role</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
                         <tbody>
                             {currentMembers.length === 0 ? <tr><td colSpan="3" style={{ textAlign: 'center' }}>No members found.</td></tr> : currentMembers.map(m => (
                                 <tr key={m.id}>
                                     <td>{m.studentName}</td>
                                     <td><span className="badge badge-secondary">{m.role}</span></td>
-                                    <td style={{ textAlign: 'right' }}><button className="btn btn-sm btn-danger" onClick={() => handleRemoveMember(m.studentId)}>Remove</button></td>
+                                    <td><button className="btn btn-sm btn-danger" onClick={() => handleLeave(selectedClub.id)}>Remove</button></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -461,7 +453,7 @@ const ClubsPage = () => {
                 </div>
             </Modal>
 
-            <Modal isOpen={isRequestsModalOpen} onClose={() => setIsRequestsModalOpen(false)} title={`Pending Requests for ${selectedClub?.name}`}>
+            <Modal isOpen={isRequestsModalOpen} onClose={() => setIsRequestsModalOpen(false)} title={\`Pending Requests for \${selectedClub?.name}\`}>
                 <div className="data-table-container">
                     <table className="data-table">
                         <thead><tr><th>Student</th><th>Applied On</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
@@ -483,7 +475,7 @@ const ClubsPage = () => {
                 </div>
             </Modal>
 
-            <Modal isOpen={isAnnouncementsModalOpen} onClose={() => setIsAnnouncementsModalOpen(false)} title={`Announcements for ${selectedClub?.name}`}>
+            <Modal isOpen={isAnnouncementsModalOpen} onClose={() => setIsAnnouncementsModalOpen(false)} title={\`Announcements for \${selectedClub?.name}\`}>
                 <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
                     <h4 style={{ margin: '0 0 10px 0' }}>Post New Announcement</h4>
                     <input className="form-control" placeholder="Title" value={newAnn.title} onChange={e => setNewAnn({ ...newAnn, title: e.target.value })} style={{ marginBottom: '10px' }} />
@@ -506,3 +498,7 @@ const ClubsPage = () => {
 };
 
 export default ClubsPage;
+\`;
+
+fs.writeFileSync('C:\\\\Users\\\\antar\\\\IdeaProjects\\\\College-Management-2\\\\web-app\\\\src\\\\pages\\\\ClubsPage.js', clubsPageCode);
+console.log('ClubsPage.js written successfully.');

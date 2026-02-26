@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getResources, getResourceCategories, addResource, deleteResource, incrementDownload } from '../services/resourceService';
 import { getAllCourses } from '../services/courseService';
+import SessionManager from '../utils/SessionManager';
 
 const ResourceManagementPage = () => {
     const [resources, setResources] = useState([]);
@@ -22,9 +23,7 @@ const ResourceManagementPage = () => {
         isPublic: true
     });
 
-    const currentUser = (() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    })();
+    const currentUser = SessionManager.getUser() || {};
 
     useEffect(() => {
         fetchData();

@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState } from 'react';
 import Modal from '../components/Modal';
 import { getTimetable, saveTimetableEntry, deleteTimetableEntry } from '../services/timetableService';
@@ -28,7 +29,7 @@ const TimetablePage = () => {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+  const user = SessionManager.getUser() || {};
   const isAdmin = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
 
   const handleFetch = async () => {

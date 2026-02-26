@@ -4,6 +4,7 @@ import {
     getStudentSubmission, submitAssignment, gradeSubmission
 } from '../services/assignmentService';
 import { getAllCourses } from '../services/courseService';
+import SessionManager from '../utils/SessionManager';
 
 const AssignmentPage = () => {
     const [activeTab, setActiveTab] = useState('browse'); // browse, create, grade, submit
@@ -18,27 +19,25 @@ const AssignmentPage = () => {
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [courses, setCourses] = useState([]);
 
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
+    const user = SessionManager.getUser() || { id: null, role: 'STUDENT' };
     const userId = user.id;
     const userRole = user.role;
 
-    useEffect(() => {
-        loadAssignments();
-        if (userRole === 'FACULTY' || userRole === 'ADMIN') {
-            getAllCourses().then(res => setCourses(res.data || [])).catch(() => { });
-        }
-        // eslint-disable-next-line
-    }, [activeTab]);
-
-    const loadAssignments = async () => {
+    const loadAssignments = React.useCallback(async () => {
         try {
             const res = await getAssignments(userRole, userId);
             setAssignments(res.data || []);
         } catch (err) {
             console.error(err);
         }
-    };
+    }, [userId, userRole]);
+
+    useEffect(() => {
+        loadAssignments();
+        if (userRole === 'FACULTY' || userRole === 'ADMIN') {
+            getAllCourses().then(res => setCourses(res.data || [])).catch(() => { });
+        }
+    }, [activeTab, loadAssignments, userRole]);
 
     const handleCreateAssignment = async (e) => {
         e.preventDefault();

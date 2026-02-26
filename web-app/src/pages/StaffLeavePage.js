@@ -1,3 +1,4 @@
+import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import { getStaffLeaves, createStaffLeave } from '../services/leaveService';
 import Modal from '../components/Modal';
@@ -15,20 +16,20 @@ const StaffLeavePage = () => {
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({ leaveType: 'SICK', startDate: '', endDate: '', reason: '' });
 
-    const currentUser = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
+    const currentUser = SessionManager.getUser() || {};
 
-    useEffect(() => {
-        fetchLeaves();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const fetchLeaves = async () => {
+    const fetchLeaves = React.useCallback(async () => {
         setLoading(true);
         try {
             const res = await getStaffLeaves(currentUser.id);
             setLeaves(res.data || []);
         } catch { console.error('Failed to load leaves'); }
         finally { setLoading(false); }
-    };
+    }, [currentUser.id]);
+
+    useEffect(() => {
+        fetchLeaves();
+    }, [fetchLeaves]);
 
     const handleApply = async (e) => {
         e.preventDefault();

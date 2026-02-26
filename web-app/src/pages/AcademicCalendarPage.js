@@ -9,19 +9,18 @@ const AcademicCalendarPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({ title: '', eventType: 'EVENT', description: '' });
 
-    useEffect(() => {
-        loadEvents();
-        // eslint-disable-next-line
-    }, [currentDate.getFullYear(), currentDate.getMonth()]);
-
-    const loadEvents = async () => {
+    const loadEvents = React.useCallback(async () => {
         try {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
             const res = await getMonthEvents(year, month);
             setEvents(res.data || []);
         } catch (err) { console.error(err); }
-    };
+    }, [currentDate]);
+
+    useEffect(() => {
+        loadEvents();
+    }, [loadEvents]);
 
     const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));

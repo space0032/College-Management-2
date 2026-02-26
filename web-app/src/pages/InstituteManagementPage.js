@@ -23,12 +23,7 @@ const InstituteManagementPage = () => {
     const [rolePermissions, setRolePermissionsState] = useState(new Set()); // Set of permission IDs
     const [permSaved, setPermSaved] = useState(false);
 
-    useEffect(() => {
-        loadData();
-        // eslint-disable-next-line
-    }, [activeTab]);
-
-    const loadData = async () => {
+    const loadData = React.useCallback(async () => {
         try {
             let res;
             if (activeTab === 'departments') { res = await getDepartments(); setData(res?.data || []); }
@@ -37,8 +32,8 @@ const InstituteManagementPage = () => {
             if (activeTab === 'permissions') {
                 const rolesRes = await getRoles();
                 setAllRoles(rolesRes?.data || []);
-                if (rolesRes?.data?.length > 0 && !permRole) {
-                    setPermRole(rolesRes.data[0]);
+                if (rolesRes?.data?.length > 0) {
+                    setPermRole(prev => prev || rolesRes.data[0]);
                 }
                 const permsRes = await getAllPermissions();
                 setSystemPermissions(permsRes?.data || []);
@@ -46,7 +41,11 @@ const InstituteManagementPage = () => {
         } catch (err) {
             console.error(err);
         }
-    };
+    }, [activeTab]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     useEffect(() => {
         if (activeTab === 'permissions' && permRole) {

@@ -24,6 +24,27 @@ const GatePassPage = () => {
 
     const user = SessionManager.getUser() || {};
 
+    const loadStudentPasses = React.useCallback(async () => {
+        try {
+            const res = await getStudentGatePasses(user.id);
+            setPasses(res.data || []);
+        } catch (err) { console.error(err); }
+    }, [user.id]);
+
+    const loadPendingPasses = React.useCallback(async () => {
+        try {
+            const res = await getPendingGatePasses();
+            setPasses(res.data || []);
+        } catch (err) { console.error(err); }
+    }, []);
+
+    const loadAllPasses = React.useCallback(async () => {
+        try {
+            const res = await getAllGatePasses();
+            setPasses(res.data || []);
+        } catch (err) { console.error(err); }
+    }, []);
+
     useEffect(() => {
         if (user.role === 'STUDENT' && activeTab !== 'my_passes' && activeTab !== 'request') {
             setActiveTab('my_passes');
@@ -36,29 +57,7 @@ const GatePassPage = () => {
         if (activeTab === 'my_passes' && user.role === 'STUDENT') loadStudentPasses();
         if (activeTab === 'pending' && user.role !== 'STUDENT') loadPendingPasses();
         if (activeTab === 'history' && user.role !== 'STUDENT') loadAllPasses();
-        // eslint-disable-next-line
-    }, [activeTab]);
-
-    const loadStudentPasses = async () => {
-        try {
-            const res = await getStudentGatePasses(user.id);
-            setPasses(res.data || []);
-        } catch (err) { console.error(err); }
-    };
-
-    const loadPendingPasses = async () => {
-        try {
-            const res = await getPendingGatePasses();
-            setPasses(res.data || []);
-        } catch (err) { console.error(err); }
-    };
-
-    const loadAllPasses = async () => {
-        try {
-            const res = await getAllGatePasses();
-            setPasses(res.data || []);
-        } catch (err) { console.error(err); }
-    };
+    }, [activeTab, user.role, loadStudentPasses, loadPendingPasses, loadAllPasses]);
 
     const handleRequestPass = async (e) => {
         e.preventDefault();

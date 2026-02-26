@@ -17,3 +17,6 @@ export const rejectMembership = (membershipId) => api.put(`/clubs/memberships/${
 
 export const getStudentClubs = (studentId) => api.get(`/clubs/student/${studentId}`);
 export const getMyMemberships = (studentId) => api.get(`/clubs/memberships/student/${studentId}`);
+
+export const getClubAnnouncements = (clubId) => api.get(`/clubs/${clubId}/announcements`);
+export const postClubAnnouncement = (clubId, annData) => api.post(`/clubs/${clubId}/announcements`, annData);
