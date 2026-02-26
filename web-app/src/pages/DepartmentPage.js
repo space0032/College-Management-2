@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getDepartments, addDepartment, updateDepartment, deleteDepartment } from '../services/departmentService';
+import SessionManager from '../utils/SessionManager';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -20,6 +21,8 @@ const DepartmentPage = () => {
   const [editId, setEditId] = useState(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const canManage = SessionManager.getUserRole() === 'ADMIN';
 
   const fetchData = () => {
     setLoading(true);
@@ -66,7 +69,7 @@ const DepartmentPage = () => {
     <div>
       <div className="page-header">
         <h1 className="page-title">🏛️ Departments</h1>
-        <button className="btn btn-primary" onClick={openAdd}>+ Add Department</button>
+        {canManage && <button className="btn btn-primary" onClick={openAdd}>+ Add Department</button>}
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
@@ -74,7 +77,7 @@ const DepartmentPage = () => {
       {loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading departments…</span></div>
       ) : (
-        <DataTable columns={COLUMNS} data={departments} onEdit={openEdit} onDelete={handleDelete} emptyMessage="No departments found." />
+        <DataTable columns={COLUMNS} data={departments} onEdit={canManage ? openEdit : undefined} onDelete={canManage ? handleDelete : undefined} emptyMessage="No departments found." />
       )}
 
       <Modal isOpen={modalOpen} title={editId ? 'Edit Department' : 'Add Department'} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>

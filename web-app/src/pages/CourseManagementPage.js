@@ -3,6 +3,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllCourses, createCourse, updateCourse, deleteCourse } from '../services/courseService';
 import { exportToCSV } from '../utils/exportUtils';
+import SessionManager from '../utils/SessionManager';
 
 const EMPTY_FORM = { name: '', code: '', credits: '', department: '', semester: '' };
 
@@ -18,6 +19,9 @@ const CourseManagementPage = () => {
   const [searchQ, setSearchQ] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [filterSem, setFilterSem] = useState('');
+
+  const userRole = SessionManager.getUserRole() || 'STUDENT';
+  const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
 
   const fetchCourses = () => {
     setLoading(true);
@@ -113,7 +117,7 @@ const CourseManagementPage = () => {
               'courses_export'
             )}>⬇ Export CSV</button>
           )}
-          <button className="btn btn-primary" onClick={openAdd}>+ Add Course</button>
+          {canManage && <button className="btn btn-primary" onClick={openAdd}>+ Add Course</button>}
         </div>
       </div>
 
@@ -159,7 +163,7 @@ const CourseManagementPage = () => {
       {loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading courses…</span></div>
       ) : (
-        <DataTable columns={COLUMNS} data={filtered} onEdit={openEdit} onDelete={handleDelete} emptyMessage="No courses found." />
+        <DataTable columns={COLUMNS} data={filtered} onEdit={canManage ? openEdit : undefined} onDelete={canManage ? handleDelete : undefined} emptyMessage="No courses found." />
       )}
 
       <Modal isOpen={modalOpen} title={editId ? 'Edit Course' : 'Add Course'} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>

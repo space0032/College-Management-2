@@ -32,6 +32,7 @@ const EMPTY_DRIVE = { companyName: '', role: '', date: '', ctc: '', eligibility:
 
 const PlacementPage = () => {
   const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: null, role: 'STUDENT' }; } })();
+  const canManage = user.role === 'ADMIN' || user.role === 'FACULTY';
 
   const [tab, setTab] = useState('companies');
   const [companies, setCompanies] = useState([]);
@@ -169,7 +170,7 @@ const PlacementPage = () => {
               exportToCSV(['ID', 'Company', 'Role', 'Date', 'CTC', 'Eligibility'], drives.map(d => [d.id, d.companyName, d.role, d.date, d.ctc, d.eligibility]), 'placement_drives_export');
             }
           }}>⬇ Export CSV</button>
-          <button className="btn btn-primary" onClick={openModal}>+ Add {tab === 'companies' ? 'Company' : 'Drive'}</button>
+          {canManage && <button className="btn btn-primary" onClick={openModal}>+ Add {tab === 'companies' ? 'Company' : 'Drive'}</button>}
         </div>
       </div>
 
@@ -183,9 +184,9 @@ const PlacementPage = () => {
       {loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading…</span></div>
       ) : tab === 'companies' ? (
-        <DataTable columns={COMPANY_COLS} data={companies} onDelete={handleDeleteCompany} emptyMessage="No companies added yet." />
+        <DataTable columns={COMPANY_COLS} data={companies} onDelete={canManage ? handleDeleteCompany : undefined} emptyMessage="No companies added yet." />
       ) : (
-        <DataTable columns={extendedDriveCols} data={drives} onDelete={handleDeleteDrive} emptyMessage="No placement drives added yet." />
+        <DataTable columns={extendedDriveCols} data={drives} onDelete={canManage ? handleDeleteDrive : undefined} emptyMessage="No placement drives added yet." />
       )}
 
       <Modal

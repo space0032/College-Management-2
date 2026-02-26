@@ -45,8 +45,14 @@ import SettingsPage from './SettingsPage';
 import StudentAffairsPage from './StudentAffairsPage';
 import RoleManagementPage from './RoleManagementPage';
 import NotFoundPage from './NotFoundPage';
+import SessionManager from '../utils/SessionManager';
 
 const DashboardPage = () => {
+  const userRole = SessionManager.getUserRole() || 'STUDENT';
+  const isAdmin = userRole === 'ADMIN';
+  const isFaculty = userRole === 'FACULTY';
+  const isStudent = userRole === 'STUDENT';
+
   return (
     <div className="app-layout">
       <Sidebar />
@@ -55,8 +61,8 @@ const DashboardPage = () => {
         <main className="main-content">
           <Routes>
             <Route index element={<HomePage />} />
-            <Route path="students" element={<StudentManagementPage />} />
-            <Route path="faculty" element={<FacultyManagementPage />} />
+
+            {/* Common / Shared Routes (All Roles) */}
             <Route path="courses" element={<CourseManagementPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="library" element={<LibraryPage />} />
@@ -67,7 +73,6 @@ const DashboardPage = () => {
             <Route path="clubs" element={<ClubsPage />} />
             <Route path="events" element={<EventsPage />} />
             <Route path="grades" element={<GradesPage />} />
-            <Route path="reports" element={<ReportsPage />} />
             <Route path="gatepass" element={<GatePassPage />} />
             <Route path="visitors" element={<VisitorPage />} />
             <Route path="calendar" element={<AcademicCalendarPage />} />
@@ -78,24 +83,40 @@ const DashboardPage = () => {
             <Route path="notifications" element={<NotificationPage />} />
             <Route path="departments" element={<DepartmentPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="management" element={<InstituteManagementPage />} />
-            <Route path="employees" element={<EmployeeManagementPage />} />
-            <Route path="leaves" element={<LeaveApprovalPage />} />
             <Route path="rooms" element={<RoomAvailabilityPage />} />
-            <Route path="workload" element={<FacultyWorkloadPage />} />
-            <Route path="payroll" element={<PayrollManagementPage />} />
             <Route path="syllabus" element={<SyllabusManagementPage />} />
             <Route path="learning" element={<LearningPortalPage />} />
             <Route path="volunteer" element={<VolunteerTasksPage />} />
-            <Route path="student-profile" element={<StudentProfilePage />} />
-            <Route path="audit" element={<AuditLogPage />} />
             <Route path="activities" element={<StudentActivitiesPage />} />
             <Route path="resources" element={<ResourceManagementPage />} />
-            <Route path="staff-leave" element={<StaffLeavePage />} />
-            <Route path="student-affairs" element={<StudentAffairsPage />} />
             <Route path="change-password" element={<ChangePasswordPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="roles" element={<RoleManagementPage />} />
+
+            {/* Admin + Faculty Routes */}
+            {(isAdmin || isFaculty) && (
+              <>
+                <Route path="students" element={<StudentManagementPage />} />
+                <Route path="student-profile" element={<StudentProfilePage />} />
+                <Route path="staff-leave" element={<StaffLeavePage />} />
+              </>
+            )}
+
+            {/* Admin Only Routes */}
+            {isAdmin && (
+              <>
+                <Route path="faculty" element={<FacultyManagementPage />} />
+                <Route path="management" element={<InstituteManagementPage />} />
+                <Route path="employees" element={<EmployeeManagementPage />} />
+                <Route path="leaves" element={<LeaveApprovalPage />} />
+                <Route path="workload" element={<FacultyWorkloadPage />} />
+                <Route path="payroll" element={<PayrollManagementPage />} />
+                <Route path="audit" element={<AuditLogPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="student-affairs" element={<StudentAffairsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="roles" element={<RoleManagementPage />} />
+              </>
+            )}
+
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
