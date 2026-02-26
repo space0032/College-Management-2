@@ -35,11 +35,13 @@ public class DepartmentController extends BaseController implements HttpHandler 
     }
 
     private void handleGetAll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_DEPARTMENT")) return;
         List<Department> list = departmentDAO.getAllDepartments();
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handleAdd(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_DEPARTMENT")) return;
         String body = readBody(t);
         Department department = JsonHelper.fromJson(body, Department.class);
         if (department == null) {
@@ -52,6 +54,7 @@ public class DepartmentController extends BaseController implements HttpHandler 
     }
 
     private void handleUpdate(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_DEPARTMENT")) return;
         int id = extractId(path);
         String body = readBody(t);
         Department department = JsonHelper.fromJson(body, Department.class);
@@ -66,6 +69,7 @@ public class DepartmentController extends BaseController implements HttpHandler 
     }
 
     private void handleDelete(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_DEPARTMENT")) return;
         int id = extractId(path);
         boolean ok = departmentDAO.deleteDepartment(id);
         if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");

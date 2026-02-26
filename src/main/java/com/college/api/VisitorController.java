@@ -62,6 +62,7 @@ public class VisitorController extends BaseController implements HttpHandler {
     }
 
     private void handleGetVisitorByPhone(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_VISITOR")) return;
         String phone = path.substring(path.lastIndexOf('/') + 1);
         Visitor visitor = visitorDAO.getVisitorByPhone(phone);
         if (visitor != null) {
@@ -73,6 +74,7 @@ public class VisitorController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleLogEntry(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_VISITOR")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
         if (map == null || map.get("phone") == null || map.get("name") == null) {
@@ -113,6 +115,7 @@ public class VisitorController extends BaseController implements HttpHandler {
     }
 
     private void handleLogExit(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_VISITOR")) return;
         String[] parts = path.split("/");
         int logId = Integer.parseInt(parts[parts.length - 2]); // .../log/{id}/exit
         visitorDAO.logExit(logId);
@@ -120,11 +123,13 @@ public class VisitorController extends BaseController implements HttpHandler {
     }
 
     private void handleGetActiveVisitors(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_VISITOR")) return;
         List<VisitorLog> logs = visitorDAO.getActiveVisitors();
         sendResponse(t, 200, JsonHelper.toJson(logs));
     }
 
     private void handleGetAllVisitorLogs(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_VISITOR")) return;
         List<VisitorLog> logs = visitorDAO.getAllVisitorLogs();
         sendResponse(t, 200, JsonHelper.toJson(logs));
     }

@@ -67,11 +67,13 @@ public class LibraryController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_LIBRARY")) return;
         List<Book> books = libraryDAO.getAllBooks();
         sendResponse(t, 200, JsonHelper.toJson(books));
     }
 
     private void handleAdd(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_LIBRARY")) return;
         String body = readBody(t);
         Book book = JsonHelper.fromJson(body, Book.class);
         if (book == null) {
@@ -86,6 +88,7 @@ public class LibraryController extends BaseController implements HttpHandler {
     }
 
     private void handleUpdate(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_LIBRARY")) return;
         int id = extractId(path);
         String body = readBody(t);
         Book book = JsonHelper.fromJson(body, Book.class);
@@ -102,17 +105,20 @@ public class LibraryController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAllIssues(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_LIBRARY")) return;
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         sendResponse(t, 200, JsonHelper.toJson(issueDAO.getAllIssuedBooks()));
     }
 
     private void handleGetIssuesByStudent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_LIBRARY")) return;
         int studentId = extractId(path);
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         sendResponse(t, 200, JsonHelper.toJson(issueDAO.getIssuedBooksByStudent(studentId)));
     }
 
     private void handleIssueBook(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_LIBRARY")) return;
         String body = readBody(t);
         com.college.models.BookIssue issue = JsonHelper.fromJson(body, com.college.models.BookIssue.class);
         if (issue == null) {
@@ -139,6 +145,7 @@ public class LibraryController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleReturnBook(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_LIBRARY")) return;
         int issueId = extractId(path);
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
@@ -155,6 +162,7 @@ public class LibraryController extends BaseController implements HttpHandler {
     }
 
     private void handleGetFines(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_LIBRARY")) return;
         int studentId = extractId(path);
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         double fines = issueDAO.getPendingFines(studentId);

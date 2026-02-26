@@ -2,38 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
     getDepartments, addDepartment, updateDepartment, deleteDepartment,
     getRoles, addRole, deleteRole,
-    getUsers, deleteUser
+    getUsers, deleteUser,
+    getAllPermissions, getRolePermissions, setRolePermissions
 } from '../services/instituteService';
 
-// ---- Permission Tree Data ----
-const PERMISSION_MODULES = [
-    { id: 'students', label: '🎓 Students', actions: ['View', 'Create', 'Edit', 'Delete'] },
-    { id: 'faculty', label: '👩‍🏫 Faculty', actions: ['View', 'Create', 'Edit', 'Delete'] },
-    { id: 'courses', label: '📚 Courses', actions: ['View', 'Create', 'Edit', 'Delete'] },
-    { id: 'grades', label: '📊 Grades', actions: ['View', 'Enter', 'Edit', 'Bulk Entry'] },
-    { id: 'fees', label: '💰 Fees', actions: ['View', 'Record Payment', 'Manage'] },
-    { id: 'attendance', label: '📅 Attendance', actions: ['View', 'Mark', 'Bulk Mark'] },
-    { id: 'library', label: '📖 Library', actions: ['View', 'Issue Book', 'Return Book', 'Manage'] },
-    { id: 'events', label: '🎪 Events', actions: ['View', 'Register', 'Create', 'Manage'] },
-    { id: 'clubs', label: '👥 Clubs', actions: ['View', 'Join', 'Create', 'Manage'] },
-    { id: 'hostel', label: '🏠 Hostel', actions: ['View', 'Allocate', 'Manage'] },
-    { id: 'placements', label: '💼 Placements', actions: ['View', 'Apply', 'Manage'] },
-    { id: 'reports', label: '📋 Reports', actions: ['View', 'Export'] },
-    { id: 'audit', label: '🗒️ Audit Log', actions: ['View', 'Export'] },
-    { id: 'settings', label: '⚙️ Settings', actions: ['View', 'Edit'] },
-];
-
-const ROLE_DEFAULTS = {
-    ADMIN: Object.fromEntries(PERMISSION_MODULES.map(m => [m.id, Object.fromEntries(m.actions.map(a => [a, true]))])),
-    FACULTY: Object.fromEntries(PERMISSION_MODULES.map(m => [m.id, Object.fromEntries(m.actions.map(a => [a,
-        ['students', 'courses', 'grades', 'attendance', 'events', 'clubs', 'placements', 'reports'].includes(m.id)
-        && ['View', 'Mark', 'Bulk Mark', 'Enter', 'Register', 'Export'].includes(a)
-    ]))])),
-    STUDENT: Object.fromEntries(PERMISSION_MODULES.map(m => [m.id, Object.fromEntries(m.actions.map(a => [a,
-        ['grades', 'fees', 'attendance', 'events', 'clubs', 'library', 'placements'].includes(m.id)
-        && ['View', 'Register', 'Join', 'Apply'].includes(a)
-    ]))])),
-};
+// Delete static references now
 
 const InstituteManagementPage = () => {
     const [activeTab, setActiveTab] = useState('departments');
@@ -44,8 +17,10 @@ const InstituteManagementPage = () => {
     const [roleForm, setRoleForm] = useState({ name: '', description: '' });
 
     // Permission Tree state
-    const [permRole, setPermRole] = useState('ADMIN');
-    const [permissions, setPermissions] = useState(ROLE_DEFAULTS.ADMIN);
+    const [permRole, setPermRole] = useState(null); // Will hold the whole role object
+    const [allRoles, setAllRoles] = useState([]);
+    const [systemPermissions, setSystemPermissions] = useState([]); // From backend
+    const [rolePermissions, setRolePermissionsState] = useState(new Set()); // Set of permission IDs
     const [permSaved, setPermSaved] = useState(false);
 
     useEffect(() => {
@@ -56,14 +31,33 @@ const InstituteManagementPage = () => {
     const loadData = async () => {
         try {
             let res;
-            if (activeTab === 'departments') res = await getDepartments();
-            if (activeTab === 'roles') res = await getRoles();
-            if (activeTab === 'users') res = await getUsers();
-            setData(res?.data || []);
+            if (activeTab === 'departments') { res = await getDepartments(); setData(res?.data || []); }
+            if (activeTab === 'roles') { res = await getRoles(); setData(res?.data || []); }
+            if (activeTab === 'users') { res = await getUsers(); setData(res?.data || []); }
+            if (activeTab === 'permissions') {
+                const rolesRes = await getRoles();
+                setAllRoles(rolesRes?.data || []);
+                if (rolesRes?.data?.length > 0 && !permRole) {
+                    setPermRole(rolesRes.data[0]);
+                }
+                const permsRes = await getAllPermissions();
+                setSystemPermissions(permsRes?.data || []);
+            }
         } catch (err) {
             console.error(err);
         }
     };
+
+    useEffect(() => {
+        if (activeTab === 'permissions' && permRole) {
+            // Load permissions for selected role
+            getRolePermissions(permRole.id).then(res => {
+                const ids = new Set((res.data || []).map(p => p.id));
+                setRolePermissionsState(ids);
+                setPermSaved(false);
+            }).catch(err => console.error(err));
+        }
+    }, [permRole, activeTab]);
 
     // --- Departments ---
     const handleSaveDept = async (e) => {
@@ -127,37 +121,51 @@ const InstituteManagementPage = () => {
     // --- Permission Tree ---
     const handleRoleChange = (role) => {
         setPermRole(role);
-        setPermissions(ROLE_DEFAULTS[role] || ROLE_DEFAULTS.ADMIN);
+    };
+
+    const togglePermission = (permId) => {
+        setRolePermissionsState(prev => {
+            const next = new Set(prev);
+            if (next.has(permId)) next.delete(permId);
+            else next.add(permId);
+            return next;
+        });
         setPermSaved(false);
     };
 
-    const togglePermission = (moduleId, action) => {
-        setPermissions(prev => ({
-            ...prev,
-            [moduleId]: { ...prev[moduleId], [action]: !prev[moduleId]?.[action] }
-        }));
+    const toggleCategory = (categoryPerms) => {
+        const allChecked = categoryPerms.every(p => rolePermissions.has(p.id));
+        setRolePermissionsState(prev => {
+            const next = new Set(prev);
+            categoryPerms.forEach(p => {
+                if (allChecked) next.delete(p.id);
+                else next.add(p.id);
+            });
+            return next;
+        });
         setPermSaved(false);
     };
 
-    const toggleModule = (moduleId, actions) => {
-        const allChecked = actions.every(a => permissions[moduleId]?.[a]);
-        setPermissions(prev => ({
-            ...prev,
-            [moduleId]: Object.fromEntries(actions.map(a => [a, !allChecked]))
-        }));
-        setPermSaved(false);
+    const handleSavePermissions = async () => {
+        if (!permRole) return;
+        try {
+            await setRolePermissions(permRole.id, Array.from(rolePermissions));
+            setPermSaved(true);
+        } catch (err) {
+            alert('Failed to save permissions to backend');
+        }
     };
 
-    const handleSavePermissions = () => {
-        const stored = JSON.parse(localStorage.getItem('rolePermissions') || '{}');
-        stored[permRole] = permissions;
-        localStorage.setItem('rolePermissions', JSON.stringify(stored));
-        setPermSaved(true);
-    };
+    const totalGranted = rolePermissions.size;
+    const totalPossible = systemPermissions.length;
 
-    const totalGranted = PERMISSION_MODULES.reduce((sum, m) =>
-        sum + m.actions.filter(a => permissions[m.id]?.[a]).length, 0);
-    const totalPossible = PERMISSION_MODULES.reduce((sum, m) => sum + m.actions.length, 0);
+    // Group permissions by category
+    const groupedPermissions = systemPermissions.reduce((acc, p) => {
+        const cat = p.category || 'Other';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(p);
+        return acc;
+    }, {});
 
     return (
         <div className="page-container">
@@ -259,14 +267,14 @@ const InstituteManagementPage = () => {
                         <div style={{ flex: '1 1 250px' }}>
                             <div style={{ fontSize: '0.82rem', color: '#718096', marginBottom: '8px' }}>Configure permissions for role:</div>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                {['ADMIN', 'FACULTY', 'STUDENT'].map(r => (
-                                    <button key={r} onClick={() => handleRoleChange(r)} style={{
+                                {allRoles.map(r => (
+                                    <button key={r.id} onClick={() => handleRoleChange(r)} style={{
                                         padding: '6px 16px', borderRadius: '20px', border: '2px solid',
-                                        borderColor: permRole === r ? '#3b82f6' : '#e2e8f0',
-                                        background: permRole === r ? '#3b82f6' : 'white',
-                                        color: permRole === r ? 'white' : '#4a5568',
+                                        borderColor: permRole?.id === r.id ? '#3b82f6' : '#e2e8f0',
+                                        background: permRole?.id === r.id ? '#3b82f6' : 'white',
+                                        color: permRole?.id === r.id ? 'white' : '#4a5568',
                                         fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s'
-                                    }}>{r}</button>
+                                    }}>{r.name}</button>
                                 ))}
                             </div>
                         </div>
@@ -282,18 +290,17 @@ const InstituteManagementPage = () => {
 
                     {permSaved && (
                         <div style={{ background: '#f0fff4', border: '1px solid #9ae6b4', borderRadius: '8px', padding: '10px 16px', marginBottom: '16px', color: '#276749', fontSize: '0.88rem' }}>
-                            ✅ Permissions for <strong>{permRole}</strong> saved to local config.
-                            <small style={{ display: 'block', opacity: 0.8 }}>Note: Backend enforcement requires API-level role guards.</small>
+                            ✅ Permissions for <strong>{permRole?.name}</strong> saved to backend.
                         </div>
                     )}
 
                     {/* Permission tree */}
                     <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-                        {PERMISSION_MODULES.map((module, mi) => {
-                            const allChecked = module.actions.every(a => permissions[module.id]?.[a]);
-                            const someChecked = module.actions.some(a => permissions[module.id]?.[a]);
+                        {Object.entries(groupedPermissions).map(([category, perms], mi, arr) => {
+                            const allChecked = perms.every(p => rolePermissions.has(p.id));
+                            const someChecked = perms.some(p => rolePermissions.has(p.id));
                             return (
-                                <div key={module.id} style={{ borderBottom: mi < PERMISSION_MODULES.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                                <div key={category} style={{ borderBottom: mi < arr.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
                                     <div style={{
                                         display: 'flex', alignItems: 'center', gap: '12px',
                                         padding: '11px 20px',
@@ -303,15 +310,15 @@ const InstituteManagementPage = () => {
                                             type="checkbox"
                                             checked={allChecked}
                                             ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
-                                            onChange={() => toggleModule(module.id, module.actions)}
+                                            onChange={() => toggleCategory(perms)}
                                             style={{ width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0 }}
                                         />
-                                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#2d3748', minWidth: '155px' }}>{module.label}</span>
+                                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#2d3748', minWidth: '155px' }}>{category}</span>
                                         <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
-                                            {module.actions.map(action => {
-                                                const granted = !!permissions[module.id]?.[action];
+                                            {perms.map(perm => {
+                                                const granted = rolePermissions.has(perm.id);
                                                 return (
-                                                    <label key={action} style={{
+                                                    <label key={perm.id} title={perm.description || perm.code} style={{
                                                         display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer',
                                                         padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '500',
                                                         background: granted ? '#ebf8ff' : '#f7fafc',
@@ -322,10 +329,10 @@ const InstituteManagementPage = () => {
                                                         <input
                                                             type="checkbox"
                                                             checked={granted}
-                                                            onChange={() => togglePermission(module.id, action)}
+                                                            onChange={() => togglePermission(perm.id)}
                                                             style={{ margin: 0, cursor: 'pointer' }}
                                                         />
-                                                        {action}
+                                                        {perm.name || perm.code}
                                                     </label>
                                                 );
                                             })}

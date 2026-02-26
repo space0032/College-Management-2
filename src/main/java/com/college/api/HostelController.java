@@ -66,11 +66,13 @@ public class HostelController extends BaseController implements HttpHandler {
     }
 
     private void handleGetHostels(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_HOSTEL")) return;
         List<Hostel> hostels = hostelDAO.getAllHostels();
         sendResponse(t, 200, JsonHelper.toJson(hostels));
     }
 
     private void handleAddHostel(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_HOSTEL")) return;
         String body = readBody(t);
         Hostel hostel = JsonHelper.fromJson(body, Hostel.class);
         if (hostel == null) {
@@ -85,11 +87,13 @@ public class HostelController extends BaseController implements HttpHandler {
     }
 
     private void handleGetRooms(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_HOSTEL")) return;
         List<Room> rooms = hostelDAO.getAllRooms();
         sendResponse(t, 200, JsonHelper.toJson(rooms));
     }
 
     private void handleAddRoom(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_HOSTEL")) return;
         String body = readBody(t);
         Room room = JsonHelper.fromJson(body, Room.class);
         if (room == null) {
@@ -104,11 +108,13 @@ public class HostelController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAllocations(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_HOSTEL")) return;
         List<HostelAllocation> allocations = hostelDAO.getAllActiveAllocations();
         sendResponse(t, 200, JsonHelper.toJson(allocations));
     }
 
     private void handleAllocate(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_HOSTEL")) return;
         String body = readBody(t);
         HostelAllocation allocation = JsonHelper.fromJson(body, HostelAllocation.class);
         if (allocation == null) {
@@ -123,6 +129,7 @@ public class HostelController extends BaseController implements HttpHandler {
     }
 
     private void handleVacate(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_HOSTEL")) return;
         int id = extractId(path);
         boolean ok = hostelDAO.vacateRoom(id);
         if (ok)
@@ -132,6 +139,7 @@ public class HostelController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteHostel(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_HOSTEL")) return;
         int id = extractId(path);
         boolean ok = hostelDAO.deleteHostel(id);
         if (ok)
@@ -141,6 +149,7 @@ public class HostelController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteRoom(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_HOSTEL")) return;
         int id = extractId(path);
         boolean ok = hostelDAO.deleteRoom(id);
         if (ok)

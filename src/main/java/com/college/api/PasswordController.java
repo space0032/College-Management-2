@@ -38,6 +38,7 @@ public class PasswordController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdatePassword(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_PASSWORD")) return;
         String[] parts = path.split("/");
         int userId = Integer.parseInt(parts[parts.length - 2]); // /users/{id}/password
 

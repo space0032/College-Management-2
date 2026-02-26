@@ -34,6 +34,7 @@ public class TimetableController extends BaseController implements HttpHandler {
     }
 
     private void handleGet(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_TIMETABLE")) return;
         String query = t.getRequestURI().getQuery();
         String department = "";
         int semester = 1;
@@ -53,6 +54,7 @@ public class TimetableController extends BaseController implements HttpHandler {
     }
 
     private void handlePost(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_TIMETABLE")) return;
         String body = readBody(t);
         Timetable entry = JsonHelper.fromJson(body, Timetable.class);
         if (entry == null) {
@@ -65,6 +67,7 @@ public class TimetableController extends BaseController implements HttpHandler {
     }
 
     private void handleDelete(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_TIMETABLE")) return;
         int id = extractId(path);
         boolean ok = timetableDAO.deleteTimetableEntry(id);
         if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");

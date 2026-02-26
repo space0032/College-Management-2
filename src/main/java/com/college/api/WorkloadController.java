@@ -43,6 +43,7 @@ public class WorkloadController extends BaseController implements HttpHandler {
     }
 
     private void handleGetWorkloadAnalytics(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_WORKLOAD")) return;
         List<Faculty> allFaculty = facultyDAO.getAllFaculty();
         List<Map<String, Object>> analytics = new ArrayList<>();
 
@@ -70,6 +71,7 @@ public class WorkloadController extends BaseController implements HttpHandler {
     }
 
     private void handleGetFacultyWorkload(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_WORKLOAD")) return;
         String query = t.getRequestURI().getQuery();
         if (query == null || !query.contains("name=")) {
             sendResponse(t, 400, errorJson("Missing faculty name param"));

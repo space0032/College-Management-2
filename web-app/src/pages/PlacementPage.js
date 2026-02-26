@@ -32,7 +32,7 @@ const EMPTY_DRIVE = { companyName: '', role: '', date: '', ctc: '', eligibility:
 
 const PlacementPage = () => {
   const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return { id: null, role: 'STUDENT' }; } })();
-  const canManage = user.role === 'ADMIN' || user.role === 'FACULTY';
+  const canManage = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
 
   const [tab, setTab] = useState('companies');
   const [companies, setCompanies] = useState([]);

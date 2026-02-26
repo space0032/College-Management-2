@@ -22,7 +22,7 @@ const DepartmentPage = () => {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const canManage = SessionManager.getUserRole() === 'ADMIN';
+  const canManage = SessionManager.hasRole('ADMIN') /* or hasPermission */;
 
   const fetchData = () => {
     setLoading(true);

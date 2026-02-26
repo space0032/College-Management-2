@@ -56,6 +56,7 @@ public class AttendanceController extends BaseController implements HttpHandler 
     }
 
     private void handleGetByCourseAndDate(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
         String query = t.getRequestURI().getQuery();
         int courseId = 0;
         Date date = new Date();
@@ -79,12 +80,14 @@ public class AttendanceController extends BaseController implements HttpHandler 
     }
 
     private void handleGetByStudent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
         int studentId = extractId(path);
         List<Attendance> list = attendanceDAO.getAttendanceByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handleGetStats(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
         String query = t.getRequestURI().getQuery();
         int courseId = 0;
         if (query != null) {
@@ -129,6 +132,7 @@ public class AttendanceController extends BaseController implements HttpHandler 
     }
 
     private void handlePost(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_ATTENDANCE")) return;
         String body = readBody(t);
         Attendance attendance = gson.fromJson(body, Attendance.class);
         if (attendance == null) {
@@ -143,6 +147,7 @@ public class AttendanceController extends BaseController implements HttpHandler 
     }
 
     private void handleBulk(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_ATTENDANCE")) return;
         String body = readBody(t);
         Type listType = new TypeToken<List<Attendance>>() {
         }.getType();

@@ -54,6 +54,7 @@ public class LeaveController extends BaseController implements HttpHandler {
     }
 
     private void handleGetStaffLeaves(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_LEAVE")) return;
         String query = t.getRequestURI().getQuery();
         if (query != null && query.contains("userId=")) {
             int userId = Integer.parseInt(query.split("userId=")[1].split("&")[0]);
@@ -65,6 +66,7 @@ public class LeaveController extends BaseController implements HttpHandler {
     }
 
     private void handleGetStudentLeaves(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_LEAVE")) return;
         String query = t.getRequestURI().getQuery();
         if (query != null && query.contains("studentId=")) {
             int studentId = Integer.parseInt(query.split("studentId=")[1].split("&")[0]);
@@ -76,6 +78,7 @@ public class LeaveController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAllPendingLeaves(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_LEAVE")) return;
         List<StaffLeave> staffLeaves = staffLeaveDAO.getAllPendingLeaves();
         List<StudentLeave> studentLeaves = studentLeaveDAO.getPendingLeaves();
         
@@ -88,6 +91,7 @@ public class LeaveController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleCreateStaffLeave(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_LEAVE")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
         
@@ -107,6 +111,7 @@ public class LeaveController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleCreateStudentLeave(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_LEAVE")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
         
@@ -124,6 +129,7 @@ public class LeaveController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdateStaffLeaveStatus(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_LEAVE")) return;
         int id = Integer.parseInt(t.getRequestURI().getPath().split("/")[4]);
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
@@ -139,6 +145,7 @@ public class LeaveController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdateStudentLeaveStatus(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_LEAVE")) return;
         int id = Integer.parseInt(t.getRequestURI().getPath().split("/")[4]);
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);

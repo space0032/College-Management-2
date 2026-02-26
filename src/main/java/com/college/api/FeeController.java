@@ -19,6 +19,8 @@ public class FeeController extends BaseController implements HttpHandler {
         String path = t.getRequestURI().getPath();
 
         try {
+            if (!requireAuth(t))
+                return;
             if ("GET".equals(method)) {
                 if (path.endsWith("/pending")) {
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPendingFees()));

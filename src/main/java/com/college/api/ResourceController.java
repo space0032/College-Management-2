@@ -47,6 +47,7 @@ public class ResourceController extends BaseController implements HttpHandler {
     }
 
     private void handleGetResources(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_RESOURCE")) return;
         String query = t.getRequestURI().getQuery();
         List<LearningResource> resources;
         
@@ -60,12 +61,14 @@ public class ResourceController extends BaseController implements HttpHandler {
     }
 
     private void handleGetCategories(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_RESOURCE")) return;
         List<ResourceCategory> categories = resourceDAO.getAllCategories();
         sendResponse(t, 200, JsonHelper.toJson(categories));
     }
 
     @SuppressWarnings("unchecked")
     private void handleAddResource(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_RESOURCE")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
         
@@ -86,6 +89,7 @@ public class ResourceController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteResource(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_RESOURCE")) return;
         int id = extractId(path);
         boolean ok = resourceDAO.deleteResource(id);
         if (ok) sendResponse(t, 200, "{\"message\":\"Resource deleted successfully\"}");
@@ -93,6 +97,7 @@ public class ResourceController extends BaseController implements HttpHandler {
     }
 
     private void handleIncrementDownload(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_RESOURCE")) return;
         String[] parts = path.split("/");
         int id = Integer.parseInt(parts[parts.length - 2]); // /resources/{id}/download
         resourceDAO.incrementDownloadCount(id);

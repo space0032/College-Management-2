@@ -29,7 +29,7 @@ const TimetablePage = () => {
   const [saving, setSaving] = useState(false);
 
   const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-  const isAdmin = user.role === 'ADMIN' || user.role === 'FACULTY';
+  const isAdmin = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
 
   const handleFetch = async () => {
     if (!dept || !semester) { setError('Please enter both Department and Semester.'); return; }

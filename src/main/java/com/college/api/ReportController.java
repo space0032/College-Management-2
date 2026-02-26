@@ -47,6 +47,7 @@ public class ReportController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleGenerateVisitorPdf(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_REPORT")) return;
         String body = readBody(t);
         Map<String, String> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
@@ -76,6 +77,7 @@ public class ReportController extends BaseController implements HttpHandler {
     }
 
     private void handleGetPlacementStats(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_REPORT")) return;
         ReportDataService.PlacementStats stats = reportService.getPlacementStats();
         sendResponse(t, 200, JsonHelper.toJson(stats));
     }

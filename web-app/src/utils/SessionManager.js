@@ -106,7 +106,25 @@ class SessionManager {
    */
   static hasAnyRole(roles) {
     const userRole = this.getUserRole();
+    if (!userRole) return false;
     return roles.includes(userRole);
+  }
+
+  /**
+   * Check if user has a specific permission
+   * @param {string} permissionCode - Permission code to check (e.g. 'VIEW_STUDENTS')
+   * @returns {boolean}
+   */
+  static hasPermission(permissionCode) {
+    // Admin always gets full access for fallback safety
+    if (this.hasRole('ADMIN')) return true;
+
+    const user = this.getUser();
+    if (!user || (!user.permissions && !Array.isArray(user.permissions))) {
+      return false;
+    }
+
+    return user.permissions.some(p => p.code === permissionCode);
   }
 }
 

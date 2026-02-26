@@ -37,12 +37,14 @@ public class EmployeeController extends BaseController implements HttpHandler {
     }
 
     private void handleGetEmployees(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_EMPLOYEE")) return;
         List<Employee> employees = employeeDAO.getAllEmployees();
         sendResponse(t, 200, JsonHelper.toJson(employees));
     }
 
     @SuppressWarnings("unchecked")
     private void handleAddEmployee(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_EMPLOYEE")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
         
@@ -54,6 +56,7 @@ public class EmployeeController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdateEmployee(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_EMPLOYEE")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
         

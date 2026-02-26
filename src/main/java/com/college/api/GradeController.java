@@ -63,11 +63,15 @@ public class GradeController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAllGrades(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
         List<Grade> grades = gradeDAO.getAllGrades();
         sendResponse(t, 200, JsonHelper.toJson(grades));
     }
 
     private void handleGetStudentGrades(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
         String[] parts = path.split("/");
         int studentId = Integer.parseInt(parts[parts.length - 1]);
         List<Grade> grades = gradeDAO.getGradesByStudent(studentId);
@@ -75,6 +79,8 @@ public class GradeController extends BaseController implements HttpHandler {
     }
 
     private void handleGetFacultyGrades(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
         String[] parts = path.split("/");
         int facultyId = Integer.parseInt(parts[parts.length - 1]);
         List<Grade> grades = gradeDAO.getGradesByFaculty(facultyId);
@@ -82,6 +88,8 @@ public class GradeController extends BaseController implements HttpHandler {
     }
 
     private void handleGetCourseGrades(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
         String[] parts = path.split("/");
         int courseId = Integer.parseInt(parts[parts.length - 1]);
         List<Grade> grades = gradeDAO.getGradesByCourse(courseId);
@@ -89,6 +97,8 @@ public class GradeController extends BaseController implements HttpHandler {
     }
 
     private void handleGetCGPA(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
         String[] parts = path.split("/");
         int studentId = Integer.parseInt(parts[parts.length - 2]); // .../student/{id}/cgpa
         double cgpa = gradeDAO.calculateCGPA(studentId);
@@ -96,6 +106,8 @@ public class GradeController extends BaseController implements HttpHandler {
     }
 
     private void handleGetGradeDistribution(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
         String[] parts = path.split("/");
         int courseId = Integer.parseInt(parts[parts.length - 2]); // .../course/{id}/distribution
         Map<String, Integer> dist = gradeDAO.getGradeDistribution(courseId);
@@ -103,6 +115,8 @@ public class GradeController extends BaseController implements HttpHandler {
     }
 
     private void handleSaveGrade(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_GRADES"))
+            return;
         String body = readBody(t);
         Grade grade = JsonHelper.fromJson(body, Grade.class);
         if (grade == null) {

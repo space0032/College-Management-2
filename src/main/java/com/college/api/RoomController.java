@@ -38,6 +38,7 @@ public class RoomController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAllRooms(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_ROOM")) return;
         List<String> rooms = timetableDAO.getAllRooms();
         
         // Convert string list to object list for frontend
@@ -53,6 +54,7 @@ public class RoomController extends BaseController implements HttpHandler {
     }
 
     private void handleCheckAvailability(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_ROOM")) return;
         String query = t.getRequestURI().getQuery();
         if (query == null || !query.contains("day=") || !query.contains("timeSlot=")) {
             sendResponse(t, 400, errorJson("Missing day or timeSlot parameter"));

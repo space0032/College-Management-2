@@ -161,14 +161,14 @@ const HomePage = () => {
       </div>
 
       {/* Role-specific quick actions & Finance Activity */}
-      <div style={{ display: 'grid', gridTemplateColumns: user.role === 'ADMIN' ? '1fr 1.5fr' : '1fr', gap: '28px', marginBottom: '28px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: SessionManager.hasRole('ADMIN') ? '1fr 1.5fr' : '1fr', gap: '28px', marginBottom: '28px' }}>
         {/* Quick Actions Column */}
         <div>
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '16px', color: '#4a5568', display: 'flex', alignItems: 'center', gap: '8px' }}>
             ⚡ Professional Quick Actions
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-            {user.role === 'ADMIN' && (
+            {SessionManager.hasRole('ADMIN') && (
               <>
                 <button onClick={() => navigate('/dashboard/payroll')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
                   <span style={{ fontSize: '1.5rem' }}>💸</span>
@@ -216,7 +216,7 @@ const HomePage = () => {
         </div>
 
         {/* Finance / Important Stats Column */}
-        {user.role === 'ADMIN' && (
+        {SessionManager.hasRole('ADMIN') && (
           <div>
             <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '16px', color: '#4a5568', display: 'flex', alignItems: 'center', gap: '8px' }}>
               💰 Finance Activity & Indicators
@@ -343,7 +343,7 @@ const HomePage = () => {
           >
             View all announcements →
           </button>
-          {user.role === 'ADMIN' && (
+          {SessionManager.hasRole('ADMIN') && (
             <button
               onClick={() => navigate('/dashboard/audit')}
               style={{ background: 'none', border: 'none', color: '#718096', fontSize: '0.82rem', cursor: 'pointer', padding: 0 }}

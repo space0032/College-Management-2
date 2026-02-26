@@ -57,6 +57,7 @@ public class GatePassController extends BaseController implements HttpHandler {
     }
 
     private void handleGetStudentPasses(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GATEPASS")) return;
         String[] parts = path.split("/");
         int studentId = Integer.parseInt(parts[parts.length - 1]);
         List<GatePass> passes = GatePassDAO.getStudentPasses(studentId);
@@ -64,16 +65,19 @@ public class GatePassController extends BaseController implements HttpHandler {
     }
 
     private void handleGetPendingPasses(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_GATEPASS")) return;
         List<GatePass> passes = GatePassDAO.getPendingPasses();
         sendResponse(t, 200, JsonHelper.toJson(passes));
     }
 
     private void handleGetAllPasses(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_GATEPASS")) return;
         List<GatePass> passes = GatePassDAO.getAllPasses();
         sendResponse(t, 200, JsonHelper.toJson(passes));
     }
 
     private void handleCreateRequest(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_GATEPASS")) return;
         String body = readBody(t);
         GatePass gatePass = JsonHelper.fromJson(body, GatePass.class);
 
@@ -92,6 +96,7 @@ public class GatePassController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleApprovePass(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_GATEPASS")) return;
         String[] parts = path.split("/");
         int passId = Integer.parseInt(parts[parts.length - 2]); // .../gatepass/{id}/approve
 
@@ -115,6 +120,7 @@ public class GatePassController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleRejectPass(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_GATEPASS")) return;
         String[] parts = path.split("/");
         int passId = Integer.parseInt(parts[parts.length - 2]); // .../gatepass/{id}/reject
 

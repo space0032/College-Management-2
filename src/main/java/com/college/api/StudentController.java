@@ -49,12 +49,16 @@ public class StudentController extends BaseController implements HttpHandler {
     }
 
     private void handleGetCourses(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT"))
+            return;
         int studentId = getIdFromPath(t);
         List<?> courses = studentDAO.getRegisteredCourses(studentId);
         sendResponse(t, 200, JsonHelper.toJson(courses));
     }
 
     private void handleEnroll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_STUDENT"))
+            return;
         int studentId = getIdFromPath(t);
         InputStream is = t.getRequestBody();
         String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
@@ -78,6 +82,8 @@ public class StudentController extends BaseController implements HttpHandler {
     }
 
     private void handleGet(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT"))
+            return;
         try {
             List<Student> students = studentDAO.getAllStudents();
             String json = JsonHelper.toJson(students);
@@ -89,6 +95,8 @@ public class StudentController extends BaseController implements HttpHandler {
     }
 
     private void handlePost(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_STUDENT"))
+            return;
         try {
             InputStream is = t.getRequestBody();
             String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);

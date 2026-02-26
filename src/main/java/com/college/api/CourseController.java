@@ -14,7 +14,8 @@ public class CourseController extends BaseController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange t) throws IOException {
-        if (handleOptions(t)) return;
+        if (handleOptions(t))
+            return;
 
         String method = t.getRequestMethod();
         String path = t.getRequestURI().getPath();
@@ -42,6 +43,8 @@ public class CourseController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_COURSE"))
+            return;
         try {
             List<Course> list = courseDAO.getAllCourses();
             sendResponse(t, 200, JsonHelper.toJson(list));
@@ -51,6 +54,8 @@ public class CourseController extends BaseController implements HttpHandler {
     }
 
     private void handleGetById(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "VIEW_COURSE"))
+            return;
         try {
             Course c = courseDAO.getCourseById(id);
             if (c == null) {
@@ -64,6 +69,8 @@ public class CourseController extends BaseController implements HttpHandler {
     }
 
     private void handleCreate(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_COURSE"))
+            return;
         try {
             String body = readBody(t);
             Course c = JsonHelper.fromJson(body, Course.class);
@@ -79,6 +86,8 @@ public class CourseController extends BaseController implements HttpHandler {
     }
 
     private void handleUpdate(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "UPDATE_COURSE"))
+            return;
         try {
             String body = readBody(t);
             Course c = JsonHelper.fromJson(body, Course.class);
@@ -95,6 +104,8 @@ public class CourseController extends BaseController implements HttpHandler {
     }
 
     private void handleDelete(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "DELETE_COURSE"))
+            return;
         try {
             boolean ok = courseDAO.deleteCourse(id);
             sendResponse(t, ok ? 200 : 400, ok ? "{\"status\":\"Deleted\"}" : errorJson("Delete failed"));

@@ -135,7 +135,7 @@ const ClubsPage = () => {
                     >
                         My Memberships
                     </button>
-                    {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                    {(SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
                         <button
                             className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setActiveTab('manage')}

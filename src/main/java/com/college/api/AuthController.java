@@ -3,7 +3,9 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.UserDAO;
+import com.college.dao.RoleDAO;
 import com.college.models.User;
+import com.college.models.Role;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.PasswordUtils;
 import java.io.IOException;
@@ -17,7 +19,8 @@ public class AuthController extends BaseController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange t) throws IOException {
-        if (handleOptions(t)) return;
+        if (handleOptions(t))
+            return;
 
         String path = t.getRequestURI().getPath();
         String method = t.getRequestMethod();
@@ -57,13 +60,21 @@ public class AuthController extends BaseController implements HttpHandler {
                 return;
             }
 
-            String token = TokenStore.createToken(userId, username, user.getRoleName() != null ? user.getRoleName() : user.getRole());
+            String token = TokenStore.createToken(userId, username,
+                    user.getRoleName() != null ? user.getRoleName() : user.getRole());
+
+            Role role = new RoleDAO().getRoleById(user.getRoleId());
+            String permsJson = "[]";
+            if (role != null && role.getPermissions() != null) {
+                permsJson = com.college.utils.JsonHelper.toJson(role.getPermissions());
+            }
 
             String resp = "{\"token\":\"" + token + "\","
                     + "\"user\":{\"id\":" + user.getId()
                     + ",\"username\":\"" + user.getUsername() + "\""
                     + ",\"role\":\"" + (user.getRoleName() != null ? user.getRoleName() : user.getRole()) + "\""
-                    + ",\"roleId\":" + user.getRoleId() + "}}";
+                    + ",\"roleId\":" + user.getRoleId() + ","
+                    + "\"permissions\":" + permsJson + "}}";
             sendResponse(t, 200, resp);
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));
@@ -111,16 +122,21 @@ public class AuthController extends BaseController implements HttpHandler {
     private String extractJsonString(String json, String key) {
         String searchKey = "\"" + key + "\"";
         int idx = json.indexOf(searchKey);
-        if (idx < 0) return null;
+        if (idx < 0)
+            return null;
         int colon = json.indexOf(':', idx + searchKey.length());
-        if (colon < 0) return null;
+        if (colon < 0)
+            return null;
         // Find value start
         int start = colon + 1;
-        while (start < json.length() && Character.isWhitespace(json.charAt(start))) start++;
-        if (start >= json.length()) return null;
+        while (start < json.length() && Character.isWhitespace(json.charAt(start)))
+            start++;
+        if (start >= json.length())
+            return null;
         if (json.charAt(start) == '"') {
             int end = json.indexOf('"', start + 1);
-            if (end < 0) return null;
+            if (end < 0)
+                return null;
             return json.substring(start + 1, end);
         }
         return null;

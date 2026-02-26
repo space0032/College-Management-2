@@ -51,11 +51,13 @@ public class ScholarshipController extends BaseController implements HttpHandler
     }
 
     private void handleGetAllScholarships(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_SCHOLARSHIP")) return;
         List<Scholarship> list = communityDAO.getAllScholarships();
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handleCreateScholarship(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_SCHOLARSHIP")) return;
         String body = readBody(t);
         Scholarship scholarship = JsonHelper.fromJson(body, Scholarship.class);
         if (scholarship == null) {
@@ -71,6 +73,7 @@ public class ScholarshipController extends BaseController implements HttpHandler
     }
 
     private void handleApply(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_SCHOLARSHIP")) return;
         String[] parts = path.split("/");
         int scholarshipId = Integer.parseInt(parts[parts.length - 2]);
 
@@ -91,6 +94,7 @@ public class ScholarshipController extends BaseController implements HttpHandler
     }
 
     private void handleGetApplications(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_SCHOLARSHIP")) return;
         String[] parts = path.split("/");
         int scholarshipId = Integer.parseInt(parts[parts.length - 1]);
 
@@ -100,6 +104,7 @@ public class ScholarshipController extends BaseController implements HttpHandler
 
     @SuppressWarnings("unchecked")
     private void handleUpdateApplicationStatus(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_SCHOLARSHIP")) return;
         String[] parts = path.split("/");
         int applicationId = Integer.parseInt(parts[parts.length - 2]); // .../applications/{id}/status
 

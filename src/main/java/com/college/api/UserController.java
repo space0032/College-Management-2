@@ -36,11 +36,13 @@ public class UserController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_USER")) return;
         List<User> users = userDAO.getAllUsers();
         sendResponse(t, 200, JsonHelper.toJson(users));
     }
 
     private void handleDelete(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_USER")) return;
         int id = extractId(path);
         boolean ok = userDAO.deleteUser(id);
         if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");
@@ -49,6 +51,7 @@ public class UserController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdatePassword(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_USER")) return;
         String[] parts = path.split("/");
         int userId = Integer.parseInt(parts[parts.length - 2]); // /users/{id}/password
 

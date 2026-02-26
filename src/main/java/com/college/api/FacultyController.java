@@ -14,7 +14,8 @@ public class FacultyController extends BaseController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange t) throws IOException {
-        if (handleOptions(t)) return;
+        if (handleOptions(t))
+            return;
 
         String method = t.getRequestMethod();
         String path = t.getRequestURI().getPath();
@@ -49,6 +50,8 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_FACULTY"))
+            return;
         try {
             List<Faculty> list = facultyDAO.getAllFaculty();
             sendResponse(t, 200, JsonHelper.toJson(list));
@@ -58,6 +61,8 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetById(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "VIEW_FACULTY"))
+            return;
         try {
             Faculty f = facultyDAO.getFacultyById(id);
             if (f == null) {
@@ -71,6 +76,8 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleCreate(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_FACULTY"))
+            return;
         try {
             String body = readBody(t);
             Faculty f = JsonHelper.fromJson(body, Faculty.class);
@@ -91,6 +98,8 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleUpdate(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "UPDATE_FACULTY"))
+            return;
         try {
             String body = readBody(t);
             Faculty f = JsonHelper.fromJson(body, Faculty.class);
@@ -107,6 +116,8 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleDelete(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "DELETE_FACULTY"))
+            return;
         try {
             boolean ok = facultyDAO.deleteFaculty(id);
             sendResponse(t, ok ? 200 : 400, ok ? "{\"status\":\"Deleted\"}" : errorJson("Delete failed"));
@@ -116,6 +127,8 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleSearch(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_FACULTY"))
+            return;
         try {
             String query = t.getRequestURI().getQuery();
             String keyword = "";

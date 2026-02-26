@@ -87,11 +87,13 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleGetClubs(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_CLUB")) return;
         List<Club> clubs = clubDAO.getAllClubs();
         sendResponse(t, 200, JsonHelper.toJson(clubs));
     }
 
     private void handleGetClub(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_CLUB")) return;
         int id = extractId(path);
         Club club = clubDAO.getClubById(id);
         if (club == null) {
@@ -102,6 +104,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleAddClub(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_CLUB")) return;
         String body = readBody(t);
         Club club = JsonHelper.fromJson(body, Club.class);
         if (club == null) {
@@ -117,6 +120,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleUpdateClub(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_CLUB")) return;
         int id = extractId(path);
         String body = readBody(t);
         Club club = JsonHelper.fromJson(body, Club.class);
@@ -134,6 +138,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteClub(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_CLUB")) return;
         int id = extractId(path);
         boolean success = clubDAO.deleteClub(id);
         if (success) {
@@ -145,6 +150,7 @@ public class ClubController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleJoinClub(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_CLUB")) return;
         String[] parts = path.split("/");
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/join
         String body = readBody(t);
@@ -169,6 +175,7 @@ public class ClubController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleLeaveClub(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_CLUB")) return;
         String[] parts = path.split("/");
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/leave
         String body = readBody(t);
@@ -188,6 +195,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleGetClubMembers(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_CLUB")) return;
         String[] parts = path.split("/");
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/members
         List<ClubMembership> members = clubDAO.getClubMembers(clubId);
@@ -195,6 +203,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleGetPendingMemberships(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_CLUB")) return;
         String[] parts = path.split("/");
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/pending
         List<ClubMembership> pending = clubDAO.getPendingMemberships(clubId);
@@ -202,6 +211,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleApproveMembership(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_CLUB")) return;
         String[] parts = path.split("/");
         int membershipId = Integer.parseInt(parts[parts.length - 2]); // .../memberships/{id}/approve
         boolean success = clubDAO.approveMembership(membershipId);
@@ -213,6 +223,7 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleRejectMembership(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_CLUB")) return;
         String[] parts = path.split("/");
         int membershipId = Integer.parseInt(parts[parts.length - 2]); // .../memberships/{id}/reject
         boolean success = clubDAO.rejectMembership(membershipId);
@@ -224,12 +235,14 @@ public class ClubController extends BaseController implements HttpHandler {
     }
 
     private void handleGetStudentClubs(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_CLUB")) return;
         int studentId = extractId(path); // .../clubs/student/{id}
         List<Club> clubs = clubDAO.getStudentClubs(studentId);
         sendResponse(t, 200, JsonHelper.toJson(clubs));
     }
 
     private void handleGetMyMemberships(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_CLUB")) return;
         int studentId = extractId(path); // .../memberships/student/{id}
         List<ClubMembership> memberships = clubDAO.getMyMemberships(studentId);
         sendResponse(t, 200, JsonHelper.toJson(memberships));

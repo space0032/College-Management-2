@@ -228,7 +228,7 @@ const GradesPage = () => {
                     >
                         {user.role === 'STUDENT' ? 'My Grades' : 'All Grades'}
                     </button>
-                    {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                    {(SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
                         <button
                             className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setActiveTab('manage')}
@@ -236,7 +236,7 @@ const GradesPage = () => {
                             Enter/Edit Grades
                         </button>
                     )}
-                    {(user.role === 'ADMIN' || user.role === 'FACULTY') && (
+                    {(SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
                         <button
                             className={`btn ${activeTab === 'bulk' ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setActiveTab('bulk')}

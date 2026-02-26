@@ -69,6 +69,7 @@ public class PayrollController extends BaseController implements HttpHandler {
     }
 
     private void handleGetPayroll(HttpExchange t, String query) throws IOException {
+        if (!requirePermission(t, "VIEW_PAYROLL")) return;
         int month = LocalDate.now().getMonthValue();
         int year = LocalDate.now().getYear();
 
@@ -130,6 +131,7 @@ public class PayrollController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleGeneratePayroll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_PAYROLL")) return;
         String body = readBody(t);
         Map<String, Object> req = gson.fromJson(body, Map.class);
 
@@ -163,6 +165,7 @@ public class PayrollController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleMarkPaid(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_PAYROLL")) return;
         String body = readBody(t);
         Map<String, Object> req = gson.fromJson(body, Map.class);
         if (!req.containsKey("id")) {
@@ -179,6 +182,7 @@ public class PayrollController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleMarkAllPaid(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_PAYROLL")) return;
         String body = readBody(t);
         Map<String, Object> req = gson.fromJson(body, Map.class);
         int month = req.containsKey("month") ? ((Double) req.get("month")).intValue() : LocalDate.now().getMonthValue();
@@ -193,6 +197,7 @@ public class PayrollController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdatePayrollEntry(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "UPDATE_PAYROLL")) return;
         String body = readBody(t);
         Map<String, Object> req = gson.fromJson(body, Map.class);
 
@@ -217,6 +222,7 @@ public class PayrollController extends BaseController implements HttpHandler {
     }
 
     private void handleDeletePayrollEntry(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "DELETE_PAYROLL")) return;
         boolean ok = payrollDAO.deletePayrollEntry(id);
         if (ok)
             sendResponse(t, 200, "{\"success\":true}");

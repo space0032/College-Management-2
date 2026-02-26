@@ -38,7 +38,7 @@ const AnnouncementPage = () => {
   const [searchQ, setSearchQ] = useState('');
 
   const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-  const isAdmin = user.role === 'ADMIN';
+  const isAdmin = SessionManager.hasRole('ADMIN');
 
   const fetchData = () => {
     setLoading(true);

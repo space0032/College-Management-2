@@ -33,6 +33,7 @@ public class SettingsController extends BaseController implements HttpHandler {
     }
 
     private void handleGetSettings(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_SETTINGS")) return;
         // Return a predefined set of settings, or everything if we query the DB
         // For simplicity, we just fetch known keys
         String[] keys = {
@@ -50,6 +51,7 @@ public class SettingsController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdateSettings(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_SETTINGS")) return;
         String body = readBody(t);
         Map<String, String> map = new com.google.gson.Gson().fromJson(body, Map.class);
         

@@ -59,6 +59,7 @@ public class VolunteerController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMyTasks(HttpExchange t, String query) throws IOException {
+        if (!requirePermission(t, "VIEW_VOLUNTEER")) return;
         if (query == null || !query.contains("userId=")) {
             sendResponse(t, 400, errorJson("Missing userId parameter"));
             return;
@@ -89,6 +90,7 @@ public class VolunteerController extends BaseController implements HttpHandler {
     }
 
     private void handleGetOpportunities(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_VOLUNTEER")) return;
         List<Event> allEvents = eventDAO.getAllEvents();
         List<Event> upcoming = allEvents.stream()
                 .filter(e -> "UPCOMING".equalsIgnoreCase(e.getStatus()))
@@ -111,6 +113,7 @@ public class VolunteerController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleApply(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_VOLUNTEER")) return;
         String body = readBody(t);
         Map<String, Object> req = gson.fromJson(body, Map.class);
 

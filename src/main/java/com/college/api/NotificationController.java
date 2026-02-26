@@ -28,11 +28,13 @@ public class NotificationController extends BaseController implements HttpHandle
     }
 
     private void handleGet(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_NOTIFICATION")) return;
         List<Notification> list = notificationDAO.getPendingNotifications();
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handlePost(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_NOTIFICATION")) return;
         String body = readBody(t);
         Notification notification = JsonHelper.fromJson(body, Notification.class);
         if (notification == null) {

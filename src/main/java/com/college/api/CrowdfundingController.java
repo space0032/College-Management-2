@@ -43,12 +43,14 @@ public class CrowdfundingController extends BaseController implements HttpHandle
     }
 
     private void handleGetCampaigns(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_CROWDFUNDING")) return;
         List<Campaign> list = communityDAO.getAllCampaigns();
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     @SuppressWarnings("unchecked")
     private void handleCreateCampaign(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_CROWDFUNDING")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
@@ -68,6 +70,7 @@ public class CrowdfundingController extends BaseController implements HttpHandle
 
     @SuppressWarnings("unchecked")
     private void handleDonate(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_CROWDFUNDING")) return;
         String[] parts = path.split("/");
         int campaignId = Integer.parseInt(parts[parts.length - 2]); // /campaigns/{id}/donate
         String body = readBody(t);

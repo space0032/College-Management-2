@@ -75,11 +75,13 @@ public class PlacementController extends BaseController implements HttpHandler {
     }
 
     private void handleGetDrives(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_PLACEMENT")) return;
         List<PlacementDrive> drives = placementDAO.getAllDrives();
         sendResponse(t, 200, JsonHelper.toJson(drives));
     }
 
     private void handleAddDrive(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_PLACEMENT")) return;
         String body = readBody(t);
         PlacementDrive drive = JsonHelper.fromJson(body, PlacementDrive.class);
         if (drive == null) {
@@ -91,17 +93,20 @@ public class PlacementController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteDrive(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_PLACEMENT")) return;
         int id = extractId(path);
         placementDAO.deleteDrive(id);
         sendResponse(t, 200, "{\"status\":\"Deleted\"}");
     }
 
     private void handleGetCompanies(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_PLACEMENT")) return;
         List<PlacementCompany> companies = placementDAO.getAllCompanies();
         sendResponse(t, 200, JsonHelper.toJson(companies));
     }
 
     private void handleAddCompany(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_PLACEMENT")) return;
         String body = readBody(t);
         PlacementCompany company = JsonHelper.fromJson(body, PlacementCompany.class);
         if (company == null) {
@@ -113,23 +118,27 @@ public class PlacementController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteCompany(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_PLACEMENT")) return;
         int id = extractId(path);
         placementDAO.deleteCompany(id);
         sendResponse(t, 200, "{\"status\":\"Deleted\"}");
     }
 
     private void handleGetApplicationsForStudent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_PLACEMENT")) return;
         int id = extractId(path);
         sendResponse(t, 200, JsonHelper.toJson(placementDAO.getApplicationsForStudent(id)));
     }
 
     private void handleGetApplicationsForDrive(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_PLACEMENT")) return;
         int id = extractId(path);
         sendResponse(t, 200, JsonHelper.toJson(placementDAO.getApplicationsForDrive(id)));
     }
 
     @SuppressWarnings("unchecked")
     private void handleApply(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_PLACEMENT")) return;
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
         if (map == null || map.get("driveId") == null || map.get("studentId") == null) {
@@ -150,6 +159,7 @@ public class PlacementController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUpdateApplicationStatus(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_PLACEMENT")) return;
         String[] parts = path.split("/");
         int applicationId = Integer.parseInt(parts[parts.length - 2]); // .../applications/{id}/status
         String body = readBody(t);

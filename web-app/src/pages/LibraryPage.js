@@ -53,7 +53,7 @@ const LibraryPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const user = SessionManager.getUser() || {};
-  const isAdmin = user.role === 'ADMIN';
+  const isAdmin = SessionManager.hasRole('ADMIN');
   const isStudent = user.role === 'STUDENT';
 
   const fetchBooks = () => {

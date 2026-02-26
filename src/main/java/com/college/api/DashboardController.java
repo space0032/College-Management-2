@@ -33,6 +33,8 @@ public class DashboardController extends BaseController implements HttpHandler {
     }
 
     private void getStats(HttpExchange t) throws IOException {
+        if (!requireAuth(t))
+            return;
         try {
             int students = new StudentDAO().getAllStudents().size();
             int faculty = new FacultyDAO().getAllFaculty().size();

@@ -35,11 +35,13 @@ public class AnnouncementController extends BaseController implements HttpHandle
     }
 
     private void handleGetAll(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_ANNOUNCEMENT")) return;
         List<Announcement> list = announcementDAO.getAllAnnouncements();
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handleAdd(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_ANNOUNCEMENT")) return;
         String body = readBody(t);
         Announcement announcement = JsonHelper.fromJson(body, Announcement.class);
         if (announcement == null) {
@@ -55,6 +57,7 @@ public class AnnouncementController extends BaseController implements HttpHandle
     }
 
     private void handleUpdate(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_ANNOUNCEMENT")) return;
         int id = extractId(path);
         String body = readBody(t);
         Announcement announcement = JsonHelper.fromJson(body, Announcement.class);
@@ -69,6 +72,7 @@ public class AnnouncementController extends BaseController implements HttpHandle
     }
 
     private void handleDelete(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_ANNOUNCEMENT")) return;
         int id = extractId(path);
         boolean ok = announcementDAO.deleteAnnouncement(id);
         if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");

@@ -53,6 +53,7 @@ public class SyllabusController extends BaseController implements HttpHandler {
     }
 
     private void handleGetSyllabi(HttpExchange t, String query) throws IOException {
+        if (!requirePermission(t, "VIEW_SYLLABUS")) return;
         if (query != null && query.contains("courseId=")) {
             // Filter by specific course
             int courseId = Integer.parseInt(query.split("courseId=")[1].split("&")[0]);
@@ -80,6 +81,7 @@ public class SyllabusController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleAddSyllabus(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_SYLLABUS")) return;
         String body = readBody(t);
         Map<String, Object> req = gson.fromJson(body, Map.class);
 
@@ -104,6 +106,7 @@ public class SyllabusController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteSyllabus(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "DELETE_SYLLABUS")) return;
         boolean ok = syllabusDAO.deleteSyllabus(id);
         if (ok)
             sendResponse(t, 200, "{\"success\":true}");

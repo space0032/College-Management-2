@@ -42,6 +42,7 @@ public class AuditController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAuditLogs(HttpExchange t, String query) throws IOException {
+        if (!requirePermission(t, "VIEW_AUDIT")) return;
         String userIdParam = getQueryParam(query, "userId");
         String fromParam = getQueryParam(query, "from");
         String toParam = getQueryParam(query, "to");

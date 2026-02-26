@@ -98,11 +98,15 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleGetEvents(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_EVENT"))
+            return;
         List<Event> events = eventDAO.getAllEvents();
         sendResponse(t, 200, JsonHelper.toJson(events));
     }
 
     private void handleGetEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_EVENT"))
+            return;
         int id = extractId(path);
         Event event = eventDAO.getEventById(id);
         if (event == null) {
@@ -113,6 +117,8 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleAddEvent(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_EVENT"))
+            return;
         String body = readBody(t);
         Event event = JsonHelper.fromJson(body, Event.class);
         if (event == null) {
@@ -128,6 +134,8 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleUpdateEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_EVENT"))
+            return;
         int id = extractId(path);
         String body = readBody(t);
         Event event = JsonHelper.fromJson(body, Event.class);
@@ -145,6 +153,8 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_EVENT"))
+            return;
         int id = extractId(path);
         boolean success = eventDAO.deleteEvent(id);
         if (success) {
@@ -156,6 +166,8 @@ public class EventController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleRegisterEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "REGISTER_EVENT"))
+            return;
         String[] parts = path.split("/");
         int eventId = Integer.parseInt(parts[parts.length - 2]); // .../events/{id}/register
         String body = readBody(t);
@@ -180,6 +192,8 @@ public class EventController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleUnregisterEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UNREGISTER_EVENT"))
+            return;
         String[] parts = path.split("/");
         int eventId = Integer.parseInt(parts[parts.length - 2]); // .../events/{id}/unregister
         String body = readBody(t);
@@ -199,6 +213,8 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleGetEventRegistrations(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_EVENT"))
+            return;
         String[] parts = path.split("/");
         int eventId = Integer.parseInt(parts[parts.length - 2]); // .../events/{id}/registrations
         List<EventRegistration> registrations = eventDAO.getEventRegistrations(eventId);
@@ -207,6 +223,8 @@ public class EventController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleMarkAttendance(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MARK_ATTENDANCE"))
+            return;
         String[] parts = path.split("/");
         int registrationId = Integer.parseInt(parts[parts.length - 2]); // .../registrations/{id}/attendance
         String body = readBody(t);
@@ -224,18 +242,24 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleGetStudentEvents(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_EVENT"))
+            return;
         int studentId = extractId(path); // .../events/student/{id}
         List<Event> events = eventDAO.getStudentRegisteredEvents(studentId);
         sendResponse(t, 200, JsonHelper.toJson(events));
     }
 
     private void handleGetEventBudgets(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_BUDGET"))
+            return;
         int eventId = extractId(path);
         List<EventBudget> budgets = eventDAO.getEventBudgets(eventId);
         sendResponse(t, 200, JsonHelper.toJson(budgets));
     }
 
     private void handleAddEventBudget(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "CREATE_BUDGET"))
+            return;
         int eventId = extractId(path);
         String body = readBody(t);
         EventBudget budget = JsonHelper.fromJson(body, EventBudget.class);
@@ -253,6 +277,8 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteEventBudget(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_BUDGET"))
+            return;
         int id = extractId(path);
         boolean success = eventDAO.deleteBudget(id);
         if (success) {
@@ -263,12 +289,16 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleGetEventPolls(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_POLL"))
+            return;
         int eventId = extractId(path);
         List<EventPoll> polls = eventDAO.getEventPolls(eventId);
         sendResponse(t, 200, JsonHelper.toJson(polls));
     }
 
     private void handleCreateEventPoll(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "CREATE_POLL"))
+            return;
         int eventId = extractId(path);
         String body = readBody(t);
         EventPoll poll = JsonHelper.fromJson(body, EventPoll.class);
@@ -287,6 +317,8 @@ public class EventController extends BaseController implements HttpHandler {
     }
 
     private void handleCloseEventPoll(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_POLL"))
+            return;
         String[] parts = path.split("/");
         int pollId = Integer.parseInt(parts[parts.length - 2]); // .../polls/{id}/close
         boolean success = eventDAO.closePoll(pollId);

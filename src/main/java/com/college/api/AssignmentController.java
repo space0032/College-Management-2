@@ -71,6 +71,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
     }
 
     private void handleGetAssignments(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String query = t.getRequestURI().getQuery();
         List<Assignment> list;
         if (query != null && query.contains("courseId=")) {
@@ -88,6 +89,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
 
     @SuppressWarnings("unchecked")
     private void handleCreateAssignment(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_ASSIGNMENT")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
@@ -112,6 +114,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
     }
 
     private void handleGetAssignmentById(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int id = Integer.parseInt(parts[parts.length - 1]);
         Assignment assignment = assignmentDAO.getAssignmentById(id);
@@ -124,6 +127,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
 
     @SuppressWarnings("unchecked")
     private void handleUpdateAssignment(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int id = Integer.parseInt(parts[parts.length - 1]);
         String body = readBody(t);
@@ -157,6 +161,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
     }
 
     private void handleDeleteAssignment(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int id = Integer.parseInt(parts[parts.length - 1]);
         boolean ok = assignmentDAO.deleteAssignment(id);
@@ -169,6 +174,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
     // --- Submissions ---
 
     private void handleGetSubmissionsByAssignment(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int assignmentId = Integer.parseInt(parts[parts.length - 2]);
         List<Submission> list = submissionDAO.getSubmissionsByAssignment(assignmentId);
@@ -177,6 +183,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
 
     @SuppressWarnings("unchecked")
     private void handleSubmitAssignment(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int assignmentId = Integer.parseInt(parts[parts.length - 2]);
         String body = readBody(t);
@@ -197,6 +204,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
     }
 
     private void handleGetSubmissionByStudent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int studentId = Integer.parseInt(parts[parts.length - 1]);
         int assignmentId = Integer.parseInt(parts[parts.length - 4]); // /assignments/{id}/submissions/student/{stdId}
@@ -210,6 +218,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
 
     @SuppressWarnings("unchecked")
     private void handleGradeSubmission(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "MANAGE_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int submissionId = Integer.parseInt(parts[parts.length - 2]); // /submissions/{id}/grade
         String body = readBody(t);

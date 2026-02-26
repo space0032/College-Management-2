@@ -4,6 +4,9 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import com.college.api.TokenStore.TokenInfo;
+import com.college.utils.PermissionService;
+
 /**
  * Base handler providing shared utilities for all API controllers.
  */
@@ -48,5 +51,40 @@ public abstract class BaseController {
             return TokenStore.getTokenInfo(auth.substring(7));
         }
         return null;
+    }
+
+    protected boolean requireAuth(HttpExchange t) throws IOException {
+        TokenInfo tokenInfo = getTokenInfo(t);
+        if (tokenInfo == null) {
+            sendResponse(t, 401, errorJson("Unauthorized: Missing or invalid token"));
+            return false;
+        }
+        return true;
+    }
+
+    protected boolean requirePermission(HttpExchange t, String permissionCode) throws IOException {
+        TokenInfo tokenInfo = getTokenInfo(t);
+        if (tokenInfo == null) {
+            sendResponse(t, 401, errorJson("Unauthorized: Missing or invalid token"));
+            return false;
+        }
+        if (!PermissionService.getInstance().hasPermission(tokenInfo.userId, permissionCode)) {
+            sendResponse(t, 403, errorJson("Forbidden: Requires permission " + permissionCode));
+            return false;
+        }
+        return true;
+    }
+
+    protected boolean requireAnyPermission(HttpExchange t, String... permissionCodes) throws IOException {
+        TokenInfo tokenInfo = getTokenInfo(t);
+        if (tokenInfo == null) {
+            sendResponse(t, 401, errorJson("Unauthorized: Missing or invalid token"));
+            return false;
+        }
+        if (!PermissionService.getInstance().hasAnyPermission(tokenInfo.userId, permissionCodes)) {
+            sendResponse(t, 403, errorJson("Forbidden: Insufficient permissions"));
+            return false;
+        }
+        return true;
     }
 }

@@ -47,6 +47,7 @@ public class CalendarController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMonthEvents(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_CALENDAR")) return;
         String[] parts = path.split("/");
         int month = Integer.parseInt(parts[parts.length - 1]);
         int year = Integer.parseInt(parts[parts.length - 2]);
@@ -57,6 +58,7 @@ public class CalendarController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleAddEvent(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "CREATE_CALENDAR")) return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
@@ -84,6 +86,7 @@ public class CalendarController extends BaseController implements HttpHandler {
     }
 
     private void handleDeleteEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_CALENDAR")) return;
         String[] parts = path.split("/");
         int id = Integer.parseInt(parts[parts.length - 1]);
 
