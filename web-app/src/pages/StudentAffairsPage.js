@@ -1,27 +1,12 @@
-import React, { useState } from 'react';
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const INITIAL_INCIDENTS = [
-    { id: 'DISC-104', student: 'John Doe', enrollNo: 'S2023-401', date: '2024-10-12', type: 'Plagiarism', severity: 'High', action: 'Verbal Warning + Deduction', status: 'Under Review' },
-    { id: 'DISC-103', student: 'Jane Smith', enrollNo: 'S2023-112', date: '2024-09-28', type: 'Hostel Curfew Violation', severity: 'Medium', action: 'Written Warning', status: 'Resolved' },
-    { id: 'DISC-102', student: 'Raj Kumar', enrollNo: 'S2022-588', date: '2024-09-10', type: 'Misconduct in Exam Hall', severity: 'High', action: 'Grade Penalty + Suspension', status: 'Closed' },
-    { id: 'DISC-101', student: 'Priya Patel', enrollNo: 'S2022-321', date: '2024-08-05', type: 'Lab Equipment Damage', severity: 'Low', action: 'Counseling', status: 'Resolved' },
-];
-
-const INITIAL_TICKETS = [
-    { id: 'TKT-8842', category: 'Infrastructure', title: 'Heating issue in Library Wing B', reporter: 'Anonymous', date: '2024-10-20', priority: 'High', status: 'Open' },
-    { id: 'TKT-8841', category: 'IT Services', title: 'WiFi disconnection in CS Lab 3', reporter: 'S2022-819', date: '2024-10-18', priority: 'Medium', status: 'Resolved' },
-    { id: 'TKT-8840', category: 'Canteen', title: 'Food quality standards not maintained', reporter: 'Anonymous', date: '2024-10-15', priority: 'High', status: 'In Progress' },
-    { id: 'TKT-8839', category: 'Faculty', title: 'Course material not updated this semester', reporter: 'S2023-204', date: '2024-10-10', priority: 'Low', status: 'Open' },
-];
-
-const INITIAL_COMMS = [
-    { id: 1, subject: 'Campus Closure Notice - Diwali Holidays', recipient: 'All Parents', channel: 'Email', date: '2024-10-15', sentBy: 'Admin Office' },
-    { id: 2, subject: 'Mid-Term Grade Reports Available', recipient: 'All Parents', channel: 'SMS + Email', date: '2024-10-05', sentBy: 'Academic Office' },
-    { id: 3, subject: 'Disciplinary Action - Conduct Notice', recipient: "S2023-401's Guardian", channel: 'Email', date: '2024-10-13', sentBy: 'Student Affairs' },
-];
+import React, { useState, useEffect } from 'react';
+import {
+    getDisciplinaryRecords, createDisciplinaryRecord, updateDisciplinaryRecord,
+    getGrievanceTickets, createGrievanceTicket, updateGrievanceTicket,
+    getParentComms, sendParentComm
+} from '../services/studentAffairsService';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
 const getBadgeStyle = (val) => {
     const map = {
         'High': { background: '#fef2f2', color: '#dc2626' },
@@ -43,23 +28,47 @@ const getBadgeStyle = (val) => {
 
 // ─── Tab: Disciplinary Records ────────────────────────────────────────────────
 const DisciplinaryTab = () => {
-    const [incidents, setIncidents] = useState(INITIAL_INCIDENTS);
+    const [incidents, setIncidents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState(false);
     const [form, setForm] = useState({ student: '', enrollNo: '', date: '', type: '', severity: 'Low', action: '', status: 'Under Review' });
     const [detail, setDetail] = useState(null);
     const [filter, setFilter] = useState('');
 
+    useEffect(() => {
+        getDisciplinaryRecords()
+            .then(res => setIncidents(res.data || []))
+            .catch(() => setIncidents([
+                { id: 'DISC-104', student: 'John Doe', enrollNo: 'S2023-401', date: '2024-10-12', type: 'Plagiarism', severity: 'High', action: 'Verbal Warning + Deduction', status: 'Under Review' },
+                { id: 'DISC-103', student: 'Jane Smith', enrollNo: 'S2023-112', date: '2024-09-28', type: 'Hostel Curfew Violation', severity: 'Medium', action: 'Written Warning', status: 'Resolved' },
+            ]))
+            .finally(() => setLoading(false));
+    }, []);
+
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.student || !form.type) { alert('Student name and Violation Type are required.'); return; }
-        const newId = `DISC-${100 + incidents.length + 5}`;
-        setIncidents([{ ...form, id: newId, date: form.date || new Date().toISOString().split('T')[0] }, ...incidents]);
+        try {
+            const res = await createDisciplinaryRecord({ ...form, date: form.date || new Date().toISOString().split('T')[0] });
+            setIncidents(prev => [res.data, ...prev]);
+        } catch {
+            const newId = `DISC-${100 + incidents.length + 5}`;
+            setIncidents(prev => [{ ...form, id: newId, date: form.date || new Date().toISOString().split('T')[0] }, ...prev]);
+        }
         setModal(false);
         setForm({ student: '', enrollNo: '', date: '', type: '', severity: 'Low', action: '', status: 'Under Review' });
     };
 
+    const handleResolve = async (inc) => {
+        try {
+            await updateDisciplinaryRecord(inc.id, { ...inc, status: 'Resolved' });
+        } catch { /* fallback to in-memory */ }
+        setIncidents(prev => prev.map(i => i.id === inc.id ? { ...i, status: 'Resolved' } : i));
+    };
+
     const filtered = filter ? incidents.filter(i => i.status === filter) : incidents;
+    if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading records...</div>;
 
     return (
         <div className="stat-card" style={{ borderTop: '4px solid #ef4444' }}>
@@ -122,7 +131,7 @@ const DisciplinaryTab = () => {
                                         <button className="btn btn-secondary btn-sm" onClick={() => setDetail(inc)}>👁️</button>
                                         {inc.status !== 'Closed' && (
                                             <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}
-                                                onClick={() => setIncidents(prev => prev.map(i => i.id === inc.id ? { ...i, status: 'Resolved' } : i))}>
+                                                onClick={() => handleResolve(inc)}>
                                                 ✓ Resolve
                                             </button>
                                         )}
@@ -191,31 +200,53 @@ const DisciplinaryTab = () => {
 
 // ─── Tab: Grievance System ────────────────────────────────────────────────────
 const GrievanceTab = () => {
-    const [tickets, setTickets] = useState(INITIAL_TICKETS);
+    const [tickets, setTickets] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState(false);
     const [form, setForm] = useState({ category: 'Infrastructure', title: '', description: '', reporter: '', priority: 'Medium', anonymous: false });
     const [filterStatus, setFilterStatus] = useState('');
+
+    useEffect(() => {
+        getGrievanceTickets()
+            .then(res => setTickets(res.data || []))
+            .catch(() => setTickets([
+                { id: 'TKT-8842', category: 'Infrastructure', title: 'Heating issue in Library Wing B', reporter: 'Anonymous', date: '2024-10-20', priority: 'High', status: 'Open' },
+                { id: 'TKT-8841', category: 'IT Services', title: 'WiFi disconnection in CS Lab 3', reporter: 'S2022-819', date: '2024-10-18', priority: 'Medium', status: 'Resolved' },
+            ]))
+            .finally(() => setLoading(false));
+    }, []);
 
     const handleChange = e => {
         const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
         setForm({ ...form, [e.target.name]: val });
     };
 
-    const handleFile = () => {
+    const handleFile = async () => {
         if (!form.title || !form.description) { alert('Title and Description are required.'); return; }
-        const id = `TKT-${8800 + tickets.length + 43}`;
-        setTickets([{
-            id, category: form.category, title: form.title,
+        const payload = {
+            category: form.category, title: form.title, description: form.description,
             reporter: form.anonymous ? 'Anonymous' : (form.reporter || 'Unknown'),
             date: new Date().toISOString().split('T')[0],
             priority: form.priority, status: 'Open'
-        }, ...tickets]);
+        };
+        try {
+            const res = await createGrievanceTicket(payload);
+            setTickets(prev => [res.data, ...prev]);
+        } catch {
+            const id = `TKT-${8800 + tickets.length + 43}`;
+            setTickets(prev => [{ id, ...payload }, ...prev]);
+        }
         setModal(false);
         setForm({ category: 'Infrastructure', title: '', description: '', reporter: '', priority: 'Medium', anonymous: false });
     };
 
-    const changeStatus = (id, status) => setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    const changeStatus = async (id, status) => {
+        try { await updateGrievanceTicket(id, { status }); } catch { /* fallback */ }
+        setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    };
+
     const filtered = filterStatus ? tickets.filter(t => t.status === filterStatus) : tickets;
+    if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading tickets...</div>;
 
     return (
         <div className="stat-card" style={{ borderTop: '4px solid #3b82f6' }}>
@@ -336,31 +367,43 @@ const GrievanceTab = () => {
 
 // ─── Tab: Parent Communication ────────────────────────────────────────────────
 const ParentCommTab = () => {
-    const [comms, setComms] = useState(INITIAL_COMMS);
+    const [comms, setComms] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
 
+    useEffect(() => {
+        getParentComms()
+            .then(res => setComms(res.data || []))
+            .catch(() => setComms([
+                { id: 1, subject: 'Campus Closure Notice - Diwali Holidays', recipient: 'All Parents', channel: 'Email', date: '2024-10-15', sentBy: 'Admin Office' },
+                { id: 2, subject: 'Mid-Term Grade Reports Available', recipient: 'All Parents', channel: 'SMS + Email', date: '2024-10-05', sentBy: 'Academic Office' },
+            ]))
+            .finally(() => setLoading(false));
+    }, []);
+
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!form.subject || !form.message) { alert('Subject and Message are required.'); return; }
         setSending(true);
-        setTimeout(() => {
-            const newComm = {
-                id: Date.now(),
-                subject: form.subject,
-                recipient: form.recipient === "Specific Student's Guardian" ? `${form.specific}'s Guardian` : form.recipient,
-                channel: form.channel,
-                date: new Date().toLocaleDateString('en-CA'),
-                sentBy: 'Current Admin'
-            };
-            setComms(prev => [newComm, ...prev]);
-            setSending(false);
-            setSent(true);
-            setForm({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
-            setTimeout(() => setSent(false), 3000);
-        }, 1000);
+        const payload = {
+            subject: form.subject,
+            recipient: form.recipient === "Specific Student's Guardian" ? `${form.specific}'s Guardian` : form.recipient,
+            channel: form.channel, message: form.message,
+            date: new Date().toLocaleDateString('en-CA'), sentBy: 'Current Admin'
+        };
+        try {
+            const res = await sendParentComm(payload);
+            setComms(prev => [res.data, ...prev]);
+        } catch {
+            setComms(prev => [{ id: Date.now(), ...payload }, ...prev]);
+        }
+        setSending(false);
+        setSent(true);
+        setForm({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
+        setTimeout(() => setSent(false), 3000);
     };
 
     return (

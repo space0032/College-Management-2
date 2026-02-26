@@ -8,6 +8,7 @@ const FacultyWorkloadPage = () => {
     const [facultyDetails, setFacultyDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [detailsLoading, setDetailsLoading] = useState(false);
+    const [detailsError, setDetailsError] = useState(null);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -32,12 +33,13 @@ const FacultyWorkloadPage = () => {
     const handleSelectFaculty = async (facultyName) => {
         setSelectedFaculty(facultyName);
         setDetailsLoading(true);
+        setDetailsError(null);
         try {
             const res = await getFacultyWorkload(facultyName);
             setFacultyDetails(res.data);
         } catch (err) {
             console.error(err);
-            alert('Failed to load faculty details');
+            setDetailsError('Failed to load faculty details.');
         } finally {
             setDetailsLoading(false);
         }
@@ -115,6 +117,8 @@ const FacultyWorkloadPage = () => {
 
                         {detailsLoading ? (
                             <div style={{ padding: '20px', textAlign: 'center' }}>Loading distribution...</div>
+                        ) : detailsError ? (
+                            <div className="alert alert-error" style={{ margin: '20px' }}>{detailsError}</div>
                         ) : facultyDetails ? (
                             <div style={{ display: 'flex', gap: '30px', marginTop: '20px' }}>
                                 <div style={{ flex: 1 }}>

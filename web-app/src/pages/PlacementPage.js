@@ -83,6 +83,10 @@ const PlacementPage = () => {
 
   const handleAddDrive = async () => {
     if (!driveForm.companyName || !driveForm.role) { setFormError('Company and role are required.'); return; }
+    if (driveForm.ctc !== undefined && driveForm.ctc !== '' && isNaN(parseFloat(driveForm.ctc))) {
+      setFormError('Package (CTC) must be a valid number (e.g. 12.5 for 12.5 LPA).');
+      return;
+    }
     setSaving(true);
     try {
       await addDrive(driveForm);

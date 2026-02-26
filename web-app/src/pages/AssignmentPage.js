@@ -3,6 +3,7 @@ import {
     getAssignments, createAssignment, getSubmissions,
     getStudentSubmission, submitAssignment, gradeSubmission
 } from '../services/assignmentService';
+import { getAllCourses } from '../services/courseService';
 
 const AssignmentPage = () => {
     const [activeTab, setActiveTab] = useState('browse'); // browse, create, grade, submit
@@ -11,10 +12,11 @@ const AssignmentPage = () => {
     const [selectedAssignment, setSelectedAssignment] = useState(null);
 
     // Forms
-    const [assignmentForm, setAssignmentForm] = useState({ title: '', description: '', dueDate: '', courseId: '1', semester: 1 });
+    const [assignmentForm, setAssignmentForm] = useState({ title: '', description: '', dueDate: '', courseId: '', semester: 1 });
     const [submissionText, setSubmissionText] = useState('');
     const [gradingForm, setGradingForm] = useState({ grade: '', feedback: '' });
     const [selectedSubmission, setSelectedSubmission] = useState(null);
+    const [courses, setCourses] = useState([]);
 
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : { id: null, role: 'STUDENT' };
@@ -23,6 +25,9 @@ const AssignmentPage = () => {
 
     useEffect(() => {
         loadAssignments();
+        if (userRole === 'FACULTY' || userRole === 'ADMIN') {
+            getAllCourses().then(res => setCourses(res.data || [])).catch(() => { });
+        }
         // eslint-disable-next-line
     }, [activeTab]);
 
@@ -37,6 +42,9 @@ const AssignmentPage = () => {
 
     const handleCreateAssignment = async (e) => {
         e.preventDefault();
+        if (!assignmentForm.courseId) { alert('Please select a course.'); return; }
+        const today = new Date().toISOString().split('T')[0];
+        if (assignmentForm.dueDate && assignmentForm.dueDate < today) { alert('Due date cannot be in the past.'); return; }
         try {
             await createAssignment({
                 ...assignmentForm,
@@ -246,8 +254,14 @@ const AssignmentPage = () => {
                                 <input required type="date" className="form-control" value={assignmentForm.dueDate} onChange={e => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Target Course ID *</label>
-                                <input required type="number" min="1" className="form-control" value={assignmentForm.courseId} onChange={e => setAssignmentForm({ ...assignmentForm, courseId: e.target.value })} />
+                                <label>Target Course *</label>
+                                <select required className="form-control" value={assignmentForm.courseId}
+                                    onChange={e => setAssignmentForm({ ...assignmentForm, courseId: e.target.value })}>
+                                    <option value="">-- Select Course --</option>
+                                    {courses.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name || c.courseName} (ID: {c.id})</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
                                 <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontWeight: 'bold', fontSize: '1rem' }}>Launch Assignment</button>

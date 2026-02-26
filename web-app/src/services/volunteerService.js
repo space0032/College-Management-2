@@ -8,3 +8,7 @@ export const getVolunteerOpportunities = () =>
 
 export const applyToVolunteer = (userId, eventId, taskDescription) =>
     api.post('/volunteers/apply', { userId, eventId, taskDescription });
+
+export const completeVolunteerTask = (taskId, hoursLogged) =>
+    api.put(`/volunteers/tasks/${taskId}/complete`, { hoursLogged });
+

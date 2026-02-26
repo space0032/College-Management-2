@@ -42,7 +42,12 @@ const NotificationPage = () => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const markRead = (id) => {
     const next = new Set(readIds);

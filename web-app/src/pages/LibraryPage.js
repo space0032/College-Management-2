@@ -351,7 +351,30 @@ const LibraryPage = () => {
       ) : view === 'issues' ? (
         <DataTable columns={extendedIssuesColumns} data={issues} emptyMessage="No issued books." />
       ) : view === 'my' ? (
-        <DataTable columns={myIssuesColumns} data={myIssues} emptyMessage="You have no borrowed books." />
+        <>
+          {/* Overdue alert banner */}
+          {(() => {
+            const overdue = myIssues.filter(i => i.status !== 'RETURNED' && i.fineAmount > 0);
+            return overdue.length > 0 ? (
+              <div style={{
+                background: '#fef2f2', border: '1px solid #fecaca', borderLeft: '4px solid #ef4444',
+                borderRadius: '8px', padding: '12px 16px', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', gap: '12px'
+              }}>
+                <span style={{ fontSize: '1.3rem' }}>⚠️</span>
+                <div>
+                  <div style={{ fontWeight: '700', color: '#b91c1c', fontSize: '0.95rem' }}>
+                    {overdue.length} overdue book{overdue.length > 1 ? 's' : ''} — return immediately to avoid additional fines!
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#dc2626', marginTop: '2px' }}>
+                    Total outstanding fine: ₹{overdue.reduce((s, i) => s + (i.fineAmount || 0), 0)}
+                  </div>
+                </div>
+              </div>
+            ) : null;
+          })()}
+          <DataTable columns={myIssuesColumns} data={myIssues} emptyMessage="You have no borrowed books." />
+        </>
       ) : view === 'requests' ? (
         /* Book Requests Management (admin view) */
         <div>

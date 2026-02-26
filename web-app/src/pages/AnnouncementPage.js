@@ -211,8 +211,13 @@ const AnnouncementPage = () => {
           <input name="title" type="text" className="form-control" value={form.title} onChange={handleFormChange} placeholder="Enter title" />
         </div>
         <div className="form-group">
-          <label className="form-label">Content *</label>
-          <textarea name="content" className="form-control" rows={4} value={form.content} onChange={handleFormChange} placeholder="Enter announcement content" style={{ resize: 'vertical' }} />
+          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Content *</span>
+            <span style={{ fontSize: '0.8rem', color: form.content.length > 500 ? '#e53e3e' : '#a0aec0' }}>
+              {form.content.length}/500 {form.content.length >= 500 ? '(Max)' : ''}
+            </span>
+          </label>
+          <textarea name="content" className="form-control" rows={4} maxLength={500} value={form.content} onChange={handleFormChange} placeholder="Enter announcement content" style={{ resize: 'vertical' }} />
         </div>
         <div className="form-group">
           <label className="form-label">Target Role</label>

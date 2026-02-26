@@ -53,6 +53,9 @@ const ProfilePage = () => {
   // Role-specific profile data
   const [profileData, setProfileData] = useState(null);
   const [activeTab, setActiveTab] = useState('info');
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [editForm, setEditForm] = useState({ phone: '', address: '' });
+  const [infoMessage, setInfoMessage] = useState(null);
 
   useEffect(() => {
     if (isStudent) {
@@ -154,16 +157,59 @@ const ProfilePage = () => {
       {/* Profile Info Tab */}
       {activeTab === 'info' && (
         <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0 }}>Basic Information</h3>
+            {profileData && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  if (isEditingInfo) {
+                    // Mock save
+                    setProfileData({ ...profileData, phone: editForm.phone, address: editForm.address });
+                    setInfoMessage('Profile info updated successfully!');
+                    setIsEditingInfo(false);
+                    setTimeout(() => setInfoMessage(null), 3000);
+                  } else {
+                    setIsEditingInfo(true);
+                  }
+                }}
+              >
+                {isEditingInfo ? '💾 Save Changes' : '✏️ Edit Contact Info'}
+              </button>
+            )}
+          </div>
+
+          {infoMessage && (
+            <div style={{ padding: '10px', background: '#f0fdf4', color: '#166534', borderRadius: '6px', marginBottom: '15px', border: '1px solid #bbf7d0' }}>
+              {infoMessage}
+            </div>
+          )}
+
           <InfoRow label="Full Name" value={user.name} />
           <InfoRow label="Username" value={user.username} />
           <InfoRow label="Email" value={user.email} />
           <InfoRow label="Role" value={user.role} />
           <InfoRow label="Department" value={user.department} />
           <InfoRow label="User ID" value={user.id} />
-          {profileData && <>
-            <InfoRow label="Phone" value={profileData.phone} />
-            <InfoRow label="Address" value={profileData.address} />
-          </>}
+          {profileData && (
+            isEditingInfo ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', padding: '12px 0', borderBottom: '1px solid #edf2f7' }}>
+                  <div style={{ color: '#718096', fontWeight: '500' }}>Phone</div>
+                  <input type="text" className="form-control" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} style={{ padding: '6px 10px' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', padding: '12px 0', borderBottom: '1px solid #edf2f7' }}>
+                  <div style={{ color: '#718096', fontWeight: '500' }}>Address</div>
+                  <input type="text" className="form-control" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} style={{ padding: '6px 10px' }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <InfoRow label="Phone" value={profileData.phone} />
+                <InfoRow label="Address" value={profileData.address} />
+              </>
+            )
+          )}
           {(!user.name && !user.email) && (
             <p style={{ color: '#a0aec0', textAlign: 'center', padding: '20px' }}>No profile information found.</p>
           )}

@@ -62,6 +62,11 @@ const Sidebar = () => {
       { to: '/dashboard/audit', label: 'Audit Log', icon: '🗒️' },
       { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
     ];
+    navSections['Campus Life'] = [
+      { to: '/dashboard/activities', label: 'Activities Hub', icon: '🎯' },
+      { to: '/dashboard/volunteer', label: 'Volunteer', icon: '🤝' },
+      { to: '/dashboard/learning', label: 'Learning Portal', icon: '🎓' },
+    ];
   }
 
   // FACULTY — campus life + self-service staff leave + settings
@@ -74,7 +79,6 @@ const Sidebar = () => {
     ];
     navSections['Staff'] = [
       { to: '/dashboard/staff-leave', label: 'My Leave', icon: '🏖️' },
-      { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
     ];
   }
 
@@ -87,9 +91,7 @@ const Sidebar = () => {
       { to: '/dashboard/volunteer', label: 'Volunteer', icon: '🤝' },
       { to: '/dashboard/learning', label: 'Learning Portal', icon: '🎓' },
     ];
-    navSections['Account'] = [
-      { to: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
-    ];
+    // No Account section — Settings is Admin-only
   }
 
   return (

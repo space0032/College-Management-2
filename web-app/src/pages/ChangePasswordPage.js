@@ -6,6 +6,19 @@ const ChangePasswordPage = () => {
     const [status, setStatus] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    const getStrength = (pw) => {
+        let s = 0;
+        if (pw.length > 5) s++;
+        if (pw.length > 8) s++;
+        if (/[A-Z]/.test(pw)) s++;
+        if (/[0-9]/.test(pw)) s++;
+        if (/[^A-Za-z0-9]/.test(pw)) s++;
+        return s;
+    };
+    const strength = getStrength(form.newPassword);
+    const strengthColors = ['#e2e8f0', '#fecaca', '#fde047', '#fef08a', '#bbf7d0', '#4ade80'];
+    const strengthLabels = ['', 'Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (form.newPassword !== form.confirmPassword) {
@@ -68,6 +81,22 @@ const ChangePasswordPage = () => {
                             value={form.newPassword}
                             onChange={e => setForm({ ...form, newPassword: e.target.value })}
                         />
+                        {form.newPassword && (
+                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+                                    {[1, 2, 3, 4, 5].map(i => (
+                                        <div key={i} style={{
+                                            height: '6px', flex: 1, borderRadius: '3px',
+                                            background: i <= strength ? strengthColors[strength] : '#e2e8f0',
+                                            transition: 'background 0.3s'
+                                        }} />
+                                    ))}
+                                </div>
+                                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', width: '60px', textAlign: 'right' }}>
+                                    {strengthLabels[strength]}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <div className="form-group">
                         <label>Confirm New Password</label>

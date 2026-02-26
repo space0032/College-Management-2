@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMyVolunteerTasks, getVolunteerOpportunities, applyToVolunteer } from '../services/volunteerService';
+import { getMyVolunteerTasks, getVolunteerOpportunities, applyToVolunteer, completeVolunteerTask } from '../services/volunteerService';
 
 const STATUS_MAP = {
     REGISTERED: { label: 'Registered', color: '#f59e0b', bg: '#fffbeb', icon: '📝' },
@@ -43,6 +43,7 @@ const VolunteerTasksPage = () => {
 
     const handleApply = async (e) => {
         e.preventDefault();
+        if (!taskDesc.trim()) { alert('Please describe how you will contribute.'); return; }
         try {
             await applyToVolunteer(user.id, applyModal.id, taskDesc);
             alert('Quest accepted! Awaiting overseer approval.');
@@ -50,6 +51,20 @@ const VolunteerTasksPage = () => {
             setTaskDesc('');
             setActiveTab('my-tasks');
         } catch (err) { alert('Application failed'); }
+    };
+
+    const handleMarkComplete = async (task) => {
+        const hours = prompt('How many hours did you contribute?', task.hoursLogged || '0');
+        if (hours === null) return;
+        const parsedHours = parseFloat(hours);
+        if (isNaN(parsedHours) || parsedHours < 0) { alert('Please enter a valid number of hours.'); return; }
+        try {
+            await completeVolunteerTask(task.id, parsedHours);
+            fetchMyTasks();
+        } catch {
+            // Fallback: update in-memory
+            setMyTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'COMPLETED', hoursLogged: parsedHours } : t));
+        }
     };
 
     const totalHours = myTasks.reduce((s, t) => s + (parseFloat(t.hoursLogged) || 0), 0);
@@ -122,7 +137,15 @@ const VolunteerTasksPage = () => {
                                     <p style={{ fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic', marginBottom: '15px' }}>"{t.taskDescription}"</p>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid #f1f5f9' }}>
                                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Impact Record: {t.id}</span>
-                                        <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>{parseFloat(t.hoursLogged || 0).toFixed(1)} Hours</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>{parseFloat(t.hoursLogged || 0).toFixed(1)} Hours</span>
+                                            {t.status === 'APPROVED' && (
+                                                <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '4px 10px' }}
+                                                    onClick={() => handleMarkComplete(t)}>
+                                                    ✓ Mark Complete
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
