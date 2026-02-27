@@ -53,7 +53,20 @@ public class FacultyController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_FACULTY"))
             return;
         try {
-            List<Faculty> list = facultyDAO.getAllFaculty();
+            java.util.Map<String, String> params = getQueryMap(t);
+            int page = getIntParam(params, "page", 1);
+            int size = getIntParam(params, "size", Integer.MAX_VALUE);
+
+            List<Faculty> list;
+            if (params.containsKey("page")) {
+                list = facultyDAO.getAllFacultyPaginated(page, size);
+                int totalCount = facultyDAO.getTotalFacultyCount();
+                t.getResponseHeaders().set("X-Total-Count", String.valueOf(totalCount));
+                t.getResponseHeaders().set("Access-Control-Expose-Headers", "X-Total-Count");
+            } else {
+                list = facultyDAO.getAllFaculty();
+            }
+
             sendResponse(t, 200, JsonHelper.toJson(list));
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));

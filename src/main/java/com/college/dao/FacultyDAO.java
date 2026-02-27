@@ -155,20 +155,27 @@ public class FacultyDAO {
      * @return List of all faculty
      */
     public List<Faculty> getAllFaculty() {
+        return getAllFacultyPaginated(1, Integer.MAX_VALUE);
+    }
+
+    public List<Faculty> getAllFacultyPaginated(int page, int size) {
         List<Faculty> facultyList = new ArrayList<>();
-        // Query to join users and roles tables to get username and official role name
+        int offset = (page - 1) * size;
         String sql = "SELECT f.*, u.username, r.name as role_name " +
                 "FROM faculty f " +
                 "LEFT JOIN users u ON f.user_id = u.id " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
-                "ORDER BY f.name";
+                "ORDER BY f.name LIMIT ? OFFSET ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                facultyList.add(extractFacultyFromResultSet(rs));
+            pstmt.setInt(1, size);
+            pstmt.setInt(2, offset);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    facultyList.add(extractFacultyFromResultSet(rs));
+                }
             }
 
         } catch (SQLException e) {

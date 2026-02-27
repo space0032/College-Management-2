@@ -1,6 +1,11 @@
 import API from './api';
 
-export const getAllStudents = () => API.get('/students');
+export const getAllStudents = (page, size) => {
+    if (page !== undefined && size !== undefined) {
+        return API.get(`/students?page=${page}&size=${size}`);
+    }
+    return API.get('/students');
+};
 export const getStudentById = (id) => API.get(`/students/${id}`);
 export const createStudent = (student) => API.post('/students', student);
 export const updateStudent = (id, student) => API.put(`/students/${id}`, student);

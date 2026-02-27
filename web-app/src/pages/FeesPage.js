@@ -33,13 +33,17 @@ const FeesPage = () => {
   const [error, setError] = useState('');
   const [receiptFee, setReceiptFee] = useState(null);
 
-  const fetchFees = React.useCallback(() => {
+  const fetchFees = React.useCallback(async () => {
     setLoading(true);
     const apiCall = allFees ? getAllFees : getPendingFees;
-    apiCall()
-      .then((res) => setFees(res.data || []))
-      .catch(() => setError('Failed to load fees.'))
-      .finally(() => setLoading(false));
+    try {
+      const res = await apiCall();
+      setFees(res.data || []);
+    } catch {
+      setError('Failed to load fees.');
+    } finally {
+      setLoading(false);
+    }
   }, [allFees]);
 
   useEffect(() => {

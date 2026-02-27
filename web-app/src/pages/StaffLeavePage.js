@@ -3,12 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { getStaffLeaves, createStaffLeave } from '../services/leaveService';
 import Modal from '../components/Modal';
 
-const LEAVE_TYPES = {
-    'SICK': { label: 'Sick Leave', icon: '🤒', color: '#ef4444', bg: '#fef2f2' },
-    'CASUAL': { label: 'Casual Leave', icon: '🏖️', color: '#3b82f6', bg: '#eff6ff' },
-    'EARNED': { label: 'Earned Leave', icon: '⭐', color: '#f59e0b', bg: '#fffbeb' },
-    'DUTY': { label: 'On-Duty', icon: '💼', color: '#10b981', bg: '#ecfdf5' }
-};
+import { LEAVE_TYPES, LEAVE_LIMITS, calculateDays } from '../constants/leaveConstants';
 
 const StaffLeavePage = () => {
     const [leaves, setLeaves] = useState([]);
@@ -57,16 +52,18 @@ const StaffLeavePage = () => {
             {/* Balances Card — computed from actual approved leave records */}
             {(() => {
                 const approved = leaves.filter(l => l.status === 'APPROVED');
-                const used = (type) => approved.filter(l => l.leaveType === type).length;
+                const used = (type) => approved
+                    .filter(l => l.leaveType === type)
+                    .reduce((acc, l) => acc + calculateDays(l.startDate, l.endDate), 0);
                 const pending = leaves.filter(l => l.status === 'APPLIED').length;
-                const LIMITS = { SICK: 12, CASUAL: 5, EARNED: 15 };
+
                 return (
                     <div className="stat-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
                         {['SICK', 'CASUAL', 'EARNED'].map(type => {
                             const usedCount = used(type);
-                            const limit = LIMITS[type];
+                            const limit = LEAVE_LIMITS[type];
                             const remaining = limit - usedCount;
-                            const pct = (usedCount / limit) * 100;
+                            const pct = Math.min(100, (usedCount / limit) * 100);
                             return (
                                 <div key={type}>
                                     <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{type.charAt(0) + type.slice(1).toLowerCase()} Leave</div>
@@ -74,7 +71,7 @@ const StaffLeavePage = () => {
                                     <div style={{ marginTop: '6px', height: '4px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px' }}>
                                         <div style={{ width: `${pct}%`, height: '100%', background: pct > 80 ? '#f87171' : '#34d399', borderRadius: '4px', transition: 'width 0.5s' }} />
                                     </div>
-                                    <div style={{ fontSize: '0.72rem', opacity: 0.7, marginTop: '3px' }}>{usedCount} used</div>
+                                    <div style={{ fontSize: '0.72rem', opacity: 0.7, marginTop: '3px' }}>{usedCount} days used</div>
                                 </div>
                             );
                         })}

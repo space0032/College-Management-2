@@ -85,7 +85,20 @@ public class StudentController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_STUDENT"))
             return;
         try {
-            List<Student> students = studentDAO.getAllStudents();
+            java.util.Map<String, String> params = getQueryMap(t);
+            int page = getIntParam(params, "page", 1);
+            int size = getIntParam(params, "size", Integer.MAX_VALUE);
+
+            List<Student> students;
+            if (params.containsKey("page")) {
+                students = studentDAO.getAllStudentsPaginated(page, size);
+                int totalCount = studentDAO.getTotalCount();
+                t.getResponseHeaders().set("X-Total-Count", String.valueOf(totalCount));
+                t.getResponseHeaders().set("Access-Control-Expose-Headers", "X-Total-Count");
+            } else {
+                students = studentDAO.getAllStudents();
+            }
+
             String json = JsonHelper.toJson(students);
             sendResponse(t, 200, json);
         } catch (Exception e) {

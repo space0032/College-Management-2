@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
@@ -7,6 +7,7 @@ import { exportToCSV } from '../utils/exportUtils';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { CONFIG } from '../config';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -31,7 +32,7 @@ const AttendancePage = () => {
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState(null);
 
-  const handleFetch = async () => {
+  const handleFetch = useCallback(async () => {
     if (!filterCourse || !filterDate) { setError('Please enter both Course ID and Date.'); return; }
     setError('');
     setLoading(true);
@@ -50,7 +51,7 @@ const AttendancePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterCourse, filterDate]);
 
   const handleMark = async () => {
     if (!markForm.studentId || !markForm.courseId || !markForm.date) {
@@ -109,6 +110,10 @@ const AttendancePage = () => {
       setSaving(false);
     }
   };
+
+  const handleBulkStatusChange = useCallback((id, status) => {
+    setBulkStudents(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+  }, []);
 
   return (
     <div>
@@ -184,7 +189,7 @@ const AttendancePage = () => {
                   <XAxis dataKey="studentName" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                   <YAxis axisLine={false} tickLine={false} domain={[0, 100]} />
                   <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                  <ReferenceLine y={75} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: 'Min 75%', fill: '#ef4444', fontSize: 12 }} />
+                  <ReferenceLine y={CONFIG.ACADEMICS.MIN_ATTENDANCE_PERCENTAGE} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: `Min ${CONFIG.ACADEMICS.MIN_ATTENDANCE_PERCENTAGE}%`, fill: '#ef4444', fontSize: 12 }} />
                   <Bar dataKey="percentage" radius={[4, 4, 0, 0]} barSize={40}>
                     {
                       stats.map((entry, index) => (
@@ -197,28 +202,7 @@ const AttendancePage = () => {
             </div>
             <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
               {stats.map(s => (
-                <div key={s.studentId} style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  padding: 12,
-                  minWidth: 150,
-                  backgroundColor: s.isLow ? '#fff1f0' : 'var(--surface)',
-                  borderColor: s.isLow ? '#ffa39e' : 'var(--border)'
-                }}>
-                  <div style={{ fontWeight: 600 }}>{s.studentName}</div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    ID: {s.studentId}
-                  </div>
-                  <div style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 'bold',
-                    color: s.isLow ? '#cf1322' : 'var(--primary)',
-                    marginTop: 8
-                  }}>
-                    {s.percentage.toFixed(1)}%
-                  </div>
-                  {s.isLow && <div style={{ fontSize: '0.75rem', color: '#cf1322', marginTop: 4, fontWeight: 500 }}>⚠️ Low Attendance</div>}
-                </div>
+                <StudentStatCard key={s.studentId} s={s} />
               ))}
             </div>
           </div>
@@ -272,25 +256,12 @@ const AttendancePage = () => {
                 <tr><th>Student</th><th>Status</th></tr>
               </thead>
               <tbody>
-                {bulkStudents.map((s, idx) => (
-                  <tr key={s.id}>
-                    <td>{s.name} <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>(ID: {s.id})</span></td>
-                    <td>
-                      <select
-                        value={s.status}
-                        onChange={(e) => {
-                          const newList = [...bulkStudents];
-                          newList[idx].status = e.target.value;
-                          setBulkStudents(newList);
-                        }}
-                        style={{ padding: '2px', fontSize: '0.8rem' }}
-                      >
-                        <option value="PRESENT">Present</option>
-                        <option value="ABSENT">Absent</option>
-                        <option value="LATE">Late</option>
-                      </select>
-                    </td>
-                  </tr>
+                {bulkStudents.map((s) => (
+                  <BulkAttendanceRow
+                    key={s.id}
+                    student={s}
+                    onChange={handleBulkStatusChange}
+                  />
                 ))}
               </tbody>
             </table>
@@ -300,5 +271,48 @@ const AttendancePage = () => {
     </div>
   );
 };
+
+// Memoized Stat Card for better scroll performance
+const StudentStatCard = React.memo(({ s }) => (
+  <div style={{
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    padding: 12,
+    minWidth: 150,
+    backgroundColor: s.isLow ? '#fff1f0' : 'var(--surface)',
+    borderColor: s.isLow ? '#ffa39e' : 'var(--border)'
+  }}>
+    <div style={{ fontWeight: 600 }}>{s.studentName}</div>
+    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+      ID: {s.studentId}
+    </div>
+    <div style={{
+      fontSize: '1.25rem',
+      fontWeight: 'bold',
+      color: s.isLow ? '#cf1322' : 'var(--primary)',
+      marginTop: 8
+    }}>
+      {s.percentage.toFixed(1)}%
+    </div>
+    {s.isLow && <div style={{ fontSize: '0.75rem', color: '#cf1322', marginTop: 4, fontWeight: 500 }}>⚠️ Low Attendance</div>}
+  </div>
+));
+
+const BulkAttendanceRow = React.memo(({ student, onChange }) => (
+  <tr>
+    <td>{student.name} <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>(ID: {student.id})</span></td>
+    <td>
+      <select
+        value={student.status}
+        onChange={(e) => onChange(student.id, e.target.value)}
+        style={{ padding: '2px', fontSize: '0.8rem' }}
+      >
+        <option value="PRESENT">Present</option>
+        <option value="ABSENT">Absent</option>
+        <option value="LATE">Late</option>
+      </select>
+    </td>
+  </tr>
+));
 
 export default AttendancePage;

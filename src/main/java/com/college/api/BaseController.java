@@ -87,4 +87,34 @@ public abstract class BaseController {
         }
         return true;
     }
+
+    protected java.util.Map<String, String> getQueryMap(HttpExchange t) {
+        String query = t.getRequestURI().getQuery();
+        java.util.Map<String, String> result = new java.util.HashMap<>();
+        if (query == null)
+            return result;
+        for (String param : query.split("&")) {
+            String[] entry = param.split("=");
+            if (entry.length > 1) {
+                try {
+                    result.put(entry[0],
+                            java.net.URLDecoder.decode(entry[1], java.nio.charset.StandardCharsets.UTF_8.name()));
+                } catch (java.io.UnsupportedEncodingException e) {
+                    result.put(entry[0], entry[1]);
+                }
+            } else {
+                result.put(entry[0], "");
+            }
+        }
+        return result;
+    }
+
+    protected int getIntParam(java.util.Map<String, String> params, String key, int defaultValue) {
+        try {
+            String val = params.get(key);
+            return val != null ? Integer.parseInt(val) : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
 }

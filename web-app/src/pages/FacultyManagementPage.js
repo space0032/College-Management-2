@@ -3,48 +3,90 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllFaculty, createFaculty, updateFaculty, deleteFaculty, searchFaculty } from '../services/facultyService';
 import { exportToCSV } from '../utils/exportUtils';
+import { CONFIG } from '../config';
 
 const EMPTY_FORM = { name: '', email: '', phone: '', department: '', qualification: '' };
 
-const FacultyManagementPage = () => {
-  const [faculty, setFaculty] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [editId, setEditId] = useState(null);
-  const [formError, setFormError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [filterDept, setFilterDept] = useState('');
+const initialState = {
+  faculty: [],
+  loading: false,
+  error: '',
+  search: '',
+  page: 1,
+  hasMore: true,
+  pageSize: CONFIG.PAGINATION.DEFAULT_PAGE_SIZE,
+  totalCount: 0,
+  modalOpen: false,
+  form: EMPTY_FORM,
+  editId: null,
+  formError: '',
+  saving: false,
+  filterDept: ''
+};
 
-  const fetchFaculty = async () => {
-    setLoading(true);
+function facultyReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START': return { ...state, loading: true, error: '' };
+    case 'FETCH_SUCCESS': return {
+      ...state,
+      loading: false,
+      faculty: action.append ? [...state.faculty, ...action.payload] : action.payload,
+      totalCount: action.total,
+      hasMore: (action.append ? state.faculty.length + action.payload.length : action.payload.length) < action.total,
+      page: action.page || state.page
+    };
+    case 'FETCH_ERROR': return { ...state, loading: false, error: action.payload };
+    case 'SET_SEARCH': return { ...state, search: action.payload };
+    case 'SET_FILTER_DEPT': return { ...state, filterDept: action.payload };
+    case 'OPEN_MODAL': return { ...state, modalOpen: true, form: action.form || EMPTY_FORM, editId: action.editId || null, formError: '' };
+    case 'CLOSE_MODAL': return { ...state, modalOpen: false };
+    case 'SET_FORM': return { ...state, form: { ...state.form, [action.name]: action.value }, formError: '' };
+    case 'SET_FORM_ERROR': return { ...state, formError: action.payload, saving: false };
+    case 'SAVING_START': return { ...state, saving: true };
+    case 'SAVING_DONE': return { ...state, saving: false, modalOpen: false };
+    default: return state;
+  }
+}
+
+const FacultyManagementPage = () => {
+  const [state, dispatch] = React.useReducer(facultyReducer, initialState);
+  const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept } = state;
+
+  const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
+    dispatch({ type: 'FETCH_START' });
     try {
-      const res = await getAllFaculty();
-      setFaculty(res.data || []);
+      const res = await getAllFaculty(pageNum, pageSize);
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: res.data || [],
+        total: parseInt(res.headers['x-total-count'] || '0'),
+        page: pageNum,
+        append
+      });
     } catch {
-      setError('Failed to load faculty.');
-    } finally {
-      setLoading(false);
+      dispatch({ type: 'FETCH_ERROR', payload: 'Failed to load faculty.' });
+    }
+  }, [pageSize]);
+
+  useEffect(() => {
+    fetchFaculty(1, false);
+  }, [fetchFaculty]);
+
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      fetchFaculty(page + 1, true);
     }
   };
 
-  useEffect(() => {
-    fetchFaculty();
-  }, []);
-
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
-    if (!search.trim()) return fetchFaculty();
-    setLoading(true);
+    if (!search.trim()) return fetchFaculty(1, false);
+    dispatch({ type: 'FETCH_START' });
     try {
       const res = await searchFaculty(search);
-      setFaculty(res.data || []);
+      dispatch({ type: 'FETCH_SUCCESS', payload: res.data || [], total: (res.data || []).length, page: 1, append: false });
     } catch {
-      setError('Search failed.');
-    } finally {
-      setLoading(false);
+      dispatch({ type: 'FETCH_ERROR', payload: 'Search failed.' });
     }
   };
 
@@ -59,54 +101,61 @@ const FacultyManagementPage = () => {
     setModalOpen(true);
   };
 
-  const openEdit = (row) => {
-    setForm({ ...row });
-    setEditId(row.id);
-    setModalOpen(true);
-  };
+  const handleFormChange = useCallback((e) => {
+    dispatch({ type: 'SET_FORM', name: e.target.name, value: e.target.value });
+  }, []);
 
-  const handleSave = async () => {
-    if (!form.name || !form.email) { setFormError('Name and email are required.'); return; }
-    setSaving(true);
+  const openAdd = useCallback(() => {
+    dispatch({ type: 'OPEN_MODAL' });
+  }, []);
+
+  const openEdit = useCallback((row) => {
+    dispatch({ type: 'OPEN_MODAL', form: { ...row }, editId: row.id });
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!form.name || !form.email) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name and email are required.' });
+      return;
+    }
+    dispatch({ type: 'SAVING_START' });
     try {
       if (editId) {
         await updateFaculty(editId, form);
       } else {
         await createFaculty(form);
       }
-      setModalOpen(false);
-      fetchFaculty();
+      dispatch({ type: 'SAVING_DONE' });
+      fetchFaculty(1, false);
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to save faculty.');
-    } finally {
-      setSaving(false);
+      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.message || 'Failed to save faculty.' });
     }
-  };
+  }, [form, editId, fetchFaculty]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (!window.confirm('Delete this faculty member?')) return;
     try {
       await deleteFaculty(id);
-      fetchFaculty();
+      fetchFaculty(1, false);
     } catch {
       alert('Failed to delete.');
     }
-  };
+  }, [fetchFaculty]);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     exportToCSV(
       ['ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
       filteredFaculty.map(f => [f.id, f.name, f.email, f.phone, f.department, f.qualification]),
       'faculty_export'
     );
-  };
+  }, [filteredFaculty]);
 
-  const filteredFaculty = faculty.filter(f => !filterDept || f.department === filterDept);
+  const filteredFaculty = useMemo(() => faculty.filter(f => !filterDept || f.department === filterDept), [faculty, filterDept]);
 
   // Stats
-  const totalFaculty = faculty.length;
-  const depts = [...new Set(faculty.map(f => f.department).filter(Boolean))];
-  const phds = faculty.filter(f => (f.qualification || '').toUpperCase().includes('PHD')).length;
+  const totalFacultyCount = totalCount;
+  const depts = useMemo(() => [...new Set(faculty.map(f => f.department).filter(Boolean))], [faculty]);
+  const phds = useMemo(() => faculty.filter(f => (f.qualification || '').toUpperCase().includes('PHD')).length, [faculty]);
 
   const COLUMNS = [
     { key: 'id', label: 'ID' },
@@ -168,7 +217,7 @@ const FacultyManagementPage = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '25px' }}>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)', color: 'white' }}>
           <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>Total Faculty</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{totalFaculty}</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{totalFacultyCount}</div>
         </div>
         <div className="stat-card">
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Active Departments</div>
@@ -191,7 +240,7 @@ const FacultyManagementPage = () => {
             className="form-control"
             placeholder="Search faculty by name, email, or dept..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
           />
           <button type="submit" className="btn btn-primary">Search</button>
         </form>
@@ -199,7 +248,7 @@ const FacultyManagementPage = () => {
           className="form-control"
           style={{ width: '200px' }}
           value={filterDept}
-          onChange={(e) => setFilterDept(e.target.value)}
+          onChange={(e) => dispatch({ type: 'SET_FILTER_DEPT', payload: e.target.value })}
         >
           <option value="">All Departments</option>
           {depts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -208,21 +257,35 @@ const FacultyManagementPage = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {loading ? (
+      {loading && faculty.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '50px' }}>
           <div className="spinner"></div>
           <p style={{ marginTop: '15px', color: '#666' }}>Loading faculty data...</p>
         </div>
       ) : (
-        <div className="data-table-container">
-          <DataTable columns={COLUMNS} data={filteredFaculty} emptyMessage="No faculty members found." />
-        </div>
+        <>
+          <div className="data-table-container">
+            <DataTable columns={COLUMNS} data={filteredFaculty} emptyMessage="No faculty members found." />
+          </div>
+
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: '20px', marginBottom: '20px' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleLoadMore}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : `Load More (${faculty.length} of ${totalCount})`}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <Modal
         isOpen={modalOpen}
         title={editId ? 'Edit Faculty Member' : 'Add New Faculty Member'}
-        onClose={() => setModalOpen(false)}
+        onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
         onSubmit={handleSave}
         submitLabel={saving ? 'Saving...' : 'Save Faculty'}
       >
@@ -230,23 +293,23 @@ const FacultyManagementPage = () => {
         <div className="form-grid">
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label>Full Name *</label>
-            <input name="name" type="text" value={form.name} onChange={handleFormChange} required />
+            <input name="name" type="text" className="form-control" value={form.name} onChange={handleFormChange} required />
           </div>
           <div className="form-group">
             <label>Email Address *</label>
-            <input name="email" type="email" value={form.email} onChange={handleFormChange} required />
+            <input name="email" type="email" className="form-control" value={form.email} onChange={handleFormChange} required />
           </div>
           <div className="form-group">
             <label>Phone Number</label>
-            <input name="phone" type="text" value={form.phone} onChange={handleFormChange} />
+            <input name="phone" type="text" className="form-control" value={form.phone} onChange={handleFormChange} />
           </div>
           <div className="form-group">
             <label>Department</label>
-            <input name="department" type="text" value={form.department} onChange={handleFormChange} placeholder="e.g. Mathematics" />
+            <input name="department" type="text" className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Mathematics" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label>Highest Qualification</label>
-            <input name="qualification" type="text" value={form.qualification} onChange={handleFormChange} placeholder="e.g. PhD in Computer Science" />
+            <input name="qualification" type="text" className="form-control" value={form.qualification} onChange={handleFormChange} placeholder="e.g. PhD in Computer Science" />
           </div>
         </div>
       </Modal>

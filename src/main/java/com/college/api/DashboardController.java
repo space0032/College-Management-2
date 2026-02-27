@@ -48,15 +48,15 @@ public class DashboardController extends BaseController implements HttpHandler {
             DepartmentDAO deptDAO = new DepartmentDAO();
 
             Map<String, Object> stats = new HashMap<>();
-            stats.put("totalStudents", studentDAO.getAllStudents().size());
-            stats.put("totalFaculty", facultyDAO.getAllFaculty().size());
-            stats.put("activeCourses", courseDAO.getAllCourses().size());
-            stats.put("departments", deptDAO.getAllDepartments().size());
+            stats.put("totalStudents", studentDAO.getTotalCount());
+            stats.put("totalFaculty", facultyDAO.getTotalFacultyCount());
+            stats.put("activeCourses", courseDAO.getTotalCount());
+            stats.put("departments", deptDAO.getTotalCount());
 
             // Trends
             stats.put("studentsThisWeek", studentDAO.getWeeklyCount());
             stats.put("facultyThisWeek", facultyDAO.getWeeklyCount());
-            stats.put("coursesThisWeek", 0); // Not tracked yet
+            stats.put("coursesThisWeek", courseDAO.getWeeklyCount());
 
             // Admin tier finance stats
             TokenStore.TokenInfo info = getTokenInfo(t);

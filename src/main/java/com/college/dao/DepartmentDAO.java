@@ -35,6 +35,19 @@ public class DepartmentDAO {
         return departments;
     }
 
+    public int getTotalCount() {
+        String sql = "SELECT COUNT(*) FROM departments";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next())
+                return rs.getInt(1);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
+    }
+
     /**
      * Get department by ID
      */

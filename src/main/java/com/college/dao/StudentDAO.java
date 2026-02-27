@@ -189,21 +189,42 @@ public class StudentDAO {
      * @return List of all students
      */
     public List<Student> getAllStudents() {
+        return getAllStudentsPaginated(1, Integer.MAX_VALUE);
+    }
+
+    public List<Student> getAllStudentsPaginated(int page, int size) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.name";
+        int offset = (page - 1) * size;
+        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.name LIMIT ? OFFSET ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                students.add(extractStudentFromResultSet(rs));
+            stmt.setInt(1, size);
+            stmt.setInt(2, offset);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    students.add(extractStudentFromResultSet(rs));
+                }
             }
 
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
         }
         return students;
+    }
+
+    public int getTotalCount() {
+        String sql = "SELECT COUNT(*) FROM students";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next())
+                return rs.getInt(1);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
     }
 
     /**

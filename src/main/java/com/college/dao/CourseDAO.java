@@ -70,6 +70,32 @@ public class CourseDAO {
         return courses;
     }
 
+    public int getTotalCount() {
+        String sql = "SELECT COUNT(*) FROM courses";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next())
+                return rs.getInt(1);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
+    }
+
+    public int getWeeklyCount() {
+        String sql = "SELECT COUNT(*) FROM courses WHERE created_at >= date('now', '-7 days')";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next())
+                return rs.getInt(1);
+        } catch (SQLException e) {
+            // Might fail if created_at column is missing
+        }
+        return 0;
+    }
+
     public Course getCourseById(int id) {
         String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
                 "LEFT JOIN departments d ON c.department_id = d.id " +
