@@ -12,13 +12,16 @@ public class JsonHelper {
     public static String toJson(Object obj) {
         if (obj == null)
             return "null";
-        if (obj instanceof List) {
-            List<?> list = (List<?>) obj;
+        if (obj instanceof java.util.Collection) {
+            java.util.Collection<?> col = (java.util.Collection<?>) obj;
             StringBuilder sb = new StringBuilder("[");
-            for (int i = 0; i < list.size(); i++) {
-                sb.append(toJson(list.get(i)));
-                if (i < list.size() - 1)
+            int curr = 0;
+            int sz = col.size();
+            for (Object item : col) {
+                sb.append(toJson(item));
+                if (curr < sz - 1)
                     sb.append(",");
+                curr++;
             }
             sb.append("]");
             return sb.toString();
