@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.GradeDAO;
 import com.college.models.Grade;
 import com.college.utils.JsonHelper;
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,11 @@ public class GradeController extends BaseController implements HttpHandler {
             } else if (path.matches(".*/grades/course/\\d+")) {
                 if ("GET".equals(method))
                     handleGetCourseGrades(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/grades/bulk.*")) {
+                if ("POST".equals(method))
+                    handleBulkSaveGrade(t);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/grades.*")) {
@@ -129,5 +135,25 @@ public class GradeController extends BaseController implements HttpHandler {
         } else {
             sendResponse(t, 400, errorJson("Failed to save grade"));
         }
+    }
+
+    private void handleBulkSaveGrade(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_GRADES"))
+            return;
+        String body = readBody(t);
+        java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<List<Grade>>() {
+        }.getType();
+        List<Grade> list = new Gson().fromJson(body, listType);
+        if (list == null) {
+            sendResponse(t, 400, errorJson("Invalid JSON"));
+            return;
+        }
+        int count = 0;
+        for (Grade g : list) {
+            if (gradeDAO.saveGrade(g)) {
+                count++;
+            }
+        }
+        sendResponse(t, 200, "{\"saved\":" + count + "}");
     }
 }

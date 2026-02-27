@@ -89,12 +89,16 @@ const AttendancePage = () => {
     }
     setSaving(true);
     try {
-      // If the backend has a real batch endpoint, we'd use it.
-      // Otherwise, we loop or use bulkMarkAttendance if it supports student lists.
-      await bulkMarkAttendance({
-        ...bulkForm,
-        studentIds: bulkStudents.filter(s => s.status === 'PRESENT').map(s => s.id)
-      });
+      const payload = bulkStudents.map(s => ({
+        studentId: s.id,
+        courseId: bulkForm.courseId,
+        date: bulkForm.date,
+        status: s.status
+      }));
+
+      const res = await bulkMarkAttendance(payload);
+      alert(`Successfully marked ${res.data.marked} attendance records.`);
+
       setBulkModal(false);
       setBulkForm({ courseId: '', date: '', status: 'PRESENT' });
       setBulkStudents([]);

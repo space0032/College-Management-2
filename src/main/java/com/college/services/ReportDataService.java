@@ -33,27 +33,30 @@ public class ReportDataService {
 
     public PlacementStats getPlacementStats() {
         List<PlacementDrive> drives = placementDAO.getAllDrives();
-        // Since we don't have a direct "getAllApplications" in DAO exposed publicly for
-        // stats easily,
-        // we might need to add a method to DAO or just fetch counts.
-        // For now, let's assume we want Drive Stats.
+        int totalApplications = placementDAO.getTotalApplicationsCount();
+        List<java.util.Map<String, Object>> companySummary = placementDAO.getCompanyApplicationSummary();
 
         int totalDrives = drives.size();
         long activeDrives = drives.stream()
                 .filter(d -> d.getDeadline().isAfter(LocalDate.now()))
                 .count();
 
-        return new PlacementStats(totalDrives, (int) activeDrives);
+        return new PlacementStats(totalDrives, (int) activeDrives, totalApplications, companySummary);
     }
 
     // Simple DTO for Stats
     public static class PlacementStats {
         public int totalDrives;
         public int activeDrives;
+        public int totalApplications;
+        public List<java.util.Map<String, Object>> companySummary;
 
-        public PlacementStats(int total, int active) {
+        public PlacementStats(int total, int active, int totalApps,
+                List<java.util.Map<String, Object>> companySummary) {
             this.totalDrives = total;
             this.activeDrives = active;
+            this.totalApplications = totalApps;
+            this.companySummary = companySummary;
         }
     }
 }

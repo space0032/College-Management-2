@@ -371,6 +371,20 @@ public class EventDAO {
         }
     }
 
+    public boolean updateBudgetActualCost(int id, double actualCost, String status) {
+        String sql = "UPDATE event_budgets SET actual_cost = ?, status = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setDouble(1, actualCost);
+            pstmt.setString(2, status);
+            pstmt.setInt(3, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error updating actual cost: " + e.getMessage());
+            return false;
+        }
+    }
+
     public boolean deleteBudget(int id) {
         String sql = "DELETE FROM event_budgets WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -398,12 +412,45 @@ public class EventDAO {
                 p.setQuestion(rs.getString("question"));
                 p.setOptions(rs.getString("options"));
                 p.setStatus(rs.getString("status"));
+                p.setResults(getPollResults(p.getId()));
                 polls.add(p);
             }
         } catch (SQLException e) {
             Logger.error("Error fetching polls: " + e.getMessage());
         }
         return polls;
+    }
+
+    private java.util.Map<String, Integer> getPollResults(int pollId) {
+        java.util.Map<String, Integer> results = new java.util.HashMap<>();
+        String sql = "SELECT selected_option, COUNT(*) as count FROM event_poll_votes WHERE poll_id = ? GROUP BY selected_option";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, pollId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                results.put(rs.getString("selected_option"), rs.getInt("count"));
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching poll results: " + e.getMessage());
+        }
+        return results;
+    }
+
+    public boolean voteInPoll(int pollId, int studentId, String option) {
+        String sql = "INSERT INTO event_poll_votes (poll_id, student_id, selected_option) VALUES (?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE selected_option = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, pollId);
+            pstmt.setInt(2, studentId);
+            pstmt.setString(3, option);
+            pstmt.setString(4, option);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error voting in poll: " + e.getMessage());
+            return false;
+        }
     }
 
     public boolean createPoll(EventPoll poll) {

@@ -225,19 +225,26 @@ const HomePage = () => {
               <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Projected Revenue (Term)</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>₹1.28 Cr</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>
+                    ₹{stats.projectedRevenue ? (stats.projectedRevenue >= 10000000 ? (stats.projectedRevenue / 10000000).toFixed(2) + ' Cr' : (stats.projectedRevenue / 100000).toFixed(1) + ' L') : '0.00'}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Collection Rate</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#6366f1' }}>84.2%</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#6366f1' }}>{stats.collectionRate || 0}%</div>
                 </div>
               </div>
               <div style={{ padding: '15px' }}>
                 <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>Recent Collections</div>
-                {['Tuition Fee - Sem 4', 'Hostel Mess Split', 'Library Fine', 'Exam Registration'].map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i === 3 ? 'none' : '1px solid #f8fafc', fontSize: '0.85rem' }}>
-                    <span style={{ color: '#475569' }}>{item}</span>
-                    <span style={{ fontWeight: '600', color: '#10b981' }}>+₹{(Math.random() * 5000 + 500).toFixed(0)}</span>
+                {(!stats.recentCollections || stats.recentCollections.length === 0) ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#a0aec0', fontSize: '0.85rem' }}>No recent payments</div>
+                ) : stats.recentCollections.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i === stats.recentCollections.length - 1 ? 'none' : '1px solid #f8fafc', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ color: '#475569', fontWeight: '500' }}>{item.studentName}</span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{item.categoryName}</span>
+                    </div>
+                    <span style={{ fontWeight: '600', color: '#10b981', alignSelf: 'center' }}>+₹{(item.amount || 0).toLocaleString('en-IN')}</span>
                   </div>
                 ))}
               </div>

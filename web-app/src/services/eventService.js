@@ -17,10 +17,12 @@ export const getStudentEvents = (studentId) => api.get(`/events/student/${studen
 // Budgeting
 export const getEventBudgets = (eventId) => api.get(`/events/${eventId}/budget`);
 export const addEventBudget = (eventId, data) => api.post(`/events/${eventId}/budget`, data);
+export const updateBudgetActualCost = (id, data) => api.put(`/events/budget/${id}/actual-cost`, data);
 export const deleteEventBudget = (id) => api.delete(`/events/budget/${id}`);
 
 // Polls
 export const getEventPolls = (eventId) => api.get(`/events/${eventId}/polls`);
 export const createEventPoll = (eventId, data) => api.post(`/events/${eventId}/polls`, data);
 export const closeEventPoll = (pollId) => api.put(`/events/polls/${pollId}/close`);
-export const deleteEventPoll = (pollId) => api.delete(`/events/polls/${pollId}`); // Backend handles ID via split
+export const voteEventPoll = (pollId, data) => api.post(`/events/polls/${pollId}/vote`, data);
+export const deleteEventPoll = (pollId) => api.delete(`/events/polls/${pollId}`);

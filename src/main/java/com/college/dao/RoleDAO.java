@@ -264,7 +264,8 @@ public class RoleDAO {
             if (rs.next()) {
                 String code = rs.getString("code");
                 if ("ADMIN".equalsIgnoreCase(code) || "WARDEN".equalsIgnoreCase(code)
-                        || "FINANCE".equalsIgnoreCase(code)) {
+                        || "FINANCE".equalsIgnoreCase(code) || "FACULTY".equalsIgnoreCase(code)
+                        || "STUDENT".equalsIgnoreCase(code)) {
                     Logger.error("Attempt to delete system role prevented: " + code);
                     return false; // Prevent deletion
                 }

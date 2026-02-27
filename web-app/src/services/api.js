@@ -17,7 +17,9 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.clear();
+      // Selective clearing to preserve app settings (e.g. collegeName)
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/';
     }
     return Promise.reject(error);

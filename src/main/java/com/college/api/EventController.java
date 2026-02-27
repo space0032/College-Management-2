@@ -89,6 +89,16 @@ public class EventController extends BaseController implements HttpHandler {
                     handleCloseEventPoll(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events/polls/\\d+/vote")) {
+                if ("POST".equals(method))
+                    handleVoteEventPoll(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events/budget/\\d+/actual-cost")) {
+                if ("PUT".equals(method))
+                    handleUpdateBudgetActualCost(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
             } else {
                 sendResponse(t, 404, errorJson("Not found"));
             }
@@ -326,6 +336,51 @@ public class EventController extends BaseController implements HttpHandler {
             sendResponse(t, 200, "{\"message\":\"Poll closed\"}");
         } else {
             sendResponse(t, 400, errorJson("Failed to close poll"));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleVoteEventPoll(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "REGISTER_EVENT")) // Low privilege permission needed for voting
+            return;
+        String[] parts = path.split("/");
+        int pollId = Integer.parseInt(parts[parts.length - 2]); // .../polls/{id}/vote
+        String body = readBody(t);
+        java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
+        if (map == null || map.get("studentId") == null || map.get("option") == null) {
+            sendResponse(t, 400, errorJson("studentId and option are required"));
+            return;
+        }
+        int studentId = ((Double) map.get("studentId")).intValue();
+        String option = (String) map.get("option");
+
+        boolean success = eventDAO.voteInPoll(pollId, studentId, option);
+        if (success) {
+            sendResponse(t, 200, "{\"message\":\"Vote recorded\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to record vote"));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleUpdateBudgetActualCost(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_BUDGET"))
+            return;
+        int id = extractId(path);
+        String body = readBody(t);
+        java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
+        if (map == null || map.get("actualCost") == null || map.get("status") == null) {
+            sendResponse(t, 400, errorJson("actualCost and status are required"));
+            return;
+        }
+        double actualCost = (Double) map.get("actualCost");
+        String status = (String) map.get("status");
+
+        boolean success = eventDAO.updateBudgetActualCost(id, actualCost, status);
+        if (success) {
+            sendResponse(t, 200, "{\"message\":\"Actual cost updated\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to update cost"));
         }
     }
 

@@ -110,6 +110,35 @@ public class PermissionDAO {
         return categories;
     }
 
+    public List<Permission> getPermissionsByIds(List<Integer> ids) {
+        List<Permission> permissions = new ArrayList<>();
+        if (ids == null || ids.isEmpty())
+            return permissions;
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM permissions WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append("?");
+            if (i < ids.size() - 1)
+                sql.append(",");
+        }
+        sql.append(")");
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < ids.size(); i++) {
+                stmt.setInt(i + 1, ids.get(i));
+            }
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                permissions.add(extractPermissionFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return permissions;
+    }
+
     private Permission extractPermissionFromResultSet(ResultSet rs) throws SQLException {
         Permission p = new Permission();
         p.setId(rs.getInt("id"));

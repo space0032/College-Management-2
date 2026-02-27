@@ -1,11 +1,58 @@
 import React from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const ReceiptModal = ({ fee, onClose }) => {
     const collegeName = localStorage.getItem('collegeName') || 'College Management System';
-    const receiptId = `RCP-${fee.id}-${Date.now().toString(36).toUpperCase()}`;
-    const today = new Date().toLocaleDateString('en-IN', {
+    const receiptId = fee.receiptNumber || `RCP-${fee.id}-${Date.now().toString(36).toUpperCase()}`;
+    const today = fee.paidDate || new Date().toLocaleDateString('en-IN', {
         year: 'numeric', month: 'long', day: 'numeric'
     });
+
+    const downloadReceiptPDF = () => {
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFillColor(26, 54, 93);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.text(collegeName, 105, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text("Official Fee Payment Receipt", 105, 30, { align: 'center' });
+
+        // Details
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.text(`Receipt No: ${receiptId}`, 14, 50);
+        doc.text(`Date: ${today}`, 140, 50);
+        doc.text(`Student Name: ${fee.studentName || 'N/A'}`, 14, 60);
+        doc.text(`Student ID: ${fee.studentId || fee.id}`, 140, 60);
+
+        // Table
+        doc.autoTable({
+            startY: 70,
+            head: [['Fee Type', 'Amount', 'Status']],
+            body: [[
+                fee.feeType || fee.categoryName || 'Tuition Fee',
+                `INR ${parseFloat(fee.amount || fee.totalAmount || 0).toLocaleString('en-IN')}`,
+                'PAID'
+            ]],
+            theme: 'striped',
+            headStyles: { fillColor: [49, 130, 206] }
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(12);
+        doc.setTextColor(43, 108, 176);
+        doc.text(`Total Paid: INR ${parseFloat(fee.paidAmount || fee.amount || fee.totalAmount || 0).toLocaleString('en-IN')}`, 196, finalY, { align: 'right' });
+
+        doc.setFontSize(9);
+        doc.setTextColor(160, 174, 192);
+        doc.text("This is a computer-generated receipt and is valid without a signature.", 105, finalY + 20, { align: 'center' });
+
+        doc.save(`${receiptId}.pdf`);
+    };
 
     const handlePrint = () => {
         window.print();
@@ -94,7 +141,8 @@ const ReceiptModal = ({ fee, onClose }) => {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
                     <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
-                    <button className="btn btn-primary" style={{ flex: 2 }} onClick={handlePrint}>🖨 Print Receipt</button>
+                    <button className="btn btn-primary" style={{ flex: 2 }} onClick={downloadReceiptPDF}>📥 Download PDF</button>
+                    <button className="btn btn-secondary" style={{ flex: 1.5 }} onClick={handlePrint}>🖨 Print</button>
                 </div>
             </div>
         </div>

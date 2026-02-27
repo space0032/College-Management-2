@@ -8,3 +8,4 @@ export const getStudentCGPA = (studentId) => api.get(`/grades/student/${studentI
 export const getCourseGradeDistribution = (courseId) => api.get(`/grades/course/${courseId}/distribution`);
 
 export const saveGrade = (gradeData) => api.post('/grades', gradeData);
+export const bulkSaveGrade = (grades) => api.post('/grades/bulk', grades);

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-    getAllGrades, getStudentGrades, getStudentCGPA, saveGrade
+    getAllGrades, getStudentGrades, getStudentCGPA, saveGrade, bulkSaveGrade
 } from '../services/gradeService';
+import { safeParseFloat } from '../utils/validationUtils';
 import { getAllCourses } from '../services/courseService';
 import { getAllStudents } from '../services/studentService';
 import { exportToCSV } from '../utils/exportUtils';
@@ -18,6 +19,7 @@ const GradesPage = () => {
 
     // View State
     const [grades, setGrades] = useState([]);
+    const [viewFilter, setViewFilter] = useState('');
     const [cgpa, setCgpa] = useState(null);
 
     // Manage State (Admin/Faculty)
@@ -147,29 +149,46 @@ const GradesPage = () => {
     const handleBulkSubmit = async () => {
         const filled = bulkEntries.filter(e => e.marks !== '' && !isNaN(parseFloat(e.marks)));
         if (filled.length === 0) { alert('Please enter marks for at least one student.'); return; }
+
         setBulkSaving(true);
         setBulkResult(null);
-        let saved = 0; let failed = 0;
-        for (const entry of filled) {
-            try {
-                await saveGrade({
-                    studentId: entry.studentId,
-                    courseId: parseInt(bulkCourseId),
-                    examType: bulkExamType,
-                    marksObtained: parseFloat(entry.marks),
-                    grade: entry.grade
-                });
-                saved++;
-            } catch { failed++; }
+
+        try {
+            const payload = filled.map(entry => ({
+                studentId: entry.studentId,
+                courseId: parseInt(bulkCourseId),
+                examType: bulkExamType,
+                marksObtained: safeParseFloat(entry.marks),
+                grade: entry.grade
+            }));
+
+            const res = await bulkSaveGrade(payload);
+            setBulkResult({
+                saved: res.data.saved,
+                failed: filled.length - res.data.saved,
+                total: filled.length
+            });
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to bulk save grades');
+        } finally {
+            setBulkSaving(false);
         }
-        setBulkSaving(false);
-        setBulkResult({ saved, failed, total: filled.length });
     };
 
     const generateTranscript = () => {
-        if (!grades.length) return;
-        const studentName = user.role === 'STUDENT' ? (user.name || 'Student') : grades[0].studentName || 'Student';
-        const enrollmentNo = user.role === 'STUDENT' ? (user.enrollmentNumber || 'N/A') : grades[0].enrollmentNumber || 'N/A';
+        const dataToExport = viewFilter ? grades.filter(g =>
+            (g.studentName || '').toLowerCase().includes(viewFilter.toLowerCase()) ||
+            (g.enrollmentNumber || '').toLowerCase().includes(viewFilter.toLowerCase()) ||
+            (g.courseName || '').toLowerCase().includes(viewFilter.toLowerCase())
+        ) : grades;
+
+        if (!dataToExport.length) {
+            alert("No grade data found to generate transcript.");
+            return;
+        }
+
+        const studentName = user.role === 'STUDENT' ? (user.name || 'Student') : dataToExport[0].studentName || 'Student';
+        const enrollmentNo = user.role === 'STUDENT' ? (user.enrollmentNumber || 'N/A') : dataToExport[0].enrollmentNumber || 'N/A';
 
         const doc = new jsPDF();
 
@@ -186,19 +205,9 @@ const GradesPage = () => {
         const tableColumn = ["Course Name", "Credits", "Exam Type", "Marks (%)", "Grade"];
         const tableRows = [];
 
-        grades.forEach(g => {
-            tableRows.push([
-                g.courseName,
-                g.credits,
-                g.examType,
-                g.marksObtained,
-                g.grade
-            ]);
-        });
-
         doc.autoTable({
             head: [tableColumn],
-            body: tableRows,
+            body: dataToExport.map(g => [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]),
             startY: 45,
             theme: 'striped',
             headStyles: { fillColor: [99, 102, 241] }
@@ -257,7 +266,7 @@ const GradesPage = () => {
                             'grades_export'
                         )}>⬇ Export CSV</button>
                     )}
-                    {activeTab === 'view' && grades.length > 0 && user.role === 'STUDENT' && (
+                    {activeTab === 'view' && grades.length > 0 && (user.role === 'STUDENT' || SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
                         <button className="btn btn-primary" onClick={generateTranscript}>
                             📄 Download Transcript
                         </button>
@@ -267,6 +276,15 @@ const GradesPage = () => {
 
             {activeTab === 'view' && (
                 <>
+                    <div style={{ marginBottom: '20px' }}>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="🔍 Filter by student name, enrollment, or course..."
+                            value={viewFilter}
+                            onChange={e => setViewFilter(e.target.value)}
+                        />
+                    </div>
                     {user.role === 'STUDENT' && cgpa !== null && (
                         <div className="stat-card" style={{ marginBottom: '20px', background: 'linear-gradient(135deg, #2a0845 0%, #6441A5 100%)', color: 'white' }}>
                             <h3>Cumulative Grade Point Average (CGPA)</h3>
@@ -310,12 +328,18 @@ const GradesPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {grades.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={user.role !== 'STUDENT' ? 7 : 5} style={{ textAlign: 'center' }}>No grades found.</td>
-                                    </tr>
-                                ) : (
-                                    grades.map(g => (
+                                {(() => {
+                                    const filtered = grades.filter(g =>
+                                        (g.studentName || '').toLowerCase().includes(viewFilter.toLowerCase()) ||
+                                        (g.enrollmentNumber || '').toLowerCase().includes(viewFilter.toLowerCase()) ||
+                                        (g.courseName || '').toLowerCase().includes(viewFilter.toLowerCase())
+                                    );
+                                    if (filtered.length === 0) return (
+                                        <tr>
+                                            <td colSpan={user.role !== 'STUDENT' ? 7 : 5} style={{ textAlign: 'center' }}>No grades found matching your filter.</td>
+                                        </tr>
+                                    );
+                                    return filtered.map(g => (
                                         <tr key={g.id}>
                                             {user.role !== 'STUDENT' && <td>{g.studentName}</td>}
                                             {user.role !== 'STUDENT' && <td>{g.enrollmentNumber || 'N/A'}</td>}
@@ -330,7 +354,7 @@ const GradesPage = () => {
                                             </td>
                                         </tr>
                                     ))
-                                )}
+                                })()}
                             </tbody>
                         </table>
                     </div>

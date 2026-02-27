@@ -478,4 +478,55 @@ public class EnhancedFeeDAO {
         }
         return 0.0;
     }
+
+    /**
+     * Get total billed amount (Projected Revenue)
+     */
+    public double getTotalBilledAmount() {
+        String sql = "SELECT SUM(total_amount) as total FROM student_fees";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getDouble("total");
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Get recent payments for dashboard
+     */
+    public List<FeePayment> getRecentPayments(int limit) {
+        List<FeePayment> payments = new ArrayList<>();
+        String sql = "SELECT fp.*, s.name as student_name, fc.category_name " +
+                "FROM fee_payments fp " +
+                "JOIN student_fees sf ON fp.student_fee_id = sf.id " +
+                "JOIN students s ON sf.student_id = s.id " +
+                "JOIN fee_categories fc ON sf.category_id = fc.id " +
+                "ORDER BY fp.payment_date DESC, fp.id DESC LIMIT ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, limit);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                FeePayment payment = new FeePayment();
+                payment.setId(rs.getInt("id"));
+                payment.setPaymentDate(rs.getDate("payment_date"));
+                payment.setAmount(rs.getDouble("amount"));
+                payment.setStudentName(rs.getString("student_name"));
+                payment.setCategoryName(rs.getString("category_name"));
+                payments.add(payment);
+            }
+
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return payments;
+    }
 }

@@ -4,9 +4,15 @@ import com.college.dao.StudentDAO;
 import com.college.dao.FacultyDAO;
 import com.college.dao.CourseDAO;
 import com.college.dao.DepartmentDAO;
+import com.college.dao.EnhancedFeeDAO;
+import com.college.models.FeePayment;
+import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DashboardController extends BaseController implements HttpHandler {
 
@@ -36,15 +42,40 @@ public class DashboardController extends BaseController implements HttpHandler {
         if (!requireAuth(t))
             return;
         try {
-            int students = new StudentDAO().getAllStudents().size();
-            int faculty = new FacultyDAO().getAllFaculty().size();
-            int courses = new CourseDAO().getAllCourses().size();
-            int departments = new DepartmentDAO().getAllDepartments().size();
+            StudentDAO studentDAO = new StudentDAO();
+            FacultyDAO facultyDAO = new FacultyDAO();
+            CourseDAO courseDAO = new CourseDAO();
+            DepartmentDAO deptDAO = new DepartmentDAO();
 
-            String json = String.format(
-                    "{\"totalStudents\":%d, \"totalFaculty\":%d, \"activeCourses\":%d, \"departments\":%d}",
-                    students, faculty, courses, departments);
-            sendResponse(t, 200, json);
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalStudents", studentDAO.getAllStudents().size());
+            stats.put("totalFaculty", facultyDAO.getAllFaculty().size());
+            stats.put("activeCourses", courseDAO.getAllCourses().size());
+            stats.put("departments", deptDAO.getAllDepartments().size());
+
+            // Trends
+            stats.put("studentsThisWeek", studentDAO.getWeeklyCount());
+            stats.put("facultyThisWeek", facultyDAO.getWeeklyCount());
+            stats.put("coursesThisWeek", 0); // Not tracked yet
+
+            // Admin tier finance stats
+            TokenStore.TokenInfo info = getTokenInfo(t);
+            if (info != null && "ADMIN".equalsIgnoreCase(info.role)) {
+                EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
+                double totalBilled = feeDAO.getTotalBilledAmount();
+                double totalPaid = totalBilled - feeDAO.getTotalPendingAmount();
+                double collectionRate = totalBilled > 0 ? (totalPaid / totalBilled) * 100 : 0;
+
+                stats.put("projectedRevenue", totalBilled);
+                stats.put("collectionRate", Math.round(collectionRate * 10.0) / 10.0);
+                stats.put("todaysCollection", feeDAO.getTodaysCollectionAmount());
+
+                List<FeePayment> recent = feeDAO.getRecentPayments(5);
+                stats.put("recentCollections", recent);
+            }
+
+            Gson gson = new Gson();
+            sendResponse(t, 200, gson.toJson(stats));
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(t, 500, errorJson("Failed to fetch dashboard stats"));

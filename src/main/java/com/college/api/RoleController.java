@@ -117,6 +117,10 @@ public class RoleController extends BaseController implements HttpHandler {
     private void handleSetRolePermissions(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "UPDATE_ROLE"))
             return;
+
+        TokenStore.TokenInfo tokenInfo = getTokenInfo(t);
+        int requesterId = tokenInfo.userId;
+
         String[] parts = path.split("/");
         int roleId = Integer.parseInt(parts[parts.length - 2]);
         String body = readBody(t);
@@ -128,6 +132,20 @@ public class RoleController extends BaseController implements HttpHandler {
         List<Integer> permIds = new ArrayList<>();
         for (Double d : doubleIds)
             permIds.add(d.intValue());
+
+        // RBAC VALIDATION: Prevent Privilege Escalation
+        // Ensure user is not assigning permissions they don't have
+        PermissionDAO permDAO = new PermissionDAO();
+        List<Permission> requestedPerms = permDAO.getPermissionsByIds(permIds);
+        com.college.utils.PermissionService permService = com.college.utils.PermissionService.getInstance();
+
+        for (Permission p : requestedPerms) {
+            if (!permService.hasPermission(requesterId, p.getCode())) {
+                sendResponse(t, 403, errorJson(
+                        "Forbidden: You cannot assign permission '" + p.getCode() + "' that you do not possess."));
+                return;
+            }
+        }
 
         boolean ok = roleDAO.setRolePermissions(roleId, permIds);
         if (ok)

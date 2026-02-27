@@ -430,4 +430,21 @@ public class StudentDAO {
             return false;
         }
     }
+
+    /**
+     * Get count of students enrolled in the last 7 days
+     */
+    public int getWeeklyCount() {
+        String sql = "SELECT COUNT(*) as count FROM students WHERE enrollment_date >= CURRENT_DATE - INTERVAL '7 days'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
+    }
 }

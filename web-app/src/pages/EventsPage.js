@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     getEvents, registerEvent, getStudentEvents, unregisterEvent,
     getEventRegistrations, markAttendance, createEvent,
-    getEventBudgets, addEventBudget, deleteEventBudget,
-    getEventPolls, createEventPoll, closeEventPoll
+    getEventBudgets, addEventBudget, deleteEventBudget, updateBudgetActualCost,
+    getEventPolls, createEventPoll, closeEventPoll, voteEventPoll
 } from '../services/eventService';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import SessionManager from '../utils/SessionManager';
+import { safeParseFloat } from '../utils/validationUtils';
 
 const EventsPage = () => {
     const [, setLoading] = useState(false);
@@ -115,7 +116,11 @@ const EventsPage = () => {
 
     const handleSaveBudget = async () => {
         try {
-            await addEventBudget(selectedEventId, budgetForm);
+            await addEventBudget(selectedEventId, {
+                ...budgetForm,
+                estimatedCost: safeParseFloat(budgetForm.estimatedCost),
+                actualCost: safeParseFloat(budgetForm.actualCost)
+            });
             loadEventDetails(selectedEventId);
             setItemModal({ open: false });
         } catch (err) { alert('Failed to add budget item.'); }
@@ -127,6 +132,27 @@ const EventsPage = () => {
             loadEventDetails(selectedEventId);
             setItemModal({ open: false });
         } catch (err) { alert('Failed to create poll.'); }
+    };
+
+    const handleVote = async (pollId, option) => {
+        try {
+            await voteEventPoll(pollId, { studentId: user.id, option });
+            loadEventDetails(selectedEventId);
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to record vote.');
+        }
+    };
+
+    const handleUpdateCost = async (budgetId, actualCost, status) => {
+        try {
+            await updateBudgetActualCost(budgetId, {
+                actualCost: safeParseFloat(actualCost),
+                status
+            });
+            loadEventDetails(selectedEventId);
+        } catch (err) {
+            alert('Failed to update cost.');
+        }
     };
 
     const stats = [
@@ -268,8 +294,29 @@ const EventsPage = () => {
                                     columns={[
                                         { label: 'Line Item', key: 'item' },
                                         { label: 'Est. Cost', key: 'estimatedCost', render: (v) => `$${v}` },
-                                        { label: 'Actual', key: 'actualCost', render: (v) => v > 0 ? `$${v}` : '-' },
-                                        { label: 'Status', key: 'status' },
+                                        {
+                                            label: 'Actual', key: 'actualCost',
+                                            render: (v, row) => (
+                                                <input
+                                                    type="number"
+                                                    defaultValue={v}
+                                                    onBlur={(e) => handleUpdateCost(row.id, parseFloat(e.target.value), row.status)}
+                                                    style={{ width: '80px', padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                                                />
+                                            )
+                                        },
+                                        {
+                                            label: 'Status', key: 'status',
+                                            render: (v, row) => (
+                                                <select
+                                                    value={v}
+                                                    onChange={(e) => handleUpdateCost(row.id, row.actualCost, e.target.value)}
+                                                    style={{ padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                                                >
+                                                    {['PLANNED', 'APPROVED', 'PAID', 'CANCELLED'].map(s => <option key={s} value={s}>{s}</option>)}
+                                                </select>
+                                            )
+                                        },
                                         { label: 'Action', key: 'id', render: (v) => <button className="btn btn-sm btn-danger" onClick={() => deleteEventBudget(v).then(() => loadEventDetails(selectedEventId))}>Remove</button> }
                                     ]}
                                     data={budgets}
@@ -300,15 +347,29 @@ const EventsPage = () => {
                                             <span className={`badge ${p.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'}`}>{p.status}</span>
                                         </div>
                                         <div style={{ marginTop: '15px' }}>
-                                            {p.options.split(',').map(opt => (
-                                                <div key={opt} style={{ background: '#f7fafc', padding: '8px 12px', borderRadius: '6px', marginBottom: '5px', fontSize: '0.9rem' }}>
-                                                    {opt}
-                                                </div>
-                                            ))}
+                                            {p.options.split(',').map(opt => {
+                                                const voteCount = p.results?.[opt] || 0;
+                                                const totalVotes = Object.values(p.results || {}).reduce((a, b) => a + b, 0);
+                                                const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+
+                                                return (
+                                                    <div key={opt} style={{ marginBottom: '10px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
+                                                            <span>{opt}</span>
+                                                            <span style={{ fontWeight: 'bold' }}>{voteCount} votes ({percentage}%)</span>
+                                                        </div>
+                                                        <div style={{ height: '8px', background: '#edf2f7', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', cursor: p.status === 'ACTIVE' ? 'pointer' : 'default' }} onClick={() => p.status === 'ACTIVE' && handleVote(p.id, opt)}>
+                                                            <div style={{ width: `${percentage}%`, height: '100%', background: '#4299e1', transition: 'width 0.3s ease' }} />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        {p.status === 'ACTIVE' && (
-                                            <button className="btn btn-sm btn-secondary" style={{ marginTop: '10px' }} onClick={() => closeEventPoll(p.id).then(() => loadEventDetails(selectedEventId))}>Close Poll</button>
-                                        )}
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                            {p.status === 'ACTIVE' && (
+                                                <button className="btn btn-sm btn-secondary" onClick={() => closeEventPoll(p.id).then(() => loadEventDetails(selectedEventId))}>Close Poll</button>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

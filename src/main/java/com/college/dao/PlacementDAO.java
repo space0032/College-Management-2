@@ -8,7 +8,9 @@ import com.college.utils.DatabaseConnection;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PlacementDAO {
 
@@ -235,6 +237,43 @@ public class PlacementDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public int getTotalApplicationsCount() {
+        String sql = "SELECT COUNT(*) FROM placement_applications";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next())
+                return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<Map<String, Object>> getCompanyApplicationSummary() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT c.name as company, COUNT(a.id) as applications " +
+                "FROM placement_companies c " +
+                "LEFT JOIN placement_drives d ON c.id = d.company_id " +
+                "LEFT JOIN placement_applications a ON d.id = a.drive_id " +
+                "GROUP BY c.name " +
+                "HAVING COUNT(a.id) > 0 " +
+                "ORDER BY applications DESC";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("company", rs.getString("company"));
+                map.put("applications", rs.getInt("applications"));
+                list.add(map);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     private PlacementApplication mapApplication(ResultSet rs) throws SQLException {
