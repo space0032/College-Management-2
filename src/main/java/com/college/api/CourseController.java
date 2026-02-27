@@ -46,7 +46,16 @@ public class CourseController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_COURSE"))
             return;
         try {
-            List<Course> list = courseDAO.getAllCourses();
+            java.util.Map<String, String> params = getQueryMap(t);
+            int page = getIntParam(params, "page", 1);
+            int size = getIntParam(params, "size", 10);
+
+            List<Course> list = courseDAO.getAllCoursesPaginated(page, size);
+            int total = courseDAO.getTotalCount();
+
+            t.getResponseHeaders().add("X-Total-Count", String.valueOf(total));
+            t.getResponseHeaders().add("Access-Control-Expose-Headers", "X-Total-Count");
+
             sendResponse(t, 200, JsonHelper.toJson(list));
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));

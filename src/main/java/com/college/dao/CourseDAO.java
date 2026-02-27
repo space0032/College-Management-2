@@ -46,20 +46,24 @@ public class CourseDAO {
     }
 
     public List<Course> getAllCourses() {
+        return getAllCoursesPaginated(1, Integer.MAX_VALUE);
+    }
+
+    public List<Course> getAllCoursesPaginated(int page, int size) {
         List<Course> courses = new ArrayList<>();
+        int offset = (page - 1) * size;
         String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
                 "LEFT JOIN departments d ON c.department_id = d.id " +
                 "LEFT JOIN faculty f ON c.faculty_id = f.id " +
-                "ORDER BY c.code";
+                "ORDER BY c.code LIMIT ? OFFSET ?";
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            if (conn == null) {
-                Logger.error("Database connection failed");
-                return courses;
-            }
-            try (Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
+            pstmt.setInt(1, size);
+            pstmt.setInt(2, offset);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     courses.add(extractCourseFromResultSet(rs));
                 }

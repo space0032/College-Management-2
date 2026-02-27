@@ -1,64 +1,123 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useCallback, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllCourses, createCourse, updateCourse, deleteCourse } from '../services/courseService';
 import { exportToCSV } from '../utils/exportUtils';
 import SessionManager from '../utils/SessionManager';
+import { CONFIG } from '../config';
 
 const EMPTY_FORM = { name: '', code: '', credits: '', department: '', semester: '' };
 
+const initialState = {
+  courses: [],
+  loading: false,
+  error: '',
+  search: '',
+  page: 1,
+  hasMore: true,
+  pageSize: CONFIG.PAGINATION.DEFAULT_PAGE_SIZE,
+  totalCount: 0,
+  modalOpen: false,
+  form: EMPTY_FORM,
+  editId: null,
+  formError: '',
+  saving: false,
+  filterDept: '',
+  filterSem: ''
+};
+
+function courseReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, loading: true, error: '' };
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        courses: action.append ? [...state.courses, ...action.payload] : action.payload,
+        totalCount: action.total,
+        hasMore: (action.append ? state.courses.length + action.payload.length : action.payload.length) < action.total,
+        page: action.page || state.page
+      };
+    case 'FETCH_ERROR':
+      return { ...state, loading: false, error: action.payload };
+    case 'SET_SEARCH':
+      return { ...state, search: action.payload };
+    case 'SET_FILTER_DEPT':
+      return { ...state, filterDept: action.payload };
+    case 'SET_FILTER_SEM':
+      return { ...state, filterSem: action.payload };
+    case 'OPEN_MODAL':
+      return { ...state, modalOpen: true, form: action.form || EMPTY_FORM, editId: action.editId || null, formError: '' };
+    case 'CLOSE_MODAL':
+      return { ...state, modalOpen: false };
+    case 'SET_FORM':
+      return { ...state, form: { ...state.form, [action.name]: action.value }, formError: '' };
+    case 'SET_FORM_ERROR':
+      return { ...state, formError: action.payload, saving: false };
+    case 'SAVING_START':
+      return { ...state, saving: true };
+    case 'SAVING_DONE':
+      return { ...state, saving: false, modalOpen: false };
+    default:
+      return state;
+  }
+}
+
 const CourseManagementPage = () => {
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [editId, setEditId] = useState(null);
-  const [formError, setFormError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [searchQ, setSearchQ] = useState('');
-  const [filterDept, setFilterDept] = useState('');
-  const [filterSem, setFilterSem] = useState('');
+  const [state, dispatch] = useReducer(courseReducer, initialState);
+  const { courses, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, filterSem } = state;
 
   const userRole = SessionManager.getUserRole() || 'STUDENT';
   const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
+  const searchDebounce = useRef(null);
 
-  const fetchCourses = () => {
-    setLoading(true);
-    getAllCourses()
-      .then((res) => setCourses(res.data || []))
-      .catch(() => setError('Failed to load courses.'))
-      .finally(() => setLoading(false));
-  };
+  const fetchCourses = useCallback(async (pageNum = 1, append = false) => {
+    dispatch({ type: 'FETCH_START' });
+    try {
+      const res = await getAllCourses(pageNum, pageSize);
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: res.data || [],
+        total: parseInt(res.headers['x-total-count'] || '0'),
+        page: pageNum,
+        append
+      });
+    } catch {
+      dispatch({ type: 'FETCH_ERROR', payload: 'Failed to load courses.' });
+    }
+  }, [pageSize]);
 
-  useEffect(() => { fetchCourses(); }, []);
+  useEffect(() => {
+    fetchCourses(1, false);
+  }, [fetchCourses]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      fetchCourses(page + 1, true);
+    }
+  }, [fetchCourses, loading, hasMore, page]);
 
   const handleFormChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setFormError('');
-  };
-
-  const openAdd = () => { setForm(EMPTY_FORM); setEditId(null); setFormError(''); setModalOpen(true); };
-  const openEdit = (row) => {
-    setForm({ name: row.name || '', code: row.code || '', credits: String(row.credits || ''), department: row.department || '', semester: String(row.semester || '') });
-    setEditId(row.id); setFormError(''); setModalOpen(true);
+    dispatch({ type: 'SET_FORM', name: e.target.name, value: e.target.value });
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.code) { setFormError('Name and code are required.'); return; }
-    setSaving(true);
+    if (!form.name || !form.code) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name and code are required.' });
+      return;
+    }
+    dispatch({ type: 'SAVING_START' });
     try {
       if (editId) {
         await updateCourse(editId, form);
       } else {
         await createCourse(form);
       }
-      setModalOpen(false);
-      fetchCourses();
+      dispatch({ type: 'SAVING_DONE' });
+      fetchCourses(1, false);
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to save course.');
-    } finally {
-      setSaving(false);
+      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.message || 'Failed to save course.' });
     }
   };
 
@@ -66,23 +125,19 @@ const CourseManagementPage = () => {
     if (!window.confirm(`Delete course "${row.name}"?`)) return;
     try {
       await deleteCourse(row.id);
-      fetchCourses();
+      fetchCourses(1, false);
     } catch {
-      setError('Failed to delete course.');
+      dispatch({ type: 'FETCH_ERROR', payload: 'Failed to delete course.' });
     }
   };
 
-  // Derived data
-  const departments = [...new Set(courses.map(c => c.department).filter(Boolean))].sort();
-  const semesters = [...new Set(courses.map(c => String(c.semester)).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
+  const departments = useMemo(() => [...new Set(courses.map(c => c.department).filter(Boolean))].sort(), [courses]);
+  const semesters = useMemo(() => [...new Set(courses.map(c => String(c.semester)).filter(Boolean))].sort((a, b) => Number(a) - Number(b)), [courses]);
 
-  const filtered = courses
-    .filter(c => !searchQ || (c.name || '').toLowerCase().includes(searchQ.toLowerCase()) || (c.code || '').toLowerCase().includes(searchQ.toLowerCase()))
+  const filtered = useMemo(() => courses
+    .filter(c => !search || (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.code || '').toLowerCase().includes(search.toLowerCase()))
     .filter(c => !filterDept || c.department === filterDept)
-    .filter(c => !filterSem || String(c.semester) === filterSem);
-
-  const totalCredits = filtered.reduce((s, c) => s + (Number(c.credits) || 0), 0);
-  const avgCredits = filtered.length ? (totalCredits / filtered.length).toFixed(1) : '0';
+    .filter(c => !filterSem || String(c.semester) === filterSem), [courses, search, filterDept, filterSem]);
 
   const COLUMNS = [
     { key: 'id', label: 'ID' },
@@ -117,72 +172,62 @@ const CourseManagementPage = () => {
               'courses_export'
             )}>⬇ Export CSV</button>
           )}
-          {canManage && <button className="btn btn-primary" onClick={openAdd}>+ Add Course</button>}
+          {canManage && <button className="btn btn-primary" onClick={() => dispatch({ type: 'OPEN_MODAL' })}>+ Add Course</button>}
         </div>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '18px', flexWrap: 'wrap' }}>
-        {[
-          { label: 'Total Courses', value: courses.length, color: '#2b6cb0', bg: '#ebf8ff' },
-          { label: 'Departments', value: departments.length, color: '#276749', bg: '#f0fff4' },
-          { label: 'Filtered', value: filtered.length, color: '#c05621', bg: '#fffaf0' },
-          { label: 'Avg Credits', value: avgCredits, color: '#9f7aea', bg: '#faf5ff' },
-          { label: 'Total Credits', value: totalCredits, color: '#4a5568', bg: '#f7fafc' },
-        ].map(s => (
-          <div key={s.label} style={{ padding: '8px 16px', background: s.bg, borderRadius: '8px', minWidth: '100px', textAlign: 'center' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: '0.73rem', color: '#718096' }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search + Filters */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <input type="text" placeholder="Search by name or code…" value={searchQ} onChange={e => setSearchQ(e.target.value)}
+        <input type="text" placeholder="Search by name or code…" value={search} onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', flex: '1 1 200px', fontSize: '0.87rem' }} />
-        <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
+        <select value={filterDept} onChange={e => dispatch({ type: 'SET_FILTER_DEPT', payload: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.87rem' }}>
           <option value="">All Departments</option>
           {departments.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select value={filterSem} onChange={e => setFilterSem(e.target.value)}
+        <select value={filterSem} onChange={e => dispatch({ type: 'SET_FILTER_SEM', payload: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.87rem' }}>
           <option value="">All Semesters</option>
           {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
         </select>
-        {(searchQ || filterDept || filterSem) && (
-          <button className="btn btn-secondary btn-sm" onClick={() => { setSearchQ(''); setFilterDept(''); setFilterSem(''); }}>
-            ✕ Clear
-          </button>
-        )}
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
 
-      {loading ? (
-        <div className="loading-container"><div className="spinner" /><span>Loading courses…</span></div>
-      ) : (
-        <DataTable columns={COLUMNS} data={filtered} onEdit={canManage ? openEdit : undefined} onDelete={canManage ? handleDelete : undefined} emptyMessage="No courses found." />
+      <DataTable
+        columns={COLUMNS}
+        data={filtered}
+        loading={loading}
+        onEdit={canManage ? (row) => dispatch({ type: 'OPEN_MODAL', form: row, editId: row.id }) : undefined}
+        onDelete={canManage ? handleDelete : undefined}
+        emptyMessage="No courses found."
+      />
+
+      {hasMore && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+          <button className="btn btn-secondary" onClick={handleLoadMore} disabled={loading}>
+            {loading ? 'Loading...' : 'Load More Courses'}
+          </button>
+        </div>
       )}
 
-      <Modal isOpen={modalOpen} title={editId ? 'Edit Course' : 'Add Course'} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
+      <Modal isOpen={modalOpen} title={editId ? 'Edit Course' : 'Add Course'} onClose={() => dispatch({ type: 'CLOSE_MODAL' })} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-grid">
-          {[
-            { field: 'name', label: 'Course Name *', gridCol: '1 / -1' },
-            { field: 'code', label: 'Course Code *' },
-            { field: 'credits', label: 'Credits', type: 'number' },
-          ].map(({ field, label, type, gridCol }) => (
-            <div className="form-group" key={field} style={gridCol ? { gridColumn: gridCol } : {}}>
-              <label className="form-label" htmlFor={`course-${field}`}>{label}</label>
-              <input id={`course-${field}`} name={field} type={type || 'text'} className="form-control" value={form[field]} onChange={handleFormChange} placeholder={`Enter ${label.replace(' *', '').toLowerCase()}`} />
-            </div>
-          ))}
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Course Name *</label>
+            <input name="name" type="text" className="form-control" value={form.name} onChange={handleFormChange} placeholder="Enter course name" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Course Code *</label>
+            <input name="code" type="text" className="form-control" value={form.code} onChange={handleFormChange} placeholder="Enter code" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Credits</label>
+            <input name="credits" type="number" className="form-control" value={form.credits} onChange={handleFormChange} />
+          </div>
           <div className="form-group">
             <label className="form-label">Department</label>
-            <input name="department" type="text" className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Computer Science" list="dept-list" />
-            <datalist id="dept-list">{departments.map(d => <option key={d} value={d} />)}</datalist>
+            <input name="department" type="text" className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Computer Science" />
           </div>
           <div className="form-group">
             <label className="form-label">Semester</label>
