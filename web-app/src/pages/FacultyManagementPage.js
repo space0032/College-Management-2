@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllFaculty, createFaculty, updateFaculty, deleteFaculty, searchFaculty } from '../services/facultyService';
@@ -90,22 +90,11 @@ const FacultyManagementPage = () => {
     }
   };
 
-  const handleFormChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setFormError('');
-  };
-
-  const openAdd = () => {
-    setForm(EMPTY_FORM);
-    setEditId(null);
-    setModalOpen(true);
-  };
-
-  const handleFormChange = useCallback((e) => {
+  const handleFormChange = React.useCallback((e) => {
     dispatch({ type: 'SET_FORM', name: e.target.name, value: e.target.value });
   }, []);
 
-  const openAdd = useCallback(() => {
+  const openAdd = React.useCallback(() => {
     dispatch({ type: 'OPEN_MODAL' });
   }, []);
 
@@ -142,20 +131,6 @@ const FacultyManagementPage = () => {
     }
   }, [fetchFaculty]);
 
-  const handleExport = useCallback(() => {
-    exportToCSV(
-      ['ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
-      filteredFaculty.map(f => [f.id, f.name, f.email, f.phone, f.department, f.qualification]),
-      'faculty_export'
-    );
-  }, [filteredFaculty]);
-
-  const filteredFaculty = useMemo(() => faculty.filter(f => !filterDept || f.department === filterDept), [faculty, filterDept]);
-
-  // Stats
-  const totalFacultyCount = totalCount;
-  const depts = useMemo(() => [...new Set(faculty.map(f => f.department).filter(Boolean))], [faculty]);
-  const phds = useMemo(() => faculty.filter(f => (f.qualification || '').toUpperCase().includes('PHD')).length, [faculty]);
 
   const COLUMNS = [
     { key: 'id', label: 'ID' },
@@ -200,6 +175,20 @@ const FacultyManagementPage = () => {
     }
   ];
 
+  const depts = useMemo(() => [...new Set(faculty.map(f => f.department).filter(Boolean))].sort(), [faculty]);
+  const phds = useMemo(() => faculty.filter(f => (f.qualification || '').toUpperCase().includes('PHD')).length, [faculty]);
+  const handleExport = useCallback(() => {
+    exportToCSV(
+      ['ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
+      faculty.map(f => [f.id, f.name, f.email, f.phone, f.department, f.qualification]),
+      'faculty_export'
+    );
+  }, [faculty]);
+
+  const filteredFaculty = useMemo(() => {
+    return faculty.filter(f => !filterDept || f.department === filterDept);
+  }, [faculty, filterDept]);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -217,7 +206,7 @@ const FacultyManagementPage = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '25px' }}>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)', color: 'white' }}>
           <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>Total Faculty</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{totalFacultyCount}</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{totalCount}</div>
         </div>
         <div className="stat-card">
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Active Departments</div>

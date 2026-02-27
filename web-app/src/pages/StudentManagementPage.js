@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents } from '../services/studentService';
@@ -255,7 +255,7 @@ const StudentManagementPage = () => {
 
       {/* Controls Bar */}
       <div className="card" style={{ padding: '15px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', borderRadius: '12px', border: '1px solid #edf2f7' }}>
-        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} style={{ display: 'flex', gap: '10px', flex: 1, maxWidth: '500px' }}>
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(search); }} style={{ display: 'flex', gap: '10px', flex: 1, maxWidth: '500px' }}>
           <input
             type="text"
             className="form-control"
@@ -369,7 +369,7 @@ const StudentManagementPage = () => {
       <Modal
         isOpen={modalOpen}
         title={editId ? 'Edit Student' : 'Add New Student'}
-        onClose={() => setModalOpen(false)}
+        onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
         onSubmit={handleSave}
         submitLabel={saving ? 'Saving...' : 'Save Student'}
       >
