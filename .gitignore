@@ -46,6 +46,10 @@ temp/
 .env
 env
 
+# H2 Database (Fallback)
+data/
+*.mv.db
+*.trace.db
 # React / Node
 web-app/node_modules/
 web-app/build/

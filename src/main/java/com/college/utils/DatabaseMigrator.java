@@ -8,10 +8,23 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.util.stream.Collectors;
 
+/**
+ * Database migrator that applies SQL migration scripts.
+ * Supports both PostgreSQL (primary) and H2 (fallback) databases.
+ * 
+ * Migration scripts are written in PostgreSQL syntax. When running against H2
+ * (MODE=PostgreSQL), most syntax is compatible natively.
+ */
 public class DatabaseMigrator {
 
     public static void migrate() {
         System.out.println("Starting Database Migration...");
+        System.out.println("Active Database: " + DatabaseConnection.getActiveDatabase().getDisplayName());
+
+        if (DatabaseConnection.isUsingFallback()) {
+            System.out.println("[Migration] H2 fallback is active; schema was already initialized by H2SchemaInitializer. Skipping PostgreSQL migrations.");
+            return;
+        }
         
         String[] migrations = {
             "V1__Supabase_Schema.sql",
@@ -55,12 +68,17 @@ public class DatabaseMigrator {
                             .lines()
                             .collect(Collectors.joining("\n"));
 
+                    // Adapt SQL for H2 if running in fallback mode
+                    if (DatabaseConnection.isUsingFallback()) {
+                        sql = adaptForH2(sql);
+                    }
+
                     // Execute migration
                     stmt.execute(sql);
                     System.out.println(fileName + " executed successfully!");
                 } catch (Exception e) {
                     System.err.println("Failed to execute " + fileName + ": " + e.getMessage());
-                    // Continue with others if possible, or break if critical
+                    // Continue with others if possible
                 }
             }
             System.out.println("Database Migration Complete!");
@@ -69,5 +87,21 @@ public class DatabaseMigrator {
             System.err.println("Migration Failed: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Adapt PostgreSQL SQL for H2 compatibility.
+     * Most syntax works with MODE=PostgreSQL, but some edge cases need fixing.
+     */
+    private static String adaptForH2(String sql) {
+        String adapted = sql;
+
+        // Remove PostgreSQL-specific extension commands
+        adapted = adapted.replaceAll("(?i)CREATE\\s+EXTENSION\\s+.*?;", "-- extension removed for H2");
+
+        // Remove SET search_path
+        adapted = adapted.replaceAll("(?i)SET\\s+search_path\\s*=.*?;", "-- search_path removed for H2");
+
+        return adapted;
     }
 }

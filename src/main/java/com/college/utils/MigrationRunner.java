@@ -12,10 +12,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Migration runner that applies pending SQL migrations.
+ * Supports both PostgreSQL (primary) and H2 (fallback) databases.
+ * Tracks applied migrations in a schema_version table.
+ */
 public class MigrationRunner {
 
     public static void runMigrations() {
         System.out.println("[Migration] Checking for pending migrations...");
+        System.out.println("[Migration] Active Database: " + DatabaseConnection.getActiveDatabase().getDisplayName());
+
+        if (DatabaseConnection.isUsingFallback()) {
+            System.out.println("[Migration] H2 fallback is active; migrations are already handled by H2SchemaInitializer. Skipping PostgreSQL migration runner.");
+            return;
+        }
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             // 1. Ensure schema_version table exists
@@ -105,18 +116,28 @@ public class MigrationRunner {
                 sqlContent = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
 
-            // Execute SQL (Simple split by semicolon for multiple statements, simplistic
-            // approach)
-            // Ideally we should use a proper SQL parser, but for this scope, simple
-            // splitting is fine
-            // provided statements don't contain semicolons in string literals.
+            // Adapt SQL for H2 if running in fallback mode
+            if (DatabaseConnection.isUsingFallback()) {
+                sqlContent = adaptForH2(sqlContent);
+            }
+
+            // Execute SQL (Simple split by semicolon for multiple statements)
             String[] statements = sqlContent.split(";");
             conn.setAutoCommit(false);
 
             try (Statement stmt = conn.createStatement()) {
                 for (String sql : statements) {
                     if (!sql.trim().isEmpty()) {
-                        stmt.execute(sql.trim());
+                        try {
+                            stmt.execute(sql.trim());
+                        } catch (SQLException e) {
+                            // In H2 mode, some PG-specific statements may fail — log and continue
+                            if (DatabaseConnection.isUsingFallback()) {
+                                Logger.debug("[Migration] Statement skipped in H2 mode: " + e.getMessage());
+                            } else {
+                                throw e;
+                            }
+                        }
                     }
                 }
 
@@ -141,5 +162,15 @@ public class MigrationRunner {
         } catch (Exception e) {
             throw new SQLException("Error applying migration " + fileName, e);
         }
+    }
+
+    /**
+     * Adapt PostgreSQL SQL for H2 compatibility.
+     */
+    private static String adaptForH2(String sql) {
+        String adapted = sql;
+        adapted = adapted.replaceAll("(?i)CREATE\\s+EXTENSION\\s+.*?;", "-- extension removed for H2");
+        adapted = adapted.replaceAll("(?i)SET\\s+search_path\\s*=.*?;", "-- search_path removed for H2");
+        return adapted;
     }
 }

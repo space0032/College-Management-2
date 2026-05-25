@@ -101,7 +101,7 @@ public class SessionManager {
             return false;
         }
 
-        if (userRole != null && userRole.getPermissions() != null) {
+        if (userRole != null && userRole.getPermissions() != null && !userRole.getPermissions().isEmpty()) {
             return userRole.hasPermission(permissionCode);
         }
         // Fallback to legacy role-based checks
@@ -181,27 +181,27 @@ public class SessionManager {
      * Check if current user is admin (legacy)
      */
     public boolean isAdmin() {
-        return "ADMIN".equals(role);
+        return role != null && "ADMIN".equalsIgnoreCase(role);
     }
 
     /**
      * Check if current user is faculty (legacy)
      */
     public boolean isFaculty() {
-        return "FACULTY".equals(role);
+        return role != null && "FACULTY".equalsIgnoreCase(role);
     }
 
     /**
      * Check if current user is student (legacy)
      */
     public boolean isStudent() {
-        return "STUDENT".equals(role);
+        return role != null && "STUDENT".equalsIgnoreCase(role);
     }
 
     /**
      * Check if current user is warden (legacy)
      */
     public boolean isWarden() {
-        return "WARDEN".equals(role);
+        return role != null && "WARDEN".equalsIgnoreCase(role);
     }
 }
