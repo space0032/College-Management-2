@@ -46,6 +46,7 @@ public class DatabaseConnection {
     private static final ReentrantLock switchLock = new ReentrantLock();
     private static volatile boolean h2Initialized = false;
     private static volatile boolean healthMonitorStarted = false;
+    private static volatile boolean initialized = false;
 
     // ─── PostgreSQL Configuration ────────────────────────────────────────
     private static String PG_URL = "jdbc:postgresql://localhost:5432/college_db";
@@ -71,8 +72,13 @@ public class DatabaseConnection {
 
     static {
         loadEnv();
-        initPgDataSource();
-        // H2 is initialized lazily on first failover
+    }
+
+    private static synchronized void ensureInitialized() {
+        if (!initialized) {
+            initialized = true;
+            initPgDataSource();
+        }
     }
 
     /**
@@ -228,6 +234,7 @@ public class DatabaseConnection {
      * @throws SQLException if no connection is available from any source
      */
     public static Connection getConnection() throws SQLException {
+        ensureInitialized();
         ActiveDatabase current = activeDb.get();
 
         if (current == ActiveDatabase.POSTGRES) {
@@ -383,6 +390,7 @@ public class DatabaseConnection {
      * Check if the application is currently using the H2 fallback
      */
     public static boolean isUsingFallback() {
+        ensureInitialized();
         return activeDb.get() == ActiveDatabase.H2;
     }
 
@@ -390,6 +398,7 @@ public class DatabaseConnection {
      * Get the currently active database
      */
     public static ActiveDatabase getActiveDatabase() {
+        ensureInitialized();
         return activeDb.get();
     }
 

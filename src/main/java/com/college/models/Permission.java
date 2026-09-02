@@ -1,5 +1,7 @@
 package com.college.models;
 
+import java.util.Objects;
+
 /**
  * Permission Model for RBAC
  */
@@ -68,14 +70,14 @@ public class Permission {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Permission) {
-            return this.code.equals(((Permission) obj).code);
-        }
-        return false;
+        if (this == obj) return true;
+        if (!(obj instanceof Permission)) return false;
+        Permission other = (Permission) obj;
+        return Objects.equals(code, other.code);
     }
 
     @Override
     public int hashCode() {
-        return code.hashCode();
+        return Objects.hashCode(code);
     }
 }

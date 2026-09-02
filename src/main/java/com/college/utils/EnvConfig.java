@@ -34,6 +34,10 @@ public class EnvConfig {
     }
 
     public static String get(String key) {
+        String systemValue = System.getenv(key);
+        if (systemValue != null && !systemValue.isBlank()) {
+            return systemValue;
+        }
         return ENV.get(key);
     }
 }

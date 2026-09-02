@@ -64,16 +64,14 @@ public class ApiServer {
         public void handle(HttpExchange t) throws IOException {
             // Handle CORS preflight for root
             if ("OPTIONS".equals(t.getRequestMethod())) {
-                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-                t.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-                t.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                t.sendResponseHeaders(204, -1);
+                CorsSupport.addHeaders(t);
+                t.sendResponseHeaders(CorsSupport.isOriginAllowed(t) ? 204 : 403, -1);
                 t.getResponseBody().close();
                 return;
             }
             String response = "{\"status\":\"College Management API is running\",\"version\":\"2.0\"}";
             t.getResponseHeaders().set("Content-Type", "application/json");
-            t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            CorsSupport.addHeaders(t);
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
@@ -92,10 +90,8 @@ public class ApiServer {
         public void handle(HttpExchange t) throws IOException {
             // Handle CORS preflight
             if ("OPTIONS".equals(t.getRequestMethod())) {
-                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-                t.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-                t.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                t.sendResponseHeaders(204, -1);
+                CorsSupport.addHeaders(t);
+                t.sendResponseHeaders(CorsSupport.isOriginAllowed(t) ? 204 : 403, -1);
                 t.getResponseBody().close();
                 return;
             }
@@ -104,7 +100,7 @@ public class ApiServer {
             if (auth == null || !auth.startsWith("Bearer ")) {
                 String resp = "{\"error\":\"Unauthorized - Token required\"}";
                 t.getResponseHeaders().set("Content-Type", "application/json");
-                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                CorsSupport.addHeaders(t);
                 byte[] bytes = resp.getBytes();
                 t.sendResponseHeaders(401, bytes.length);
                 t.getResponseBody().write(bytes);
@@ -116,7 +112,7 @@ public class ApiServer {
             if (info == null) {
                 String resp = "{\"error\":\"Unauthorized - Invalid or expired token\"}";
                 t.getResponseHeaders().set("Content-Type", "application/json");
-                t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                CorsSupport.addHeaders(t);
                 byte[] bytes = resp.getBytes();
                 t.sendResponseHeaders(401, bytes.length);
                 t.getResponseBody().write(bytes);

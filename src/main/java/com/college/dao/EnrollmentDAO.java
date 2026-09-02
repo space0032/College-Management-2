@@ -11,11 +11,35 @@ import java.util.List;
 
 public class EnrollmentDAO {
 
-    private final UserDAO userDAO = new UserDAO();
-    private final StudentDAO studentDAO = new StudentDAO();
-    private final RoleDAO roleDAO = new RoleDAO();
-    private final EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
-    private final com.college.dao.CourseDAO courseDAO = new com.college.dao.CourseDAO();
+    @FunctionalInterface
+    interface ConnectionProvider { Connection get() throws SQLException; }
+    @FunctionalInterface
+    interface EnrollmentNumberProvider { String generate(String department); }
+
+    private final UserDAO userDAO;
+    private final StudentDAO studentDAO;
+    private final RoleDAO roleDAO;
+    private final EnhancedFeeDAO feeDAO;
+    private final CourseDAO courseDAO;
+    private final ConnectionProvider connectionProvider;
+    private final EnrollmentNumberProvider enrollmentNumberProvider;
+
+    public EnrollmentDAO() {
+        this(new UserDAO(), new StudentDAO(), new RoleDAO(), new EnhancedFeeDAO(), new CourseDAO(),
+                DatabaseConnection::getConnection, EnrollmentGenerator::generateStudentEnrollment);
+    }
+
+    EnrollmentDAO(UserDAO userDAO, StudentDAO studentDAO, RoleDAO roleDAO,
+            EnhancedFeeDAO feeDAO, CourseDAO courseDAO, ConnectionProvider connectionProvider,
+            EnrollmentNumberProvider enrollmentNumberProvider) {
+        this.userDAO = userDAO;
+        this.studentDAO = studentDAO;
+        this.roleDAO = roleDAO;
+        this.feeDAO = feeDAO;
+        this.courseDAO = courseDAO;
+        this.connectionProvider = connectionProvider;
+        this.enrollmentNumberProvider = enrollmentNumberProvider;
+    }
 
     /**
      * Enrolls a new student with transaction safety.
@@ -31,11 +55,11 @@ public class EnrollmentDAO {
     public Student enrollStudent(Student student, String password) {
         Connection conn = null;
         try {
-            conn = DatabaseConnection.getConnection();
+            conn = connectionProvider.get();
             conn.setAutoCommit(false); // Start Transaction
 
             // 1. Generate Enrollment Number
-            String enrollmentNumber = EnrollmentGenerator.generateStudentEnrollment(student.getDepartment());
+            String enrollmentNumber = enrollmentNumberProvider.generate(student.getDepartment());
             student.setUsername(enrollmentNumber);
 
             // 2. Create User Account with Role ID
@@ -109,6 +133,9 @@ public class EnrollmentDAO {
         try {
             List<com.college.models.Course> coreCourses = courseDAO.getCoreCourses(student.getDepartment(),
                     student.getSemester());
+            if (coreCourses.isEmpty()) {
+                return;
+            }
             // Need to bypass DAO transaction since we are already in one, or use a method
             // that accepts connection
             // CourseRegistrationDAO.registerCourse manages its own transaction which might

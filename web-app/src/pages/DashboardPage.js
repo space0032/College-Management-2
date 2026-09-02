@@ -1,51 +1,67 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import HomePage from './HomePage';
-import StudentManagementPage from './StudentManagementPage';
-import FacultyManagementPage from './FacultyManagementPage';
-import CourseManagementPage from './CourseManagementPage';
-import AttendancePage from './AttendancePage';
-import LibraryPage from './LibraryPage';
-import FeesPage from './FeesPage';
-import TimetablePage from './TimetablePage';
-import PlacementPage from './PlacementPage';
-import HostelPage from './HostelPage';
-import ClubsPage from './ClubsPage';
-import EventsPage from './EventsPage';
-import GradesPage from './GradesPage';
-import ReportsPage from './ReportsPage';
-import GatePassPage from './GatePassPage';
-import VisitorPage from './VisitorPage';
-import AcademicCalendarPage from './AcademicCalendarPage';
-import ScholarshipPage from './ScholarshipPage';
-import AssignmentPage from './AssignmentPage';
-import CrowdfundingPage from './CrowdfundingPage';
-import InstituteManagementPage from './InstituteManagementPage';
-import ResourceManagementPage from './ResourceManagementPage';
-import EmployeeManagementPage from './EmployeeManagementPage';
-import LeaveApprovalPage from './LeaveApprovalPage';
-import RoomAvailabilityPage from './RoomAvailabilityPage';
-import FacultyWorkloadPage from './FacultyWorkloadPage';
-import StudentActivitiesPage from './StudentActivitiesPage';
-import AnnouncementPage from './AnnouncementPage';
-import NotificationPage from './NotificationPage';
-import PayrollManagementPage from './PayrollManagementPage';
-import SyllabusManagementPage from './SyllabusManagementPage';
-import LearningPortalPage from './LearningPortalPage';
-import VolunteerTasksPage from './VolunteerTasksPage';
-import StudentProfilePage from './StudentProfilePage';
-import AuditLogPage from './AuditLogPage';
-import DepartmentPage from './DepartmentPage'; // Keep for now, as the instruction implies replacement, but the snippet adds a new route for InstituteManagementPage and keeps DepartmentPage.
-import ProfilePage from './ProfilePage';
-import StaffLeavePage from './StaffLeavePage';
-import ChangePasswordPage from './ChangePasswordPage';
-import SettingsPage from './SettingsPage';
-import StudentAffairsPage from './StudentAffairsPage';
-import RoleManagementPage from './RoleManagementPage';
-import NotFoundPage from './NotFoundPage';
 import SessionManager from '../utils/SessionManager';
+
+const pages = {
+  HomePage: lazy(() => import('./HomePage')),
+  StudentManagementPage: lazy(() => import('./StudentManagementPage')),
+  FacultyManagementPage: lazy(() => import('./FacultyManagementPage')),
+  CourseManagementPage: lazy(() => import('./CourseManagementPage')),
+  AttendancePage: lazy(() => import('./AttendancePage')),
+  LibraryPage: lazy(() => import('./LibraryPage')),
+  FeesPage: lazy(() => import('./FeesPage')),
+  TimetablePage: lazy(() => import('./TimetablePage')),
+  PlacementPage: lazy(() => import('./PlacementPage')),
+  HostelPage: lazy(() => import('./HostelPage')),
+  ClubsPage: lazy(() => import('./ClubsPage')),
+  EventsPage: lazy(() => import('./EventsPage')),
+  GradesPage: lazy(() => import('./GradesPage')),
+  ReportsPage: lazy(() => import('./ReportsPage')),
+  GatePassPage: lazy(() => import('./GatePassPage')),
+  VisitorPage: lazy(() => import('./VisitorPage')),
+  AcademicCalendarPage: lazy(() => import('./AcademicCalendarPage')),
+  ScholarshipPage: lazy(() => import('./ScholarshipPage')),
+  AssignmentPage: lazy(() => import('./AssignmentPage')),
+  CrowdfundingPage: lazy(() => import('./CrowdfundingPage')),
+  InstituteManagementPage: lazy(() => import('./InstituteManagementPage')),
+  ResourceManagementPage: lazy(() => import('./ResourceManagementPage')),
+  EmployeeManagementPage: lazy(() => import('./EmployeeManagementPage')),
+  LeaveApprovalPage: lazy(() => import('./LeaveApprovalPage')),
+  RoomAvailabilityPage: lazy(() => import('./RoomAvailabilityPage')),
+  FacultyWorkloadPage: lazy(() => import('./FacultyWorkloadPage')),
+  StudentActivitiesPage: lazy(() => import('./StudentActivitiesPage')),
+  AnnouncementPage: lazy(() => import('./AnnouncementPage')),
+  NotificationPage: lazy(() => import('./NotificationPage')),
+  PayrollManagementPage: lazy(() => import('./PayrollManagementPage')),
+  SyllabusManagementPage: lazy(() => import('./SyllabusManagementPage')),
+  LearningPortalPage: lazy(() => import('./LearningPortalPage')),
+  VolunteerTasksPage: lazy(() => import('./VolunteerTasksPage')),
+  StudentProfilePage: lazy(() => import('./StudentProfilePage')),
+  AuditLogPage: lazy(() => import('./AuditLogPage')),
+  DepartmentPage: lazy(() => import('./DepartmentPage')),
+  ProfilePage: lazy(() => import('./ProfilePage')),
+  StaffLeavePage: lazy(() => import('./StaffLeavePage')),
+  ChangePasswordPage: lazy(() => import('./ChangePasswordPage')),
+  SettingsPage: lazy(() => import('./SettingsPage')),
+  StudentAffairsPage: lazy(() => import('./StudentAffairsPage')),
+  RoleManagementPage: lazy(() => import('./RoleManagementPage')),
+  NotFoundPage: lazy(() => import('./NotFoundPage')),
+};
+
+const {
+  HomePage, StudentManagementPage, FacultyManagementPage, CourseManagementPage,
+  AttendancePage, LibraryPage, FeesPage, TimetablePage, PlacementPage, HostelPage,
+  ClubsPage, EventsPage, GradesPage, ReportsPage, GatePassPage, VisitorPage,
+  AcademicCalendarPage, ScholarshipPage, AssignmentPage, CrowdfundingPage,
+  InstituteManagementPage, ResourceManagementPage, EmployeeManagementPage,
+  LeaveApprovalPage, RoomAvailabilityPage, FacultyWorkloadPage, StudentActivitiesPage,
+  AnnouncementPage, NotificationPage, PayrollManagementPage, SyllabusManagementPage,
+  LearningPortalPage, VolunteerTasksPage, StudentProfilePage, AuditLogPage,
+  DepartmentPage, ProfilePage, StaffLeavePage, ChangePasswordPage, SettingsPage,
+  StudentAffairsPage, RoleManagementPage, NotFoundPage,
+} = pages;
 
 const DashboardPage = () => {
   const userRole = SessionManager.getUserRole() || 'STUDENT';
@@ -58,6 +74,7 @@ const DashboardPage = () => {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Header />
         <main className="main-content">
+          <Suspense fallback={<div className="loading-state">Loading page…</div>}>
           <Routes>
             <Route index element={<HomePage />} />
 
@@ -118,6 +135,7 @@ const DashboardPage = () => {
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          </Suspense>
         </main>
       </div>
     </div>

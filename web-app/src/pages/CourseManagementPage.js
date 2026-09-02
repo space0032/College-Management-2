@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useReducer, useCallback, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllCourses, createCourse, updateCourse, deleteCourse } from '../services/courseService';
@@ -66,12 +66,10 @@ function courseReducer(state, action) {
 
 const CourseManagementPage = () => {
   const [state, dispatch] = useReducer(courseReducer, initialState);
-  const { courses, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, filterSem } = state;
+  const { courses, loading, error, search, page, hasMore, pageSize, modalOpen, form, editId, formError, saving, filterDept, filterSem } = state;
 
   const userRole = SessionManager.getUserRole() || 'STUDENT';
   const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
-  const searchDebounce = useRef(null);
-
   const fetchCourses = useCallback(async (pageNum = 1, append = false) => {
     dispatch({ type: 'FETCH_START' });
     try {

@@ -22,6 +22,9 @@ test_sources.txt
 # Logs
 *.log
 app_errors.log
+*_log.txt
+lint*.txt
+lint*.json
 
 # IDEs
 .idea/
@@ -41,6 +44,8 @@ Thumbs.db
 # Temp
 tmp/
 temp/
+patch_*.js
+patch_*.py
 
 # Secrets
 .env

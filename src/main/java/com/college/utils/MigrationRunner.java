@@ -34,6 +34,7 @@ public class MigrationRunner {
 
             // 2. Find migration files
             List<String> migrationFiles = findMigrationFiles();
+            validateUniqueVersions(migrationFiles);
 
             for (String file : migrationFiles) {
                 String version = extractVersion(file);
@@ -93,6 +94,16 @@ public class MigrationRunner {
         // V1__Description.sql -> 1
         // We will store "1" or "V1"
         return fileName.split("__")[0];
+    }
+
+    private static void validateUniqueVersions(List<String> files) {
+        java.util.Set<String> versions = new java.util.HashSet<>();
+        for (String file : files) {
+            String version = extractVersion(file);
+            if (!versions.add(version)) {
+                throw new IllegalStateException("Duplicate migration version " + version + " (including " + file + ")");
+            }
+        }
     }
 
     private static boolean isMigrationApplied(Connection conn, String version) throws SQLException {

@@ -6,11 +6,14 @@ import java.nio.charset.StandardCharsets;
 
 import com.college.api.TokenStore.TokenInfo;
 import com.college.utils.PermissionService;
+import com.google.gson.Gson;
+import java.util.Map;
 
 /**
  * Base handler providing shared utilities for all API controllers.
  */
 public abstract class BaseController {
+    protected static final Gson JSON = new Gson();
 
     protected void sendResponse(HttpExchange t, int statusCode, String response) throws IOException {
         addCorsHeaders(t);
@@ -22,15 +25,13 @@ public abstract class BaseController {
     }
 
     protected void addCorsHeaders(HttpExchange t) {
-        t.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-        t.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        t.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        CorsSupport.addHeaders(t);
     }
 
     protected boolean handleOptions(HttpExchange t) throws IOException {
         if ("OPTIONS".equals(t.getRequestMethod())) {
             addCorsHeaders(t);
-            t.sendResponseHeaders(204, -1);
+            t.sendResponseHeaders(CorsSupport.isOriginAllowed(t) ? 204 : 403, -1);
             t.getResponseBody().close();
             return true;
         }
@@ -42,7 +43,7 @@ public abstract class BaseController {
     }
 
     protected String errorJson(String message) {
-        return "{\"error\":\"" + message.replace("\"", "'") + "\"}";
+        return JSON.toJson(Map.of("error", message == null ? "Unexpected error" : message));
     }
 
     protected TokenStore.TokenInfo getTokenInfo(HttpExchange t) {

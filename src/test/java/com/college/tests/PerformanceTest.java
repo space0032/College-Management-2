@@ -43,6 +43,7 @@ public class PerformanceTest {
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
+            int eventCreatorUserId = 0;
 
             // 1. Bulk Create Users & Students
             String userSql = "INSERT INTO users (username, password, role) VALUES (?, 'hashed_pass', 'STUDENT')";
@@ -58,6 +59,9 @@ public class PerformanceTest {
                     var rs = userStmt.getGeneratedKeys();
                     if (rs.next()) {
                         int userId = rs.getInt(1);
+                        if (eventCreatorUserId == 0) {
+                            eventCreatorUserId = userId;
+                        }
                         studentStmt.setInt(1, userId);
                         studentStmt.setString(2, "Student " + i);
                         studentStmt.setString(3, "student" + i + "@test.com");
@@ -67,7 +71,10 @@ public class PerformanceTest {
             }
 
             // 2. Bulk Create Events
-            String eventSql = "INSERT INTO events (name, description, event_type, start_time, end_time, created_by) VALUES (?, 'Perf Test', 'ACADEMIC', ?, ?, 1)";
+            if (eventCreatorUserId == 0) {
+                throw new IllegalStateException("Performance test could not create an event owner");
+            }
+            String eventSql = "INSERT INTO events (name, description, event_type, start_time, end_time, created_by) VALUES (?, 'Perf Test', 'ACADEMIC', ?, ?, ?)";
             Timestamp start = Timestamp.valueOf(LocalDateTime.now().plusDays(1));
             Timestamp end = Timestamp.valueOf(LocalDateTime.now().plusDays(1).plusHours(2));
 
@@ -76,6 +83,7 @@ public class PerformanceTest {
                     eventStmt.setString(1, "Perf Event " + i);
                     eventStmt.setTimestamp(2, start);
                     eventStmt.setTimestamp(3, end);
+                    eventStmt.setInt(4, eventCreatorUserId);
                     eventStmt.addBatch();
                 }
                 eventStmt.executeBatch();

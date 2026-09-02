@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import com.google.gson.JsonParseException;
 
 public class AuthController extends BaseController implements HttpHandler {
 
@@ -38,10 +41,9 @@ public class AuthController extends BaseController implements HttpHandler {
 
     private void handleLogin(HttpExchange t) throws IOException {
         try {
-            String body = readBody(t);
-            // Parse username and password from JSON
-            String username = extractJsonString(body, "username");
-            String password = extractJsonString(body, "password");
+            LoginRequest request = JSON.fromJson(readBody(t), LoginRequest.class);
+            String username = request == null ? null : request.username;
+            String password = request == null ? null : request.password;
 
             if (username == null || password == null) {
                 sendResponse(t, 400, errorJson("Username and password required"));
@@ -64,20 +66,19 @@ public class AuthController extends BaseController implements HttpHandler {
                     user.getRoleName() != null ? user.getRoleName() : user.getRole());
 
             Role role = new RoleDAO().getRoleById(user.getRoleId());
-            String permsJson = "[]";
-            if (role != null && role.getPermissions() != null) {
-                permsJson = com.college.utils.JsonHelper.toJson(role.getPermissions());
-            }
-
-            String resp = "{\"token\":\"" + token + "\","
-                    + "\"user\":{\"id\":" + user.getId()
-                    + ",\"username\":\"" + user.getUsername() + "\""
-                    + ",\"role\":\"" + (user.getRoleName() != null ? user.getRoleName() : user.getRole()) + "\""
-                    + ",\"roleId\":" + user.getRoleId() + ","
-                    + "\"permissions\":" + permsJson + "}}";
-            sendResponse(t, 200, resp);
+            Map<String, Object> userPayload = new LinkedHashMap<>();
+            userPayload.put("id", user.getId());
+            userPayload.put("username", user.getUsername());
+            userPayload.put("role", user.getRoleName() != null ? user.getRoleName() : user.getRole());
+            userPayload.put("roleId", user.getRoleId());
+            userPayload.put("permissions", role != null && role.getPermissions() != null
+                    ? role.getPermissions() : java.util.List.of());
+            sendResponse(t, 200, JSON.toJson(Map.of("token", token, "user", userPayload)));
+        } catch (JsonParseException e) {
+            sendResponse(t, 400, errorJson("Malformed JSON request"));
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage()));
+            com.college.utils.Logger.error("API login failed", e);
+            sendResponse(t, 500, errorJson("Authentication service unavailable"));
         }
     }
 
@@ -95,9 +96,12 @@ public class AuthController extends BaseController implements HttpHandler {
             sendResponse(t, 401, errorJson("Unauthorized"));
             return;
         }
-        sendResponse(t, 200, "{\"userId\":" + info.userId
-                + ",\"username\":\"" + info.username + "\""
-                + ",\"role\":\"" + info.role + "\"}");
+        Map<String, Object> session = new LinkedHashMap<>();
+        session.put("userId", info.userId);
+        session.put("username", info.username);
+        session.put("role", info.role);
+        session.put("expiresAt", info.expiresAt);
+        sendResponse(t, 200, JSON.toJson(session));
     }
 
     private int authenticateUser(String username, String password) {
@@ -119,26 +123,8 @@ public class AuthController extends BaseController implements HttpHandler {
         return 0;
     }
 
-    private String extractJsonString(String json, String key) {
-        String searchKey = "\"" + key + "\"";
-        int idx = json.indexOf(searchKey);
-        if (idx < 0)
-            return null;
-        int colon = json.indexOf(':', idx + searchKey.length());
-        if (colon < 0)
-            return null;
-        // Find value start
-        int start = colon + 1;
-        while (start < json.length() && Character.isWhitespace(json.charAt(start)))
-            start++;
-        if (start >= json.length())
-            return null;
-        if (json.charAt(start) == '"') {
-            int end = json.indexOf('"', start + 1);
-            if (end < 0)
-                return null;
-            return json.substring(start + 1, end);
-        }
-        return null;
+    private static final class LoginRequest {
+        private String username;
+        private String password;
     }
 }

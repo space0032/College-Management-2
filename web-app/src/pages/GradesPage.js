@@ -203,8 +203,6 @@ const GradesPage = () => {
         }
 
         const tableColumn = ["Course Name", "Credits", "Exam Type", "Marks (%)", "Grade"];
-        const tableRows = [];
-
         doc.autoTable({
             head: [tableColumn],
             body: dataToExport.map(g => [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]),

@@ -89,7 +89,7 @@ public class Role {
 
     public boolean hasPermission(String permissionCode) {
         return permissions.stream()
-                .anyMatch(p -> p.getCode().equals(permissionCode));
+                .anyMatch(p -> java.util.Objects.equals(p.getCode(), permissionCode));
     }
 
     @Override
