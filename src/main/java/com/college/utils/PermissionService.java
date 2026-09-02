@@ -28,10 +28,7 @@ public class PermissionService {
      */
     public boolean hasPermission(int userId, String permissionCode) {
         Role role = roleDAO.getRoleForUser(userId);
-        if (role != null) {
-            return role.hasPermission(permissionCode);
-        }
-        return false;
+        return grantsPermission(role, permissionCode);
     }
 
     /**
@@ -47,6 +44,9 @@ public class PermissionService {
     public boolean hasAnyPermission(int userId, String... permissionCodes) {
         Role role = roleDAO.getRoleForUser(userId);
         if (role != null) {
+            if (isAdministrator(role)) {
+                return true;
+            }
             for (String code : permissionCodes) {
                 if (role.hasPermission(code)) {
                     return true;
@@ -62,6 +62,9 @@ public class PermissionService {
     public boolean hasAllPermissions(int userId, String... permissionCodes) {
         Role role = roleDAO.getRoleForUser(userId);
         if (role != null) {
+            if (isAdministrator(role)) {
+                return true;
+            }
             for (String code : permissionCodes) {
                 if (!role.hasPermission(code)) {
                     return false;
@@ -70,5 +73,18 @@ public class PermissionService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * ADMIN is the built-in superuser role. Treating it as such here keeps API
+     * authorization aligned with the web client and prevents newly introduced
+     * permission codes from accidentally locking administrators out.
+     */
+    static boolean grantsPermission(Role role, String permissionCode) {
+        return role != null && (isAdministrator(role) || role.hasPermission(permissionCode));
+    }
+
+    private static boolean isAdministrator(Role role) {
+        return "ADMIN".equalsIgnoreCase(role.getCode());
     }
 }
