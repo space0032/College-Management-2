@@ -61,6 +61,14 @@ public class TimetableController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (entry.getDepartment() == null || entry.getDepartment().isBlank()
+                || entry.getSemester() < 1
+                || entry.getDayOfWeek() == null || entry.getDayOfWeek().isBlank()
+                || entry.getTimeSlot() == null || entry.getTimeSlot().isBlank()
+                || entry.getSubject() == null || entry.getSubject().isBlank()) {
+            sendResponse(t, 400, errorJson("Department, semester, day, time slot, and subject are required"));
+            return;
+        }
         boolean ok = timetableDAO.saveTimetableEntry(entry);
         if (ok) sendResponse(t, 201, JsonHelper.toJson(entry));
         else sendResponse(t, 400, errorJson("Failed to save timetable entry"));

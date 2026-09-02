@@ -51,6 +51,7 @@ Source reports reviewed:
 - [x] Parse quoted numeric form fields correctly so hostel capacities and room foreign keys are not silently stored as zero.
 - [x] Add the missing PostgreSQL course specialization column used by CourseDAO.
 - [x] Synchronize PostgreSQL primary-key sequences after explicit-ID bootstrap/import data.
+- [x] Align Timetable UI fields with the API model (`dayOfWeek`, `facultyName`, and `roomNumber`) and validate required data server-side.
 - [x] Restore visible Hostel/Room loading and mutation errors instead of discarding their state.
 - [x] Normalize Student, Faculty, and Staff edit forms and preserve legacy academic values during cleanup.
 - [x] Replace free-text Department/Course inputs in academic create forms with master-data selectors.

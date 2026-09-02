@@ -4,7 +4,7 @@ import Modal from '../components/Modal';
 import { getTimetable, saveTimetableEntry, deleteTimetableEntry } from '../services/timetableService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const EMPTY_FORM = { day: '', timeSlot: '', subject: '', room: '', faculty: '' };
+const EMPTY_FORM = { dayOfWeek: '', timeSlot: '', subject: '', roomNumber: '', facultyName: '' };
 
 const SUBJECT_COLORS = [
   '#ebf8ff', '#f0fff4', '#fffaf0', '#fef5ff', '#fff5f5', '#f0f9ff',
@@ -52,16 +52,16 @@ const TimetablePage = () => {
   };
 
   const handleSave = async () => {
-    if (!form.day || !form.timeSlot || !form.subject) { setFormError('Day, time slot, and subject are required.'); return; }
+    if (!form.dayOfWeek || !form.timeSlot || !form.subject) { setFormError('Day, time slot, and subject are required.'); return; }
     if (!/^([01]\d|2[0-3]):[0-5]\d\s*-\s*([01]\d|2[0-3]):[0-5]\d$/.test(form.timeSlot.trim())) {
       setFormError('Time slot must use the format HH:MM - HH:MM.');
       return;
     }
 
     // Conflict Detection
-    const conflict = entries.find(e => e.day === form.day && e.timeSlot === form.timeSlot);
+    const conflict = entries.find(e => e.dayOfWeek === form.dayOfWeek && e.timeSlot === form.timeSlot);
     if (conflict) {
-      setFormError(`Conflict Detected: The slot ${form.timeSlot} on ${form.day} is already scheduled with ${conflict.subject}. Please choose a different time or delete the existing entry first.`);
+      setFormError(`Conflict Detected: The slot ${form.timeSlot} on ${form.dayOfWeek} is already scheduled with ${conflict.subject}. Please choose a different time or delete the existing entry first.`);
       return;
     }
 
@@ -72,7 +72,7 @@ const TimetablePage = () => {
       setForm(EMPTY_FORM);
       if (dept && semester) handleFetch();
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to save entry.');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to save entry.');
     } finally {
       setSaving(false);
     }
@@ -90,7 +90,7 @@ const TimetablePage = () => {
 
   // Build grid structure: { day -> [entries sorted by timeSlot] }
   const gridData = DAYS.reduce((acc, day) => {
-    acc[day] = entries.filter(e => e.day === day).sort((a, b) => (a.timeSlot || '').localeCompare(b.timeSlot || ''));
+    acc[day] = entries.filter(e => e.dayOfWeek === day).sort((a, b) => (a.timeSlot || '').localeCompare(b.timeSlot || ''));
     return acc;
   }, {});
 
@@ -175,8 +175,8 @@ const TimetablePage = () => {
                               position: 'relative'
                             }}>
                               <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#2d3748', marginBottom: '2px' }}>{cell.subject}</div>
-                              {cell.faculty && <div style={{ fontSize: '0.73rem', color: '#718096' }}>👩‍🏫 {cell.faculty}</div>}
-                              {cell.room && <div style={{ fontSize: '0.73rem', color: '#718096' }}>🚪 {cell.room}</div>}
+                              {cell.facultyName && <div style={{ fontSize: '0.73rem', color: '#718096' }}>👩‍🏫 {cell.facultyName}</div>}
+                              {cell.roomNumber && <div style={{ fontSize: '0.73rem', color: '#718096' }}>🚪 {cell.roomNumber}</div>}
                               {isAdmin && (
                                 <button onClick={() => handleDelete(cell)} title="Delete" style={{
                                   position: 'absolute', top: '4px', right: '4px',
@@ -209,8 +209,8 @@ const TimetablePage = () => {
                       <div key={e.id} style={{ background: getSubjectColor(e.subject), border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', marginBottom: '8px' }}>
                         <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#2d3748' }}>{e.subject}</div>
                         <div style={{ fontSize: '0.73rem', color: '#718096' }}>⏰ {e.timeSlot}</div>
-                        {e.faculty && <div style={{ fontSize: '0.73rem', color: '#718096' }}>👩‍🏫 {e.faculty}</div>}
-                        {e.room && <div style={{ fontSize: '0.73rem', color: '#718096' }}>🚪 {e.room}</div>}
+                        {e.facultyName && <div style={{ fontSize: '0.73rem', color: '#718096' }}>👩‍🏫 {e.facultyName}</div>}
+                        {e.roomNumber && <div style={{ fontSize: '0.73rem', color: '#718096' }}>🚪 {e.roomNumber}</div>}
                       </div>
                     ))}
                   </div>
@@ -232,15 +232,15 @@ const TimetablePage = () => {
             <tbody>
               {DAYS.flatMap(day => gridData[day].map(e => (
                 <tr key={e.id}>
-                  <td><span style={{ fontWeight: '600', color: '#4a5568' }}>{e.day}</span></td>
+                  <td><span style={{ fontWeight: '600', color: '#4a5568' }}>{e.dayOfWeek}</span></td>
                   <td style={{ whiteSpace: 'nowrap' }}>{e.timeSlot}</td>
                   <td>
                     <span style={{ background: getSubjectColor(e.subject), padding: '2px 10px', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600' }}>
                       {e.subject}
                     </span>
                   </td>
-                  <td>{e.faculty || '—'}</td>
-                  <td>{e.room || '—'}</td>
+                  <td>{e.facultyName || '—'}</td>
+                  <td>{e.roomNumber || '—'}</td>
                   {isAdmin && (
                     <td>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDelete(e)}>Delete</button>
@@ -257,7 +257,7 @@ const TimetablePage = () => {
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
           <label className="form-label">Day *</label>
-          <select name="day" required className="form-control" value={form.day} onChange={handleFormChange}>
+          <select name="dayOfWeek" required className="form-control" value={form.dayOfWeek} onChange={handleFormChange}>
             <option value="">Select day</option>
             {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
@@ -265,8 +265,8 @@ const TimetablePage = () => {
         {[
           { name: 'timeSlot', label: 'Time Slot *', placeholder: 'e.g. 09:00 - 10:00' },
           { name: 'subject', label: 'Subject' },
-          { name: 'room', label: 'Room' },
-          { name: 'faculty', label: 'Faculty' }
+          { name: 'roomNumber', label: 'Room' },
+          { name: 'facultyName', label: 'Faculty' }
         ].map(({ name, label, placeholder }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
