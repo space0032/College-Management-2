@@ -10,9 +10,12 @@ RUN mvn -B clean package -DskipTests
 FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
-RUN useradd --system --uid 10001 --create-home appuser
+RUN useradd --system --uid 10001 --create-home appuser \
+    && mkdir -p /app/uploads/syllabi /app/uploads/resources /app/data \
+    && chown -R appuser:appuser /app
 COPY --from=build --chown=appuser:appuser /workspace/target/college-management-api.jar /app/app.jar
 
+ENV LOG_TO_FILE=false
 USER appuser
 EXPOSE 10000
 

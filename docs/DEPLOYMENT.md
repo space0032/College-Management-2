@@ -72,3 +72,4 @@ Save the Render environment and redeploy the API.
 - Disable H2 on Render because container-local storage is ephemeral.
 - API login tokens are stored in process memory and are invalidated by a deployment or service restart.
 - Files written to local `uploads/` are not durable on ephemeral hosting. Use object storage for production uploads.
+- Container logs are written to stdout (`LOG_TO_FILE=false`) so they appear in the Render log stream.

@@ -88,9 +88,15 @@ public class ApiServer {
             String response = "{\"status\":\"College Management API is running\",\"version\":\"2.0\"}";
             t.getResponseHeaders().set("Content-Type", "application/json");
             CorsSupport.addHeaders(t);
-            t.sendResponseHeaders(200, response.length());
+            if ("HEAD".equals(t.getRequestMethod())) {
+                t.sendResponseHeaders(200, -1);
+                t.getResponseBody().close();
+                return;
+            }
+            byte[] bytes = response.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            t.sendResponseHeaders(200, bytes.length);
             OutputStream os = t.getResponseBody();
-            os.write(response.getBytes());
+            os.write(bytes);
             os.close();
         }
     }

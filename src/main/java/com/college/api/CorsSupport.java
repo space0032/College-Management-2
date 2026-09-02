@@ -17,7 +17,7 @@ final class CorsSupport {
 
     static void addHeaders(HttpExchange exchange) {
         String origin = exchange.getRequestHeaders().getFirst("Origin");
-        if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
+        if (origin != null && ALLOWED_ORIGINS.contains(normalizeOrigin(origin))) {
             exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin);
             exchange.getResponseHeaders().set("Vary", "Origin");
         }
@@ -27,15 +27,23 @@ final class CorsSupport {
 
     static boolean isOriginAllowed(HttpExchange exchange) {
         String origin = exchange.getRequestHeaders().getFirst("Origin");
-        return origin == null || ALLOWED_ORIGINS.contains(origin);
+        return origin == null || ALLOWED_ORIGINS.contains(normalizeOrigin(origin));
     }
 
     private static Set<String> loadAllowedOrigins() {
         String configured = EnvConfig.get("CORS_ALLOWED_ORIGINS");
         String value = configured == null || configured.isBlank() ? DEFAULT_ORIGINS : configured;
         return Arrays.stream(value.split(","))
-                .map(String::trim)
+                .map(CorsSupport::normalizeOrigin)
                 .filter(origin -> !origin.isEmpty())
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static String normalizeOrigin(String origin) {
+        String normalized = origin.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 }

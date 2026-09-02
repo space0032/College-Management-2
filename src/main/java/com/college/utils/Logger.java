@@ -12,6 +12,8 @@ import java.time.format.DateTimeFormatter;
 public class Logger {
 
     private static final String LOG_FILE = "app.log";
+    private static final boolean LOG_TO_FILE = Boolean.parseBoolean(
+            System.getenv().getOrDefault("LOG_TO_FILE", "true"));
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public enum Level {
@@ -62,6 +64,14 @@ public class Logger {
 
         // Print to console
         System.out.println(logMessage);
+
+        // Containers stream logs to stdout; desktop/local runs may also retain a file.
+        if (!LOG_TO_FILE) {
+            if (e != null) {
+                e.printStackTrace(System.err);
+            }
+            return;
+        }
 
         // Write to file
         try (FileWriter fw = new FileWriter(LOG_FILE, true);
