@@ -15,7 +15,8 @@ public class NotificationDAO {
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setInt(1, note.getRecipientUserId());
+            if (note.getRecipientUserId() > 0) pstmt.setInt(1, note.getRecipientUserId());
+            else pstmt.setNull(1, Types.INTEGER);
             pstmt.setString(2, note.getRecipientContact());
             pstmt.setString(3, note.getType().name());
             pstmt.setString(4, note.getSubject());

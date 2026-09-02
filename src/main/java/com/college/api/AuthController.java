@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.UserDAO;
 import com.college.dao.RoleDAO;
+import com.college.dao.AuditLogDAO;
 import com.college.models.User;
 import com.college.models.Role;
 import com.college.utils.DatabaseConnection;
@@ -73,6 +74,7 @@ public class AuthController extends BaseController implements HttpHandler {
             userPayload.put("roleId", user.getRoleId());
             userPayload.put("permissions", role != null && role.getPermissions() != null
                     ? role.getPermissions() : java.util.List.of());
+            AuditLogDAO.logAction(userId, username, "LOGIN", "USER", userId, "Web login succeeded");
             sendResponse(t, 200, JSON.toJson(Map.of("token", token, "user", userPayload)));
         } catch (JsonParseException e) {
             sendResponse(t, 400, errorJson("Malformed JSON request"));
@@ -85,6 +87,11 @@ public class AuthController extends BaseController implements HttpHandler {
     private void handleLogout(HttpExchange t) throws IOException {
         String auth = t.getRequestHeaders().getFirst("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {
+            TokenStore.TokenInfo info = TokenStore.getTokenInfo(auth.substring(7));
+            if (info != null) {
+                AuditLogDAO.logAction(info.userId, info.username, "LOGOUT", "USER", info.userId,
+                        "Web logout succeeded");
+            }
             TokenStore.removeToken(auth.substring(7));
         }
         sendResponse(t, 200, "{\"status\":\"Logged out\"}");

@@ -10,7 +10,7 @@ const COLUMNS = [
   { key: 'description', label: 'Description' },
 ];
 
-const EMPTY_FORM = { name: '', description: '' };
+const EMPTY_FORM = { name: '', code: '', description: '' };
 
 const DepartmentPage = () => {
   const [departments, setDepartments] = useState([]);
@@ -40,10 +40,10 @@ const DepartmentPage = () => {
   };
 
   const openAdd = () => { setForm(EMPTY_FORM); setEditId(null); setFormError(''); setModalOpen(true); };
-  const openEdit = (row) => { setForm({ name: row.name || '', description: row.description || '' }); setEditId(row.id); setFormError(''); setModalOpen(true); };
+  const openEdit = (row) => { setForm({ name: row.name || '', code: row.code || '', description: row.description || '' }); setEditId(row.id); setFormError(''); setModalOpen(true); };
 
   const handleSave = async () => {
-    if (!form.name) { setFormError('Department name is required.'); return; }
+    if (!form.name.trim() || !form.code.trim()) { setFormError('Department name and code are required.'); return; }
     setSaving(true);
     try {
       if (editId) {
@@ -85,6 +85,10 @@ const DepartmentPage = () => {
         <div className="form-group">
           <label className="form-label">Department Name</label>
           <input name="name" type="text" className="form-control" value={form.name} onChange={handleFormChange} placeholder="Enter department name" />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Department Code *</label>
+          <input name="code" type="text" required maxLength="10" className="form-control" value={form.code} onChange={handleFormChange} placeholder="e.g. CSE" />
         </div>
         <div className="form-group">
           <label className="form-label">Description</label>

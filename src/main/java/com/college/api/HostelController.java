@@ -48,7 +48,9 @@ public class HostelController extends BaseController implements HttpHandler {
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/hostels/\\d+")) {
-                if ("DELETE".equals(method))
+                if ("PUT".equals(method))
+                    handleUpdateHostel(t, path);
+                else if ("DELETE".equals(method))
                     handleDeleteHostel(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
@@ -90,6 +92,18 @@ public class HostelController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_HOSTEL")) return;
         List<Room> rooms = hostelDAO.getAllRooms();
         sendResponse(t, 200, JsonHelper.toJson(rooms));
+    }
+
+    private void handleUpdateHostel(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_HOSTEL")) return;
+        Hostel hostel = JsonHelper.fromJson(readBody(t), Hostel.class);
+        if (hostel == null) {
+            sendResponse(t, 400, errorJson("Invalid JSON"));
+            return;
+        }
+        hostel.setId(extractId(path));
+        boolean ok = hostelDAO.updateHostel(hostel);
+        sendResponse(t, ok ? 200 : 400, ok ? JsonHelper.toJson(hostel) : errorJson("Failed to update hostel"));
     }
 
     private void handleAddRoom(HttpExchange t) throws IOException {

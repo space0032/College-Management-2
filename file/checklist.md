@@ -24,6 +24,14 @@ Source reports reviewed:
 - [x] Fix V9 fresh-deployment ordering so it no longer alters `student_fees` before V49 creates it.
 - [x] Abort API startup on migration failure and print the root database error.
 - [x] Prevent student creation from crashing when `enrollmentDate` is omitted; default new records to today.
+- [x] Send required department codes from the UI.
+- [x] Default missing faculty join dates instead of crashing.
+- [x] Align announcement audience fields and populate creator/active state server-side.
+- [x] Supply safe notification defaults and allow role/broadcast notifications without an invalid user FK.
+- [x] Add the missing hostel update route.
+- [x] Stop placement endpoints from returning false success when persistence fails.
+- [x] Record successful web login, logout, create, update, and delete operations in the audit log.
+- [x] Serialize employee status enums correctly so staff retrieval cannot recurse/fail during JSON output.
 - [x] Replace additional silent room, volunteer, syllabus, and student-activity load failures with visible errors.
 - [x] Remove simulated faculty experience and resource file-size values.
 

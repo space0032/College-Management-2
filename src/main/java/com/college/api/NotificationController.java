@@ -41,6 +41,9 @@ public class NotificationController extends BaseController implements HttpHandle
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (notification.getType() == null) notification.setType(Notification.Type.SYSTEM);
+        if (notification.getStatus() == null) notification.setStatus(Notification.Status.PENDING);
+        if (notification.getCreatedAt() == null) notification.setCreatedAt(java.time.LocalDateTime.now());
         boolean ok = notificationDAO.createNotification(notification);
         if (ok) sendResponse(t, 201, "{\"status\":\"Notification created\"}");
         else sendResponse(t, 400, errorJson("Failed to create notification"));

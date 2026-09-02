@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
 import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement } from '../services/announcementService';
 
-const EMPTY_FORM = { title: '', content: '', targetRole: 'ALL', priority: 'NORMAL', pinned: false };
+const EMPTY_FORM = { title: '', content: '', targetAudience: 'ALL', priority: 'NORMAL', pinned: false };
 const ROLES = ['ALL', 'STUDENT', 'FACULTY', 'ADMIN'];
 const PRIORITIES = ['LOW', 'NORMAL', 'HIGH'];
 
@@ -60,7 +60,7 @@ const AnnouncementPage = () => {
   const openEdit = (row) => {
     setForm({
       title: row.title || '', content: row.content || '',
-      targetRole: row.targetRole || 'ALL', priority: row.priority || 'NORMAL',
+      targetAudience: row.targetAudience || 'ALL', priority: row.priority || 'NORMAL',
       pinned: row.pinned || false
     });
     setEditId(row.id); setFormError(''); setModalOpen(true);
@@ -98,7 +98,7 @@ const AnnouncementPage = () => {
 
   // Filtered + sorted: pinned first, then by priority (HIGH > NORMAL > LOW), then by date
   const filtered = items
-    .filter(a => filterRole === 'ALL' || a.targetRole === filterRole || a.targetRole === 'ALL')
+    .filter(a => filterRole === 'ALL' || a.targetAudience === filterRole || a.targetAudience === 'ALL')
     .filter(a => filterPriority === 'ALL' || a.priority === filterPriority)
     .filter(a => !searchQ || (a.title || '').toLowerCase().includes(searchQ.toLowerCase()) || (a.content || '').toLowerCase().includes(searchQ.toLowerCase()))
     .sort((a, b) => {
@@ -179,9 +179,9 @@ const AnnouncementPage = () => {
                     <span style={{ padding: '1px 8px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '600', background: ps.badge, color: 'white' }}>
                       {a.priority || 'NORMAL'}
                     </span>
-                    {a.targetRole && a.targetRole !== 'ALL' && (
+                    {a.targetAudience && a.targetAudience !== 'ALL' && (
                       <span style={{ padding: '1px 8px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '600', background: '#f1f5f9', color: '#64748b' }}>
-                        {a.targetRole}
+                        {a.targetAudience}
                       </span>
                     )}
                     {a.pinned && <span style={{ fontSize: '0.72rem', color: '#9f7aea', fontWeight: '600' }}>📌 Pinned</span>}
@@ -221,7 +221,7 @@ const AnnouncementPage = () => {
         </div>
         <div className="form-group">
           <label className="form-label">Target Role</label>
-          <select name="targetRole" className="form-control" value={form.targetRole} onChange={handleFormChange}>
+          <select name="targetAudience" className="form-control" value={form.targetAudience} onChange={handleFormChange}>
             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>

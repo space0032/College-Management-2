@@ -32,6 +32,9 @@ public class JsonHelper {
         if (obj instanceof Number || obj instanceof Boolean) {
             return obj.toString();
         }
+        if (obj instanceof Enum<?>) {
+            return "\"" + escape(((Enum<?>) obj).name()) + "\"";
+        }
         if (obj instanceof java.util.Date) {
             return "\"" + obj.toString() + "\"";
         }

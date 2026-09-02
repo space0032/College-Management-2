@@ -48,6 +48,9 @@ public class AnnouncementController extends BaseController implements HttpHandle
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        TokenStore.TokenInfo token = getTokenInfo(t);
+        announcement.setCreatedBy(token.userId);
+        announcement.setActive(true);
         int id = announcementDAO.addAnnouncement(announcement);
         if (id > 0) {
             sendResponse(t, 201, "{\"id\":" + id + "}");

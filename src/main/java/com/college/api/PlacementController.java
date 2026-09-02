@@ -88,8 +88,8 @@ public class PlacementController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
-        placementDAO.addDrive(drive);
-        sendResponse(t, 201, JsonHelper.toJson(drive));
+        boolean ok = placementDAO.addDrive(drive);
+        sendResponse(t, ok ? 201 : 400, ok ? JsonHelper.toJson(drive) : errorJson("Failed to add placement drive"));
     }
 
     private void handleDeleteDrive(HttpExchange t, String path) throws IOException {
@@ -113,8 +113,8 @@ public class PlacementController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
-        placementDAO.addCompany(company);
-        sendResponse(t, 201, JsonHelper.toJson(company));
+        boolean ok = placementDAO.addCompany(company);
+        sendResponse(t, ok ? 201 : 400, ok ? JsonHelper.toJson(company) : errorJson("Failed to add placement company"));
     }
 
     private void handleDeleteCompany(HttpExchange t, String path) throws IOException {

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import com.college.utils.MigrationRunner;
+import com.college.dao.AuditLogDAO;
 
 public class ApiServer {
 
@@ -145,6 +146,39 @@ public class ApiServer {
                 return;
             }
             delegate.handle(t);
+            recordSuccessfulMutation(t, info);
+        }
+
+        private void recordSuccessfulMutation(HttpExchange exchange, TokenStore.TokenInfo info) {
+            String method = exchange.getRequestMethod();
+            String action = switch (method) {
+                case "POST" -> "CREATE";
+                case "PUT", "PATCH" -> "UPDATE";
+                case "DELETE" -> "DELETE";
+                default -> null;
+            };
+            int status = exchange.getResponseCode();
+            if (action == null || status < 200 || status >= 300) {
+                return;
+            }
+
+            String path = exchange.getRequestURI().getPath();
+            String entityType = path.replaceFirst("^/api/", "")
+                    .replaceAll("/.*$", "")
+                    .replace('-', '_')
+                    .toUpperCase(java.util.Locale.ROOT);
+            Integer entityId = null;
+            String[] segments = path.split("/");
+            for (int i = segments.length - 1; i >= 0; i--) {
+                try {
+                    entityId = Integer.valueOf(segments[i]);
+                    break;
+                } catch (NumberFormatException ignored) {
+                    // Keep looking for a numeric resource identifier.
+                }
+            }
+            AuditLogDAO.logAction(info.userId, info.username, action, entityType, entityId,
+                    method + " " + path + " completed with HTTP " + status);
         }
     }
 }

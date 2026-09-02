@@ -31,7 +31,7 @@ public class PlacementDAO {
         return list;
     }
 
-    public void addCompany(PlacementCompany company) {
+    public boolean addCompany(PlacementCompany company) {
         String sql = "INSERT INTO placement_companies (name, industry, contact_person, email, phone, website) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -41,9 +41,10 @@ public class PlacementDAO {
             stmt.setString(4, company.getEmail());
             stmt.setString(5, company.getPhone());
             stmt.setString(6, company.getWebsite());
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -94,7 +95,7 @@ public class PlacementDAO {
         return list;
     }
 
-    public void addDrive(PlacementDrive drive) {
+    public boolean addDrive(PlacementDrive drive) {
         String sql = "INSERT INTO placement_drives (company_id, job_role, package_lpa, description, drive_date, deadline, eligibility_criteria) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -105,9 +106,10 @@ public class PlacementDAO {
             stmt.setDate(5, java.sql.Date.valueOf(drive.getDriveDate()));
             stmt.setDate(6, java.sql.Date.valueOf(drive.getDeadline()));
             stmt.setString(7, drive.getEligibilityCriteria());
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
