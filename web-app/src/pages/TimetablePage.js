@@ -53,6 +53,10 @@ const TimetablePage = () => {
 
   const handleSave = async () => {
     if (!form.day || !form.timeSlot || !form.subject) { setFormError('Day, time slot, and subject are required.'); return; }
+    if (!/^([01]\d|2[0-3]):[0-5]\d\s*-\s*([01]\d|2[0-3]):[0-5]\d$/.test(form.timeSlot.trim())) {
+      setFormError('Time slot must use the format HH:MM - HH:MM.');
+      return;
+    }
 
     // Conflict Detection
     const conflict = entries.find(e => e.day === form.day && e.timeSlot === form.timeSlot);
@@ -259,14 +263,14 @@ const TimetablePage = () => {
           </select>
         </div>
         {[
-          { name: 'timeSlot', label: 'Time Slot', placeholder: 'e.g. 09:00 - 10:00' },
+          { name: 'timeSlot', label: 'Time Slot *', placeholder: 'e.g. 09:00 - 10:00' },
           { name: 'subject', label: 'Subject' },
           { name: 'room', label: 'Room' },
           { name: 'faculty', label: 'Faculty' }
         ].map(({ name, label, placeholder }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
-            <input name={name} type="text" className="form-control" value={form[name]} onChange={handleFormChange} placeholder={placeholder || `Enter ${label.toLowerCase()}`} />
+            <input name={name} type="text" required={name === 'timeSlot' || name === 'subject'} className="form-control" value={form[name]} onChange={handleFormChange} placeholder={placeholder || `Enter ${label.toLowerCase()}`} />
           </div>
         ))}
       </Modal>

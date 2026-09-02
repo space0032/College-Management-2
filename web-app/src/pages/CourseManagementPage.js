@@ -101,8 +101,12 @@ const CourseManagementPage = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.code) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name and code are required.' });
+    if (!form.name.trim() || !form.code.trim() || !form.department.trim() || !form.semester) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name, code, department, and semester are required.' });
+      return;
+    }
+    if (!Number.isFinite(Number(form.credits)) || Number(form.credits) <= 0) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Credits must be greater than zero.' });
       return;
     }
     dispatch({ type: 'SAVING_START' });
@@ -213,23 +217,23 @@ const CourseManagementPage = () => {
         <div className="form-grid">
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="form-label">Course Name *</label>
-            <input name="name" type="text" className="form-control" value={form.name} onChange={handleFormChange} placeholder="Enter course name" />
+            <input name="name" type="text" className="form-control" required value={form.name} onChange={handleFormChange} placeholder="Enter course name" />
           </div>
           <div className="form-group">
             <label className="form-label">Course Code *</label>
-            <input name="code" type="text" className="form-control" value={form.code} onChange={handleFormChange} placeholder="Enter code" />
+            <input name="code" type="text" className="form-control" required value={form.code} onChange={handleFormChange} placeholder="Enter code" />
           </div>
           <div className="form-group">
-            <label className="form-label">Credits</label>
-            <input name="credits" type="number" className="form-control" value={form.credits} onChange={handleFormChange} />
+            <label className="form-label">Credits *</label>
+            <input name="credits" type="number" min="1" step="1" required className="form-control" value={form.credits} onChange={handleFormChange} />
           </div>
           <div className="form-group">
-            <label className="form-label">Department</label>
-            <input name="department" type="text" className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Computer Science" />
+            <label className="form-label">Department *</label>
+            <input name="department" type="text" required className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Computer Science" />
           </div>
           <div className="form-group">
-            <label className="form-label">Semester</label>
-            <select name="semester" className="form-control" value={form.semester} onChange={handleFormChange}>
+            <label className="form-label">Semester *</label>
+            <select name="semester" required className="form-control" value={form.semester} onChange={handleFormChange}>
               <option value="">Select semester</option>
               {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Semester {s}</option>)}
             </select>

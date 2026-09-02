@@ -103,9 +103,14 @@ const AssignmentPage = () => {
     const submitGrade = async (e) => {
         e.preventDefault();
         if (!selectedSubmission) return;
+        const grade = Number(gradingForm.grade);
+        if (!Number.isFinite(grade) || grade < 0 || grade > 100) {
+            alert('Grade must be between 0 and 100.');
+            return;
+        }
         try {
             await gradeSubmission(selectedSubmission.id, {
-                grade: parseFloat(gradingForm.grade),
+                grade,
                 feedback: gradingForm.feedback
             });
             setGradingForm({ grade: '', feedback: '' });
@@ -123,9 +128,6 @@ const AssignmentPage = () => {
         const diff = new Date(a.dueDate).getTime() - Date.now();
         return diff > 0 && diff < 86400000 * 3; // 3 days
     }).length;
-
-    // Simulating pending grades for faculty
-    const pendingGrades = userRole !== 'STUDENT' ? assignments.length * 2 : 0;
 
     return (
         <div className="page-container">
@@ -159,17 +161,17 @@ const AssignmentPage = () => {
                 {userRole === 'STUDENT' ? (
                     <div className="stat-card">
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>Pending Submissions</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3182ce' }}>{assignments.length - 2}</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3182ce' }}>N/A</div>
                     </div>
                 ) : (
                     <div className="stat-card">
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>Pending Grading</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3182ce' }}>{pendingGrades}</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3182ce' }}>N/A</div>
                     </div>
                 )}
                 <div className="stat-card">
                     <div style={{ fontSize: '0.9rem', color: '#666' }}>Average Score</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#48bb78' }}>82%</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#48bb78' }}>N/A</div>
                 </div>
             </div>
 
@@ -250,7 +252,7 @@ const AssignmentPage = () => {
                             </div>
                             <div className="form-group">
                                 <label>Submission Deadline *</label>
-                                <input required type="date" className="form-control" value={assignmentForm.dueDate} onChange={e => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })} />
+                                <input required type="date" min={new Date().toISOString().split('T')[0]} className="form-control" value={assignmentForm.dueDate} onChange={e => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Target Course *</label>

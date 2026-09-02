@@ -48,6 +48,14 @@ const EmployeeManagementPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (formData.phone && !/^\+?[0-9\s-]{7,15}$/.test(formData.phone.trim())) {
+            alert('Enter a valid phone number using 7 to 15 digits.');
+            return;
+        }
+        if (!Number.isFinite(Number(formData.salary)) || Number(formData.salary) < 0) {
+            alert('Annual salary cannot be negative.');
+            return;
+        }
         try {
             if (isEditing) await updateEmployee(formData.id, formData);
             else await addEmployee(formData);
@@ -111,7 +119,7 @@ const EmployeeManagementPage = () => {
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Retention Rate</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>98.2%</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>N/A</div>
                 </div>
             </div>
 
@@ -200,7 +208,7 @@ const EmployeeManagementPage = () => {
                             </div>
                             <div className="form-group">
                                 <label>Phone Contact</label>
-                                <input className="form-control" type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                <input className="form-control" type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Join Date</label>
@@ -208,7 +216,7 @@ const EmployeeManagementPage = () => {
                             </div>
                             <div className="form-group">
                                 <label>Annual Salary (₹)</label>
-                                <input className="form-control" type="number" value={formData.salary} onChange={e => setFormData({ ...formData, salary: parseFloat(e.target.value) })} />
+                                <input className="form-control" type="number" min="0" step="0.01" value={formData.salary} onChange={e => setFormData({ ...formData, salary: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Employment Status</label>

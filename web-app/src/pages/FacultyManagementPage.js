@@ -103,8 +103,16 @@ const FacultyManagementPage = () => {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!form.name || !form.email) {
+    if (!form.name.trim() || !form.email.trim()) {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Name and email are required.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Enter a valid email address.' });
+      return;
+    }
+    if (form.phone && !/^\+?[0-9\s-]{7,15}$/.test(form.phone.trim())) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Enter a valid phone number.' });
       return;
     }
     dispatch({ type: 'SAVING_START' });
@@ -217,8 +225,8 @@ const FacultyManagementPage = () => {
           <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f6ad55' }}>{phds}</div>
         </div>
         <div className="stat-card">
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Avg. Exp (Simulated)</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9f7aea' }}>8.4 Yrs</div>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Average Experience</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9f7aea' }}>N/A</div>
         </div>
       </div>
 
@@ -290,7 +298,7 @@ const FacultyManagementPage = () => {
           </div>
           <div className="form-group">
             <label>Phone Number</label>
-            <input name="phone" type="text" className="form-control" value={form.phone} onChange={handleFormChange} />
+            <input name="phone" type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" className="form-control" value={form.phone} onChange={handleFormChange} />
           </div>
           <div className="form-group">
             <label>Department</label>

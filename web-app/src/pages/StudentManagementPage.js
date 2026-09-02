@@ -130,8 +130,20 @@ const StudentManagementPage = () => {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!form.name || !form.email) {
+    if (!form.name.trim() || !form.email.trim()) {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Name and email are required.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Enter a valid email address.' });
+      return;
+    }
+    if (form.phone && !/^\+?[0-9\s-]{7,15}$/.test(form.phone.trim())) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Enter a valid phone number.' });
+      return;
+    }
+    if (form.semester && (Number(form.semester) < 1 || Number(form.semester) > 8)) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Semester must be between 1 and 8.' });
       return;
     }
     dispatch({ type: 'SAVING_START' });
@@ -385,7 +397,7 @@ const StudentManagementPage = () => {
           </div>
           <div className="form-group">
             <label>Phone Number</label>
-            <input name="phone" type="text" value={form.phone} onChange={handleFormChange} />
+            <input name="phone" type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" value={form.phone} onChange={handleFormChange} />
           </div>
           <div className="form-group">
             <label>Department</label>

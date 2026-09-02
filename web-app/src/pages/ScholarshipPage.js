@@ -19,6 +19,8 @@ const ScholarshipPage = () => {
 
     const studentId = SessionManager.getUserId();
     const userRole = SessionManager.getUserRole() || 'STUDENT';
+    const totalAwardValue = scholarships.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const averageAward = scholarships.length ? totalAwardValue / scholarships.length : 0;
 
     useEffect(() => {
         loadScholarships();
@@ -104,9 +106,9 @@ const ScholarshipPage = () => {
             {activeTab === 'browse' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
                     <div className="stat-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
-                        <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Total Disbursed</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '8px 0' }}>₹12.4M</div>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Institutional Merit Fund</div>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Total Award Value</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '8px 0' }}>₹{totalAwardValue.toLocaleString('en-IN')}</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Across loaded grants</div>
                     </div>
                     <div className="stat-card">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Active Grants</div>
@@ -114,11 +116,11 @@ const ScholarshipPage = () => {
                     </div>
                     <div className="stat-card">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Avg. Award</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3b82f6', margin: '8px 0' }}>₹45K</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3b82f6', margin: '8px 0' }}>₹{Math.round(averageAward).toLocaleString('en-IN')}</div>
                     </div>
                     <div className="stat-card">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Beneficiaries</div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: '8px 0' }}>240+</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: '8px 0' }}>N/A</div>
                     </div>
                 </div>
             )}

@@ -102,6 +102,13 @@ const LibraryPage = () => {
 
   const handleAdd = async () => {
     if (!form.title || !form.author) { setFormError('Title and author are required.'); return; }
+    if (form.isbn) {
+      const isbn = form.isbn.replace(/[-\s]/g, '');
+      if (!/^(?:\d{9}[\dXx]|\d{13})$/.test(isbn)) {
+        setFormError('ISBN must contain 10 or 13 valid characters.');
+        return;
+      }
+    }
     setSaving(true);
     try {
       await addBook({ ...form, quantity: form.available ? 1 : 0, available: form.available ? 1 : 0 });
@@ -443,7 +450,7 @@ const LibraryPage = () => {
         {[{ name: 'title', label: 'Title' }, { name: 'author', label: 'Author' }, { name: 'isbn', label: 'ISBN' }].map(({ name, label }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
-            <input name={name} type="text" className="form-control" value={form[name]} onChange={handleFormChange} />
+            <input name={name} type="text" required={name === 'title' || name === 'author'} inputMode={name === 'isbn' ? 'numeric' : undefined} className="form-control" value={form[name]} onChange={handleFormChange} />
           </div>
         ))}
         <div className="form-group">

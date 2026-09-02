@@ -39,24 +39,31 @@ const HomePage = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [activeTab, setActiveTab] = useState('announcements');
 
   const user = SessionManager.getUser() || {};
 
   useEffect(() => {
-    import('../services/dashboardService').then(({ getDashboardStats }) => {
-      getDashboardStats()
-        .then(res => setStats(res.data || {}))
-        .catch(() => { });
-    }).catch(() => { });
-
-    Promise.all([
-      getAnnouncements().then(r => r.data || []).catch(() => []),
-      getAuditLogs({ limit: 20 }).then(r => Array.isArray(r.data) ? r.data : []).catch(() => [])
-    ]).then(([ann, audit]) => {
-      setAnnouncements(ann.slice(0, 8));
-      setRecentActivity(audit.slice(0, 15));
-    }).finally(() => setLoading(false));
+    const loadDashboard = async () => {
+      setLoadError('');
+      try {
+        const [{ getDashboardStats }, ann, audit] = await Promise.all([
+          import('../services/dashboardService'),
+          getAnnouncements(),
+          getAuditLogs({ limit: 20 })
+        ]);
+        const statsResponse = await getDashboardStats();
+        setStats(statsResponse.data || {});
+        setAnnouncements((Array.isArray(ann.data) ? ann.data : []).slice(0, 8));
+        setRecentActivity((Array.isArray(audit.data) ? audit.data : []).slice(0, 15));
+      } catch (error) {
+        setLoadError(error.response?.data?.error || 'Dashboard data could not be loaded. Please retry.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDashboard();
   }, []);
 
   const ACTION_ICONS = { CREATE: '✅', LOGIN: '🔑', DELETE: '🗑️', UPDATE: '✏️', LOGOUT: '🚪' };
@@ -88,6 +95,11 @@ const HomePage = () => {
 
   return (
     <div>
+      {loadError && (
+        <div className="alert alert-error" role="alert" style={{ marginBottom: '16px' }}>
+          {loadError}
+        </div>
+      )}
       {/* Welcome Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #1a365d 0%, #2a69ac 100%)',

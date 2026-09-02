@@ -42,7 +42,7 @@ public class StudentDAO {
             pstmt.setString(3, student.getPhone());
             pstmt.setString(4, student.getCourse());
             pstmt.setString(5, student.getBatch());
-            pstmt.setDate(6, new java.sql.Date(student.getEnrollmentDate().getTime()));
+            pstmt.setDate(6, enrollmentDateOrToday(student.getEnrollmentDate()));
             pstmt.setString(7, student.getAddress());
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
@@ -104,7 +104,9 @@ public class StudentDAO {
             pstmt.setString(3, student.getPhone());
             pstmt.setString(4, student.getCourse());
             pstmt.setString(5, student.getBatch());
-            pstmt.setDate(6, new java.sql.Date(student.getEnrollmentDate().getTime()));
+            pstmt.setDate(6, student.getEnrollmentDate() == null
+                    ? null
+                    : new java.sql.Date(student.getEnrollmentDate().getTime()));
             pstmt.setString(7, student.getAddress());
             pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
             pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
@@ -134,6 +136,11 @@ public class StudentDAO {
             Logger.error("Failed to update student: " + student.getName(), e);
             return false;
         }
+    }
+
+    static java.sql.Date enrollmentDateOrToday(java.util.Date enrollmentDate) {
+        long timestamp = enrollmentDate == null ? System.currentTimeMillis() : enrollmentDate.getTime();
+        return new java.sql.Date(timestamp);
     }
 
     /**

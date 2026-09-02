@@ -4,11 +4,13 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import PrivateRoute from './components/PrivateRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import PageTitle from './components/PageTitle';
 
 const App = () => {
   return (
     <ErrorBoundary>
       <Router>
+        <PageTitle />
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route

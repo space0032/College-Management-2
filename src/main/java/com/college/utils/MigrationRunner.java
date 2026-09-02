@@ -46,8 +46,14 @@ public class MigrationRunner {
             System.out.println("[Migration] Database is up to date.");
 
         } catch (Exception e) {
+            Throwable rootCause = e;
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
             System.err.println("[Migration] Failed to run migrations: " + e.getMessage());
+            System.err.println("[Migration] Root cause: " + rootCause.getMessage());
             Logger.error("Migration failed", e);
+            throw new IllegalStateException("Database migration failed; API startup aborted", e);
         }
     }
 

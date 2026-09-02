@@ -503,8 +503,7 @@ const StudentAffairsPage = () => {
                             <table className="data-table">
                                 <thead><tr><th>Award Name</th><th>Recipient</th><th>Amount</th><th>Status</th></tr></thead>
                                 <tbody>
-                                    <tr><td>Presidential Merit</td><td>Alice Student</td><td>₹50,000</td><td><span style={getBadgeStyle('Resolved')}>Disbursed</span></td></tr>
-                                    <tr><td>STEM Excellence</td><td>Bob Kumar</td><td>₹25,000</td><td><span style={getBadgeStyle('Under Review')}>Pending Review</span></td></tr>
+                                    <tr><td colSpan="4" style={{ textAlign: 'center', color: '#64748b' }}>Scholarship recipients are shown in the Scholarships module.</td></tr>
                                 </tbody>
                             </table>
                         </div>

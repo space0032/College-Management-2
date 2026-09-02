@@ -55,6 +55,23 @@ const HostelPage = () => {
   };
 
   const handleSave = async () => {
+    setError('');
+    if (tab === 'hostels' && (!hostelForm.name.trim() || Number(hostelForm.totalCapacity) < 1)) {
+      setError('Hostel name and a capacity of at least 1 are required.');
+      return;
+    }
+    if (tab === 'hostels' && hostelForm.wardenContact && !/^\+?[0-9\s-]{7,15}$/.test(hostelForm.wardenContact.trim())) {
+      setError('Enter a valid warden contact number.');
+      return;
+    }
+    if (tab === 'rooms' && (!roomForm.hostelId || !roomForm.roomNumber.trim() || Number(roomForm.floor) < 0 || Number(roomForm.capacity) < 1)) {
+      setError('Hostel, room number, non-negative floor, and capacity of at least 1 are required.');
+      return;
+    }
+    if (tab === 'allocations' && (Number(allocForm.studentId) < 1 || !allocForm.roomId || !allocForm.checkInDate)) {
+      setError('A valid student ID, available room, and check-in date are required.');
+      return;
+    }
     setSaving(true);
     try {
       if (tab === 'hostels') {
@@ -183,26 +200,26 @@ const HostelPage = () => {
       <Modal isOpen={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)} onSubmit={handleSave}>
         {tab === 'hostels' ? (
           <div className="form-grid">
-            <div className="form-group"><label>Hostel Name</label><input type="text" value={hostelForm.name} onChange={e => setHostelForm({ ...hostelForm, name: e.target.value })} /></div>
+            <div className="form-group"><label>Hostel Name *</label><input type="text" required value={hostelForm.name} onChange={e => setHostelForm({ ...hostelForm, name: e.target.value })} /></div>
             <div className="form-group"><label>Type</label><select value={hostelForm.type} onChange={e => setHostelForm({ ...hostelForm, type: e.target.value })}>{HOSTEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-            <div className="form-group"><label>Total Capacity</label><input type="number" value={hostelForm.totalCapacity} onChange={e => setHostelForm({ ...hostelForm, totalCapacity: e.target.value })} /></div>
+            <div className="form-group"><label>Total Capacity *</label><input type="number" min="1" required value={hostelForm.totalCapacity} onChange={e => setHostelForm({ ...hostelForm, totalCapacity: e.target.value })} /></div>
             <div className="form-group"><label>Warden Name</label><input type="text" value={hostelForm.wardenName} onChange={e => setHostelForm({ ...hostelForm, wardenName: e.target.value })} /></div>
-            <div className="form-group"><label>Warden Contact</label><input type="text" value={hostelForm.wardenContact} onChange={e => setHostelForm({ ...hostelForm, wardenContact: e.target.value })} /></div>
+            <div className="form-group"><label>Warden Contact</label><input type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" value={hostelForm.wardenContact} onChange={e => setHostelForm({ ...hostelForm, wardenContact: e.target.value })} /></div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Address</label><textarea value={hostelForm.address} onChange={e => setHostelForm({ ...hostelForm, address: e.target.value })} /></div>
           </div>
         ) : tab === 'rooms' ? (
           <div className="form-grid">
-            <div className="form-group"><label>Hostel</label><select value={roomForm.hostelId} onChange={e => setRoomForm({ ...roomForm, hostelId: e.target.value })}><option value="">Select Hostel</option>{hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</select></div>
-            <div className="form-group"><label>Room Number</label><input type="text" value={roomForm.roomNumber} onChange={e => setRoomForm({ ...roomForm, roomNumber: e.target.value })} /></div>
-            <div className="form-group"><label>Floor</label><input type="number" value={roomForm.floor} onChange={e => setRoomForm({ ...roomForm, floor: e.target.value })} /></div>
-            <div className="form-group"><label>Capacity</label><input type="number" value={roomForm.capacity} onChange={e => setRoomForm({ ...roomForm, capacity: e.target.value })} /></div>
+            <div className="form-group"><label>Hostel *</label><select required value={roomForm.hostelId} onChange={e => setRoomForm({ ...roomForm, hostelId: e.target.value })}><option value="">Select Hostel</option>{hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</select></div>
+            <div className="form-group"><label>Room Number *</label><input type="text" required value={roomForm.roomNumber} onChange={e => setRoomForm({ ...roomForm, roomNumber: e.target.value })} /></div>
+            <div className="form-group"><label>Floor *</label><input type="number" min="0" required value={roomForm.floor} onChange={e => setRoomForm({ ...roomForm, floor: e.target.value })} /></div>
+            <div className="form-group"><label>Capacity *</label><input type="number" min="1" required value={roomForm.capacity} onChange={e => setRoomForm({ ...roomForm, capacity: e.target.value })} /></div>
             <div className="form-group"><label>Room Type</label><select value={roomForm.roomType} onChange={e => setRoomForm({ ...roomForm, roomType: e.target.value })}><option value="AC">AC</option><option value="Non-AC">Non-AC</option></select></div>
           </div>
         ) : (
           <div className="form-grid">
-            <div className="form-group"><label>Student ID</label><input type="number" value={allocForm.studentId} onChange={e => setAllocForm({ ...allocForm, studentId: e.target.value })} /></div>
+            <div className="form-group"><label>Student ID *</label><input type="number" min="1" required value={allocForm.studentId} onChange={e => setAllocForm({ ...allocForm, studentId: e.target.value })} /></div>
             <div className="form-group"><label>Room</label><select value={allocForm.roomId} onChange={e => setAllocForm({ ...allocForm, roomId: e.target.value })}><option value="">Select Room</option>{rooms.filter(r => r.occupiedCount < r.capacity).map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}</select></div>
-            <div className="form-group"><label>Check-in Date</label><input type="date" value={allocForm.checkInDate} onChange={e => setAllocForm({ ...allocForm, checkInDate: e.target.value })} /></div>
+            <div className="form-group"><label>Check-in Date *</label><input type="date" required value={allocForm.checkInDate} onChange={e => setAllocForm({ ...allocForm, checkInDate: e.target.value })} /></div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Remarks</label><textarea value={allocForm.remarks} onChange={e => setAllocForm({ ...allocForm, remarks: e.target.value })} /></div>
           </div>
         )}

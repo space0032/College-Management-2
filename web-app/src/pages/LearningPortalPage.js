@@ -19,30 +19,34 @@ const LearningPortalPage = () => {
     const [resources, setResources] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         getAllCourses().then(res => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
             setCourses(list);
             if (list.length > 0) setSelectedCourse(String(list[0].id));
-        }).catch(() => { });
+        }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
     }, []);
 
     useEffect(() => {
         if (activeTab === 'resources') {
             setLoading(true);
+            setError('');
             getResources().then(res => {
                 setResources(Array.isArray(res.data) ? res.data : (res.data?.data || []));
-            }).catch(() => { }).finally(() => setLoading(false));
+            }).catch(err => setError(err.response?.data?.error || 'Learning resources could not be loaded.'))
+                .finally(() => setLoading(false));
         }
     }, [activeTab]);
 
     useEffect(() => {
         if (activeTab === 'syllabi' && selectedCourse) {
             setLoading(true);
+            setError('');
             getSyllabiBycourse(selectedCourse)
                 .then(res => setSyllabi(Array.isArray(res.data) ? res.data : []))
-                .catch(() => setSyllabi([]))
+                .catch(err => setError(err.response?.data?.error || 'Syllabi could not be loaded.'))
                 .finally(() => setLoading(false));
         }
     }, [activeTab, selectedCourse]);
@@ -68,6 +72,8 @@ const LearningPortalPage = () => {
                 </div>
             </div>
 
+            {error && <div className="alert alert-error" role="alert">{error}</div>}
+
             {/* Premium Stat Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '35px' }}>
                 <div className="stat-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
@@ -81,11 +87,11 @@ const LearningPortalPage = () => {
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Total Downloads</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3b82f6', margin: '8px 0' }}>1.4K+</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#3b82f6', margin: '8px 0' }}>N/A</div>
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Learning Streak</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: '8px 0' }}>🔥 12 Days</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: '8px 0' }}>N/A</div>
                 </div>
             </div>
 
@@ -123,7 +129,7 @@ const LearningPortalPage = () => {
                                         <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 'bold', marginBottom: '15px' }}>📚 {r.courseName || 'General Resource'}</div>
                                         <p style={{ fontSize: '0.85rem', color: '#64748b', flex: 1, marginBottom: '20px' }}>{r.description || 'Institutional material for academic advancement.'}</p>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid #f1f5f9' }}>
-                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{r.fileType || 'Doc'} • {r.fileSize || '2.4MB'}</span>
+                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{r.fileType || 'Doc'} • {r.fileSize || 'Size unavailable'}</span>
                                             <a href={r.filePath} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: meta.color, fontWeight: 'bold', fontSize: '0.9rem' }}>Access Content &rarr;</a>
                                         </div>
                                     </div>

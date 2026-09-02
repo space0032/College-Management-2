@@ -18,20 +18,23 @@ const VolunteerTasksPage = () => {
     const [loading, setLoading] = useState(false);
     const [applyModal, setApplyModal] = useState(null);
     const [taskDesc, setTaskDesc] = useState('');
+    const [error, setError] = useState('');
 
     const fetchMyTasks = React.useCallback(() => {
         setLoading(true);
+        setError('');
         getMyVolunteerTasks(user.id)
             .then(res => setMyTasks(Array.isArray(res.data) ? res.data : []))
-            .catch(() => setMyTasks([]))
+            .catch(err => setError(err.response?.data?.error || 'Your volunteer tasks could not be loaded.'))
             .finally(() => setLoading(false));
     }, [user.id]);
 
     const fetchOpportunities = React.useCallback(() => {
         setLoading(true);
+        setError('');
         getVolunteerOpportunities()
             .then(res => setOpportunities(Array.isArray(res.data) ? res.data : []))
-            .catch(() => setOpportunities([]))
+            .catch(err => setError(err.response?.data?.error || 'Volunteer opportunities could not be loaded.'))
             .finally(() => setLoading(false));
     }, []);
 
@@ -67,6 +70,7 @@ const VolunteerTasksPage = () => {
     };
 
     const totalHours = myTasks.reduce((s, t) => s + (parseFloat(t.hoursLogged) || 0), 0);
+    const serviceRank = totalHours >= 100 ? 'Gold' : totalHours >= 50 ? 'Silver' : totalHours >= 10 ? 'Bronze' : 'Unranked';
 
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
@@ -82,6 +86,8 @@ const VolunteerTasksPage = () => {
                     </div>
                 </div>
             </div>
+
+            {error && <div className="alert alert-error" role="alert">{error}</div>}
 
             {/* Impact Dashboard */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '35px' }}>
@@ -100,7 +106,7 @@ const VolunteerTasksPage = () => {
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Service Rank</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: '8px 0' }}>🎖️ Gold</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: '8px 0' }}>{serviceRank}</div>
                 </div>
             </div>
 

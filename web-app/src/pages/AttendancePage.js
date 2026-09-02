@@ -58,6 +58,10 @@ const AttendancePage = () => {
       setFormError('All fields are required.');
       return;
     }
+    if (markForm.date > new Date().toISOString().split('T')[0]) {
+      setFormError('Attendance cannot be marked for a future date.');
+      return;
+    }
     setSaving(true);
     try {
       await markAttendance(markForm);
@@ -86,6 +90,10 @@ const AttendancePage = () => {
   const handleBulk = async () => {
     if (!bulkForm.courseId || !bulkForm.date || bulkStudents.length === 0) {
       setFormError('Course, Date, and Student list are required.');
+      return;
+    }
+    if (bulkForm.date > new Date().toISOString().split('T')[0]) {
+      setFormError('Attendance cannot be marked for a future date.');
       return;
     }
     setSaving(true);
@@ -220,7 +228,7 @@ const AttendancePage = () => {
         {[{ name: 'studentId', label: 'Student ID' }, { name: 'courseId', label: 'Course ID' }, { name: 'date', label: 'Date', type: 'date' }].map(({ name, label, type = 'text' }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
-            <input type={type} name={name} className="form-control" value={markForm[name]} onChange={(e) => setMarkForm((p) => ({ ...p, [name]: e.target.value }))} />
+            <input type={type} name={name} required max={type === 'date' ? new Date().toISOString().split('T')[0] : undefined} className="form-control" value={markForm[name]} onChange={(e) => setMarkForm((p) => ({ ...p, [name]: e.target.value }))} />
           </div>
         ))}
         <div className="form-group">
@@ -242,7 +250,7 @@ const AttendancePage = () => {
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Date</label>
-            <input type="date" className="form-control" value={bulkForm.date} onChange={(e) => setBulkForm((p) => ({ ...p, date: e.target.value }))} />
+            <input type="date" required max={new Date().toISOString().split('T')[0]} className="form-control" value={bulkForm.date} onChange={(e) => setBulkForm((p) => ({ ...p, date: e.target.value }))} />
           </div>
           <div style={{ alignSelf: 'flex-end', paddingBottom: '16px' }}>
             <button type="button" className="btn btn-secondary btn-sm" onClick={handleFetchStudentsForBulk}>Load Class List</button>

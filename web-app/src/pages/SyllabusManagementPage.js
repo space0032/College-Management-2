@@ -23,6 +23,7 @@ const SyllabusManagementPage = () => {
     const [syllabi, setSyllabi] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
+    const [error, setError] = useState('');
 
     // File upload state
     const [form, setForm] = useState({ title: '', version: '1.0', description: '', filePath: '' });
@@ -33,15 +34,16 @@ const SyllabusManagementPage = () => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
             setCourses(list);
             if (list.length > 0) setSelectedCourse(String(list[0].id));
-        }).catch(() => { });
+        }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
     }, []);
 
     const fetchSyllabi = useCallback(() => {
         if (!selectedCourse) return;
         setLoading(true);
+        setError('');
         getSyllabiBycourse(selectedCourse)
             .then(res => setSyllabi(Array.isArray(res.data) ? res.data : []))
-            .catch(() => setSyllabi([]))
+            .catch(err => setError(err.response?.data?.error || 'Syllabus records could not be loaded.'))
             .finally(() => setLoading(false));
     }, [selectedCourse]);
 
@@ -133,6 +135,11 @@ const SyllabusManagementPage = () => {
                     )}
                 </div>
             </div>
+
+            {error && <div className="alert alert-error" role="alert">{error}</div>}
+            {canManage && !selectedCourse && !error && (
+                <div className="alert" role="status">Create or load a course before uploading a syllabus.</div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) 1fr', gap: '30px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>

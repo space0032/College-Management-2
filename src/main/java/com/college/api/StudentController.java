@@ -119,6 +119,9 @@ public class StudentController extends BaseController implements HttpHandler {
                 sendResponse(t, 400, "{\"error\":\"Invalid JSON\"}");
                 return;
             }
+            if (student.getEnrollmentDate() == null) {
+                student.setEnrollmentDate(new java.util.Date());
+            }
 
             int id = studentDAO.addStudent(student, 0);
             if (id > 0) {

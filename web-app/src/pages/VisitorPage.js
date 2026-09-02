@@ -43,7 +43,10 @@ const VisitorPage = () => {
 
     const handlePhoneSearch = async (e) => {
         if (e) e.preventDefault();
-        if (!phoneSearch || phoneSearch.length < 10) return;
+        if (!/^\+?[0-9\s-]{10,15}$/.test(phoneSearch.trim())) {
+            alert('Enter a valid phone number using 10 to 15 digits.');
+            return;
+        }
         setIsSearching(true);
         try {
             const res = await getVisitorByPhone(phoneSearch);
@@ -68,6 +71,10 @@ const VisitorPage = () => {
 
     const handleRegisterEntry = async (e) => {
         e.preventDefault();
+        if (!/^\+?[0-9\s-]{10,15}$/.test(formData.phone.trim())) {
+            alert('Enter a valid visitor phone number.');
+            return;
+        }
         try {
             await logVisitorEntry(formData);
             alert('Security clearance granted. Entry logged.');
@@ -137,7 +144,10 @@ const VisitorPage = () => {
                             <h4 style={{ margin: '0 0 15px 0' }}>Step 1: ID Discovery</h4>
                             <form onSubmit={handlePhoneSearch} style={{ display: 'flex', gap: '10px' }}>
                                 <input
-                                    type="text"
+                                    type="tel"
+                                    inputMode="tel"
+                                    pattern="\+?[0-9\s-]{10,15}"
+                                    required
                                     className="form-control"
                                     placeholder="Enter visitor's phone number..."
                                     value={phoneSearch}
@@ -160,7 +170,7 @@ const VisitorPage = () => {
                             <form className="form-grid" onSubmit={handleRegisterEntry}>
                                 <div className="form-group">
                                     <label>Phone *</label>
-                                    <input type="text" className="form-control" readOnly value={formData.phone} />
+                                    <input type="tel" className="form-control" required readOnly value={formData.phone} />
                                 </div>
                                 <div className="form-group">
                                     <label>Full Name *</label>

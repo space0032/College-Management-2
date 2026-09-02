@@ -66,7 +66,6 @@ const CrowdfundingPage = () => {
 
     // Global Stats
     const totalRaised = campaigns.reduce((acc, c) => acc + c.raisedAmount, 0);
-    const donorCount = Math.floor(totalRaised / 500) + 12; // Simulated donor count
 
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
@@ -100,11 +99,11 @@ const CrowdfundingPage = () => {
                         </div>
                         <div className="stat-card">
                             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Impact Network</div>
-                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>{donorCount} Donors</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>N/A</div>
                         </div>
                         <div className="stat-card">
                             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Success Rate</div>
-                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>94%</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>N/A</div>
                         </div>
                     </div>
 

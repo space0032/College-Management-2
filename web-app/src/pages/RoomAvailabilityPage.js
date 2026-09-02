@@ -39,7 +39,7 @@ const RoomAvailabilityPage = () => {
     useEffect(() => {
         getRooms().then(res => {
             setAllRooms(Array.isArray(res.data) ? res.data : []);
-        }).catch(() => { });
+        }).catch(err => setError(err.response?.data?.error || 'Room inventory could not be loaded.'));
         // Auto-check today
         const runInit = async () => {
             setLoading(true);

@@ -41,6 +41,7 @@ const StudentActivitiesHub = () => {
     const [upcomingEvents, setUpcomingEvents] = useState([]);
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         Promise.all([
@@ -51,15 +52,16 @@ const StudentActivitiesHub = () => {
                     .filter(e => new Date(e.startDate || e.date) >= now)
                     .sort((a, b) => new Date(a.startDate || a.date) - new Date(b.startDate || b.date))
                     .slice(0, 4);
-            }).catch(() => []),
+            }),
             getAnnouncements().then(r => {
                 const all = Array.isArray(r.data) ? r.data : [];
                 return all.slice(0, 3);
-            }).catch(() => [])
+            })
         ]).then(([events, ann]) => {
             setUpcomingEvents(events);
             setAnnouncements(ann);
-        }).finally(() => setLoading(false));
+        }).catch(err => setError(err.response?.data?.error || 'Student activity data could not be loaded.'))
+            .finally(() => setLoading(false));
     }, []);
 
     const formatDate = (d) => {
@@ -71,6 +73,7 @@ const StudentActivitiesHub = () => {
 
     return (
         <div className="page-container">
+            {error && <div className="alert alert-error" role="alert">{error}</div>}
             {/* Hero */}
             <div style={{
                 background: 'linear-gradient(135deg, #1a365d 0%, #2f855a 100%)',
