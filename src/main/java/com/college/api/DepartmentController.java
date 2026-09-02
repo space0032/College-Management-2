@@ -48,6 +48,7 @@ public class DepartmentController extends BaseController implements HttpHandler 
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (!normalizeAndValidate(t, department)) return;
         boolean ok = departmentDAO.addDepartment(department);
         if (ok) sendResponse(t, 201, JsonHelper.toJson(department));
         else sendResponse(t, 400, errorJson("Failed to add department"));
@@ -62,6 +63,7 @@ public class DepartmentController extends BaseController implements HttpHandler 
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (!normalizeAndValidate(t, department)) return;
         department.setId(id);
         boolean ok = departmentDAO.updateDepartment(department);
         if (ok) sendResponse(t, 200, JsonHelper.toJson(department));
@@ -79,5 +81,21 @@ public class DepartmentController extends BaseController implements HttpHandler 
     private int extractId(String path) {
         String[] parts = path.split("/");
         return Integer.parseInt(parts[parts.length - 1]);
+    }
+
+    private boolean normalizeAndValidate(HttpExchange exchange, Department department) throws IOException {
+        String name = department.getName() == null ? "" : department.getName().trim();
+        String code = department.getCode() == null ? "" : department.getCode().trim().toUpperCase(java.util.Locale.ROOT);
+        if (name.isEmpty() || code.isEmpty()) {
+            sendResponse(exchange, 400, errorJson("Department name and code are required"));
+            return false;
+        }
+        if (code.length() > 10 || !code.matches("[A-Z0-9_-]+")) {
+            sendResponse(exchange, 400, errorJson("Department code must be at most 10 letters, numbers, underscores, or hyphens"));
+            return false;
+        }
+        department.setName(name);
+        department.setCode(code);
+        return true;
     }
 }

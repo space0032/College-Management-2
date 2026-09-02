@@ -7,9 +7,9 @@ import { getHostels, addHostel, updateHostel, getRooms, addRoom, getAllocations,
 const HOSTEL_TYPES = ['Boys', 'Girls', 'Co-ed'];
 
 const HostelPage = () => {
-  const [, setLoading] = useState(true);
-  const [, setError] = useState('');
-  const [, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('hostels');
   const [hostels, setHostels] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -82,7 +82,7 @@ const HostelPage = () => {
       else await allocateRoom(allocForm);
       setModalOpen(false);
       fetchAll();
-    } catch (err) { setError('Failed to save.'); }
+    } catch (err) { setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save.'); }
     finally { setSaving(false); }
   };
 
@@ -139,7 +139,10 @@ const HostelPage = () => {
         <input className="form-control" style={{ maxWidth: '260px' }} placeholder={`Search ${tab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
       </div>
 
-      <div className="stat-card" style={{ padding: '0px', overflow: 'hidden' }}>
+      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+      {loading && <div className="loading-container"><div className="spinner" /><span>Loading housing data…</span></div>}
+
+      {!loading && <div className="stat-card" style={{ padding: '0px', overflow: 'hidden' }}>
         {tab === 'hostels' && (
           <DataTable
             columns={[
@@ -195,9 +198,9 @@ const HostelPage = () => {
             data={allocations.filter(a => !searchQuery || (a.studentName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (a.hostelName || '').toLowerCase().includes(searchQuery.toLowerCase()))}
           />
         )}
-      </div>
+      </div>}
 
-      <Modal isOpen={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)} onSubmit={handleSave}>
+      <Modal isOpen={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)} onSubmit={saving ? undefined : handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
         {tab === 'hostels' ? (
           <div className="form-grid">
             <div className="form-group"><label>Hostel Name *</label><input type="text" required value={hostelForm.name} onChange={e => setHostelForm({ ...hostelForm, name: e.target.value })} /></div>
@@ -218,7 +221,7 @@ const HostelPage = () => {
         ) : (
           <div className="form-grid">
             <div className="form-group"><label>Student ID *</label><input type="number" min="1" required value={allocForm.studentId} onChange={e => setAllocForm({ ...allocForm, studentId: e.target.value })} /></div>
-            <div className="form-group"><label>Room</label><select value={allocForm.roomId} onChange={e => setAllocForm({ ...allocForm, roomId: e.target.value })}><option value="">Select Room</option>{rooms.filter(r => r.occupiedCount < r.capacity).map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}</select></div>
+            <div className="form-group"><label>Room *</label><select required value={allocForm.roomId} onChange={e => setAllocForm({ ...allocForm, roomId: e.target.value })}><option value="">Select Room</option>{rooms.filter(r => r.occupiedCount < r.capacity).map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}</select></div>
             <div className="form-group"><label>Check-in Date *</label><input type="date" required value={allocForm.checkInDate} onChange={e => setAllocForm({ ...allocForm, checkInDate: e.target.value })} /></div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Remarks</label><textarea value={allocForm.remarks} onChange={e => setAllocForm({ ...allocForm, remarks: e.target.value })} /></div>
           </div>

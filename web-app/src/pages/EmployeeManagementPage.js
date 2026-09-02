@@ -65,7 +65,18 @@ const EmployeeManagementPage = () => {
     };
 
     const handleEdit = (emp) => {
-        setFormData(emp);
+        setFormData({
+            id: emp.id || 0,
+            employeeId: emp.employeeId || '',
+            firstName: emp.firstName || '',
+            lastName: emp.lastName || '',
+            email: emp.email || '',
+            phone: emp.phone || '',
+            designation: emp.designation || '',
+            joinDate: emp.joinDate || '',
+            salary: emp.salary ?? 0,
+            status: emp.status || 'ACTIVE'
+        });
         setIsEditing(true);
         setShowModal(true);
     };

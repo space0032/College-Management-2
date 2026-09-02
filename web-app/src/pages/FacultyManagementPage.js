@@ -101,11 +101,14 @@ const FacultyManagementPage = () => {
   }, []);
 
   const openAdd = React.useCallback(() => {
-    dispatch({ type: 'OPEN_MODAL' });
+    dispatch({ type: 'OPEN_MODAL', form: { ...EMPTY_FORM } });
   }, []);
 
   const openEdit = useCallback((row) => {
-    dispatch({ type: 'OPEN_MODAL', form: { ...row }, editId: row.id });
+    dispatch({ type: 'OPEN_MODAL', form: {
+      name: row.name || '', email: row.email || '', phone: row.phone || '',
+      department: row.department || '', qualification: row.qualification || ''
+    }, editId: row.id });
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -131,7 +134,7 @@ const FacultyManagementPage = () => {
       dispatch({ type: 'SAVING_DONE' });
       fetchFaculty(1, false);
     } catch (err) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.message || 'Failed to save faculty.' });
+      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save faculty.' });
     }
   }, [form, editId, fetchFaculty]);
 

@@ -125,7 +125,7 @@ const CourseManagementPage = () => {
       dispatch({ type: 'SAVING_DONE' });
       fetchCourses(1, false);
     } catch (err) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.message || 'Failed to save course.' });
+      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save course.' });
     }
   };
 

@@ -13,7 +13,7 @@ const InstituteManagementPage = () => {
     const [data, setData] = useState([]);
 
     // Forms
-    const [deptForm, setDeptForm] = useState({ id: null, name: '', description: '' });
+    const [deptForm, setDeptForm] = useState({ id: null, name: '', code: '', description: '' });
     const [roleForm, setRoleForm] = useState({ name: '', description: '' });
 
     // Permission Tree state
@@ -67,7 +67,7 @@ const InstituteManagementPage = () => {
             } else {
                 await addDepartment(deptForm);
             }
-            setDeptForm({ id: null, name: '', description: '' });
+            setDeptForm({ id: null, name: '', code: '', description: '' });
             loadData();
         } catch (err) {
             alert('Failed to save department');
@@ -189,22 +189,26 @@ const InstituteManagementPage = () => {
                                 <input required type="text" value={deptForm.name} onChange={e => setDeptForm({ ...deptForm, name: e.target.value })} />
                             </div>
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label>Department Code</label>
+                                <input required maxLength="10" type="text" value={deptForm.code || ''} onChange={e => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })} placeholder="e.g. CSE" />
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                 <label>Description</label>
                                 <input required type="text" value={deptForm.description} onChange={e => setDeptForm({ ...deptForm, description: e.target.value })} />
                             </div>
                             <div className="form-group" style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px' }}>
                                 <button type="submit" className="btn btn-primary">{deptForm.id ? 'Update' : 'Create'}</button>
-                                {deptForm.id && <button type="button" className="btn btn-secondary" onClick={() => setDeptForm({ id: null, name: '', description: '' })}>Cancel</button>}
+                                {deptForm.id && <button type="button" className="btn btn-secondary" onClick={() => setDeptForm({ id: null, name: '', code: '', description: '' })}>Cancel</button>}
                             </div>
                         </form>
                     </div>
                     <div className="data-table-container" style={{ flex: 2 }}>
                         <table className="data-table">
-                            <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Name</th><th>Code</th><th>Description</th><th>Actions</th></tr></thead>
                             <tbody>
                                 {data.map(d => (
                                     <tr key={d.id}>
-                                        <td>{d.id}</td><td>{d.name}</td><td>{d.description}</td>
+                                        <td>{d.id}</td><td>{d.name}</td><td>{d.code}</td><td>{d.description}</td>
                                         <td>
                                             <button className="btn btn-secondary btn-sm" onClick={() => setDeptForm(d)} style={{ marginRight: '5px' }}>Edit</button>
                                             <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDept(d.id)}>Delete</button>

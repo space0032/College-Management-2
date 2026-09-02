@@ -100,11 +100,11 @@ public class JsonHelper {
                     field.set(obj, valueVal);
                 }
             } else if (field.getType() == int.class || field.getType() == Integer.class) {
-                field.set(obj, Integer.parseInt(valueVal));
+                field.set(obj, Integer.parseInt(unquote(valueVal)));
             } else if (field.getType() == double.class || field.getType() == Double.class) {
-                field.set(obj, Double.parseDouble(valueVal));
+                field.set(obj, Double.parseDouble(unquote(valueVal)));
             } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                field.set(obj, Boolean.parseBoolean(valueVal));
+                field.set(obj, Boolean.parseBoolean(unquote(valueVal)));
             } else if (field.getType() == java.time.LocalDate.class) {
                 if (valueVal.startsWith("\"") && valueVal.endsWith("\""))
                     valueVal = valueVal.substring(1, valueVal.length() - 1);
@@ -118,5 +118,13 @@ public class JsonHelper {
         } catch (Exception e) {
             // Field not found or mismatch, ignore
         }
+    }
+
+    private static String unquote(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
+            return normalized.substring(1, normalized.length() - 1);
+        }
+        return normalized;
     }
 }

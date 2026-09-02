@@ -138,11 +138,14 @@ const StudentManagementPage = () => {
   }, []);
 
   const openAdd = useCallback(() => {
-    dispatch({ type: 'OPEN_MODAL' });
+    dispatch({ type: 'OPEN_MODAL', form: { ...EMPTY_FORM } });
   }, []);
 
   const openEdit = useCallback((row) => {
-    dispatch({ type: 'OPEN_MODAL', form: { ...row }, editId: row.id });
+    dispatch({ type: 'OPEN_MODAL', form: {
+      name: row.name || '', email: row.email || '', phone: row.phone || '',
+      course: row.course || '', department: row.department || '', semester: row.semester || ''
+    }, editId: row.id });
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -172,7 +175,7 @@ const StudentManagementPage = () => {
       dispatch({ type: 'SAVING_DONE' });
       fetchStudents(1, false);
     } catch (err) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.message || 'Failed to save student.' });
+      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save student.' });
     }
   }, [form, editId, fetchStudents]);
 
@@ -419,6 +422,9 @@ const StudentManagementPage = () => {
             <label>Department *</label>
             <select name="department" required value={form.department} onChange={handleFormChange}>
               <option value="">Select department</option>
+              {form.department && !departmentOptions.some(d => d.name === form.department) && (
+                <option value={form.department}>{form.department} (legacy value)</option>
+              )}
               {departmentOptions.map(d => <option key={d.id} value={d.name}>{d.name} ({d.code})</option>)}
             </select>
           </div>
@@ -426,6 +432,9 @@ const StudentManagementPage = () => {
             <label>Course *</label>
             <select name="course" required value={form.course} onChange={handleFormChange}>
               <option value="">Select course</option>
+              {form.course && !courseOptions.some(c => c.name === form.course) && (
+                <option value={form.course}>{form.course} (legacy value)</option>
+              )}
               {courseOptions.filter(c => !form.department || c.department === form.department).map(c => (
                 <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
               ))}
