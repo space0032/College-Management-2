@@ -10,7 +10,8 @@ import java.net.InetSocketAddress;
 public class ApiServer {
 
     public static void main(String[] args) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress(7000), 0);
+        int port = resolvePort(System.getenv("PORT"));
+        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         // Public endpoints
         server.createContext("/", new RootHandler());
@@ -56,7 +57,22 @@ public class ApiServer {
 
         server.setExecutor(null);
         server.start();
-        System.out.println("API Server started on port 7000");
+        System.out.println("API Server started on port " + port);
+    }
+
+    static int resolvePort(String configuredPort) {
+        if (configuredPort == null || configuredPort.isBlank()) {
+            return 7000;
+        }
+        try {
+            int port = Integer.parseInt(configuredPort);
+            if (port < 1 || port > 65535) {
+                throw new IllegalArgumentException("PORT must be between 1 and 65535");
+            }
+            return port;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("PORT must be a valid integer", e);
+        }
     }
 
     static class RootHandler implements HttpHandler {

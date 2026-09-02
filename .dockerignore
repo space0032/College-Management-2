@@ -1,0 +1,16 @@
+.git
+.github
+.idea
+.env
+data
+docs
+legacy_scripts
+lib
+maven
+out
+target
+uploads
+user_data
+web-app
+*.log
+*.class
