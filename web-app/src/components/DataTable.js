@@ -1,7 +1,15 @@
 import React from 'react';
 
-const DataTable = ({ data = [], columns = [], onEdit, onDelete, emptyMessage = 'No records found.' }) => {
+const DataTable = ({ data = [], columns = [], onEdit, onDelete, emptyMessage = 'No records found.', loading = false, error = '', onRetry }) => {
   const hasActions = onEdit || onDelete;
+
+  if (loading) {
+    return <div className="table-wrapper"><div className="table-empty"><div className="spinner" /><p>Loading records…</p></div></div>;
+  }
+
+  if (error) {
+    return <div className="table-wrapper"><div className="table-empty table-error"><p>{error}</p>{onRetry && <button className="btn btn-secondary btn-sm" onClick={onRetry}>Retry</button>}</div></div>;
+  }
 
   if (data.length === 0) {
     return (

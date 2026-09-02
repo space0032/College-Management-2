@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-const Modal = ({ isOpen, title, onClose, onSubmit, children, submitLabel = 'Save' }) => {
+const Modal = ({ isOpen, title, onClose, onSubmit, children, submitLabel = 'Save', submitting = false }) => {
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -31,7 +31,16 @@ const Modal = ({ isOpen, title, onClose, onSubmit, children, submitLabel = 'Save
         {onSubmit && (
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={onSubmit}>{submitLabel}</button>
+            <button className="btn btn-primary" disabled={submitting} onClick={() => {
+              // Most legacy modal forms keep their <form> in the body while the
+              // action button lives in the footer. Trigger native validation here.
+              const form = document.querySelector('.modal-body form');
+              if (form && !form.checkValidity()) {
+                form.reportValidity();
+                return;
+              }
+              onSubmit();
+            }}>{submitting ? 'Saving…' : submitLabel}</button>
           </div>
         )}
       </div>

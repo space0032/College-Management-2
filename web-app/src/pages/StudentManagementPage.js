@@ -191,11 +191,14 @@ const StudentManagementPage = () => {
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
+      const query = search.trim().toLowerCase();
+      const matchesSearch = !query || [s.name, s.email, s.username, s.course, s.department]
+        .some(value => String(value || '').toLowerCase().includes(query));
       const matchesDept = !filterDept || s.department === filterDept;
       const matchesSem = !filterSem || s.semester?.toString() === filterSem;
-      return matchesDept && matchesSem;
+      return matchesSearch && matchesDept && matchesSem;
     });
-  }, [students, filterDept, filterSem]);
+  }, [students, search, filterDept, filterSem]);
 
   const handleExport = useCallback(() => {
     exportToCSV(
