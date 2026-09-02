@@ -401,8 +401,12 @@ const EventsPage = () => {
                             <input type="datetime-local" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} required />
                         </div>
                         <div className="form-group">
+                            <label>End Time</label>
+                            <input type="datetime-local" min={createForm.startTime || undefined} value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} required />
+                        </div>
+                        <div className="form-group">
                             <label>Max Capacity</label>
-                            <input type="number" value={createForm.maxParticipants} onChange={e => setCreateForm({ ...createForm, maxParticipants: e.target.value })} placeholder="Unlimited" />
+                            <input type="number" min="1" value={createForm.maxParticipants} onChange={e => setCreateForm({ ...createForm, maxParticipants: e.target.value })} placeholder="Unlimited" />
                         </div>
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                             <label>Brief Description</label>

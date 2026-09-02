@@ -52,6 +52,10 @@ Source reports reviewed:
 - [x] Add the missing PostgreSQL course specialization column used by CourseDAO.
 - [x] Synchronize PostgreSQL primary-key sequences after explicit-ID bootstrap/import data.
 - [x] Align Timetable UI fields with the API model (`dayOfWeek`, `facultyName`, and `roomNumber`) and validate required data server-side.
+- [x] Add the missing Faculty specialization column.
+- [x] Parse browser date-time values and complete required Event fields server-side and in the UI.
+- [x] Synchronize Assignment, Event, Timetable, Club, and Resource sequences.
+- [x] Align Placement Drive form fields with the backend model and require both drive and deadline dates.
 - [x] Restore visible Hostel/Room loading and mutation errors instead of discarding their state.
 - [x] Normalize Student, Faculty, and Staff edit forms and preserve legacy academic values during cleanup.
 - [x] Replace free-text Department/Course inputs in academic create forms with master-data selectors.
@@ -73,3 +77,6 @@ Source reports reviewed:
 ## Release gate
 
 - [ ] Do not mark production-ready until every deployment retest item passes and no core request returns an unexpected 401, 403, or silent failure.
+- [x] Preserve the discovered visitor phone and existing check-in fields after a new-number lookup.
+- [x] Derive assignment ownership from the authenticated session and validate assignment payloads.
+- [x] Generate required role codes server-side and resynchronize the PostgreSQL role sequence.

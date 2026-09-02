@@ -90,21 +90,36 @@ public class AssignmentController extends BaseController implements HttpHandler 
     @SuppressWarnings("unchecked")
     private void handleCreateAssignment(HttpExchange t) throws IOException {
         if (!requirePermission(t, "CREATE_ASSIGNMENT")) return;
+        TokenStore.TokenInfo tokenInfo = getTokenInfo(t);
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
+        if (map == null || !(map.get("courseId") instanceof Number)
+                || !(map.get("title") instanceof String)
+                || !(map.get("dueDate") instanceof String)) {
+            sendResponse(t, 400, errorJson("Course, title, and due date are required"));
+            return;
+        }
+
+        String title = ((String) map.get("title")).trim();
+        String dueDateStr = ((String) map.get("dueDate")).trim();
+        int courseId = ((Number) map.get("courseId")).intValue();
+        int semester = map.get("semester") instanceof Number ? ((Number) map.get("semester")).intValue() : 1;
+        if (title.isEmpty() || dueDateStr.isEmpty() || courseId <= 0 || semester < 1 || semester > 8) {
+            sendResponse(t, 400, errorJson("Provide a valid course, title, due date, and semester (1-8)"));
+            return;
+        }
+
         Assignment assignment = new Assignment();
-        assignment.setCourseId(((Double) map.get("courseId")).intValue());
-        assignment.setTitle((String) map.get("title"));
+        assignment.setCourseId(courseId);
+        assignment.setTitle(title);
         assignment.setDescription((String) map.get("description"));
-        // Assuming dueDate is sent in ISO format
-        String dueDateStr = (String) map.get("dueDate");
         if (dueDateStr.length() == 10) {
             dueDateStr += "T23:59:59"; // default to end of day if only date is provided
         }
         assignment.setDueDate(Timestamp.valueOf(dueDateStr.replace("T", " ")));
-        assignment.setCreatedBy(((Double) map.get("createdBy")).intValue());
-        assignment.setSemester(map.containsKey("semester") ? ((Double) map.get("semester")).intValue() : 1);
+        assignment.setCreatedBy(tokenInfo.userId);
+        assignment.setSemester(semester);
 
         boolean ok = assignmentDAO.createAssignment(assignment);
         if (ok)

@@ -88,11 +88,15 @@ const InstituteManagementPage = () => {
     const handleSaveRole = async (e) => {
         e.preventDefault();
         try {
-            await addRole(roleForm);
+            await addRole({
+                ...roleForm,
+                code: roleForm.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+                portalType: 'ADMIN'
+            });
             setRoleForm({ name: '', description: '' });
             loadData();
         } catch (err) {
-            alert('Failed to add role');
+            alert(err.response?.data?.error || 'Failed to add role');
         }
     };
 

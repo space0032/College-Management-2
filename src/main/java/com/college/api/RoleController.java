@@ -70,6 +70,25 @@ public class RoleController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        String name = role.getName() == null ? "" : role.getName().trim();
+        if (name.isEmpty()) {
+            sendResponse(t, 400, errorJson("Role name is required"));
+            return;
+        }
+        role.setName(name);
+        if (role.getCode() == null || role.getCode().isBlank()) {
+            role.setCode(name.toUpperCase(java.util.Locale.ROOT)
+                    .replaceAll("[^A-Z0-9]+", "_")
+                    .replaceAll("^_+|_+$", ""));
+        }
+        if (role.getCode().isBlank()) {
+            sendResponse(t, 400, errorJson("Role name must contain letters or numbers"));
+            return;
+        }
+        role.setSystemRole(false);
+        if (role.getPortalType() == null || role.getPortalType().isBlank()) {
+            role.setPortalType("ADMIN");
+        }
         boolean ok = roleDAO.createRole(role);
         if (ok)
             sendResponse(t, 201, JsonHelper.toJson(role));

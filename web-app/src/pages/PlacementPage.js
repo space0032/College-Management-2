@@ -15,10 +15,10 @@ const COMPANY_COLS = [
 const DRIVE_COLS = [
   { key: 'id', label: 'ID' },
   { key: 'companyName', label: 'Company' },
-  { key: 'role', label: 'Role' },
-  { key: 'date', label: 'Date' },
-  { key: 'ctc', label: 'CTC' },
-  { key: 'eligibility', label: 'Eligibility' },
+  { key: 'jobRole', label: 'Role' },
+  { key: 'driveDate', label: 'Date' },
+  { key: 'packageLpa', label: 'CTC (LPA)' },
+  { key: 'eligibilityCriteria', label: 'Eligibility' },
   { key: 'hasApplied', label: 'Status', render: (_, d) => d.hasApplied ? <span className="badge badge-success">Applied</span> : <span className="badge badge-secondary">Not Applied</span> }
 ];
 
@@ -29,7 +29,7 @@ const APPLICATION_COLS = [
 ];
 
 const EMPTY_COMPANY = { name: '', industry: '', website: '' };
-const EMPTY_DRIVE = { companyName: '', role: '', date: '', ctc: '', eligibility: '' };
+const EMPTY_DRIVE = { companyId: '', jobRole: '', driveDate: '', deadline: '', packageLpa: '', eligibilityCriteria: '', description: '' };
 
 const PlacementPage = () => {
   const user = SessionManager.getUser() || {};
@@ -77,15 +77,15 @@ const PlacementPage = () => {
       setCompanyForm(EMPTY_COMPANY);
       fetchAll();
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to add company.');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to add company.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleAddDrive = async () => {
-    if (!driveForm.companyName || !driveForm.role) { setFormError('Company and role are required.'); return; }
-    if (driveForm.ctc !== undefined && driveForm.ctc !== '' && isNaN(parseFloat(driveForm.ctc))) {
+    if (!driveForm.companyId || !driveForm.jobRole || !driveForm.driveDate || !driveForm.deadline) { setFormError('Company, role, drive date, and deadline are required.'); return; }
+    if (!driveForm.packageLpa || isNaN(parseFloat(driveForm.packageLpa)) || parseFloat(driveForm.packageLpa) < 0) {
       setFormError('Package (CTC) must be a valid number (e.g. 12.5 for 12.5 LPA).');
       return;
     }
@@ -96,7 +96,7 @@ const PlacementPage = () => {
       setDriveForm(EMPTY_DRIVE);
       fetchAll();
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to add drive.');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to add drive.');
     } finally {
       setSaving(false);
     }
@@ -114,7 +114,7 @@ const PlacementPage = () => {
 
   const handleApply = async (drive) => {
     if (!user.id) { alert('Could not identify your account. Please log in again.'); return; }
-    if (!window.confirm(`Apply for ${drive.role} at ${drive.companyName}?`)) return;
+    if (!window.confirm(`Apply for ${drive.jobRole} at ${drive.companyName}?`)) return;
     try {
       await applyForDrive({ driveId: drive.id, studentId: user.id });
       fetchAll();
@@ -168,7 +168,7 @@ const PlacementPage = () => {
             if (tab === 'companies') {
               exportToCSV(['ID', 'Name', 'Industry', 'Website'], companies.map(c => [c.id, c.name, c.industry, c.website]), 'companies_export');
             } else {
-              exportToCSV(['ID', 'Company', 'Role', 'Date', 'CTC', 'Eligibility'], drives.map(d => [d.id, d.companyName, d.role, d.date, d.ctc, d.eligibility]), 'placement_drives_export');
+              exportToCSV(['ID', 'Company', 'Role', 'Date', 'CTC', 'Eligibility'], drives.map(d => [d.id, d.companyName, d.jobRole, d.driveDate, d.packageLpa, d.eligibilityCriteria]), 'placement_drives_export');
             }
           }}>⬇ Export CSV</button>
           {canManage && <button className="btn btn-primary" onClick={openModal}>+ Add {tab === 'companies' ? 'Company' : 'Drive'}</button>}
@@ -200,26 +200,33 @@ const PlacementPage = () => {
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         {tab === 'companies' ? (
           <>
-            {[{ name: 'name', label: 'Company Name' }, { name: 'industry', label: 'Industry' }, { name: 'website', label: 'Website' }].map(({ name, label }) => (
+            {[{ name: 'name', label: 'Company Name', required: true }, { name: 'industry', label: 'Industry' }, { name: 'website', label: 'Website', type: 'url' }].map(({ name, label, type = 'text', required = false }) => (
               <div className="form-group" key={name}>
-                <label className="form-label">{label}</label>
-                <input name={name} type="text" className="form-control" value={companyForm[name]} onChange={(e) => setCompanyForm((p) => ({ ...p, [name]: e.target.value }))} placeholder={`Enter ${label.toLowerCase()}`} />
+                <label className="form-label">{label}{required ? ' *' : ''}</label>
+                <input name={name} type={type} required={required} className="form-control" value={companyForm[name]} onChange={(e) => setCompanyForm((p) => ({ ...p, [name]: e.target.value }))} placeholder={`Enter ${label.toLowerCase()}`} />
               </div>
             ))}
           </>
         ) : (
           <>
-            {[{ name: 'companyName', label: 'Company Name' }, { name: 'role', label: 'Role' }, { name: 'date', label: 'Date', type: 'date' }, { name: 'ctc', label: 'CTC' }, { name: 'eligibility', label: 'Eligibility' }].map(({ name, label, type = 'text' }) => (
+            <div className="form-group">
+              <label className="form-label">Company *</label>
+              <select required value={driveForm.companyId} onChange={(e) => setDriveForm((p) => ({ ...p, companyId: e.target.value }))}>
+                <option value="">Select company</option>
+                {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+              </select>
+            </div>
+            {[{ name: 'jobRole', label: 'Role', required: true }, { name: 'driveDate', label: 'Drive Date', type: 'date', required: true }, { name: 'deadline', label: 'Application Deadline', type: 'date', required: true }, { name: 'packageLpa', label: 'CTC (LPA)', type: 'number', required: true }, { name: 'eligibilityCriteria', label: 'Eligibility' }, { name: 'description', label: 'Description' }].map(({ name, label, type = 'text', required = false }) => (
               <div className="form-group" key={name}>
-                <label className="form-label">{label}</label>
-                <input name={name} type={type} className="form-control" value={driveForm[name]} onChange={(e) => setDriveForm((p) => ({ ...p, [name]: e.target.value }))} placeholder={type === 'date' ? '' : `Enter ${label.toLowerCase()}`} />
+                <label className="form-label">{label}{required ? ' *' : ''}</label>
+                <input name={name} type={type} required={required} min={type === 'number' ? '0' : undefined} step={name === 'packageLpa' ? '0.1' : undefined} className="form-control" value={driveForm[name]} onChange={(e) => setDriveForm((p) => ({ ...p, [name]: e.target.value }))} placeholder={type === 'date' ? '' : `Enter ${label.toLowerCase()}`} />
               </div>
             ))}
           </>
         )}
       </Modal>
 
-      <Modal isOpen={viewAppsModal} title={`Applications: ${selectedDrive?.role} at ${selectedDrive?.companyName}`} onClose={() => setViewAppsModal(false)}>
+      <Modal isOpen={viewAppsModal} title={`Applications: ${selectedDrive?.jobRole} at ${selectedDrive?.companyName}`} onClose={() => setViewAppsModal(false)}>
         {applications.length === 0 ? <p>No applications yet.</p> : (
           <DataTable
             columns={[

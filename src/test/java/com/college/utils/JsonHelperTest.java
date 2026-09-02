@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import com.college.models.Employee;
 import com.college.models.Room;
+import com.college.models.Event;
 
 class JsonHelperTest {
 
@@ -21,5 +22,12 @@ class JsonHelperTest {
         assertEquals(3, room.getHostelId());
         assertEquals(1, room.getFloor());
         assertEquals(2, room.getCapacity());
+    }
+
+    @Test
+    void deserializesBrowserDateTimeValues() {
+        Event event = JsonHelper.fromJson("{\"startTime\":\"2026-09-10T10:00\"}", Event.class);
+
+        org.junit.jupiter.api.Assertions.assertNotNull(event.getStartTime());
     }
 }

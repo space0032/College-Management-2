@@ -43,27 +43,35 @@ const VisitorPage = () => {
 
     const handlePhoneSearch = async (e) => {
         if (e) e.preventDefault();
-        if (!/^\+?[0-9\s-]{10,15}$/.test(phoneSearch.trim())) {
+        const searchedPhone = phoneSearch.trim();
+        if (!/^\+?[0-9\s-]{10,15}$/.test(searchedPhone)) {
             alert('Enter a valid phone number using 10 to 15 digits.');
             return;
         }
         setIsSearching(true);
         try {
-            const res = await getVisitorByPhone(phoneSearch);
+            const res = await getVisitorByPhone(searchedPhone);
             if (res.data) {
                 setIsVisitorFound(true);
-                setFormData({
-                    ...formData,
-                    phone: res.data.phone,
+                setFormData(previous => ({
+                    ...previous,
+                    phone: res.data.phone || searchedPhone,
                     name: res.data.name,
                     email: res.data.email || '',
-                    idProofType: res.data.idProofType,
+                    idProofType: res.data.idProofType || 'AADHAAR',
                     idProofNumber: res.data.idProofNumber
-                });
+                }));
             }
         } catch (err) {
             setIsVisitorFound(false);
-            setFormData({ phone: phoneSearch, name: '', email: '', idProofType: 'AADHAAR', idProofNumber: '' });
+            setFormData(previous => ({
+                ...previous,
+                phone: searchedPhone,
+                name: '',
+                email: '',
+                idProofType: 'AADHAAR',
+                idProofNumber: ''
+            }));
         } finally {
             setIsSearching(false);
         }

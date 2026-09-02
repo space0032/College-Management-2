@@ -54,7 +54,7 @@ const AssignmentPage = () => {
             setAssignmentForm({ title: '', description: '', dueDate: '', courseId: '1', semester: 1 });
             setActiveTab('browse');
         } catch (err) {
-            alert('Failed to create assignment');
+            alert(err.response?.data?.error || 'Failed to create assignment');
         }
     };
 

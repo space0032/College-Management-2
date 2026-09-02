@@ -113,6 +113,14 @@ public class JsonHelper {
                 if (valueVal.startsWith("\"") && valueVal.endsWith("\""))
                     valueVal = valueVal.substring(1, valueVal.length() - 1);
                 field.set(obj, java.time.LocalDateTime.parse(valueVal.replace(" ", "T")));
+            } else if (field.getType() == java.util.Date.class) {
+                String value = unquote(valueVal);
+                if (!value.isBlank() && !"null".equals(value)) {
+                    java.time.LocalDateTime parsed = value.length() == 10
+                            ? java.time.LocalDate.parse(value).atStartOfDay()
+                            : java.time.LocalDateTime.parse(value.replace(" ", "T"));
+                    field.set(obj, java.util.Date.from(parsed.atZone(java.time.ZoneId.systemDefault()).toInstant()));
+                }
             }
             // Add date handling if needed (rudimentary)
         } catch (Exception e) {

@@ -46,10 +46,10 @@ const RoleManagementPage = () => {
         if (!roleName.trim()) return;
         setSaving(true);
         try {
-            await addRole({ name: roleName.trim(), description: roleDesc.trim() });
+            await addRole({ code: roleName.trim(), name: roleName.trim(), description: roleDesc.trim(), portalType: 'ADMIN' });
             setRoleModal(false); setRoleName(''); setRoleDesc('');
             fetchAll();
-        } catch { alert('Failed to create role.'); }
+        } catch (err) { alert(err.response?.data?.error || 'Failed to create role.'); }
         finally { setSaving(false); }
     };
 

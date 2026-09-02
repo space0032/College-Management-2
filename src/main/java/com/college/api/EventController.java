@@ -135,6 +135,14 @@ public class EventController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (event.getName() == null || event.getName().isBlank() || event.getEventType() == null
+                || event.getEventType().isBlank() || event.getStartTime() == null || event.getEndTime() == null) {
+            sendResponse(t, 400, errorJson("Name, event type, start time, and end time are required"));
+            return;
+        }
+        TokenStore.TokenInfo user = getTokenInfo(t);
+        event.setCreatedBy(user.userId);
+        if (event.getStatus() == null || event.getStatus().isBlank()) event.setStatus("UPCOMING");
         boolean success = eventDAO.createEvent(event);
         if (success) {
             sendResponse(t, 201, "{\"message\":\"Event created successfully\"}");
