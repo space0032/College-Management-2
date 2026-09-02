@@ -1,7 +1,8 @@
-import React, { useEffect, useReducer, useCallback, useMemo } from 'react';
+import React, { useEffect, useReducer, useCallback, useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllCourses, createCourse, updateCourse, deleteCourse } from '../services/courseService';
+import { getDepartments } from '../services/departmentService';
 import { exportToCSV } from '../utils/exportUtils';
 import SessionManager from '../utils/SessionManager';
 import { CONFIG } from '../config';
@@ -66,6 +67,7 @@ function courseReducer(state, action) {
 
 const CourseManagementPage = () => {
   const [state, dispatch] = useReducer(courseReducer, initialState);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
   const { courses, loading, error, search, page, hasMore, pageSize, modalOpen, form, editId, formError, saving, filterDept, filterSem } = state;
 
   const userRole = SessionManager.getUserRole() || 'STUDENT';
@@ -89,6 +91,10 @@ const CourseManagementPage = () => {
   useEffect(() => {
     fetchCourses(1, false);
   }, [fetchCourses]);
+
+  useEffect(() => {
+    getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => setDepartmentOptions([]));
+  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -229,7 +235,10 @@ const CourseManagementPage = () => {
           </div>
           <div className="form-group">
             <label className="form-label">Department *</label>
-            <input name="department" type="text" required className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Computer Science" />
+            <select name="department" required className="form-control" value={form.department} onChange={handleFormChange}>
+              <option value="">Select department</option>
+              {departmentOptions.map(d => <option key={d.id} value={d.name}>{d.name} ({d.code})</option>)}
+            </select>
           </div>
           <div className="form-group">
             <label className="form-label">Semester *</label>

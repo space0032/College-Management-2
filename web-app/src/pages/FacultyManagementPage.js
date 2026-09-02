@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllFaculty, createFaculty, updateFaculty, deleteFaculty, searchFaculty } from '../services/facultyService';
+import { getDepartments } from '../services/departmentService';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
@@ -50,6 +51,7 @@ function facultyReducer(state, action) {
 
 const FacultyManagementPage = () => {
   const [state, dispatch] = React.useReducer(facultyReducer, initialState);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
   const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept } = state;
 
   const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
@@ -71,6 +73,10 @@ const FacultyManagementPage = () => {
   useEffect(() => {
     fetchFaculty(1, false);
   }, [fetchFaculty]);
+
+  useEffect(() => {
+    getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => setDepartmentOptions([]));
+  }, []);
 
   const handleLoadMore = () => {
     if (!loading && hasMore) {
@@ -301,8 +307,11 @@ const FacultyManagementPage = () => {
             <input name="phone" type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" className="form-control" value={form.phone} onChange={handleFormChange} />
           </div>
           <div className="form-group">
-            <label>Department</label>
-            <input name="department" type="text" className="form-control" value={form.department} onChange={handleFormChange} placeholder="e.g. Mathematics" />
+            <label>Department *</label>
+            <select name="department" required className="form-control" value={form.department} onChange={handleFormChange}>
+              <option value="">Select department</option>
+              {departmentOptions.map(d => <option key={d.id} value={d.name}>{d.name} ({d.code})</option>)}
+            </select>
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label>Highest Qualification</label>

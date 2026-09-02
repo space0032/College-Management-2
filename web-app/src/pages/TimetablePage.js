@@ -257,7 +257,7 @@ const TimetablePage = () => {
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
           <label className="form-label">Day *</label>
-          <select name="day" className="form-control" value={form.day} onChange={handleFormChange}>
+          <select name="day" required className="form-control" value={form.day} onChange={handleFormChange}>
             <option value="">Select day</option>
             {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
@@ -270,7 +270,7 @@ const TimetablePage = () => {
         ].map(({ name, label, placeholder }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
-            <input name={name} type="text" required={name === 'timeSlot' || name === 'subject'} className="form-control" value={form[name]} onChange={handleFormChange} placeholder={placeholder || `Enter ${label.toLowerCase()}`} />
+            <input name={name} type="text" required={name === 'timeSlot' || name === 'subject'} pattern={name === 'timeSlot' ? '^([01]\\d|2[0-3]):[0-5]\\d\\s*-\\s*([01]\\d|2[0-3]):[0-5]\\d$' : undefined} title={name === 'timeSlot' ? 'Use 24-hour format, for example 09:00 - 10:00' : undefined} className="form-control" value={form[name]} onChange={handleFormChange} placeholder={placeholder || `Enter ${label.toLowerCase()}`} />
           </div>
         ))}
       </Modal>

@@ -76,6 +76,13 @@ const AcademicCalendarPage = () => {
     // Premium Analytics
     const holidayCount = events.filter(e => e.eventType === 'HOLIDAY').length;
     const examCount = events.filter(e => e.eventType === 'EXAM').length;
+    const weekdayCount = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1).getDay())
+        .filter(day => day !== 0 && day !== 6).length;
+    const weekdayHolidayCount = events.filter(e => {
+        if (e.eventType !== 'HOLIDAY') return false;
+        const day = new Date(`${e.eventDate}T00:00:00`).getDay();
+        return day !== 0 && day !== 6;
+    }).length;
 
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
@@ -109,7 +116,7 @@ const AcademicCalendarPage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div className="stat-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white' }}>
                         <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Month Productivity</div>
-                        <div style={{ fontSize: '2.4rem', fontWeight: 'bold', margin: '10px 0' }}>{daysInMonth - holidayCount - examCount}</div>
+                        <div style={{ fontSize: '2.4rem', fontWeight: 'bold', margin: '10px 0' }}>{Math.max(0, weekdayCount - weekdayHolidayCount - examCount)}</div>
                         <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Standard Academic Days</div>
                     </div>
 

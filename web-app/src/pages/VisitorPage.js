@@ -170,7 +170,7 @@ const VisitorPage = () => {
                             <form className="form-grid" onSubmit={handleRegisterEntry}>
                                 <div className="form-group">
                                     <label>Phone *</label>
-                                    <input type="tel" className="form-control" required readOnly value={formData.phone} />
+                                    <input type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" className="form-control" required readOnly value={formData.phone} />
                                 </div>
                                 <div className="form-group">
                                     <label>Full Name *</label>

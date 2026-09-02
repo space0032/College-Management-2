@@ -168,6 +168,7 @@ const AttendancePage = () => {
       <div className="filter-bar">
         <input
           type="text"
+          required
           className="form-control"
           placeholder="Course ID"
           value={filterCourse}
@@ -175,6 +176,7 @@ const AttendancePage = () => {
         />
         <input
           type="date"
+          required
           className="form-control"
           value={filterDate}
           onChange={(e) => setFilterDate(e.target.value)}
@@ -246,7 +248,7 @@ const AttendancePage = () => {
         <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Course ID</label>
-            <input type="text" className="form-control" value={bulkForm.courseId} onChange={(e) => setBulkForm((p) => ({ ...p, courseId: e.target.value }))} />
+            <input type="text" required className="form-control" value={bulkForm.courseId} onChange={(e) => setBulkForm((p) => ({ ...p, courseId: e.target.value }))} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label className="form-label">Date</label>

@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents } from '../services/studentService';
+import { getDepartments } from '../services/departmentService';
+import { getAllCourses } from '../services/courseService';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
@@ -68,6 +70,8 @@ function studentReducer(state, action) {
 
 const StudentManagementPage = () => {
   const [state, dispatch] = React.useReducer(studentReducer, initialState);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [courseOptions, setCourseOptions] = useState([]);
   const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, viewMode, filterDept, filterSem } = state;
 
   const searchDebounce = useRef(null);
@@ -91,6 +95,18 @@ const StudentManagementPage = () => {
   useEffect(() => {
     fetchStudents(1, false);
   }, [fetchStudents]);
+
+  useEffect(() => {
+    Promise.all([getDepartments(), getAllCourses(1, 500)])
+      .then(([departmentRes, courseRes]) => {
+        setDepartmentOptions(departmentRes.data || []);
+        setCourseOptions(courseRes.data || []);
+      })
+      .catch(() => {
+        setDepartmentOptions([]);
+        setCourseOptions([]);
+      });
+  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -130,8 +146,8 @@ const StudentManagementPage = () => {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!form.name.trim() || !form.email.trim()) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name and email are required.' });
+    if (!form.name.trim() || !form.email.trim() || !form.department || !form.course || !form.semester) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name, email, department, course, and semester are required.' });
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
@@ -400,16 +416,24 @@ const StudentManagementPage = () => {
             <input name="phone" type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" value={form.phone} onChange={handleFormChange} />
           </div>
           <div className="form-group">
-            <label>Department</label>
-            <input name="department" type="text" value={form.department} onChange={handleFormChange} placeholder="e.g. CS" />
+            <label>Department *</label>
+            <select name="department" required value={form.department} onChange={handleFormChange}>
+              <option value="">Select department</option>
+              {departmentOptions.map(d => <option key={d.id} value={d.name}>{d.name} ({d.code})</option>)}
+            </select>
           </div>
           <div className="form-group">
-            <label>Course</label>
-            <input name="course" type="text" value={form.course} onChange={handleFormChange} placeholder="e.g. B.Tech" />
+            <label>Course *</label>
+            <select name="course" required value={form.course} onChange={handleFormChange}>
+              <option value="">Select course</option>
+              {courseOptions.filter(c => !form.department || c.department === form.department).map(c => (
+                <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
+              ))}
+            </select>
           </div>
           <div className="form-group">
-            <label>Semester</label>
-            <input name="semester" type="number" min="1" max="8" value={form.semester} onChange={handleFormChange} />
+            <label>Semester *</label>
+            <input name="semester" type="number" min="1" max="8" required value={form.semester} onChange={handleFormChange} />
           </div>
         </div>
       </Modal>

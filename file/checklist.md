@@ -46,6 +46,12 @@ Source reports reviewed:
 
 ## Remaining product fixes
 
+- [x] Make Department Name natively required.
+- [x] Replace free-text Department/Course inputs in academic create forms with master-data selectors.
+- [x] Require student department, course, and semester fields.
+- [x] Add missing timetable, bulk-grade, attendance, and visitor field constraints.
+- [x] Exclude weekends from the Academic Calendar standard-day count.
+
 - [ ] Return structured API errors with a stable code, message, correlation ID, and field errors.
 - [ ] Show request errors separately from genuine empty datasets; add Retry actions.
 - [ ] Add relationship-backed selectors for department, course, student, faculty, hostel, and room references.

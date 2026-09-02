@@ -83,8 +83,8 @@ const DepartmentPage = () => {
       <Modal isOpen={modalOpen} title={editId ? 'Edit Department' : 'Add Department'} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
-          <label className="form-label">Department Name</label>
-          <input name="name" type="text" className="form-control" value={form.name} onChange={handleFormChange} placeholder="Enter department name" />
+          <label className="form-label">Department Name *</label>
+          <input name="name" type="text" required className="form-control" value={form.name} onChange={handleFormChange} placeholder="Enter department name" />
         </div>
         <div className="form-group">
           <label className="form-label">Department Code *</label>

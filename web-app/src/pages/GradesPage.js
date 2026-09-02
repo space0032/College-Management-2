@@ -444,14 +444,14 @@ const GradesPage = () => {
                     <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                         <div className="form-group" style={{ margin: 0, flex: '2 1 200px' }}>
                             <label>Course *</label>
-                            <select value={bulkCourseId} onChange={e => handleBulkCourseSelect(e.target.value)}>
+                            <select required value={bulkCourseId} onChange={e => handleBulkCourseSelect(e.target.value)}>
                                 <option value="">-- Select Course --</option>
                                 {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
                             </select>
                         </div>
                         <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
                             <label>Exam Type *</label>
-                            <select value={bulkExamType} onChange={e => setBulkExamType(e.target.value)}>
+                            <select required value={bulkExamType} onChange={e => setBulkExamType(e.target.value)}>
                                 {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
