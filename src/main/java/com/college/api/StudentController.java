@@ -32,6 +32,8 @@ public class StudentController extends BaseController implements HttpHandler {
                 handleEnroll(t);
             else
                 sendResponse(t, 405, "Method Not Allowed");
+        } else if (path.endsWith("/students/search") && "GET".equals(method)) {
+            handleSearch(t);
         } else if ("GET".equals(method)) {
             handleGet(t);
         } else if ("POST".equals(method)) {
@@ -39,6 +41,17 @@ public class StudentController extends BaseController implements HttpHandler {
         } else {
             sendResponse(t, 405, "Method Not Allowed");
         }
+    }
+
+    private void handleSearch(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT"))
+            return;
+        String keyword = getQueryMap(t).getOrDefault("q", "").trim();
+        if (keyword.isEmpty()) {
+            sendResponse(t, 200, JsonHelper.toJson(studentDAO.getAllStudents()));
+            return;
+        }
+        sendResponse(t, 200, JsonHelper.toJson(studentDAO.searchStudents(keyword)));
     }
 
     private int getIdFromPath(HttpExchange t) {

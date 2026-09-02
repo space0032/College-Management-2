@@ -33,10 +33,10 @@ const StaffLeavePage = () => {
         if (formData.startDate < today) { alert('Start date cannot be in the past.'); return; }
         if (formData.endDate < formData.startDate) { alert('End date cannot be before start date.'); return; }
         try {
-            await createStaffLeave({ ...formData, staffId: currentUser.id });
+            await createStaffLeave(formData);
             setShowModal(false);
             fetchLeaves();
-        } catch { alert('Application failed.'); }
+        } catch (err) { alert(err.response?.data?.error || 'Application failed.'); }
     };
 
     return (
@@ -55,7 +55,7 @@ const StaffLeavePage = () => {
                 const used = (type) => approved
                     .filter(l => l.leaveType === type)
                     .reduce((acc, l) => acc + calculateDays(l.startDate, l.endDate), 0);
-                const pending = leaves.filter(l => l.status === 'APPLIED').length;
+                const pending = leaves.filter(l => l.status === 'PENDING' || l.status === 'APPLIED').length;
 
                 return (
                     <div className="stat-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
@@ -113,15 +113,15 @@ const StaffLeavePage = () => {
                         </div>
                         <div className="form-group">
                             <label>Start Date</label>
-                            <input type="date" className="form-control" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
+                            <input type="date" required min={new Date().toISOString().split('T')[0]} className="form-control" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
                         </div>
                         <div className="form-group">
                             <label>End Date</label>
-                            <input type="date" className="form-control" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
+                            <input type="date" required min={formData.startDate || new Date().toISOString().split('T')[0]} className="form-control" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
                         </div>
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                             <label>Reason</label>
-                            <textarea className="form-control" rows="3" value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })}></textarea>
+                            <textarea className="form-control" required rows="3" value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })}></textarea>
                         </div>
                     </div>
                 </Modal>

@@ -80,3 +80,7 @@ Source reports reviewed:
 - [x] Preserve the discovered visitor phone and existing check-in fields after a new-number lookup.
 - [x] Derive assignment ownership from the authenticated session and validate assignment payloads.
 - [x] Generate required role codes server-side and resynchronize the PostgreSQL role sequence.
+- [x] Route Student search requests to the database search operation.
+- [x] Derive staff leave ownership from authentication and validate its date range.
+- [x] Prevent stale Institute Management tab requests from replacing current data.
+- [x] Keep CSV blob URLs alive until Edge has started the download.

@@ -92,15 +92,35 @@ public class LeaveController extends BaseController implements HttpHandler {
     @SuppressWarnings("unchecked")
     private void handleCreateStaffLeave(HttpExchange t) throws IOException {
         if (!requirePermission(t, "CREATE_LEAVE")) return;
+        TokenStore.TokenInfo tokenInfo = getTokenInfo(t);
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
+
+        if (map == null || !(map.get("leaveType") instanceof String)
+                || !(map.get("startDate") instanceof String)
+                || !(map.get("endDate") instanceof String)
+                || !(map.get("reason") instanceof String)) {
+            sendResponse(t, 400, errorJson("Leave type, dates, and reason are required"));
+            return;
+        }
+
+        LocalDate startDate = LocalDate.parse((String) map.get("startDate"));
+        LocalDate endDate = LocalDate.parse((String) map.get("endDate"));
+        if (startDate.isBefore(LocalDate.now()) || endDate.isBefore(startDate)) {
+            sendResponse(t, 400, errorJson("Provide a valid current or future leave date range"));
+            return;
+        }
         
         StaffLeave leave = new StaffLeave();
-        leave.setUserId(((Double) map.get("userId")).intValue());
+        leave.setUserId(tokenInfo.userId);
         leave.setLeaveType((String) map.get("leaveType"));
-        leave.setStartDate(LocalDate.parse((String) map.get("startDate")));
-        leave.setEndDate(LocalDate.parse((String) map.get("endDate")));
-        leave.setReason((String) map.get("reason"));
+        leave.setStartDate(startDate);
+        leave.setEndDate(endDate);
+        leave.setReason(((String) map.get("reason")).trim());
+        if (leave.getReason().isEmpty()) {
+            sendResponse(t, 400, errorJson("Reason is required"));
+            return;
+        }
         leave.setStatus("PENDING");
         leave.setCreatedAt(LocalDateTime.now());
         

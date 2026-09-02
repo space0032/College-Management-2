@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     getDepartments, addDepartment, updateDepartment, deleteDepartment,
     getRoles, addRole, deleteRole,
@@ -22,21 +22,24 @@ const InstituteManagementPage = () => {
     const [systemPermissions, setSystemPermissions] = useState([]); // From backend
     const [rolePermissions, setRolePermissionsState] = useState(new Set()); // Set of permission IDs
     const [permSaved, setPermSaved] = useState(false);
+    const loadRequest = useRef(0);
 
     const loadData = React.useCallback(async () => {
+        const requestId = ++loadRequest.current;
         try {
             let res;
-            if (activeTab === 'departments') { res = await getDepartments(); setData(res?.data || []); }
-            if (activeTab === 'roles') { res = await getRoles(); setData(res?.data || []); }
-            if (activeTab === 'users') { res = await getUsers(); setData(res?.data || []); }
+            if (activeTab === 'departments') { res = await getDepartments(); if (requestId === loadRequest.current) setData(res?.data || []); }
+            if (activeTab === 'roles') { res = await getRoles(); if (requestId === loadRequest.current) setData(res?.data || []); }
+            if (activeTab === 'users') { res = await getUsers(); if (requestId === loadRequest.current) setData(res?.data || []); }
             if (activeTab === 'permissions') {
                 const rolesRes = await getRoles();
+                if (requestId !== loadRequest.current) return;
                 setAllRoles(rolesRes?.data || []);
                 if (rolesRes?.data?.length > 0) {
                     setPermRole(prev => prev || rolesRes.data[0]);
                 }
                 const permsRes = await getAllPermissions();
-                setSystemPermissions(permsRes?.data || []);
+                if (requestId === loadRequest.current) setSystemPermissions(permsRes?.data || []);
             }
         } catch (err) {
             console.error(err);

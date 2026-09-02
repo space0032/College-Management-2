@@ -26,7 +26,8 @@ export const exportToCSV = (columns, rows, filename = 'export') => {
     link.setAttribute('href', url);
     link.setAttribute('download', `${filename}.csv`);
     document.body.appendChild(link);
-    link.click();
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Edge can cancel a blob download when its object URL is revoked in the same task.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
