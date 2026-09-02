@@ -50,6 +50,7 @@ Source reports reviewed:
 - [x] Add the required Department Code to the Institute Management form and validate it server-side.
 - [x] Parse quoted numeric form fields correctly so hostel capacities and room foreign keys are not silently stored as zero.
 - [x] Add the missing PostgreSQL course specialization column used by CourseDAO.
+- [x] Synchronize PostgreSQL primary-key sequences after explicit-ID bootstrap/import data.
 - [x] Restore visible Hostel/Room loading and mutation errors instead of discarding their state.
 - [x] Normalize Student, Faculty, and Staff edit forms and preserve legacy academic values during cleanup.
 - [x] Replace free-text Department/Course inputs in academic create forms with master-data selectors.
