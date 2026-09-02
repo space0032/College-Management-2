@@ -31,6 +31,7 @@ CORS_ALLOWED_ORIGINS=https://YOUR_NETLIFY_SITE.netlify.app
 Render supplies `PORT` automatically. Do not set it unless the service configuration specifically requires an override.
 
 After deployment, opening the Render URL should return the API health response. Keep the generated HTTPS URL for the frontend configuration.
+On startup, the API applies pending PostgreSQL migrations and creates the initial administrator on a fresh database.
 
 ## 2. Netlify frontend
 

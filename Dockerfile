@@ -14,6 +14,7 @@ RUN useradd --system --uid 10001 --create-home appuser \
     && mkdir -p /app/uploads/syllabi /app/uploads/resources /app/data \
     && chown -R appuser:appuser /app
 COPY --from=build --chown=appuser:appuser /workspace/target/college-management-api.jar /app/app.jar
+COPY --from=build --chown=appuser:appuser /workspace/src/main/resources/db/migration /app/src/main/resources/db/migration
 
 ENV LOG_TO_FILE=false
 USER appuser

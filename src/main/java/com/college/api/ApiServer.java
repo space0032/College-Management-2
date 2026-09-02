@@ -6,10 +6,13 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import com.college.utils.MigrationRunner;
 
 public class ApiServer {
 
     public static void main(String[] args) throws IOException {
+        MigrationRunner.runMigrations();
+
         int port = resolvePort(System.getenv("PORT"));
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
