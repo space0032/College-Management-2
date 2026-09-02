@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -64,15 +64,17 @@ const {
 } = pages;
 
 const DashboardPage = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const userRole = SessionManager.getUserRole() || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
   const isFaculty = userRole === 'FACULTY';
 
   return (
     <div className="app-layout">
-      <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {sidebarOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
+      <div className="app-main">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="main-content">
           <Suspense fallback={<div className="loading-state">Loading page…</div>}>
           <Routes>

@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import SessionManager from '../utils/SessionManager';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = false, onClose }) => {
   const userRole = SessionManager.getUserRole() || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
   const isFaculty = userRole === 'FACULTY';
@@ -95,9 +95,14 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`} aria-label="Primary navigation">
       <div className="sidebar-logo">
-        <h2>🎓 College Management</h2>
+        <div className="brand-mark">C</div>
+        <div className="brand-copy">
+          <h2>CampusOne</h2>
+          <span>College operations</span>
+        </div>
+        <button className="sidebar-close" onClick={onClose} aria-label="Close navigation">×</button>
       </div>
       <nav className="sidebar-nav">
         {Object.entries(navSections).map(([sectionTitle, items]) => (
@@ -109,6 +114,7 @@ const Sidebar = () => {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) => (isActive ? 'active' : '')}
+                onClick={onClose}
               >
                 <span className="nav-icon">{item.icon}</span>
                 {item.label}
@@ -117,6 +123,10 @@ const Sidebar = () => {
           </div>
         ))}
       </nav>
+      <div className="sidebar-footer">
+        <span className="sidebar-status-dot" />
+        <div><strong>System online</strong><span>Secure campus workspace</span></div>
+      </div>
     </aside>
   );
 };
