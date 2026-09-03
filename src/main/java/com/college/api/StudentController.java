@@ -2,6 +2,7 @@ package com.college.api;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import com.college.dao.EnrollmentDAO;
 import com.college.dao.StudentDAO;
 import com.college.models.Student;
 import com.college.utils.JsonHelper;
@@ -13,6 +14,7 @@ import java.util.List;
 public class StudentController extends BaseController implements HttpHandler {
 
     private final StudentDAO studentDAO = new StudentDAO();
+    private final EnrollmentDAO enrollmentDAO = new EnrollmentDAO();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
@@ -136,16 +138,40 @@ public class StudentController extends BaseController implements HttpHandler {
                 student.setEnrollmentDate(new java.util.Date());
             }
 
-            int id = studentDAO.addStudent(student, 0);
-            if (id > 0) {
-                student.setId(id);
-                sendResponse(t, 201, JsonHelper.toJson(student));
+            // Extract password from raw JSON (default: "123")
+            String password = "123";
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("\"password\"\\s*:\\s*\"([^\"]*)\"")
+                    .matcher(body);
+            if (m.find()) {
+                String pwd = m.group(1).trim();
+                if (!pwd.isEmpty()) {
+                    password = pwd;
+                }
+            }
+
+            // Use EnrollmentDAO to create student with enrollment number and user account
+            Student enrolledStudent = enrollmentDAO.enrollStudent(student, password);
+            if (enrolledStudent != null) {
+                String response = "{\"id\":" + enrolledStudent.getId()
+                        + ",\"username\":\"" + escapeJson(enrolledStudent.getUsername()) + "\""
+                        + ",\"password\":\"" + escapeJson(password) + "\""
+                        + ",\"enrollmentNumber\":\"" + escapeJson(enrolledStudent.getUsername()) + "\""
+                        + ",\"name\":\"" + escapeJson(enrolledStudent.getName()) + "\""
+                        + ",\"email\":\"" + escapeJson(enrolledStudent.getEmail()) + "\""
+                        + "}";
+                sendResponse(t, 201, response);
             } else {
-                sendResponse(t, 400, "{\"error\":\"Failed to create student\"}");
+                sendResponse(t, 400, "{\"error\":\"Failed to create student. Check logs for details.\"}");
             }
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
         }
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

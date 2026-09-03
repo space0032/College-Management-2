@@ -7,7 +7,7 @@ import { getAllCourses } from '../services/courseService';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', email: '', phone: '', course: '', department: '', semester: '' };
+const EMPTY_FORM = { name: '', email: '', phone: '', course: '', department: '', semester: '', password: '' };
 
 const initialState = {
   students: [],
@@ -25,7 +25,8 @@ const initialState = {
   saving: false,
   viewMode: 'table',
   filterDept: '',
-  filterSem: ''
+  filterSem: '',
+  createdCredentials: null
 };
 
 function studentReducer(state, action) {
@@ -63,6 +64,10 @@ function studentReducer(state, action) {
       return { ...state, saving: true };
     case 'SAVING_DONE':
       return { ...state, saving: false, modalOpen: false };
+    case 'SHOW_CREDENTIALS':
+      return { ...state, saving: false, modalOpen: false, createdCredentials: action.payload };
+    case 'CLOSE_CREDENTIALS':
+      return { ...state, createdCredentials: null };
     default:
       return state;
   }
@@ -72,7 +77,7 @@ const StudentManagementPage = () => {
   const [state, dispatch] = React.useReducer(studentReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [courseOptions, setCourseOptions] = useState([]);
-  const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, viewMode, filterDept, filterSem } = state;
+  const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, viewMode, filterDept, filterSem, createdCredentials } = state;
 
   const searchDebounce = useRef(null);
 
@@ -169,10 +174,12 @@ const StudentManagementPage = () => {
     try {
       if (editId) {
         await updateStudent(editId, form);
+        dispatch({ type: 'SAVING_DONE' });
       } else {
-        await createStudent(form);
+        const res = await createStudent(form);
+        dispatch({ type: 'SAVING_DONE' });
+        dispatch({ type: 'SHOW_CREDENTIALS', payload: res.data });
       }
-      dispatch({ type: 'SAVING_DONE' });
       fetchStudents(1, false);
     } catch (err) {
       dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save student.' });
@@ -447,8 +454,76 @@ const StudentManagementPage = () => {
             <label>Semester *</label>
             <input name="semester" type="number" min="1" max="8" required value={form.semester} onChange={handleFormChange} />
           </div>
+          {!editId && (
+            <div className="form-group">
+              <label>Password</label>
+              <input name="password" type="text" value={form.password || ''} onChange={handleFormChange} placeholder="Leave empty for default: 123" />
+              <small style={{ color: '#718096', fontSize: '0.8rem' }}>Leave empty for default: 123</small>
+            </div>
+          )}
         </div>
       </Modal>
+
+      {/* Credentials Dialog */}
+      {createdCredentials && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            background: 'white', borderRadius: '16px', padding: '32px',
+            maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '60px', height: '60px', borderRadius: '50%', margin: '0 auto 15px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.5rem', color: 'white'
+              }}>✓</div>
+              <h2 style={{ margin: 0, color: '#1a202c' }}>Student Created Successfully!</h2>
+              <p style={{ color: '#718096', margin: '5px 0 0' }}>Share these credentials with the student</p>
+            </div>
+
+            <div style={{
+              background: '#f7fafc', borderRadius: '12px', padding: '20px',
+              border: '1px solid #e2e8f0', marginBottom: '20px'
+            }}>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrollment Number</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2d3748', fontFamily: 'monospace' }}>{createdCredentials.enrollmentNumber}</div>
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Username</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2d3748', fontFamily: 'monospace' }}>{createdCredentials.username}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#e53e3e', fontFamily: 'monospace' }}>{createdCredentials.password}</div>
+              </div>
+            </div>
+
+            <div style={{
+              background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '8px',
+              padding: '12px', marginBottom: '20px', fontSize: '0.85rem', color: '#92400e'
+            }}>
+              ⚠ Please save these credentials! The password cannot be recovered.
+            </div>
+
+            <button
+              onClick={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
+              style={{
+                width: '100%', padding: '12px', border: 'none', borderRadius: '8px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer'
+              }}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
