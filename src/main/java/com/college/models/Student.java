@@ -135,6 +135,15 @@ public class Student {
     }
 
     private String username;
+    private String enrollmentId;
+
+    public String getEnrollmentId() {
+        return enrollmentId != null ? enrollmentId : username;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
+    }
 
     // Detailed Profile Fields
     private Date dob;

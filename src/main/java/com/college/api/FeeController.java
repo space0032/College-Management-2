@@ -48,11 +48,15 @@ public class FeeController extends BaseController implements HttpHandler {
                         return;
                     String body = readBody(t);
                     java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-                    if (map == null || map.get("studentId") == null || map.get("categoryId") == null || map.get("amount") == null) {
-                        sendResponse(t, 400, "{\"error\":\"studentId, categoryId and amount are required\"}");
+                    if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null) || map.get("categoryId") == null || map.get("amount") == null) {
+                        sendResponse(t, 400, "{\"error\":\"studentId (or enrollmentId), categoryId and amount are required\"}");
                         return;
                     }
-                    int studentId = ((Number) map.get("studentId")).intValue();
+                    int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+                    if (studentId <= 0) {
+                        sendResponse(t, 400, "{\"error\":\"Unknown student for the given enrollmentId\"}");
+                        return;
+                    }
                     int categoryId = ((Number) map.get("categoryId")).intValue();
                     double amount = ((Number) map.get("amount")).doubleValue();
                     if (amount <= 0) {

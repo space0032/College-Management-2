@@ -26,10 +26,10 @@ const GatePassPage = () => {
 
     const loadStudentPasses = React.useCallback(async () => {
         try {
-            const res = await getStudentGatePasses(user.id);
+            const res = await getStudentGatePasses(user.username);
             setPasses(res.data || []);
         } catch (err) { console.error(err); }
-    }, [user.id]);
+    }, [user.username]);
 
     const loadPendingPasses = React.useCallback(async () => {
         try {
@@ -67,7 +67,7 @@ const GatePassPage = () => {
         if (formData.toDate && formData.toDate < formData.fromDate) { alert('Return date must be after departure date.'); return; }
         setIsSubmitting(true);
         try {
-            await requestGatePass({ ...formData, studentId: user.id });
+            await requestGatePass({ ...formData, enrollmentId: user.username });
             alert('Gate pass request broadcasted to warden.');
             setFormData({ fromDate: '', toDate: '', reason: '', destination: '', parentContact: '' });
             setActiveTab('my_passes');

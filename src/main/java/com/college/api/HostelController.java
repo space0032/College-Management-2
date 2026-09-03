@@ -135,6 +135,17 @@ public class HostelController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (allocation.getEnrollmentId() != null && !allocation.getEnrollmentId().trim().isEmpty()) {
+            int studentId = new com.college.dao.StudentDAO().getStudentIdByEnrollment(allocation.getEnrollmentId().trim());
+            if (studentId <= 0) {
+                sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+                return;
+            }
+            allocation.setStudentId(studentId);
+        } else if (allocation.getStudentId() <= 0) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
+            return;
+        }
         boolean ok = hostelDAO.allocateRoom(allocation);
         if (ok)
             sendResponse(t, 201, JsonHelper.toJson(allocation));

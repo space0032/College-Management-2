@@ -16,6 +16,7 @@ public class ClubMembership {
     // Display fields
     private String clubName;
     private String studentName;
+    private String enrollmentId;
 
     public ClubMembership() {
     }
@@ -82,5 +83,13 @@ public class ClubMembership {
 
     public void setStudentName(String studentName) {
         this.studentName = studentName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

@@ -253,7 +253,7 @@ const HomePage = () => {
                 ) : stats.recentCollections.map((item, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i === stats.recentCollections.length - 1 ? 'none' : '1px solid #f8fafc', fontSize: '0.85rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ color: '#475569', fontWeight: '500' }}>{item.studentName}</span>
+                      <span style={{ color: '#475569', fontWeight: '500' }}>{item.studentName}{item.studentEnrollmentId || item.studentUsername || item.enrollmentId ? <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#94a3b8', marginLeft: '6px' }}>({item.studentEnrollmentId || item.studentUsername || item.enrollmentId || ''})</span> : null}</span>
                       <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{item.categoryName}</span>
                     </div>
                     <span style={{ fontWeight: '600', color: '#10b981', alignSelf: 'center' }}>+₹{(item.amount || 0).toLocaleString('en-IN')}</span>

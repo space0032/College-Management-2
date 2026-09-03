@@ -14,6 +14,7 @@ public class StudentFeedback {
     // UI fields
     private String studentName;
     private String facultyName;
+    private String enrollmentId;
 
     public int getId() {
         return id;
@@ -85,5 +86,13 @@ public class StudentFeedback {
 
     public void setFacultyName(String facultyName) {
         this.facultyName = facultyName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

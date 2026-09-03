@@ -8,7 +8,9 @@ import ReceiptModal from '../components/ReceiptModal';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
-  { key: 'studentId', label: 'Student ID' },
+  { key: 'studentUsername', label: 'Enrollment No.', render: (v) => (
+    <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{v || 'N/A'}</span>
+  )},
   { key: 'studentName', label: 'Student Name' },
   { key: 'amount', label: 'Amount' },
   { key: 'dueDate', label: 'Due Date' },
@@ -35,7 +37,7 @@ const FeesPage = () => {
   const [receiptFee, setReceiptFee] = useState(null);
 
   const [entryModal, setEntryModal] = useState(false);
-  const [entryForm, setEntryForm] = useState({ studentId: '', categoryId: '', amount: '', dueDate: '' });
+  const [entryForm, setEntryForm] = useState({ enrollmentId: '', categoryId: '', amount: '', dueDate: '' });
   const [categories, setCategories] = useState([]);
   const [students, setStudents] = useState([]);
   const [entryError, setEntryError] = useState('');
@@ -103,20 +105,20 @@ const FeesPage = () => {
   };
 
   const openEntryModal = () => {
-    setEntryForm({ studentId: '', categoryId: '', amount: '', dueDate: '' });
+    setEntryForm({ enrollmentId: '', categoryId: '', amount: '', dueDate: '' });
     setEntryError('');
     setEntryModal(true);
   };
 
   const handleAddFeeSubmit = async () => {
-    if (!entryForm.studentId || !entryForm.categoryId || !entryForm.amount || Number(entryForm.amount) <= 0) {
+    if (!entryForm.enrollmentId || !entryForm.categoryId || !entryForm.amount || Number(entryForm.amount) <= 0) {
       setEntryError('Student, fee category and a positive amount are required.');
       return;
     }
     setSaving(true);
     try {
       await createFeeEntry({
-        studentId: Number(entryForm.studentId),
+        enrollmentId: entryForm.enrollmentId,
         categoryId: Number(entryForm.categoryId),
         amount: Number(entryForm.amount),
         dueDate: entryForm.dueDate || null
@@ -250,9 +252,9 @@ const FeesPage = () => {
           {entryError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{entryError}</div>}
           <div className="form-group">
             <label className="form-label">Student</label>
-            <select className="form-control" value={entryForm.studentId} onChange={(e) => setEntryForm((p) => ({ ...p, studentId: e.target.value }))}>
-              <option value="">Select student…</option>
-              {students.map(s => <option key={s.id} value={s.id}>{s.name || s.username}</option>)}
+            <select className="form-control" value={entryForm.enrollmentId} onChange={(e) => setEntryForm((p) => ({ ...p, enrollmentId: e.target.value }))}>
+              <option value="">Select student / enrollment…</option>
+              {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
             </select>
           </div>
           <div className="form-group">

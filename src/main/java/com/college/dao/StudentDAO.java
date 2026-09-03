@@ -364,6 +364,13 @@ public class StudentDAO {
             // Ignore if username not present in result set
         }
 
+        try {
+            student.setEnrollmentId(rs.getString("enrollment_id"));
+        } catch (SQLException e) {
+            // Fallback to username if enrollment_id column not present
+            student.setEnrollmentId(student.getUsername());
+        }
+
         return student;
     }
 
@@ -389,10 +396,55 @@ public class StudentDAO {
     }
 
     /**
+     * Resolve a student entity id (students.id) from an enrollment number.
+     * Returns -1 if no student matches the enrollment number.
+     */
+    public int getStudentIdByEnrollment(String enrollmentId) {
+        if (enrollmentId == null || enrollmentId.trim().isEmpty()) {
+            return -1;
+        }
+        String sql = "SELECT id FROM students WHERE enrollment_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, enrollmentId.trim());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return -1;
+    }
+
+    /**
+     * Resolve a user id (users.id) from an enrollment number.
+     * Returns -1 if no matching student/user is found.
+     */
+    public int getUserIdByEnrollment(String enrollmentId) {
+        if (enrollmentId == null || enrollmentId.trim().isEmpty()) {
+            return -1;
+        }
+        String sql = "SELECT user_id FROM students WHERE enrollment_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, enrollmentId.trim());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return -1;
+    }
+
+    /**
      * Get count of students by department code and year for enrollment generation
      */
-    public int getCountByDepartmentAndYear(String deptCode, int year) {
-        String sql = "SELECT COUNT(*) as count FROM students s " +
+    public int getCountByDepartmentAndYear(String deptCode, int year) {        String sql = "SELECT COUNT(*) as count FROM students s " +
                 "JOIN users u ON s.user_id = u.id " +
                 "WHERE u.username LIKE ? AND EXTRACT(YEAR FROM s.enrollment_date) = ?";
 

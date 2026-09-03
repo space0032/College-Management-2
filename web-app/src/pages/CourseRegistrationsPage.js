@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import SessionManager from '../utils/SessionManager';
 import { getPendingRegistrations, registerForCourse, approveRegistration, rejectRegistration } from '../services/featureService';
+import { getAllStudents } from '../services/studentService';
 
 const CourseRegistrationsPage = () => {
   const user = SessionManager.getUser() || {};
   const isStudent = user.role === 'STUDENT';
   const [pending, setPending] = useState([]);
-  const [form, setForm] = useState({ studentId: user.id || '', courseId: '' });
+  const [students, setStudents] = useState([]);
+  const [form, setForm] = useState({ enrollmentId: user.username || '', courseId: '' });
+
+  useEffect(() => {
+    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+  }, []);
 
   const load = async () => {
     if (isStudent) return;
@@ -27,9 +33,9 @@ const CourseRegistrationsPage = () => {
     e.preventDefault();
     if (!form.courseId) return;
     try {
-      const res = await registerForCourse({ studentId: Number(form.studentId), courseId: Number(form.courseId) });
+      const res = await registerForCourse({ enrollmentId: form.enrollmentId, courseId: Number(form.courseId) });
       alert(res?.data?.message || 'Registration requested');
-      setForm({ studentId: user.id || '', courseId: '' });
+      setForm({ enrollmentId: user.username || '', courseId: '' });
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to register');
     }
@@ -93,8 +99,11 @@ const CourseRegistrationsPage = () => {
         <h3>{isStudent ? 'Request Registration' : 'Register a Student'}</h3>
         <form onSubmit={handleRequest} style={{ maxWidth: '420px' }}>
           <div className="form-group">
-            <label className="form-label">Student ID</label>
-            <input className="form-control" type="number" value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} required />
+            <label className="form-label">Enrollment No.</label>
+            <select className="form-control" value={form.enrollmentId} onChange={(e) => setForm({ ...form, enrollmentId: e.target.value })} required>
+              <option value="">Select student / enrollment…</option>
+              {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
+            </select>
           </div>
           <div className="form-group">
             <label className="form-label">Course ID</label>

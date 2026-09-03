@@ -14,6 +14,7 @@ public class StudentLeave {
     private String status; // PENDING, APPROVED, REJECTED
     private int approvedBy;
     private Timestamp createdAt;
+    private String enrollmentId;
 
     public StudentLeave() {
     }
@@ -105,5 +106,13 @@ public class StudentLeave {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

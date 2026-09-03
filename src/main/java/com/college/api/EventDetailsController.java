@@ -203,7 +203,7 @@ public class EventDetailsController extends BaseController implements HttpHandle
         if (!requirePermission(t, "VIEW_VOLUNTEER"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = resolvePathStudentId(parts[parts.length - 1]);
         List<EventVolunteer> list = eventDetailsDAO.getVolunteersByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
@@ -215,11 +215,15 @@ public class EventDetailsController extends BaseController implements HttpHandle
         int eventId = extractEventId(path);
         String body = readBody(t);
         Map<String, Object> map = JSON.fromJson(body, Map.class);
-        if (map == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("studentId is required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
-        int studentId = ((Number) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
         String task = map.get("task") != null ? (String) map.get("task") : "";
         if (task.isEmpty()) {
             sendResponse(t, 400, errorJson("task is required"));

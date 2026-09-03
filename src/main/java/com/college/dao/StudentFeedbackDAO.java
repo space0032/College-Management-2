@@ -29,10 +29,11 @@ public class StudentFeedbackDAO {
 
     public List<StudentFeedback> getFeedbackByStudent(int studentId) {
         List<StudentFeedback> list = new ArrayList<>();
-        String sql = "SELECT sf.*, s.name as student_name, u.username as faculty_name " +
+        String sql = "SELECT sf.*, s.name as student_name, u.username as faculty_name, u2.username AS enrollment_id " +
                 "FROM student_feedback sf " +
                 "JOIN students s ON sf.student_id = s.id " +
                 "JOIN users u ON sf.faculty_id = u.id " +
+                "LEFT JOIN users u2 ON s.user_id = u2.id " +
                 "WHERE sf.student_id = ? " +
                 "ORDER BY sf.created_at DESC";
         // Note: Logic to curb 'is_private' viewing depends on caller. DAO returns all.
@@ -61,6 +62,7 @@ public class StudentFeedbackDAO {
 
         sf.setStudentName(rs.getString("student_name"));
         sf.setFacultyName(rs.getString("faculty_name"));
+        sf.setEnrollmentId(rs.getString("enrollment_id"));
         return sf;
     }
 }

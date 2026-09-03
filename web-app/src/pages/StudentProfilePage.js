@@ -113,8 +113,8 @@ const StudentProfilePage = () => {
                         {student?.name || user.name || user.username || 'Student'}
                     </div>
                     <div style={{ opacity: 0.85, fontSize: '0.9rem', marginBottom: '6px' }}>
-                        {student?.enrollmentNumber || student?.enrollment_number
-                            ? `ID: ${student.enrollmentNumber || student.enrollment_number}`
+                        {student?.enrollmentId || student?.username
+                            ? <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: 'white' }}>ID: {student.enrollmentId || student.username}</span>
                             : `User ID: ${user.id}`}
                         {student?.department && <span style={{ marginLeft: '16px' }}>🏛 {student.department}</span>}
                         {student?.course && <span style={{ marginLeft: '16px' }}>📚 {student.course}</span>}
@@ -244,7 +244,7 @@ const StudentProfilePage = () => {
                             { label: 'Username', value: user.username },
                             { label: 'Email', value: student?.email || user.email },
                             { label: 'Phone', value: student?.phone },
-                            { label: 'Enrollment No.', value: student?.enrollmentNumber || student?.enrollment_number },
+                            { label: 'Enrollment No.', value: student?.enrollmentId || student?.username || student?.enrollmentNumber || student?.enrollment_number },
                             { label: 'Department', value: student?.department },
                             { label: 'Course', value: student?.course },
                             { label: 'Batch Year', value: student?.batchYear || student?.batch_year },

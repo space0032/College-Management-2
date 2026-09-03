@@ -126,7 +126,7 @@ public class PlacementController extends BaseController implements HttpHandler {
 
     private void handleGetApplicationsForStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_PLACEMENT")) return;
-        int id = extractId(path);
+        int id = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
         sendResponse(t, 200, JsonHelper.toJson(placementDAO.getApplicationsForStudent(id)));
     }
 
@@ -141,12 +141,16 @@ public class PlacementController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "MANAGE_PLACEMENT")) return;
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("driveId") == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("driveId and studentId are required"));
+        if (map == null || map.get("driveId") == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("driveId and studentId (or enrollmentId) are required"));
             return;
         }
         int driveId = ((Double) map.get("driveId")).intValue();
-        int studentId = ((Double) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
 
         if (placementDAO.hasApplied(driveId, studentId)) {
             sendResponse(t, 400, errorJson("Already applied for this drive"));

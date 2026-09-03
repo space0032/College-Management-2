@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
@@ -11,7 +11,11 @@ import { CONFIG } from '../config';
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
-  { key: 'studentId', label: 'Student ID' },
+  { key: 'studentId', label: 'Enrollment No.', render: (v, r) => (
+    <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>
+      {r.enrollmentId || r.enrollmentNumber || r.username || v || 'N/A'}
+    </span>
+  )},
   { key: 'courseId', label: 'Course ID' },
   { key: 'date', label: 'Date' },
   { key: 'status', label: 'Status' },
@@ -25,12 +29,17 @@ const AttendancePage = () => {
   const [filterDate, setFilterDate] = useState('');
   const [markModal, setMarkModal] = useState(false);
   const [bulkModal, setBulkModal] = useState(false);
-  const [markForm, setMarkForm] = useState({ studentId: '', courseId: '', date: '', status: 'PRESENT' });
+  const [markForm, setMarkForm] = useState({ enrollmentId: '', courseId: '', date: '', status: 'PRESENT' });
   const [bulkForm, setBulkForm] = useState({ courseId: '', date: '', status: 'PRESENT' });
   const [bulkStudents, setBulkStudents] = useState([]); // List for the rich grid
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState(null);
+  const [students, setStudents] = useState([]);
+
+  useEffect(() => {
+    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+  }, []);
 
   const handleFetch = useCallback(async () => {
     if (!filterCourse || !filterDate) { setError('Please enter both Course ID and Date.'); return; }
@@ -54,7 +63,7 @@ const AttendancePage = () => {
   }, [filterCourse, filterDate]);
 
   const handleMark = async () => {
-    if (!markForm.studentId || !markForm.courseId || !markForm.date) {
+    if (!markForm.enrollmentId || !markForm.courseId || !markForm.date) {
       setFormError('All fields are required.');
       return;
     }
@@ -66,7 +75,7 @@ const AttendancePage = () => {
     try {
       await markAttendance(markForm);
       setMarkModal(false);
-      setMarkForm({ studentId: '', courseId: '', date: '', status: 'PRESENT' });
+      setMarkForm({ enrollmentId: '', courseId: '', date: '', status: 'PRESENT' });
       if (filterCourse && filterDate) handleFetch();
     } catch (err) {
       setFormError(err.response?.data?.message || 'Failed to mark attendance.');
@@ -99,7 +108,7 @@ const AttendancePage = () => {
     setSaving(true);
     try {
       const payload = bulkStudents.map(s => ({
-        studentId: s.id,
+        enrollmentId: s.username,
         courseId: bulkForm.courseId,
         date: bulkForm.date,
         status: s.status
@@ -128,7 +137,7 @@ const AttendancePage = () => {
       <div className="page-header">
         <h1 className="page-title">📋 Attendance</h1>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={() => { setMarkForm({ studentId: '', courseId: filterCourse, date: filterDate, status: 'PRESENT' }); setFormError(''); setMarkModal(true); }}>
+          <button className="btn btn-primary" onClick={() => { setMarkForm({ enrollmentId: '', courseId: filterCourse, date: filterDate, status: 'PRESENT' }); setFormError(''); setMarkModal(true); }}>
             Mark Attendance
           </button>
           <button className="btn btn-secondary" onClick={() => { setBulkForm({ courseId: filterCourse, date: filterDate, status: 'PRESENT' }); setFormError(''); setBulkModal(true); }}>
@@ -137,13 +146,13 @@ const AttendancePage = () => {
           {records.length > 0 && (
             <>
               <button className="btn btn-secondary" onClick={() => exportToCSV(
-                ['Student ID', 'Course ID', 'Date', 'Status'],
-                records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+                ['Enrollment No.', 'Course ID', 'Date', 'Status'],
+                records.map(r => [r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A', r.courseId, r.date, r.status]),
                 'attendance_export'
               )}              >⬇ Export CSV</button>
               <button className="btn btn-secondary" onClick={() => exportToExcel(
-                ['Student ID', 'Course ID', 'Date', 'Status'],
-                records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+                ['Enrollment No.', 'Course ID', 'Date', 'Status'],
+                records.map(r => [r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A', r.courseId, r.date, r.status]),
                 'attendance_export'
               )}>⬇ Export Excel</button>
               <button className="btn btn-secondary" onClick={() => {
@@ -157,8 +166,8 @@ const AttendancePage = () => {
                 doc.text(`Present: ${present}  Absent: ${records.length - present}  Total: ${records.length}`, 14, 33);
                 doc.autoTable({
                   startY: 38,
-                  head: [['Student ID', 'Course ID', 'Date', 'Status']],
-                  body: records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+                  head: [['Enrollment No.', 'Course ID', 'Date', 'Status']],
+                  body: records.map(r => [r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A', r.courseId, r.date, r.status]),
                   styles: { fontSize: 9 },
                   headStyles: { fillColor: [59, 130, 246] },
                   alternateRowStyles: { fillColor: [248, 250, 252] }
@@ -232,12 +241,19 @@ const AttendancePage = () => {
 
       <Modal isOpen={markModal} title="Mark Attendance" onClose={() => setMarkModal(false)} onSubmit={handleMark} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
-        {[{ name: 'studentId', label: 'Student ID' }, { name: 'courseId', label: 'Course ID' }, { name: 'date', label: 'Date', type: 'date' }].map(({ name, label, type = 'text' }) => (
+        {[{ name: 'courseId', label: 'Course ID' }, { name: 'date', label: 'Date', type: 'date' }].map(({ name, label, type = 'text' }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
             <input type={type} name={name} required max={type === 'date' ? new Date().toISOString().split('T')[0] : undefined} className="form-control" value={markForm[name]} onChange={(e) => setMarkForm((p) => ({ ...p, [name]: e.target.value }))} />
           </div>
         ))}
+        <div className="form-group">
+          <label className="form-label">Enrollment No.</label>
+          <select className="form-control" value={markForm.enrollmentId} onChange={(e) => setMarkForm((p) => ({ ...p, enrollmentId: e.target.value }))} required>
+            <option value="">Select student / enrollment…</option>
+            {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
+          </select>
+        </div>
         <div className="form-group">
           <label className="form-label">Status</label>
           <select className="form-control" value={markForm.status} onChange={(e) => setMarkForm((p) => ({ ...p, status: e.target.value }))}>
@@ -299,7 +315,7 @@ const StudentStatCard = React.memo(({ s }) => (
   }}>
     <div style={{ fontWeight: 600 }}>{s.studentName}</div>
     <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-      ID: {s.studentId}
+      ID: <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{s.enrollmentId || s.enrollmentNumber || s.username || s.studentId || 'N/A'}</span>
     </div>
     <div style={{
       fontSize: '1.25rem',
@@ -315,7 +331,7 @@ const StudentStatCard = React.memo(({ s }) => (
 
 const BulkAttendanceRow = React.memo(({ student, onChange }) => (
   <tr>
-    <td>{student.name} <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>(ID: {student.id})</span></td>
+    <td>{student.name} <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>({student.username || student.enrollmentId || 'N/A'})</span></td>
     <td>
       <select
         value={student.status}

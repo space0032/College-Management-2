@@ -171,11 +171,15 @@ public class ClubController extends BaseController implements HttpHandler {
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/join
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("studentId is required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
-        int studentId = ((Double) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
 
         if (clubDAO.isStudentMember(clubId, studentId)) {
             sendResponse(t, 400, errorJson("Already a member or request pending"));
@@ -197,11 +201,15 @@ public class ClubController extends BaseController implements HttpHandler {
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/leave
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("studentId is required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
-        int studentId = ((Double) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
 
         boolean success = clubDAO.leaveClub(clubId, studentId);
         if (success) {
@@ -258,7 +266,7 @@ public class ClubController extends BaseController implements HttpHandler {
     private void handleGetStudentClubs(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_CLUB"))
             return;
-        int studentId = extractId(path); // .../clubs/student/{id}
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1)); // .../clubs/student/{id}
         List<Club> clubs = clubDAO.getStudentClubs(studentId);
         sendResponse(t, 200, JsonHelper.toJson(clubs));
     }
@@ -266,7 +274,7 @@ public class ClubController extends BaseController implements HttpHandler {
     private void handleGetMyMemberships(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_CLUB"))
             return;
-        int studentId = extractId(path); // .../memberships/student/{id}
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1)); // .../memberships/student/{id}
         List<ClubMembership> memberships = clubDAO.getMyMemberships(studentId);
         sendResponse(t, 200, JsonHelper.toJson(memberships));
     }

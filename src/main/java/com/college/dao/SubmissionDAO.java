@@ -44,9 +44,10 @@ public class SubmissionDAO {
      * Get submission by student and assignment
      */
     public Submission getSubmission(int assignmentId, int studentId) {
-        String sql = "SELECT s.*, st.name as student_name, a.title as assignment_title " +
+        String sql = "SELECT s.*, st.name as student_name, u.username AS student_enrollment_id, a.title as assignment_title " +
                 "FROM submissions s " +
                 "JOIN students st ON s.student_id = st.id " +
+                "LEFT JOIN users u ON st.user_id = u.id " +
                 "JOIN assignments a ON s.assignment_id = a.id " +
                 "WHERE s.assignment_id = ? AND s.student_id = ?";
 

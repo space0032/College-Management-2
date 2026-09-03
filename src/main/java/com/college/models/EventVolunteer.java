@@ -11,6 +11,7 @@ public class EventVolunteer {
     // UI Fields
     private String studentName;
     private String eventName;
+    private String enrollmentId;
 
     public int getId() {
         return id;
@@ -74,5 +75,13 @@ public class EventVolunteer {
 
     public void setEventName(String eventName) {
         this.eventName = eventName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

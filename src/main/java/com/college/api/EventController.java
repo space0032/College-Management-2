@@ -190,11 +190,15 @@ public class EventController extends BaseController implements HttpHandler {
         int eventId = Integer.parseInt(parts[parts.length - 2]); // .../events/{id}/register
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("studentId is required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
-        int studentId = ((Double) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
 
         if (eventDAO.isStudentRegistered(eventId, studentId)) {
             sendResponse(t, 400, errorJson("Already registered for this event"));
@@ -216,11 +220,15 @@ public class EventController extends BaseController implements HttpHandler {
         int eventId = Integer.parseInt(parts[parts.length - 2]); // .../events/{id}/unregister
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("studentId is required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
-        int studentId = ((Double) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
 
         boolean success = eventDAO.unregisterStudent(eventId, studentId);
         if (success) {
@@ -262,7 +270,7 @@ public class EventController extends BaseController implements HttpHandler {
     private void handleGetStudentEvents(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_EVENT"))
             return;
-        int studentId = extractId(path); // .../events/student/{id}
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1)); // .../events/student/{id}
         List<Event> events = eventDAO.getStudentRegisteredEvents(studentId);
         sendResponse(t, 200, JsonHelper.toJson(events));
     }
@@ -355,11 +363,15 @@ public class EventController extends BaseController implements HttpHandler {
         int pollId = Integer.parseInt(parts[parts.length - 2]); // .../polls/{id}/vote
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("studentId") == null || map.get("option") == null) {
-            sendResponse(t, 400, errorJson("studentId and option are required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null) || map.get("option") == null) {
+            sendResponse(t, 400, errorJson("studentId (or enrollmentId) and option are required"));
             return;
         }
-        int studentId = ((Double) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
         String option = (String) map.get("option");
 
         boolean success = eventDAO.voteInPoll(pollId, studentId, option);

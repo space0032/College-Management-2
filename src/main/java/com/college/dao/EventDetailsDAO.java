@@ -127,10 +127,11 @@ public class EventDetailsDAO {
 
     public List<EventVolunteer> getVolunteers(int eventId) {
         List<EventVolunteer> list = new ArrayList<>();
-        String sql = "SELECT ev.*, s.name as student_name, e.name as event_name " +
+        String sql = "SELECT ev.*, s.name as student_name, e.name as event_name, u.username AS enrollment_id " +
                 "FROM event_volunteers ev " +
                 "JOIN students s ON ev.student_id = s.id " +
                 "JOIN events e ON ev.event_id = e.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE ev.event_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -146,6 +147,7 @@ public class EventDetailsDAO {
                 ev.setHoursLogged(rs.getFloat("hours_logged"));
                 ev.setStudentName(rs.getString("student_name"));
                 ev.setEventName(rs.getString("event_name"));
+                ev.setEnrollmentId(rs.getString("enrollment_id"));
                 list.add(ev);
             }
         } catch (SQLException e) {
@@ -156,10 +158,11 @@ public class EventDetailsDAO {
 
     public List<EventVolunteer> getVolunteersByStudent(int studentId) {
         List<EventVolunteer> list = new ArrayList<>();
-        String sql = "SELECT ev.*, s.name as student_name, e.name as event_name " +
+        String sql = "SELECT ev.*, s.name as student_name, e.name as event_name, u.username AS enrollment_id " +
                 "FROM event_volunteers ev " +
                 "JOIN students s ON ev.student_id = s.id " +
                 "JOIN events e ON ev.event_id = e.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE ev.student_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -175,6 +178,7 @@ public class EventDetailsDAO {
                 ev.setHoursLogged(rs.getFloat("hours_logged"));
                 ev.setStudentName(rs.getString("student_name"));
                 ev.setEventName(rs.getString("event_name"));
+                ev.setEnrollmentId(rs.getString("enrollment_id"));
                 list.add(ev);
             }
         } catch (SQLException e) {

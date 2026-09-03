@@ -182,11 +182,12 @@ public class HostelDAO {
      */
     public List<HostelAllocation> getAllActiveAllocations() {
         List<HostelAllocation> allocations = new ArrayList<>();
-        String sql = "SELECT ha.*, s.name as student_name, r.room_number, h.name as hostel_name " +
+        String sql = "SELECT ha.*, s.name as student_name, r.room_number, h.name as hostel_name, u.username AS enrollment_id " +
                 "FROM hostel_allocations ha " +
                 "JOIN students s ON ha.student_id = s.id " +
                 "JOIN rooms r ON ha.room_id = r.id " +
                 "JOIN hostels h ON r.hostel_id = h.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE ha.status = 'ACTIVE' ORDER BY h.name, r.room_number";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -209,11 +210,12 @@ public class HostelDAO {
      */
     public List<HostelAllocation> getAllocationsByStudent(int studentId) {
         List<HostelAllocation> allocations = new ArrayList<>();
-        String sql = "SELECT ha.*, s.name as student_name, r.room_number, h.name as hostel_name " +
+        String sql = "SELECT ha.*, s.name as student_name, r.room_number, h.name as hostel_name, u.username AS enrollment_id " +
                 "FROM hostel_allocations ha " +
                 "JOIN students s ON ha.student_id = s.id " +
                 "JOIN rooms r ON ha.room_id = r.id " +
                 "JOIN hostels h ON r.hostel_id = h.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE ha.student_id = ? ORDER BY ha.check_in_date DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -272,11 +274,12 @@ public class HostelDAO {
      * Get allocation by ID
      */
     private HostelAllocation getAllocationById(int id) {
-        String sql = "SELECT ha.*, s.name as student_name, r.room_number, h.name as hostel_name " +
+        String sql = "SELECT ha.*, s.name as student_name, r.room_number, h.name as hostel_name, u.username AS enrollment_id " +
                 "FROM hostel_allocations ha " +
                 "JOIN students s ON ha.student_id = s.id " +
                 "JOIN rooms r ON ha.room_id = r.id " +
                 "JOIN hostels h ON r.hostel_id = h.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE ha.id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -523,6 +526,7 @@ public class HostelDAO {
         allocation.setStudentName(rs.getString("student_name"));
         allocation.setRoomNumber(rs.getString("room_number"));
         allocation.setHostelName(rs.getString("hostel_name"));
+        allocation.setEnrollmentId(rs.getString("enrollment_id"));
         return allocation;
     }
 }

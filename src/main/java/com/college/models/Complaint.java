@@ -18,6 +18,7 @@ public class Complaint {
     private String studentName;
     private String resolvedByName;
     private String roomNumber; // Useful context for Wardens
+    private String enrollmentId;
 
     public Complaint() {
     }
@@ -133,5 +134,13 @@ public class Complaint {
 
     public void setRoomNumber(String roomNumber) {
         this.roomNumber = roomNumber;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

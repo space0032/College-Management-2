@@ -137,7 +137,7 @@ const LeaveApprovalPage = () => {
                                         {pendingLeaves[tier]?.length === 0 ? <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#cbd5e1' }}>Inbox is empty.</td></tr> :
                                             pendingLeaves[tier]?.map(l => (
                                                 <tr key={l.id}>
-                                                    <td><strong>{tier === 'staff' ? l.staffName : l.studentName}</strong></td>
+                                                    <td><strong>{tier === 'staff' ? l.staffName : (l.studentName || 'N/A')}{tier !== 'staff' && (l.enrollmentId || l.enrollmentNumber || l.username) ? <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#718096', marginLeft: '6px' }}>({l.enrollmentId || l.enrollmentNumber || l.username})</span> : null}</strong></td>
                                                     <td style={{ fontSize: '0.85rem' }}>{l.startDate}<br /><span style={{ color: '#94a3b8' }}>to</span> {l.endDate}</td>
                                                     <td><span className="badge" style={{ background: LEAVE_TYPES[l.leaveType]?.bg, color: LEAVE_TYPES[l.leaveType]?.color }}>{l.leaveType}</span></td>
                                                     <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>{l.reason}</td>

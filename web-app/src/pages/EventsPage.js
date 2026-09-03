@@ -9,6 +9,7 @@ import {
     getEventVolunteers, registerEventVolunteer, updateEventVolunteer
 } from '../services/eventService';
 import { getDepartments } from '../services/departmentService';
+import { getAllStudents } from '../services/studentService';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import SessionManager from '../utils/SessionManager';
@@ -43,7 +44,8 @@ const EventsPage = () => {
     const [pollForm, setPollForm] = useState({ question: '', options: '', status: 'ACTIVE' });
     const [collabForm, setCollabForm] = useState({ departmentId: '' });
     const [resourceForm, setResourceForm] = useState({ resourceName: '', quantity: 1 });
-    const [volunteerForm, setVolunteerForm] = useState({ studentId: '', task: '' });
+    const [volunteerForm, setVolunteerForm] = useState({ enrollmentId: '', task: '' });
+    const [students, setStudents] = useState([]);
 
     const user = SessionManager.getUser() || {};
     const userRole = SessionManager.getUserRole() || 'STUDENT';
@@ -54,7 +56,7 @@ const EventsPage = () => {
         try {
             const [evRes, myRes] = await Promise.all([
                 getEvents(),
-                user.role === 'STUDENT' ? getStudentEvents(user.id) : Promise.resolve({ data: [] })
+                user.role === 'STUDENT' ? getStudentEvents(user.username) : Promise.resolve({ data: [] })
             ]);
             setEvents(evRes.data || []);
             setMyEvents(myRes.data || []);
@@ -66,12 +68,13 @@ const EventsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [user.id, user.role, selectedEventId]);
+    }, [user.username, user.role, selectedEventId]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
     useEffect(() => {
         getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => {});
+        getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
     }, []);
 
     const loadEventDetails = useCallback(async (eventId) => {
@@ -102,7 +105,7 @@ const EventsPage = () => {
 
     const handleRegister = async (eventId) => {
         try {
-            await registerEvent(eventId, user.id);
+            await registerEvent(eventId, user.username);
             alert('Registration successful!');
             loadData();
         } catch (err) {
@@ -113,7 +116,7 @@ const EventsPage = () => {
     const handleUnregister = async (eventId) => {
         if (!window.confirm('Cancel your registration?')) return;
         try {
-            await unregisterEvent(eventId, user.id);
+            await unregisterEvent(eventId, user.username);
             loadData();
         } catch (err) {
             alert('Failed to unregister.');
@@ -157,7 +160,7 @@ const EventsPage = () => {
 
     const handleVote = async (pollId, option) => {
         try {
-            await voteEventPoll(pollId, { studentId: user.id, option });
+            await voteEventPoll(pollId, { enrollmentId: user.username, option });
             loadEventDetails(selectedEventId);
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to record vote.');
@@ -219,10 +222,10 @@ const EventsPage = () => {
     };
 
     const handleSaveVolunteer = async () => {
-        if (!volunteerForm.studentId || !volunteerForm.task.trim()) { alert('Student ID and task are required.'); return; }
+        if (!volunteerForm.enrollmentId || !volunteerForm.task.trim()) { alert('Student enrollment and task are required.'); return; }
         try {
             await registerEventVolunteer(selectedEventId, {
-                studentId: parseInt(volunteerForm.studentId),
+                enrollmentId: volunteerForm.enrollmentId,
                 task: volunteerForm.task
             });
             setItemModal({ open: false });
@@ -514,7 +517,7 @@ const EventsPage = () => {
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                                     <h3>Event Volunteers</h3>
-                                    <button className="btn btn-sm btn-primary" onClick={() => { setVolunteerForm({ studentId: '', task: '' }); setItemModal({ open: true, type: 'volunteer', title: 'Register Volunteer' }); }}>+ Add Volunteer</button>
+                                    <button className="btn btn-sm btn-primary" onClick={() => { setVolunteerForm({ enrollmentId: '', task: '' }); setItemModal({ open: true, type: 'volunteer', title: 'Register Volunteer' }); }}>+ Add Volunteer</button>
                                 </div>
                                 {volunteers.length === 0 ? (
                                     <p style={{ color: '#94a3b8' }}>No volunteers registered for this event.</p>
@@ -626,7 +629,7 @@ const EventsPage = () => {
                 )}
                 {itemModal.type === 'volunteer' && (
                     <>
-                        <div className="form-group"><label>Student ID</label><input type="number" min="1" value={volunteerForm.studentId} onChange={e => setVolunteerForm({ ...volunteerForm, studentId: e.target.value })} /></div>
+                        <div className="form-group"><label>Student Enrollment</label><select className="form-control" value={volunteerForm.enrollmentId} onChange={e => setVolunteerForm({ ...volunteerForm, enrollmentId: e.target.value })}><option value="">Select student / enrollment…</option>{students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}</select></div>
                         <div className="form-group"><label>Task Description</label><input type="text" value={volunteerForm.task} onChange={e => setVolunteerForm({ ...volunteerForm, task: e.target.value })} placeholder="e.g. Stage setup" /></div>
                     </>
                 )}

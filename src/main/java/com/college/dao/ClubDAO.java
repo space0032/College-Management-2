@@ -228,10 +228,11 @@ public class ClubDAO {
 
     public List<ClubMembership> getPendingMemberships(int clubId) {
         List<ClubMembership> pending = new ArrayList<>();
-        String sql = "SELECT cm.*, s.name as student_name, c.name as club_name " +
+        String sql = "SELECT cm.*, s.name as student_name, c.name as club_name, u.username AS enrollment_id " +
                 "FROM club_memberships cm " +
                 "JOIN students s ON cm.student_id = s.id " +
                 "JOIN clubs c ON cm.club_id = c.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE cm.club_id = ? AND cm.status = 'PENDING' " +
                 "ORDER BY cm.joined_at";
 
@@ -250,6 +251,7 @@ public class ClubDAO {
                 membership.setJoinedAt(rs.getTimestamp("joined_at"));
                 membership.setStudentName(rs.getString("student_name"));
                 membership.setClubName(rs.getString("club_name"));
+                membership.setEnrollmentId(rs.getString("enrollment_id"));
                 pending.add(membership);
             }
         } catch (SQLException e) {
@@ -318,10 +320,11 @@ public class ClubDAO {
 
     public List<ClubMembership> getClubMembers(int clubId) {
         List<ClubMembership> members = new ArrayList<>();
-        String sql = "SELECT cm.*, s.name as student_name, c.name as club_name " +
+        String sql = "SELECT cm.*, s.name as student_name, c.name as club_name, u.username AS enrollment_id " +
                 "FROM club_memberships cm " +
                 "JOIN students s ON cm.student_id = s.id " +
                 "JOIN clubs c ON cm.club_id = c.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE cm.club_id = ? AND cm.status = 'APPROVED' " +
                 "ORDER BY cm.role, cm.joined_at";
 
@@ -340,6 +343,7 @@ public class ClubDAO {
                 membership.setJoinedAt(rs.getTimestamp("joined_at"));
                 membership.setStudentName(rs.getString("student_name"));
                 membership.setClubName(rs.getString("club_name"));
+                membership.setEnrollmentId(rs.getString("enrollment_id"));
                 members.add(membership);
             }
         } catch (SQLException e) {
@@ -376,10 +380,11 @@ public class ClubDAO {
 
     public List<ClubMembership> getMyMemberships(int studentId) {
         List<ClubMembership> memberships = new ArrayList<>();
-        String sql = "SELECT cm.*, c.name as club_name, s.name as student_name " +
+        String sql = "SELECT cm.*, c.name as club_name, s.name as student_name, u.username AS enrollment_id " +
                 "FROM club_memberships cm " +
                 "JOIN clubs c ON cm.club_id = c.id " +
                 "JOIN students s ON cm.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE cm.student_id = ? " +
                 "ORDER BY cm.joined_at DESC";
 
@@ -398,6 +403,7 @@ public class ClubDAO {
                 membership.setJoinedAt(rs.getTimestamp("joined_at"));
                 membership.setClubName(rs.getString("club_name"));
                 membership.setStudentName(rs.getString("student_name"));
+                membership.setEnrollmentId(rs.getString("enrollment_id"));
                 memberships.add(membership);
             }
         } catch (SQLException e) {

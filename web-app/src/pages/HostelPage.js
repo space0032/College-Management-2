@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getHostels, addHostel, updateHostel, getRooms, addRoom, getAllocations, allocateRoom, vacateRoom, deleteHostel, deleteRoom } from '../services/hostelService';
+import { getAllStudents } from '../services/studentService';
 
 const HOSTEL_TYPES = ['Boys', 'Girls', 'Co-ed'];
 
@@ -23,7 +24,8 @@ const HostelPage = () => {
 
   const [hostelForm, setHostelForm] = useState({ name: '', type: 'Boys', totalCapacity: '', wardenName: '', wardenContact: '', address: '' });
   const [roomForm, setRoomForm] = useState({ roomNumber: '', hostelId: '', capacity: '2', floor: '1', roomType: 'AC' });
-  const [allocForm, setAllocForm] = useState({ studentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
+  const [allocForm, setAllocForm] = useState({ enrollmentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
+  const [students, setStudents] = useState([]);
 
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,11 +47,15 @@ const HostelPage = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+  }, []);
+
   const openCreate = () => {
     setEditTarget(null);
     if (tab === 'hostels') setHostelForm({ name: '', type: 'Boys', totalCapacity: '', wardenName: '', wardenContact: '', address: '' });
     if (tab === 'rooms') setRoomForm({ roomNumber: '', hostelId: '', capacity: '2', floor: '1', roomType: 'AC' });
-    if (tab === 'allocations') setAllocForm({ studentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
+    if (tab === 'allocations') setAllocForm({ enrollmentId: '', roomId: '', checkInDate: new Date().toISOString().split('T')[0], remarks: '' });
     setModalTitle(`Add ${tab.slice(0, -1)}`);
     setModalOpen(true);
   };
@@ -68,8 +74,8 @@ const HostelPage = () => {
       setError('Hostel, room number, non-negative floor, and capacity of at least 1 are required.');
       return;
     }
-    if (tab === 'allocations' && (Number(allocForm.studentId) < 1 || !allocForm.roomId || !allocForm.checkInDate)) {
-      setError('A valid student ID, available room, and check-in date are required.');
+    if (tab === 'allocations' && (!allocForm.enrollmentId || !allocForm.roomId || !allocForm.checkInDate)) {
+      setError('A valid student enrollment, available room, and check-in date are required.');
       return;
     }
     setSaving(true);
@@ -220,7 +226,7 @@ const HostelPage = () => {
           </div>
         ) : (
           <div className="form-grid">
-            <div className="form-group"><label>Student ID *</label><input type="number" min="1" required value={allocForm.studentId} onChange={e => setAllocForm({ ...allocForm, studentId: e.target.value })} /></div>
+            <div className="form-group"><label>Student Enrollment *</label><select className="form-control" required value={allocForm.enrollmentId} onChange={e => setAllocForm({ ...allocForm, enrollmentId: e.target.value })}><option value="">Select student / enrollment…</option>{students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}</select></div>
             <div className="form-group"><label>Room *</label><select required value={allocForm.roomId} onChange={e => setAllocForm({ ...allocForm, roomId: e.target.value })}><option value="">Select Room</option>{rooms.filter(r => r.occupiedCount < r.capacity).map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}</select></div>
             <div className="form-group"><label>Check-in Date *</label><input type="date" required value={allocForm.checkInDate} onChange={e => setAllocForm({ ...allocForm, checkInDate: e.target.value })} /></div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Remarks</label><textarea value={allocForm.remarks} onChange={e => setAllocForm({ ...allocForm, remarks: e.target.value })} /></div>

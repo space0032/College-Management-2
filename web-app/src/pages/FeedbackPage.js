@@ -28,7 +28,7 @@ const FeedbackPage = () => {
     e.preventDefault();
     if (!form.facultyId || !form.feedbackText) return;
     try {
-      await submitFeedback({ studentId: user.id, facultyId: Number(form.facultyId), feedbackText: form.feedbackText, category: form.category, private: form.private });
+      await submitFeedback({ enrollmentId: user.username, facultyId: Number(form.facultyId), feedbackText: form.feedbackText, category: form.category, private: form.private });
       setForm({ facultyId: '', feedbackText: '', category: 'General', private: false });
       load();
     } catch (err) {

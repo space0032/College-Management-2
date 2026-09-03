@@ -225,9 +225,10 @@ public class EventDAO {
 
     public List<EventRegistration> getEventRegistrations(int eventId) {
         List<EventRegistration> registrations = new ArrayList<>();
-        String sql = "SELECT er.*, s.name as student_name " +
+        String sql = "SELECT er.*, s.name as student_name, u.username AS enrollment_id " +
                 "FROM event_registrations er " +
                 "JOIN students s ON er.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE er.event_id = ? " +
                 "ORDER BY er.registered_at";
 
@@ -244,6 +245,7 @@ public class EventDAO {
                 reg.setRegisteredAt(rs.getTimestamp("registered_at"));
                 reg.setAttendanceStatus(rs.getString("attendance_status"));
                 reg.setStudentName(rs.getString("student_name"));
+                reg.setEnrollmentId(rs.getString("enrollment_id"));
                 registrations.add(reg);
             }
         } catch (SQLException e) {

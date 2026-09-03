@@ -58,7 +58,7 @@ public class ComplaintController extends BaseController implements HttpHandler {
     private void handleGetByStudent(HttpExchange t, String path) throws IOException {
         if (!requireAnyPermission(t, "VIEW_COMPLAINT", "CREATE_COMPLAINT"))
             return;
-        int studentId = extractId(path);
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
         List<Complaint> list = complaintDAO.getComplaintsByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
@@ -69,12 +69,17 @@ public class ComplaintController extends BaseController implements HttpHandler {
             return;
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
-        if (map == null || map.get("studentId") == null) {
-            sendResponse(t, 400, errorJson("studentId is required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
         Complaint c = new Complaint();
-        c.setStudentId(((Number) map.get("studentId")).intValue());
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
+        c.setStudentId(studentId);
         c.setTitle((String) map.getOrDefault("title", ""));
         c.setDescription((String) map.getOrDefault("description", ""));
         c.setCategory((String) map.getOrDefault("category", "General"));

@@ -19,8 +19,9 @@ const AssignmentPage = () => {
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [courses, setCourses] = useState([]);
 
-    const user = SessionManager.getUser() || { id: null, role: 'STUDENT' };
+    const user = SessionManager.getUser() || { id: null, username: '', role: 'STUDENT' };
     const userId = user.id;
+    const username = user.username;
     const userRole = user.role;
 
     const loadAssignments = React.useCallback(async () => {
@@ -61,7 +62,7 @@ const AssignmentPage = () => {
     const handleOpenSubmit = async (a) => {
         setSelectedAssignment(a);
         try {
-            const res = await getStudentSubmission(a.id, userId);
+            const res = await getStudentSubmission(a.id, username);
             if (res.data) {
                 setSubmissionText(res.data.submissionText);
                 setSelectedSubmission(res.data); // Already submitted
@@ -79,7 +80,7 @@ const AssignmentPage = () => {
         e.preventDefault();
         try {
             await submitAssignment(selectedAssignment.id, {
-                studentId: userId,
+                enrollmentId: username,
                 submissionText: submissionText
             });
             alert('Assignment submitted successfully');
@@ -366,7 +367,7 @@ const AssignmentPage = () => {
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Student ID</th>
+                                        <th>Enrollment No.</th>
                                         <th>Date</th>
                                         <th>Plagiarism</th>
                                         <th>Status</th>
@@ -379,7 +380,7 @@ const AssignmentPage = () => {
                                     ) : (
                                         submissions.map(sub => (
                                             <tr key={sub.id} style={selectedSubmission?.id === sub.id ? { backgroundColor: '#f7fafc' } : {}}>
-                                                <td><strong>Student #{sub.studentId}</strong></td>
+                                                <td><strong style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{sub.studentEnrollmentId || sub.enrollmentNumber || sub.enrollmentId || sub.studentId || 'N/A'}</strong></td>
                                                 <td style={{ fontSize: '0.85rem' }}>{new Date(sub.submissionDate).toLocaleDateString()}</td>
                                                 <td>
                                                     <span className={`badge ${sub.plagiarismScore > 30 ? 'badge-danger' : sub.plagiarismScore > 10 ? 'badge-warning' : 'badge-success'}`}>
@@ -412,7 +413,7 @@ const AssignmentPage = () => {
                     {selectedSubmission && (
                         <div className="stat-card" style={{ flex: 0.8, position: 'sticky', top: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #edf2f7', paddingBottom: '15px', marginBottom: '20px' }}>
-                                <h3 style={{ margin: 0 }}>Grading: Student #{selectedSubmission.studentId}</h3>
+                                <h3 style={{ margin: 0 }}>Grading: <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{selectedSubmission.studentEnrollmentId || selectedSubmission.enrollmentNumber || selectedSubmission.enrollmentId || selectedSubmission.studentId || 'N/A'}</span></h3>
                                 <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }} onClick={() => setSelectedSubmission(null)}>✕</button>
                             </div>
 

@@ -7,6 +7,7 @@ public class ScholarshipApplication {
     private String studentName; // For display
     private String statement;
     private String status; // APPLIED, APPROVED, REJECTED
+    private String enrollmentId;
 
     public int getId() {
         return id;
@@ -54,5 +55,13 @@ public class ScholarshipApplication {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

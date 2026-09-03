@@ -88,10 +88,11 @@ public class BookIssueDAO {
      */
     public List<BookIssue> getAllIssuedBooks() {
         List<BookIssue> issues = new ArrayList<>();
-        String sql = "SELECT bi.*, s.name as student_name, b.title as book_title " +
+        String sql = "SELECT bi.*, s.name as student_name, b.title as book_title, u.username AS enrollment_id " +
                 "FROM book_issues bi " +
                 "JOIN students s ON bi.student_id = s.id " +
                 "JOIN books b ON bi.book_id = b.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE bi.status = 'ISSUED' ORDER BY bi.due_date";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -139,10 +140,11 @@ public class BookIssueDAO {
      * Get issue by ID
      */
     public BookIssue getIssueById(int id) {
-        String sql = "SELECT bi.*, s.name as student_name, b.title as book_title " +
+        String sql = "SELECT bi.*, s.name as student_name, b.title as book_title, u.username AS enrollment_id " +
                 "FROM book_issues bi " +
                 "JOIN students s ON bi.student_id = s.id " +
                 "JOIN books b ON bi.book_id = b.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE bi.id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -221,6 +223,7 @@ public class BookIssueDAO {
         } catch (SQLException e) {
             // Fields might not be in result set
         }
+        issue.setEnrollmentId(rs.getString("enrollment_id"));
 
         return issue;
     }

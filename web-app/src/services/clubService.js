@@ -6,8 +6,8 @@ export const createClub = (clubData) => api.post('/clubs', clubData);
 export const updateClub = (id, clubData) => api.put(`/clubs/${id}`, clubData);
 export const deleteClub = (id) => api.delete(`/clubs/${id}`);
 
-export const joinClub = (clubId, studentId) => api.post(`/clubs/${clubId}/join`, { studentId });
-export const leaveClub = (clubId, studentId) => api.post(`/clubs/${clubId}/leave`, { studentId });
+export const joinClub = (clubId, enrollmentId) => api.post(`/clubs/${clubId}/join`, { enrollmentId });
+export const leaveClub = (clubId, enrollmentId) => api.post(`/clubs/${clubId}/leave`, { enrollmentId });
 
 export const getClubMembers = (clubId) => api.get(`/clubs/${clubId}/members`);
 export const getPendingMemberships = (clubId) => api.get(`/clubs/${clubId}/pending`);

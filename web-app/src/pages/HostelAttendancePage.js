@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import SessionManager from '../utils/SessionManager';
 import { getHostelAttendanceByDate, markHostelAttendance } from '../services/featureService';
+import { getAllStudents } from '../services/studentService';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -8,7 +9,8 @@ const HostelAttendancePage = () => {
   const user = SessionManager.getUser() || {};
   const [date, setDate] = useState(today());
   const [records, setRecords] = useState([]);
-  const [form, setForm] = useState({ studentId: '', hostelId: '', status: 'PRESENT', remarks: '' });
+  const [form, setForm] = useState({ enrollmentId: '', hostelId: '', status: 'PRESENT', remarks: '' });
+  const [students, setStudents] = useState([]);
 
   const canMark = user.role === 'ADMIN' || user.role === 'WARDEN';
 
@@ -23,15 +25,16 @@ const HostelAttendancePage = () => {
 
   useEffect(() => {
     load();
+    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   const handleMark = async (e) => {
     e.preventDefault();
-    if (!form.studentId) return;
+    if (!form.enrollmentId) return;
     try {
-      await markHostelAttendance({ ...form, studentId: Number(form.studentId), hostelId: Number(form.hostelId || 0), date, remarks: form.remarks || '' });
-      setForm({ studentId: '', hostelId: '', status: 'PRESENT', remarks: '' });
+      await markHostelAttendance({ ...form, enrollmentId: form.enrollmentId, hostelId: Number(form.hostelId || 0), date, remarks: form.remarks || '' });
+      setForm({ enrollmentId: '', hostelId: '', status: 'PRESENT', remarks: '' });
       load();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to mark attendance');
@@ -52,8 +55,11 @@ const HostelAttendancePage = () => {
           <h3>Mark Attendance</h3>
           <form onSubmit={handleMark} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '12px' }}>
             <div className="form-group">
-              <label className="form-label">Student ID</label>
-              <input className="form-control" type="number" value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} required />
+              <label className="form-label">Enrollment No.</label>
+              <select className="form-control" value={form.enrollmentId} onChange={(e) => setForm({ ...form, enrollmentId: e.target.value })} required>
+                <option value="">Select student / enrollment…</option>
+                {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Hostel ID</label>
@@ -97,7 +103,7 @@ const HostelAttendancePage = () => {
             <tbody>
               {records.map((r, i) => (
                 <tr key={r.id || i}>
-                  <td>{r.studentName || r.enrollmentId || r.studentId}</td>
+                  <td>{r.studentName || r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A'}</td>
                   <td>{r.hostelId}</td>
                   <td><span className="badge badge-secondary">{r.status}</span></td>
                   <td>{r.remarks || '—'}</td>

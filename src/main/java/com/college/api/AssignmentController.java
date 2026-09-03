@@ -206,8 +206,13 @@ public class AssignmentController extends BaseController implements HttpHandler 
 
         Submission sub = new Submission();
         sub.setAssignmentId(assignmentId);
-        sub.setStudentId(((Double) map.get("studentId")).intValue());
-        sub.setSubmissionText((String) map.get("submissionText"));
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required / unknown student"));
+            return;
+        }
+        sub.setStudentId(studentId);
+        sub.setSubmissionText((String) map.getOrDefault("submissionText", ""));
 
         boolean ok = submissionDAO.submitAssignment(sub);
         if (ok) {
@@ -221,7 +226,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
     private void handleGetSubmissionByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = resolvePathStudentId(parts[parts.length - 1]);
         int assignmentId = Integer.parseInt(parts[parts.length - 4]); // /assignments/{id}/submissions/student/{stdId}
 
         Submission sub = submissionDAO.getSubmission(assignmentId, studentId);

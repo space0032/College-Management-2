@@ -65,7 +65,7 @@ public class CourseRegistrationController extends BaseController implements Http
         if (!requireAnyPermission(t, "VIEW_COURSE", "MANAGE_COURSES"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 2]);
+        int studentId = resolvePathStudentId(parts[parts.length - 2]);
         List<Integer> ids = registrationDAO.getRegisteredCourseIds(studentId);
         ids.addAll(registrationDAO.getPendingCourseIds(studentId));
         sendResponse(t, 200, JsonHelper.toJson(ids));
@@ -86,11 +86,15 @@ public class CourseRegistrationController extends BaseController implements Http
             return;
         String body = readBody(t);
         Map<String, Object> map = JSON.fromJson(body, Map.class);
-        if (map == null || map.get("studentId") == null || map.get("courseId") == null) {
-            sendResponse(t, 400, errorJson("studentId and courseId are required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null) || map.get("courseId") == null) {
+            sendResponse(t, 400, errorJson("studentId (or enrollmentId) and courseId are required"));
             return;
         }
-        int studentId = ((Number) map.get("studentId")).intValue();
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
         int courseId = ((Number) map.get("courseId")).intValue();
         String result = registrationDAO.registerCourse(studentId, courseId);
         if ("SUCCESS".equals(result)) {
@@ -130,10 +134,15 @@ public class CourseRegistrationController extends BaseController implements Http
             return;
         // path format: /api/course-registrations/drop?studentId=&courseId=
         Map<String, String> query = getQueryMap(t);
-        int studentId = getIntParam(query, "studentId", -1);
+        int studentId;
+        if (query.containsKey("enrollmentId") && !query.get("enrollmentId").trim().isEmpty()) {
+            studentId = new com.college.dao.StudentDAO().getStudentIdByEnrollment(query.get("enrollmentId").trim());
+        } else {
+            studentId = getIntParam(query, "studentId", -1);
+        }
         int courseId = getIntParam(query, "courseId", -1);
-        if (studentId < 0 || courseId < 0) {
-            sendResponse(t, 400, errorJson("studentId and courseId query params required"));
+        if (studentId <= 0 || courseId < 0) {
+            sendResponse(t, 400, errorJson("studentId (or enrollmentId) and courseId query params required"));
             return;
         }
         if (registrationDAO.dropCourse(studentId, courseId)) {

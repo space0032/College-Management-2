@@ -75,10 +75,11 @@ public class ComplaintDAO {
 
     public List<Complaint> getAllComplaints() {
         // Simple join to get student name
-        String sql = "SELECT c.*, s.name as student_name, u.username as resolved_by_name " +
+        String sql = "SELECT c.*, s.name as student_name, u.username as resolved_by_name, u2.username AS enrollment_id " +
                 "FROM hostel_complaints c " +
                 "JOIN students s ON c.student_id = s.id " +
                 "LEFT JOIN users u ON c.resolved_by = u.id " +
+                "LEFT JOIN users u2 ON s.user_id = u2.id " +
                 "ORDER BY CASE WHEN c.status = 'OPEN' THEN 1 ELSE 2 END, c.created_at DESC";
         List<Complaint> list = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
@@ -88,6 +89,7 @@ public class ComplaintDAO {
             while (rs.next()) {
                 Complaint c = extractComplaint(rs);
                 c.setStudentName(rs.getString("student_name"));
+                c.setEnrollmentId(rs.getString("enrollment_id"));
                 list.add(c);
             }
         } catch (SQLException e) {

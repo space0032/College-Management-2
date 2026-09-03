@@ -113,7 +113,7 @@ const GradesPage = () => {
             students.map(s => ({
                 studentId: s.id,
                 studentName: s.name,
-                enrollmentNumber: s.enrollmentNumber,
+                enrollmentNumber: s.username || s.enrollmentId || s.enrollmentNumber,
                 marks: '',
                 grade: 'A'
             }))
@@ -383,7 +383,7 @@ const GradesPage = () => {
                                 onChange={e => setFormData({ ...formData, studentId: e.target.value })}
                             >
                                 <option value="">-- Select Student --</option>
-                                {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.enrollmentNumber})</option>)}
+                                {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.username || s.enrollmentId || s.enrollmentNumber || 'N/A'})</option>)}
                             </select>
                         </div>
 

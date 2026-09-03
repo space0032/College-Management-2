@@ -18,6 +18,7 @@ public class Attendance {
     // For display purposes
     private String studentName;
     private String courseName;
+    private String enrollmentId;
 
     public Attendance() {
     }
@@ -92,6 +93,14 @@ public class Attendance {
 
     public void setCourseName(String courseName) {
         this.courseName = courseName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 
     @Override

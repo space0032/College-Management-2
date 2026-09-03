@@ -10,7 +10,7 @@ const BookRequestsPage = () => {
 
   const load = async () => {
     try {
-      const res = isStudent ? await getStudentBookRequests(user.id) : await getPendingBookRequests();
+      const res = isStudent ? await getStudentBookRequests(user.username) : await getPendingBookRequests();
       setRequests(res?.data || []);
     } catch (err) {
       setRequests([]);
@@ -20,13 +20,13 @@ const BookRequestsPage = () => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStudent, user.id]);
+  }, [isStudent, user.username]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.bookId) return;
     try {
-      await createBookRequest({ studentId: user.id, bookId: Number(form.bookId), loanPeriodDays: Number(form.loanPeriodDays), remarks: form.remarks });
+      await createBookRequest({ enrollmentId: user.username, bookId: Number(form.bookId), loanPeriodDays: Number(form.loanPeriodDays), remarks: form.remarks });
       setForm({ bookId: '', loanPeriodDays: '14', remarks: '' });
       load();
     } catch (err) {

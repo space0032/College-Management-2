@@ -48,8 +48,9 @@ public class StudentLeaveDAO {
 
     public List<StudentLeave> getPendingLeaves() {
         List<StudentLeave> leaves = new ArrayList<>();
-        String sql = "SELECT sl.*, s.name as student_name FROM student_leaves sl " +
+        String sql = "SELECT sl.*, s.name as student_name, u.username AS enrollment_id FROM student_leaves sl " +
                 "JOIN students s ON sl.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE sl.status = 'PENDING' ORDER BY sl.created_at ASC";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -59,6 +60,7 @@ public class StudentLeaveDAO {
             while (rs.next()) {
                 StudentLeave leave = mapResultSetToLeave(rs);
                 leave.setStudentName(rs.getString("student_name"));
+                leave.setEnrollmentId(rs.getString("enrollment_id"));
                 leaves.add(leave);
             }
         } catch (SQLException e) {

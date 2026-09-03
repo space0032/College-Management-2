@@ -199,8 +199,9 @@ public class CommunityDAO {
 
     public List<ScholarshipApplication> getApplications(int scholarshipId) {
         List<ScholarshipApplication> list = new ArrayList<>();
-        String sql = "SELECT sa.*, s.name as student_name FROM scholarship_applications sa " +
+        String sql = "SELECT sa.*, s.name as student_name, u.username AS enrollment_id FROM scholarship_applications sa " +
                 "JOIN students s ON sa.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE sa.scholarship_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -212,6 +213,7 @@ public class CommunityDAO {
                 app.setScholarshipId(rs.getInt("scholarship_id"));
                 app.setStudentId(rs.getInt("student_id"));
                 app.setStudentName(rs.getString("student_name"));
+                app.setEnrollmentId(rs.getString("enrollment_id"));
                 app.setStatement(rs.getString("statement"));
                 app.setStatus(rs.getString("status"));
                 list.add(app);

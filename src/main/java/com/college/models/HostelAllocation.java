@@ -19,6 +19,7 @@ public class HostelAllocation {
     private String studentName;
     private String roomNumber;
     private String hostelName;
+    private String enrollmentId;
 
     public HostelAllocation() {
         this.status = "ACTIVE";
@@ -118,5 +119,13 @@ public class HostelAllocation {
 
     public void setHostelName(String hostelName) {
         this.hostelName = hostelName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

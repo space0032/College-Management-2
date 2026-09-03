@@ -13,6 +13,7 @@ public class PlacementApplication {
     private String studentName;
     private String driveTitle;
     private String companyName;
+    private String enrollmentId;
 
     public PlacementApplication() {
     }
@@ -87,5 +88,13 @@ public class PlacementApplication {
 
     public void setCompanyName(String companyName) {
         this.companyName = companyName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

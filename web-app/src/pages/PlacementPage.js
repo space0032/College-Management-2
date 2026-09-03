@@ -24,7 +24,12 @@ const DRIVE_COLS = [
 
 const APPLICATION_COLS = [
   { key: 'id', label: 'App ID' },
-  { key: 'studentName', label: 'Student' },
+  { key: 'studentName', label: 'Student', render: (v, r) => (
+    <span>
+      {v || r.studentId}
+      {(r.enrollmentId || r.enrollmentNumber || r.username) && <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#718096', marginLeft: '6px' }}>({r.enrollmentId || r.enrollmentNumber || r.username})</span>}
+    </span>
+  )},
   { key: 'status', label: 'Status', render: (v) => <span className={`badge badge-${v === 'OFFERED' ? 'success' : v === 'REJECTED' ? 'danger' : 'primary'}`}>{v}</span> },
 ];
 
@@ -51,7 +56,7 @@ const PlacementPage = () => {
 
   const fetchAll = React.useCallback(() => {
     setLoading(true);
-    Promise.all([getCompanies(), getDrives(), user.id ? getApplicationsForStudent(user.id) : Promise.resolve({ data: [] })])
+    Promise.all([getCompanies(), getDrives(), user.username ? getApplicationsForStudent(user.username) : Promise.resolve({ data: [] })])
       .then(([c, d, a]) => {
         setCompanies(c.data || []);
         const apps = a.data || [];
@@ -64,7 +69,7 @@ const PlacementPage = () => {
       })
       .catch(() => setError('Failed to load placement data.'))
       .finally(() => setLoading(false));
-  }, [user.id]);
+  }, [user.username]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -113,10 +118,10 @@ const PlacementPage = () => {
   };
 
   const handleApply = async (drive) => {
-    if (!user.id) { alert('Could not identify your account. Please log in again.'); return; }
+    if (!user.username) { alert('Could not identify your account. Please log in again.'); return; }
     if (!window.confirm(`Apply for ${drive.jobRole} at ${drive.companyName}?`)) return;
     try {
-      await applyForDrive({ driveId: drive.id, studentId: user.id });
+      await applyForDrive({ driveId: drive.id, enrollmentId: user.username });
       fetchAll();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to apply.');

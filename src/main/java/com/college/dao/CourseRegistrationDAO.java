@@ -18,6 +18,7 @@ public class CourseRegistrationDAO {
         private String courseCode;
         private String status;
         private Date date;
+        private String enrollmentId;
 
         // Getters
         public int getId() {
@@ -83,6 +84,14 @@ public class CourseRegistrationDAO {
 
         public void setDate(Date d) {
             this.date = d;
+        }
+
+        public String getEnrollmentId() {
+            return enrollmentId;
+        }
+
+        public void setEnrollmentId(String enrollmentId) {
+            this.enrollmentId = enrollmentId;
         }
     }
 
@@ -229,10 +238,11 @@ public class CourseRegistrationDAO {
     public List<RegistrationRequest> getPendingRequests() {
         List<RegistrationRequest> list = new ArrayList<>();
         String sql = "SELECT cr.id, cr.student_id, cr.course_id, cr.registration_date, cr.status, " +
-                "s.name as student_name, c.name as course_name, c.code as course_code " +
+                "s.name as student_name, c.name as course_name, c.code as course_code, u.username AS enrollment_id " +
                 "FROM course_registrations cr " +
                 "JOIN students s ON cr.student_id = s.id " +
                 "JOIN courses c ON cr.course_id = c.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE cr.status = 'PENDING' ORDER BY cr.registration_date DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -248,6 +258,7 @@ public class CourseRegistrationDAO {
                 r.setCourseCode(rs.getString("course_code"));
                 r.setStatus(rs.getString("status"));
                 r.setDate(rs.getDate("registration_date"));
+                r.setEnrollmentId(rs.getString("enrollment_id"));
                 list.add(r);
             }
         } catch (SQLException e) {

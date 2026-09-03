@@ -47,7 +47,7 @@ public class FeedbackController extends BaseController implements HttpHandler {
         if (!requireAnyPermission(t, "VIEW_FACULTY", "VIEW_STUDENT"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = resolvePathStudentId(parts[parts.length - 1]);
         List<StudentFeedback> list = feedbackDAO.getFeedbackByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
@@ -58,12 +58,17 @@ public class FeedbackController extends BaseController implements HttpHandler {
             return;
         String body = readBody(t);
         Map<String, Object> map = JSON.fromJson(body, Map.class);
-        if (map == null || map.get("studentId") == null || map.get("facultyId") == null) {
-            sendResponse(t, 400, errorJson("studentId and facultyId are required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null) || map.get("facultyId") == null) {
+            sendResponse(t, 400, errorJson("studentId (or enrollmentId) and facultyId are required"));
             return;
         }
         StudentFeedback sf = new StudentFeedback();
-        sf.setStudentId(((Number) map.get("studentId")).intValue());
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
+        sf.setStudentId(studentId);
         sf.setFacultyId(((Number) map.get("facultyId")).intValue());
         sf.setFeedbackText((String) map.getOrDefault("feedbackText", ""));
         sf.setCategory((String) map.getOrDefault("category", "General"));

@@ -60,7 +60,7 @@ public class BookRequestController extends BaseController implements HttpHandler
         if (!requireAnyPermission(t, "VIEW_LIBRARY", "MANAGE_LIBRARY"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = resolvePathStudentId(parts[parts.length - 1]);
         List<BookRequest> list = bookRequestDAO.getRequestsByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
@@ -71,12 +71,17 @@ public class BookRequestController extends BaseController implements HttpHandler
             return;
         String body = readBody(t);
         Map<String, Object> map = JSON.fromJson(body, Map.class);
-        if (map == null || map.get("studentId") == null || map.get("bookId") == null) {
-            sendResponse(t, 400, errorJson("studentId and bookId are required"));
+        if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null) || map.get("bookId") == null) {
+            sendResponse(t, 400, errorJson("studentId (or enrollmentId) and bookId are required"));
             return;
         }
         BookRequest br = new BookRequest();
-        br.setStudentId(((Number) map.get("studentId")).intValue());
+        int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+            return;
+        }
+        br.setStudentId(studentId);
         br.setBookId(((Number) map.get("bookId")).intValue());
         br.setLoanPeriodDays(map.get("loanPeriodDays") != null ? ((Number) map.get("loanPeriodDays")).intValue() : 14);
         br.setRemarks((String) map.getOrDefault("remarks", ""));

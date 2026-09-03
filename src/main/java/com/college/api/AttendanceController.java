@@ -81,7 +81,7 @@ public class AttendanceController extends BaseController implements HttpHandler 
 
     private void handleGetByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
-        int studentId = extractId(path);
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
         List<Attendance> list = attendanceDAO.getAttendanceByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
@@ -139,6 +139,13 @@ public class AttendanceController extends BaseController implements HttpHandler 
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        java.util.Map<String, Object> raw = gson.fromJson(body, java.util.Map.class);
+        int studentId = resolveStudentId(raw, attendance.getStudentId());
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Invalid or unknown student / enrollmentId"));
+            return;
+        }
+        attendance.setStudentId(studentId);
         boolean ok = attendanceDAO.markAttendance(attendance);
         if (ok)
             sendResponse(t, 201, "{\"status\":\"Attendance marked\"}");
@@ -155,6 +162,19 @@ public class AttendanceController extends BaseController implements HttpHandler 
         if (list == null) {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
+        }
+        List<java.util.Map<String, Object>> rawList = gson.fromJson(body,
+                new TypeToken<List<java.util.Map<String, Object>>>() {
+                }.getType());
+        for (int i = 0; i < list.size(); i++) {
+            Attendance a = list.get(i);
+            java.util.Map<String, Object> raw = rawList != null && i < rawList.size() ? rawList.get(i) : null;
+            int studentId = resolveStudentId(raw, a.getStudentId());
+            if (studentId <= 0) {
+                sendResponse(t, 400, errorJson("Invalid or unknown student / enrollmentId"));
+                return;
+            }
+            a.setStudentId(studentId);
         }
         int count = attendanceDAO.markBulkAttendance(list);
         sendResponse(t, 200, "{\"marked\":" + count + "}");

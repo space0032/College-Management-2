@@ -3,6 +3,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { exportToCSV } from '../utils/exportUtils';
 import { getAllBooks, addBook, getAllIssues, issueBook, returnBook, getIssuesByStudent, requestBook, getBookRequests, approveBookRequest, rejectBookRequest } from '../services/libraryService';
+import { getAllStudents } from '../services/studentService';
 import SessionManager from '../utils/SessionManager';
 
 const COLUMNS = [
@@ -20,7 +21,12 @@ const COLUMNS = [
 const ISSUE_COLUMNS = [
   { key: 'id', label: 'Issue ID' },
   { key: 'bookTitle', label: 'Book Title' },
-  { key: 'studentName', label: 'Student Name' },
+  { key: 'studentName', label: 'Student Name', render: (v, r) => (
+    <span>
+      {v || 'N/A'}
+      {(r.enrollmentId || r.enrollmentNumber || r.username) && <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748', marginLeft: '6px', fontSize: '0.85rem' }}>({r.enrollmentId || r.enrollmentNumber || r.username})</span>}
+    </span>
+  )},
   { key: 'issueDate', label: 'Issued On' },
   { key: 'dueDate', label: 'Due Date' },
   {
@@ -45,12 +51,13 @@ const LibraryPage = () => {
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [issueForm, setIssueForm] = useState({ studentId: '', bookId: null });
+  const [issueForm, setIssueForm] = useState({ enrollmentId: '', bookId: null });
   const [requestForm, setRequestForm] = useState({ bookId: '', reason: '', returnDate: '' });
   const [requests, setRequests] = useState([]); // in-memory pending requests for UI
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [students, setStudents] = useState([]);
 
   const user = SessionManager.getUser() || {};
   const isAdmin = SessionManager.hasRole('ADMIN');
@@ -73,13 +80,13 @@ const LibraryPage = () => {
   }, []);
 
   const fetchMyIssues = React.useCallback(() => {
-    if (!user.id) return;
+    if (!user.username) return;
     setLoading(true);
-    getIssuesByStudent(user.id)
+    getIssuesByStudent(user.username)
       .then(res => setMyIssues(res.data || []))
       .catch(() => setError('Failed to load your issues.'))
       .finally(() => setLoading(false));
-  }, [user.id]);
+  }, [user.username]);
 
   const fetchRequests = React.useCallback(() => {
     getBookRequests()
@@ -93,6 +100,10 @@ const LibraryPage = () => {
     else if (view === 'my') fetchMyIssues();
     else if (view === 'requests') { fetchBooks(); fetchRequests(); }
   }, [view, fetchBooks, fetchIssues, fetchMyIssues, fetchRequests]);
+
+  useEffect(() => {
+    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+  }, []);
 
   const handleFormChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -123,10 +134,10 @@ const LibraryPage = () => {
   };
 
   const handleIssue = async () => {
-    if (!issueForm.studentId) { setFormError('Student ID is required.'); return; }
+    if (!issueForm.enrollmentId) { setFormError('Student enrollment is required.'); return; }
     setSaving(true);
     try {
-      await issueBook({ studentId: Number(issueForm.studentId), bookId: issueForm.bookId, issuedBy: user.id || 1 });
+      await issueBook({ enrollmentId: issueForm.enrollmentId, bookId: issueForm.bookId, issuedBy: user.id || 1 });
       setIssueModalOpen(false);
       fetchBooks();
     } catch (err) {
@@ -168,7 +179,7 @@ const LibraryPage = () => {
     setSaving(true);
     try {
       await requestBook({
-        studentId: user.id,
+        enrollmentId: user.username,
         bookId: requestForm.bookId,
         reason: requestForm.reason,
         preferredReturn: requestForm.returnDate,
@@ -225,7 +236,7 @@ const LibraryPage = () => {
       key: 'actions', label: 'Actions', render: (_, book) => (
         <div style={{ display: 'flex', gap: '6px' }}>
           {book.available > 0 && isAdmin && (
-            <button className="btn btn-secondary btn-sm" onClick={() => { setIssueForm({ studentId: '', bookId: book.id }); setFormError(''); setIssueModalOpen(true); }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => { setIssueForm({ enrollmentId: '', bookId: book.id }); setFormError(''); setIssueModalOpen(true); }}>
               Issue
             </button>
           )}
@@ -464,8 +475,11 @@ const LibraryPage = () => {
       <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => setIssueModalOpen(false)} onSubmit={handleIssue} submitLabel={saving ? 'Issuing…' : 'Issue'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
-          <label className="form-label">Student ID</label>
-          <input type="number" className="form-control" value={issueForm.studentId} onChange={(e) => { setIssueForm(p => ({ ...p, studentId: e.target.value })); setFormError(''); }} />
+          <label className="form-label">Student Enrollment</label>
+          <select className="form-control" value={issueForm.enrollmentId} onChange={(e) => { setIssueForm(p => ({ ...p, enrollmentId: e.target.value })); setFormError(''); }}>
+            <option value="">Select student / enrollment…</option>
+            {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
+          </select>
         </div>
         <div style={{ fontSize: '0.82rem', color: '#718096', marginTop: '8px' }}>
           Book ID: <strong>{issueForm.bookId}</strong> — {books.find(b => b.id === issueForm.bookId)?.title}

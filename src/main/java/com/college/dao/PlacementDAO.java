@@ -200,9 +200,10 @@ public class PlacementDAO {
 
     public List<PlacementApplication> getApplicationsForDrive(int driveId) {
         List<PlacementApplication> list = new ArrayList<>();
-        String sql = "SELECT a.*, u.username as student_name FROM placement_applications a " +
-                "JOIN users u ON a.student_id = u.id " +
-                "WHERE a.drive_id = ? ORDER BY a.status, u.username";
+        String sql = "SELECT a.*, s.name as student_name, u.username AS enrollment_id FROM placement_applications a " +
+                "JOIN students s ON a.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "WHERE a.drive_id = ? ORDER BY a.status, s.name";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, driveId);
@@ -210,6 +211,7 @@ public class PlacementDAO {
             while (rs.next()) {
                 PlacementApplication app = mapApplication(rs);
                 app.setStudentName(rs.getString("student_name"));
+                app.setEnrollmentId(rs.getString("enrollment_id"));
                 list.add(app);
             }
         } catch (SQLException e) {

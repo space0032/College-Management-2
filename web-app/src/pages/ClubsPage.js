@@ -66,12 +66,12 @@ const ClubsPage = () => {
 
     const loadMyMemberships = React.useCallback(async () => {
         try {
-            const res = await getMyMemberships(user.id);
+            const res = await getMyMemberships(user.username);
             setMyMemberships(res.data || []);
         } catch (err) {
             console.error(err);
         }
-    }, [user.id]);
+    }, [user.username]);
 
     useEffect(() => {
         if (activeTab === 'browse' || activeTab === 'manage') loadClubs();
@@ -81,7 +81,7 @@ const ClubsPage = () => {
 
     const handleJoin = async (clubId) => {
         try {
-            await joinClub(clubId, user.id);
+            await joinClub(clubId, user.username);
             alert('Join request sent successfully!');
             loadMyMemberships();
         } catch (err) {
@@ -92,7 +92,7 @@ const ClubsPage = () => {
     const handleLeave = async (clubId) => {
         if (!window.confirm('Are you sure you want to leave this club?')) return;
         try {
-            await leaveClub(clubId, user.id);
+            await leaveClub(clubId, user.username);
             loadMyMemberships();
             if (activeTab === 'manage' && selectedClub?.id === clubId) {
                 // refresh members if open
@@ -451,7 +451,7 @@ const ClubsPage = () => {
                         <tbody>
                             {currentMembers.length === 0 ? <tr><td colSpan="3" style={{ textAlign: 'center' }}>No members found.</td></tr> : currentMembers.map(m => (
                                 <tr key={m.id}>
-                                    <td>{m.studentName}</td>
+                                    <td>{m.studentName}{m.enrollmentId ? <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#718096', marginLeft: '6px' }}>({m.enrollmentId})</span> : null}</td>
                                     <td><span className="badge badge-secondary">{m.role}</span></td>
                                     <td style={{ textAlign: 'right' }}><button className="btn btn-sm btn-danger" onClick={() => handleRemoveMember(m.studentId)}>Remove</button></td>
                                 </tr>
@@ -468,7 +468,7 @@ const ClubsPage = () => {
                         <tbody>
                             {pendingMemberships.length === 0 ? <tr><td colSpan="3" style={{ textAlign: 'center' }}>No pending requests.</td></tr> : pendingMemberships.map(pm => (
                                 <tr key={pm.id}>
-                                    <td>{pm.studentName}</td>
+                                    <td>{pm.studentName}{pm.enrollmentId ? <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#718096', marginLeft: '6px' }}>({pm.enrollmentId})</span> : null}</td>
                                     <td>{new Date(pm.joinedAt).toLocaleDateString()}</td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>

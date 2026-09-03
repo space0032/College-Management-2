@@ -118,4 +118,48 @@ public abstract class BaseController {
             return defaultValue;
         }
     }
+
+    /**
+     * Resolve a students.id from an enrollmentId supplied in a JSON body.
+     * Falls back to the provided numeric id. Returns 0 if the enrollment is
+     * supplied but no matching student exists, and -1 if neither id is usable.
+     */
+    protected int resolveStudentId(java.util.Map<String, Object> body, int numericId) {
+        Object enrollment = body == null ? null : body.get("enrollmentId");
+        if (enrollment != null && String.valueOf(enrollment).trim().length() > 0) {
+            int sid = new com.college.dao.StudentDAO().getStudentIdByEnrollment(String.valueOf(enrollment).trim());
+            return sid > 0 ? sid : 0;
+        }
+        return numericId;
+    }
+
+    /**
+     * Resolve a users.id from an enrollmentId supplied in a JSON body.
+     * Falls back to the provided numeric id. Returns 0 if unresolved.
+     */
+    protected int resolveUserId(java.util.Map<String, Object> body, int numericId) {
+        Object enrollment = body == null ? null : body.get("enrollmentId");
+        if (enrollment != null && String.valueOf(enrollment).trim().length() > 0) {
+            int uid = new com.college.dao.StudentDAO().getUserIdByEnrollment(String.valueOf(enrollment).trim());
+            return uid > 0 ? uid : 0;
+        }
+        return numericId;
+    }
+
+    /**
+     * Resolve a URL path segment that identifies a student: if it is a positive
+     * integer treat it as the students.id, otherwise treat it as an enrollment
+     * number and resolve it to the students.id. Returns 0 if unresolvable.
+     */
+    protected int resolvePathStudentId(String segment) {
+        if (segment == null || segment.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            int n = Integer.parseInt(segment.trim());
+            return n > 0 ? n : 0;
+        } catch (NumberFormatException e) {
+            return new com.college.dao.StudentDAO().getStudentIdByEnrollment(segment.trim());
+        }
+    }
 }

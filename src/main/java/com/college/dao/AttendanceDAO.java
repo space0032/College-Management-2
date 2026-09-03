@@ -118,10 +118,11 @@ public class AttendanceDAO {
      */
     public List<Attendance> getAttendanceByCourseAndDate(int courseId, java.util.Date date) {
         List<Attendance> attendanceList = new ArrayList<>();
-        String sql = "SELECT a.*, s.name as student_name, c.name as course_name " +
+        String sql = "SELECT a.*, s.name as student_name, c.name as course_name, u.username AS enrollment_id " +
                 "FROM attendance a " +
                 "JOIN students s ON a.student_id = s.id " +
                 "JOIN courses c ON a.course_id = c.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE a.course_id = ? AND a.date = ? " +
                 "ORDER BY s.name";
 
@@ -150,10 +151,11 @@ public class AttendanceDAO {
      */
     public List<Attendance> getAttendanceByStudent(int studentId) {
         List<Attendance> attendanceList = new ArrayList<>();
-        String sql = "SELECT a.*, s.name as student_name, c.name as course_name " +
+        String sql = "SELECT a.*, s.name as student_name, c.name as course_name, u.username AS enrollment_id " +
                 "FROM attendance a " +
                 "JOIN students s ON a.student_id = s.id " +
                 "JOIN courses c ON a.course_id = c.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE a.student_id = ? " +
                 "ORDER BY a.date DESC";
 
@@ -288,6 +290,7 @@ public class AttendanceDAO {
         } catch (SQLException e) {
             // Fields might not be in result set
         }
+        attendance.setEnrollmentId(rs.getString("enrollment_id"));
 
         return attendance;
     }

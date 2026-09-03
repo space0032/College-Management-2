@@ -23,6 +23,7 @@ public class BookIssue {
     // Display fields
     private String studentName;
     private String bookTitle;
+    private String enrollmentId;
 
     public BookIssue() {
     }
@@ -139,6 +140,14 @@ public class BookIssue {
 
     public void setBookTitle(String bookTitle) {
         this.bookTitle = bookTitle;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 
     /**

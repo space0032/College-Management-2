@@ -11,7 +11,7 @@ const HostelComplaintsPage = () => {
   const load = async () => {
     try {
       if (isStudent) {
-        const res = await getStudentComplaints(user.id);
+        const res = await getStudentComplaints(user.username);
         setComplaints(res?.data || []);
       } else {
         const res = await getAllComplaints();
@@ -25,13 +25,13 @@ const HostelComplaintsPage = () => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, isStudent]);
+  }, [user.username, isStudent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title) return;
     try {
-      await createComplaint({ studentId: user.id, ...form });
+      await createComplaint({ enrollmentId: user.username, ...form });
       setForm({ title: '', description: '', category: 'General' });
       load();
     } catch (err) {
@@ -103,7 +103,7 @@ const HostelComplaintsPage = () => {
             <tbody>
               {complaints.map((c) => (
                 <tr key={c.id}>
-                  {!isStudent && <td>{c.studentName || c.studentId}</td>}
+                  {!isStudent && <td>{c.studentName || c.enrollmentId || c.enrollmentNumber || c.username || c.studentId || 'N/A'}</td>}
                   <td>{c.title}</td>
                   <td>{c.category}</td>
                   <td><span className={`badge badge-${c.status === 'OPEN' ? 'warning' : 'success'}`}>{c.status}</span></td>

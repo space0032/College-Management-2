@@ -42,10 +42,11 @@ public class BookRequestDAO {
      * Get all pending requests
      */
     public List<BookRequest> getPendingRequests() {
-        String sql = "SELECT br.*, s.name as student_name, b.title as book_title, b.author as book_author " +
+        String sql = "SELECT br.*, s.name as student_name, b.title as book_title, b.author as book_author, u.username AS enrollment_id " +
                 "FROM book_requests br " +
                 "JOIN students s ON br.student_id = s.id " +
                 "JOIN books b ON br.book_id = b.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE br.status = 'PENDING' " +
                 "ORDER BY br.request_date ASC";
 
@@ -70,10 +71,11 @@ public class BookRequestDAO {
      * Get requests by student
      */
     public List<BookRequest> getRequestsByStudent(int studentId) {
-        String sql = "SELECT br.*, s.name as student_name, b.title as book_title, b.author as book_author " +
+        String sql = "SELECT br.*, s.name as student_name, b.title as book_title, b.author as book_author, u.username AS enrollment_id " +
                 "FROM book_requests br " +
                 "JOIN students s ON br.student_id = s.id " +
                 "JOIN books b ON br.book_id = b.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE br.student_id = ? " +
                 "ORDER BY br.request_date DESC";
 
@@ -168,10 +170,11 @@ public class BookRequestDAO {
      * Get request by ID
      */
     private BookRequest getRequestById(int id) {
-        String sql = "SELECT br.*, s.name as student_name, b.title as book_title, b.author as book_author " +
+        String sql = "SELECT br.*, s.name as student_name, b.title as book_title, b.author as book_author, u.username AS enrollment_id " +
                 "FROM book_requests br " +
                 "JOIN students s ON br.student_id = s.id " +
                 "JOIN books b ON br.book_id = b.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE br.id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -213,6 +216,7 @@ public class BookRequestDAO {
         request.setStudentName(rs.getString("student_name"));
         request.setBookTitle(rs.getString("book_title"));
         request.setBookAuthor(rs.getString("book_author"));
+        request.setEnrollmentId(rs.getString("enrollment_id"));
 
         return request;
     }

@@ -59,7 +59,7 @@ public class GatePassController extends BaseController implements HttpHandler {
     private void handleGetStudentPasses(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_GATEPASS")) return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = resolvePathStudentId(parts[parts.length - 1]);
         List<GatePass> passes = GatePassDAO.getStudentPasses(studentId);
         sendResponse(t, 200, JsonHelper.toJson(passes));
     }
@@ -81,8 +81,20 @@ public class GatePassController extends BaseController implements HttpHandler {
         String body = readBody(t);
         GatePass gatePass = JsonHelper.fromJson(body, GatePass.class);
 
-        if (gatePass == null || gatePass.getStudentId() == 0) {
-            sendResponse(t, 400, errorJson("Invalid payload or missing studentId"));
+        if (gatePass == null) {
+            sendResponse(t, 400, errorJson("Invalid payload"));
+            return;
+        }
+        if (gatePass.getEnrollmentId() != null && !gatePass.getEnrollmentId().trim().isEmpty()) {
+            int studentId = new com.college.dao.StudentDAO().getStudentIdByEnrollment(gatePass.getEnrollmentId().trim());
+            if (studentId <= 0) {
+                sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+                return;
+            }
+            gatePass.setStudentId(studentId);
+        }
+        if (gatePass.getStudentId() == 0) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
 

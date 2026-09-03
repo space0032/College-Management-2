@@ -22,6 +22,7 @@ public class BookRequest {
     private String bookTitle;
     private String bookAuthor;
     private String approvedByName;
+    private String enrollmentId;
 
     public BookRequest() {
         this.loanPeriodDays = 14; // Default
@@ -139,5 +140,13 @@ public class BookRequest {
 
     public void setApprovedByName(String approvedByName) {
         this.approvedByName = approvedByName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

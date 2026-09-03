@@ -15,6 +15,7 @@ public class EventRegistration {
     // Display fields
     private String studentName;
     private String eventName;
+    private String enrollmentId;
 
     public EventRegistration() {
     }
@@ -73,5 +74,13 @@ public class EventRegistration {
 
     public void setEventName(String eventName) {
         this.eventName = eventName;
+    }
+
+    public String getEnrollmentId() {
+        return enrollmentId;
+    }
+
+    public void setEnrollmentId(String enrollmentId) {
+        this.enrollmentId = enrollmentId;
     }
 }

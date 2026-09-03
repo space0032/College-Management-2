@@ -27,7 +27,7 @@ const ReceiptModal = ({ fee, onClose }) => {
         doc.text(`Receipt No: ${receiptId}`, 14, 50);
         doc.text(`Date: ${today}`, 140, 50);
         doc.text(`Student Name: ${fee.studentName || 'N/A'}`, 14, 60);
-        doc.text(`Student ID: ${fee.studentId || fee.id}`, 140, 60);
+        doc.text(`Enrollment No.: ${fee.studentUsername || fee.studentEnrollmentId || fee.enrollmentNumber || fee.enrollmentId || fee.studentId || fee.id || 'N/A'}`, 140, 60);
 
         // Table
         doc.autoTable({
@@ -82,7 +82,7 @@ const ReceiptModal = ({ fee, onClose }) => {
                         <div><span style={{ color: '#718096' }}>Receipt No:</span><br /><strong>{receiptId}</strong></div>
                         <div><span style={{ color: '#718096' }}>Date:</span><br /><strong>{today}</strong></div>
                         <div><span style={{ color: '#718096' }}>Student Name:</span><br /><strong>{fee.studentName || 'N/A'}</strong></div>
-                        <div><span style={{ color: '#718096' }}>Student ID:</span><br /><strong>{fee.studentId || fee.id}</strong></div>
+                        <div><span style={{ color: '#718096' }}>Enrollment No.:</span><br /><strong style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{fee.studentUsername || fee.studentEnrollmentId || fee.enrollmentNumber || fee.enrollmentId || fee.studentId || fee.id || 'N/A'}</strong></div>
                     </div>
 
                     <hr style={{ border: 'none', borderTop: '1px dashed #e2e8f0', margin: '16px 0' }} />

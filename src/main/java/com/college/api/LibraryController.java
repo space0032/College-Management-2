@@ -112,7 +112,7 @@ public class LibraryController extends BaseController implements HttpHandler {
 
     private void handleGetIssuesByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
-        int studentId = extractId(path);
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         sendResponse(t, 200, JsonHelper.toJson(issueDAO.getIssuedBooksByStudent(studentId)));
     }
@@ -126,6 +126,18 @@ public class LibraryController extends BaseController implements HttpHandler {
             return;
         }
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
+        int studentId;
+        if (issue.getEnrollmentId() != null && !issue.getEnrollmentId().trim().isEmpty()) {
+            studentId = new com.college.dao.StudentDAO().getStudentIdByEnrollment(issue.getEnrollmentId().trim());
+            if (studentId <= 0) {
+                sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
+                return;
+            }
+            issue.setStudentId(studentId);
+        } else if (issue.getStudentId() <= 0) {
+            sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
+            return;
+        }
         if (!issueDAO.isBookAvailable(issue.getBookId())) {
             sendResponse(t, 400, errorJson("Book is not available"));
             return;
@@ -163,7 +175,7 @@ public class LibraryController extends BaseController implements HttpHandler {
 
     private void handleGetFines(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
-        int studentId = extractId(path);
+        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         double fines = issueDAO.getPendingFines(studentId);
         sendResponse(t, 200, String.format("{\"totalFines\": %.2f}", fines));

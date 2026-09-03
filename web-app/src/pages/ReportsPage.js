@@ -135,8 +135,8 @@ const ReportsPage = () => {
                             </button>
                             {attendanceStats && Array.isArray(attendanceStats) && (
                                 <button className="btn btn-secondary" onClick={() => exportToCSV(
-                                    ['Student ID', 'Present', 'Absent', 'Percentage'],
-                                    attendanceStats.map(s => [s.studentId, s.presentCount, s.absentCount, (s.percentage || 0) + '%']),
+                                    ['Enrollment No.', 'Present', 'Absent', 'Percentage'],
+                                    attendanceStats.map(s => [s.enrollmentId || s.enrollmentNumber || s.username || s.studentId || 'N/A', s.presentCount, s.absentCount, (s.percentage || 0) + '%']),
                                     `attendance_report_${courseIdInput}`
                                 )}>⬇ Export CSV</button>
                             )}
@@ -157,9 +157,9 @@ const ReportsPage = () => {
                                 ))}
                             </div>
                             <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={attendanceStats.slice(0, 20)} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <BarChart data={attendanceStats.slice(0, 20).map(s => ({ ...s, _label: s.enrollmentId || s.enrollmentNumber || s.username || s.studentId }))} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="studentId" tick={{ fontSize: 11 }} />
+                                    <XAxis dataKey="_label" tick={{ fontSize: 11 }} />
                                     <YAxis domain={[0, 100]} unit="%" />
                                     <Tooltip formatter={v => v + '%'} />
                                     <Bar dataKey="percentage" name="Attendance %" fill="#3b82f6" radius={[4, 4, 0, 0]} />
