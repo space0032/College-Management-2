@@ -55,8 +55,9 @@ const LeaveApprovalPage = () => {
 
     const handleAction = async (type, id, status) => {
         try {
-            if (type === 'staff') await updateStaffLeaveStatus(id, status);
-            else await updateStudentLeaveStatus(id, status);
+            const payload = { status, approvedBy: currentUser.id };
+            if (type === 'staff') await updateStaffLeaveStatus(id, payload);
+            else await updateStudentLeaveStatus(id, payload);
             fetchLeaves();
         } catch (err) { alert('Action failed'); }
     };

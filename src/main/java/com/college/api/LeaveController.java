@@ -153,11 +153,15 @@ public class LeaveController extends BaseController implements HttpHandler {
         int id = Integer.parseInt(t.getRequestURI().getPath().split("/")[4]);
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
-        
-        String status = (String) map.get("status");
-        int approvedBy = ((Double) map.get("approvedBy")).intValue();
-        String comments = map.containsKey("comments") ? (String) map.get("comments") : null;
-        
+
+        if (map == null || map.get("status") == null) {
+            sendResponse(t, 400, errorJson("status is required"));
+            return;
+        }
+        String status = String.valueOf(map.get("status"));
+        int approvedBy = resolveApproverId(t, map);
+        String comments = map.containsKey("comments") && map.get("comments") != null ? String.valueOf(map.get("comments")) : null;
+
         boolean ok = staffLeaveDAO.updateLeaveStatus(id, status, approvedBy, comments);
         if (ok) sendResponse(t, 200, "{\"message\":\"Leave status updated\"}");
         else sendResponse(t, 400, errorJson("Failed to update status"));
@@ -169,12 +173,32 @@ public class LeaveController extends BaseController implements HttpHandler {
         int id = Integer.parseInt(t.getRequestURI().getPath().split("/")[4]);
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
-        
-        String status = (String) map.get("status");
-        int approvedBy = ((Double) map.get("approvedBy")).intValue();
-        
+
+        if (map == null || map.get("status") == null) {
+            sendResponse(t, 400, errorJson("status is required"));
+            return;
+        }
+        String status = String.valueOf(map.get("status"));
+        int approvedBy = resolveApproverId(t, map);
+
         boolean ok = studentLeaveDAO.updateLeaveStatus(id, status, approvedBy);
         if (ok) sendResponse(t, 200, "{\"message\":\"Leave status updated\"}");
         else sendResponse(t, 400, errorJson("Failed to update status"));
+    }
+
+    private int resolveApproverId(HttpExchange t, Map<String, Object> map) {
+        if (map != null && map.get("approvedBy") != null) {
+            try {
+                return ((Number) map.get("approvedBy")).intValue();
+            } catch (ClassCastException e) {
+                try {
+                    return Integer.parseInt(String.valueOf(map.get("approvedBy")));
+                } catch (NumberFormatException nfe) {
+                    // fall through to authenticated user
+                }
+            }
+        }
+        TokenStore.TokenInfo tokenInfo = getTokenInfo(t);
+        return tokenInfo != null ? tokenInfo.userId : 0;
     }
 }
