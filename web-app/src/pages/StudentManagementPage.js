@@ -4,10 +4,12 @@ import Modal from '../components/Modal';
 import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents } from '../services/studentService';
 import { getDepartments } from '../services/departmentService';
 import { getAllCourses } from '../services/courseService';
+import { getHostels, getRooms, getAllocations, allocateRoom, vacateRoom } from '../services/hostelService';
+import SessionManager from '../utils/SessionManager';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', email: '', phone: '', course: '', department: '', semester: '', password: '' };
+const EMPTY_FORM = { name: '', email: '', phone: '', course: '', department: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
 
 const initialState = {
   students: [],
@@ -77,6 +79,9 @@ const StudentManagementPage = () => {
   const [state, dispatch] = React.useReducer(studentReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [courseOptions, setCourseOptions] = useState([]);
+  const [hostelOptions, setHostelOptions] = useState([]);
+  const [roomOptions, setRoomOptions] = useState([]);
+  const [allocationList, setAllocationList] = useState([]);
   const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, viewMode, filterDept, filterSem, createdCredentials } = state;
 
   const searchDebounce = useRef(null);
@@ -110,6 +115,17 @@ const StudentManagementPage = () => {
       .catch(() => {
         setDepartmentOptions([]);
         setCourseOptions([]);
+      });
+    Promise.all([getHostels(), getRooms(), getAllocations()])
+      .then(([hostelRes, roomRes, allocRes]) => {
+        setHostelOptions(hostelRes.data || []);
+        setRoomOptions(roomRes.data || []);
+        setAllocationList(allocRes.data || []);
+      })
+      .catch(() => {
+        setHostelOptions([]);
+        setRoomOptions([]);
+        setAllocationList([]);
       });
   }, []);
 
@@ -147,11 +163,51 @@ const StudentManagementPage = () => {
   }, []);
 
   const openEdit = useCallback((row) => {
+    const alloc = (allocationList || []).find(a => a.studentId === row.id);
+    const currentRoom = roomOptions.find(r => r.id === alloc?.roomId);
     dispatch({ type: 'OPEN_MODAL', form: {
       name: row.name || '', email: row.email || '', phone: row.phone || '',
-      course: row.course || '', department: row.department || '', semester: row.semester || ''
+      course: row.course || '', department: row.department || '', semester: row.semester || '',
+      isHostelite: row.isHostelite || row.hostelite || !!alloc,
+      hostelId: currentRoom ? String(currentRoom.hostelId) : '',
+      roomId: alloc ? String(alloc.roomId) : ''
     }, editId: row.id });
-  }, []);
+  }, [allocationList, roomOptions]);
+
+  const syncAllocation = useCallback(async (studentId, nextForm) => {
+    const wantHostel = !!nextForm.isHostelite;
+    const currentUser = SessionManager.getUser() || {};
+    const existing = (allocationList || []).find(a => a.studentId === studentId);
+    if (wantHostel) {
+      const nextRoomId = nextForm.roomId ? Number(nextForm.roomId) : null;
+      if (!nextRoomId) {
+        if (existing) await vacateRoom(existing.id);
+        return;
+      }
+      if (existing) {
+        if (existing.roomId !== nextRoomId) {
+          await vacateRoom(existing.id);
+          await allocateRoom({
+            studentId,
+            roomId: nextRoomId,
+            checkInDate: new Date().toISOString().split('T')[0],
+            remarks: 'Room changed during student edit',
+            allocatedBy: currentUser.id || null
+          });
+        }
+      } else {
+        await allocateRoom({
+          studentId,
+          roomId: nextRoomId,
+          checkInDate: new Date().toISOString().split('T')[0],
+          remarks: 'Allocated during student edit',
+          allocatedBy: currentUser.id || null
+        });
+      }
+    } else {
+      if (existing) await vacateRoom(existing.id);
+    }
+  }, [allocationList]);
 
   const handleSave = useCallback(async () => {
     if (!form.name.trim() || !form.email.trim() || !form.department || !form.course || !form.semester) {
@@ -170,21 +226,44 @@ const StudentManagementPage = () => {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Semester must be between 1 and 8.' });
       return;
     }
+    const wantHostel = !!form.isHostelite;
+    if (wantHostel && (!form.hostelId || !form.roomId)) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Select a hostel and room for the hostelite student.' });
+      return;
+    }
     dispatch({ type: 'SAVING_START' });
+    const currentUser = SessionManager.getUser() || {};
+    const payload = { ...form, isHostelite: wantHostel };
     try {
       if (editId) {
-        await updateStudent(editId, form);
+        await updateStudent(editId, payload);
+        await syncAllocation(editId, form);
         dispatch({ type: 'SAVING_DONE' });
       } else {
-        const res = await createStudent(form);
+        const res = await createStudent(payload);
+        const newId = res.data?.id;
+        if (wantHostel && newId) {
+          await allocateRoom({
+            studentId: newId,
+            roomId: Number(form.roomId),
+            checkInDate: new Date().toISOString().split('T')[0],
+            remarks: 'Allocated during student creation',
+            allocatedBy: currentUser.id || null
+          });
+        }
         dispatch({ type: 'SAVING_DONE' });
         dispatch({ type: 'SHOW_CREDENTIALS', payload: res.data });
       }
       fetchStudents(1, false);
     } catch (err) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save student.' });
+      if (editId) {
+        dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save student.' });
+      } else {
+        dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Student created but room allocation failed. Please allocate the room in the Hostel section.' });
+      }
     }
-  }, [form, editId, fetchStudents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, editId, fetchStudents, syncAllocation]);
 
   const handleDelete = useCallback(async (id) => {
     if (!window.confirm('Are you sure you want to delete this student?')) return;
@@ -243,7 +322,8 @@ const StudentManagementPage = () => {
           course: record.course || '',
           department: record.department || '',
           semester: record.semester || '',
-          password: record.password || ''
+          password: record.password || '',
+          isHostelite: /^(yes|true|1|y)$/i.test(record.hostelite || record.is_hostelite || '')
         };
         try {
           await createStudent(payload);
@@ -529,6 +609,55 @@ const StudentManagementPage = () => {
               <input name="password" type="text" value={form.password || ''} onChange={handleFormChange} placeholder="Leave empty for default: 123" />
               <small style={{ color: '#718096', fontSize: '0.8rem' }}>Leave empty for default: 123</small>
             </div>
+          )}
+          <div className="form-group" style={{ gridColumn: '1 / -1', borderTop: '1px solid #edf2f7', paddingTop: '15px', marginTop: '5px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!!form.isHostelite}
+                onChange={(e) => dispatch({ type: 'SET_FORM', name: 'isHostelite', value: e.target.checked })}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }}
+              />
+              Is Hostelite?
+            </label>
+            <small style={{ color: '#718096', fontSize: '0.8rem' }}>Hostelite students are assigned a hostel room and hostel fees.</small>
+          </div>
+          {form.isHostelite && (
+            <>
+              <div className="form-group">
+                <label>Hostel *</label>
+                <select
+                  className="form-control"
+                  required
+                  value={form.hostelId}
+                  onChange={(e) => dispatch({ type: 'SET_FORM', name: 'hostelId', value: e.target.value })}
+                >
+                  <option value="">Select hostel</option>
+                  {hostelOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Room *</label>
+                <select
+                  className="form-control"
+                  required
+                  value={form.roomId}
+                  onChange={(e) => dispatch({ type: 'SET_FORM', name: 'roomId', value: e.target.value })}
+                  disabled={!form.hostelId}
+                >
+                  <option value="">Select room</option>
+                  {roomOptions
+                    .filter(r => !form.hostelId || r.hostelId === Number(form.hostelId))
+                    .filter(r => r.occupiedCount != null && r.capacity != null ? r.occupiedCount < r.capacity : true)
+                    .map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}
+                </select>
+                <small style={{ color: '#718096', fontSize: '0.8rem' }}>
+                  {!form.hostelId ? 'Select a hostel first.' :
+                    roomOptions.filter(r => r.hostelId === Number(form.hostelId) && r.occupiedCount != null && r.capacity != null ? r.occupiedCount < r.capacity : true).length === 0
+                      ? 'No available rooms in this hostel.' : 'Only rooms with available capacity are shown.'}
+                </small>
+              </div>
+            </>
           )}
         </div>
       </Modal>

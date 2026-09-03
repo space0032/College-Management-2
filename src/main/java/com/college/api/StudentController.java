@@ -36,6 +36,8 @@ public class StudentController extends BaseController implements HttpHandler {
                 sendResponse(t, 405, "Method Not Allowed");
         } else if (path.endsWith("/students/search") && "GET".equals(method)) {
             handleSearch(t);
+        } else if ("PUT".equals(method) && path.matches("/students/\\d+")) {
+            handlePut(t);
         } else if ("GET".equals(method)) {
             handleGet(t);
         } else if ("POST".equals(method)) {
@@ -163,6 +165,32 @@ public class StudentController extends BaseController implements HttpHandler {
                 sendResponse(t, 201, response);
             } else {
                 sendResponse(t, 400, "{\"error\":\"Failed to create student. Check logs for details.\"}");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
+    private void handlePut(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "UPDATE_STUDENT"))
+            return;
+        try {
+            int id = getIdFromPath(t);
+            InputStream is = t.getRequestBody();
+            String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+
+            Student student = JsonHelper.fromJson(body, Student.class);
+            if (student == null) {
+                sendResponse(t, 400, "{\"error\":\"Invalid JSON\"}");
+                return;
+            }
+            student.setId(id);
+            boolean ok = studentDAO.updateStudent(student);
+            if (ok) {
+                sendResponse(t, 200, "{\"status\":\"updated\",\"id\":" + id + "}");
+            } else {
+                sendResponse(t, 400, "{\"error\":\"Failed to update student\"}");
             }
         } catch (Exception e) {
             e.printStackTrace();
