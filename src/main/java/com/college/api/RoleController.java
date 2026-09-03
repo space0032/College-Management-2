@@ -113,14 +113,14 @@ public class RoleController extends BaseController implements HttpHandler {
     }
 
     private void handleGetPermissionsList(HttpExchange t) throws IOException {
-        if (!requireAuth(t))
+        if (!requirePermission(t, "VIEW_ROLE"))
             return;
         List<Permission> list = new PermissionDAO().getAllPermissions();
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handleGetRolePermissions(HttpExchange t, String path) throws IOException {
-        if (!requireAuth(t))
+        if (!requirePermission(t, "VIEW_ROLE"))
             return;
         String[] parts = path.split("/");
         int roleId = Integer.parseInt(parts[parts.length - 2]);

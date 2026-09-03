@@ -47,6 +47,12 @@ const pages = {
   SettingsPage: lazy(() => import('./SettingsPage')),
   StudentAffairsPage: lazy(() => import('./StudentAffairsPage')),
   RoleManagementPage: lazy(() => import('./RoleManagementPage')),
+  HostelComplaintsPage: lazy(() => import('./HostelComplaintsPage')),
+  HostelAttendancePage: lazy(() => import('./HostelAttendancePage')),
+  WardenManagementPage: lazy(() => import('./WardenManagementPage')),
+  CourseRegistrationsPage: lazy(() => import('./CourseRegistrationsPage')),
+  FeedbackPage: lazy(() => import('./FeedbackPage')),
+  BookRequestsPage: lazy(() => import('./BookRequestsPage')),
   NotFoundPage: lazy(() => import('./NotFoundPage')),
 };
 
@@ -61,6 +67,8 @@ const {
   LearningPortalPage, VolunteerTasksPage, StudentProfilePage, AuditLogPage,
   DepartmentPage, ProfilePage, StaffLeavePage, ChangePasswordPage, SettingsPage,
   StudentAffairsPage, RoleManagementPage, NotFoundPage,
+  HostelComplaintsPage, HostelAttendancePage, WardenManagementPage,
+  CourseRegistrationsPage, FeedbackPage, BookRequestsPage,
 } = pages;
 
 const DashboardPage = () => {
@@ -68,6 +76,7 @@ const DashboardPage = () => {
   const userRole = SessionManager.getUserRole() || 'STUDENT';
   const isAdmin = userRole === 'ADMIN';
   const isFaculty = userRole === 'FACULTY';
+  const can = (perm) => SessionManager.hasPermission(perm);
 
   return (
     <div className="app-layout">
@@ -110,12 +119,14 @@ const DashboardPage = () => {
             <Route path="change-password" element={<ChangePasswordPage />} />
 
             {/* Admin + Faculty Routes */}
-            {(isAdmin || isFaculty) && (
+            {(can('VIEW_STUDENT') || isAdmin || isFaculty) && (
               <>
                 <Route path="students" element={<StudentManagementPage />} />
                 <Route path="student-profile" element={<StudentProfilePage />} />
-                <Route path="staff-leave" element={<StaffLeavePage />} />
               </>
+            )}
+            {(can('VIEW_LEAVE') || isAdmin || isFaculty) && (
+              <Route path="staff-leave" element={<StaffLeavePage />} />
             )}
 
             {/* Admin Only Routes */}
@@ -132,6 +143,26 @@ const DashboardPage = () => {
                 <Route path="student-affairs" element={<StudentAffairsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="roles" element={<RoleManagementPage />} />
+              </>
+            )}
+
+            {/* New feature parity routes */}
+            {can('VIEW_HOSTEL') && (
+              <>
+                <Route path="hostel/attendance" element={<HostelAttendancePage />} />
+                <Route path="wardens" element={<WardenManagementPage />} />
+              </>
+            )}
+            {can('VIEW_COMPLAINT') && (
+              <Route path="hostel/complaints" element={<HostelComplaintsPage />} />
+            )}
+            {can('VIEW_COURSE') && (
+              <Route path="course-registrations" element={<CourseRegistrationsPage />} />
+            )}
+            {(can('VIEW_FACULTY') || isAdmin) && (
+              <>
+                <Route path="feedback" element={<FeedbackPage />} />
+                <Route path="book-requests" element={<BookRequestsPage />} />
               </>
             )}
 

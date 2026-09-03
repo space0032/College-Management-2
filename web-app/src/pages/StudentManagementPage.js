@@ -215,6 +215,69 @@ const StudentManagementPage = () => {
     );
   }, [filteredStudents]);
 
+  const fileInputRef = useRef(null);
+
+  const handleImport = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const rows = text.split(/\r?\n/).filter(line => line.trim());
+      if (rows.length < 2) {
+        alert('CSV must contain a header row followed by data rows.');
+        return;
+      }
+      const header = parseCSVLine(rows[0]).map(h => h.trim().toLowerCase());
+      let success = 0, failed = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const cols = parseCSVLine(rows[i]).map(c => c.trim());
+        const record = {};
+        header.forEach((h, idx) => {
+          record[h] = cols[idx] || '';
+        });
+        const payload = {
+          name: record.name || '',
+          email: record.email || '',
+          phone: record.phone || '',
+          course: record.course || '',
+          department: record.department || '',
+          semester: record.semester || '',
+          password: record.password || ''
+        };
+        try {
+          await createStudent(payload);
+          success++;
+        } catch {
+          failed++;
+        }
+      }
+      alert(`Import complete: ${success} created, ${failed} failed.`);
+      fetchStudents(1, false);
+    } catch (err) {
+      alert('Failed to read CSV file.');
+    }
+  }, [fetchStudents]);
+
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { current += '"'; i++; }
+          else inQuotes = false;
+        } else current += ch;
+      } else if (ch === '"') inQuotes = true;
+      else if (ch === ',') { result.push(current); current = ''; }
+      else current += ch;
+    }
+    result.push(current);
+    return result;
+  };
+
   // Stats
   const totalStudents = totalCount;
   const depts = useMemo(() => [...new Set(students.map(s => s.department).filter(Boolean))], [students]);
@@ -274,7 +337,9 @@ const StudentManagementPage = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={handleExport}>⬇ Export CSV</button>
+          <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>⬆ Import CSV</button>
           <button className="btn btn-primary" onClick={openAdd}>+ Add Student</button>
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleImport} />
         </div>
       </div>
 

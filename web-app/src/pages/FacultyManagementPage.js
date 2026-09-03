@@ -6,7 +6,7 @@ import { getDepartments } from '../services/departmentService';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', email: '', phone: '', department: '', qualification: '' };
+const EMPTY_FORM = { name: '', email: '', phone: '', department: '', qualification: '', password: '' };
 
 const initialState = {
   faculty: [],
@@ -22,7 +22,8 @@ const initialState = {
   editId: null,
   formError: '',
   saving: false,
-  filterDept: ''
+  filterDept: '',
+  createdCredentials: null
 };
 
 function facultyReducer(state, action) {
@@ -45,6 +46,8 @@ function facultyReducer(state, action) {
     case 'SET_FORM_ERROR': return { ...state, formError: action.payload, saving: false };
     case 'SAVING_START': return { ...state, saving: true };
     case 'SAVING_DONE': return { ...state, saving: false, modalOpen: false };
+    case 'SHOW_CREDENTIALS': return { ...state, saving: false, modalOpen: false, createdCredentials: action.payload };
+    case 'CLOSE_CREDENTIALS': return { ...state, createdCredentials: null };
     default: return state;
   }
 }
@@ -52,7 +55,7 @@ function facultyReducer(state, action) {
 const FacultyManagementPage = () => {
   const [state, dispatch] = React.useReducer(facultyReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
-  const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept } = state;
+  const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, createdCredentials } = state;
 
   const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
     dispatch({ type: 'FETCH_START' });
@@ -128,10 +131,12 @@ const FacultyManagementPage = () => {
     try {
       if (editId) {
         await updateFaculty(editId, form);
+        dispatch({ type: 'SAVING_DONE' });
       } else {
-        await createFaculty(form);
+        const res = await createFaculty(form);
+        dispatch({ type: 'SAVING_DONE' });
+        dispatch({ type: 'SHOW_CREDENTIALS', payload: res.data });
       }
-      dispatch({ type: 'SAVING_DONE' });
       fetchFaculty(1, false);
     } catch (err) {
       dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save faculty.' });
@@ -320,8 +325,42 @@ const FacultyManagementPage = () => {
             <label>Highest Qualification</label>
             <input name="qualification" type="text" className="form-control" value={form.qualification} onChange={handleFormChange} placeholder="e.g. PhD in Computer Science" />
           </div>
+          {!editId && (
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label>Account Password</label>
+              <input name="password" type="text" className="form-control" value={form.password} onChange={handleFormChange} placeholder="Leave empty for default: 123" />
+              <small style={{ color: '#718096', fontSize: '0.8rem' }}>A FACULTY login account is created automatically. Username shown after saving.</small>
+            </div>
+          )}
         </div>
       </Modal>
+
+      {createdCredentials && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#1a202c' }}>Faculty Account Created</h2>
+              <p style={{ color: '#718096', margin: '5px 0 0' }}>Share these credentials with the faculty member</p>
+            </div>
+            <div style={{ background: '#f7fafc', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Username</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2d3748', fontFamily: 'monospace' }}>{createdCredentials.username}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#e53e3e', fontFamily: 'monospace' }}>{createdCredentials.password}</div>
+              </div>
+            </div>
+            <button
+              onClick={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
+              style={{ width: '100%', padding: '12px', border: 'none', borderRadius: '8px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' }}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

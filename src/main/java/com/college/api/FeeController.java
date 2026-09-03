@@ -23,10 +23,16 @@ public class FeeController extends BaseController implements HttpHandler {
                 return;
             if ("GET".equals(method)) {
                 if (path.endsWith("/pending")) {
+                    if (!requirePermission(t, "VIEW_FEES"))
+                        return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPendingFees()));
                 } else if (path.equals("/api/fees")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES"))
+                        return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getAllFees()));
                 } else if (path.matches(".*/fees/history/\\d+")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES"))
+                        return;
                     int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPaymentHistory(id)));
                 } else {
@@ -34,6 +40,8 @@ public class FeeController extends BaseController implements HttpHandler {
                 }
             } else if ("POST".equals(method)) {
                 if (path.endsWith("/pay")) {
+                    if (!requireAnyPermission(t, "PAY_FEES", "MANAGE_FEES"))
+                        return;
                     String body = readBody(t);
                     com.college.models.FeePayment payment = new com.google.gson.Gson().fromJson(body,
                             com.college.models.FeePayment.class);

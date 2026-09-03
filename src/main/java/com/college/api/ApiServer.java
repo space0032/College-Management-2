@@ -59,6 +59,14 @@ public class ApiServer {
         server.createContext("/api/volunteers", new ProtectedHandler(new VolunteerController()));
         server.createContext("/api/audit", new ProtectedHandler(new AuditController()));
 
+        server.createContext("/api/complaints", new ProtectedHandler(new ComplaintController()));
+        server.createContext("/api/hostel/attendance", new ProtectedHandler(new HostelAttendanceController()));
+        server.createContext("/api/wardens", new ProtectedHandler(new WardenController()));
+        server.createContext("/api/course-registrations", new ProtectedHandler(new CourseRegistrationController()));
+        server.createContext("/api/feedback", new ProtectedHandler(new FeedbackController()));
+        server.createContext("/api/book-requests", new ProtectedHandler(new BookRequestController()));
+        server.createContext("/api/fee-transactions", new ProtectedHandler(new FeeTransactionController()));
+
         server.setExecutor(null);
         server.start();
         System.out.println("API Server started on port " + port);

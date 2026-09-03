@@ -5,8 +5,16 @@ import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.FacultyDAO;
 import com.college.models.Faculty;
 import com.college.utils.JsonHelper;
+import com.college.utils.DatabaseConnection;
+import com.college.utils.Logger;
+import com.college.dao.UserDAO;
+import com.college.dao.RoleDAO;
+import com.college.models.Role;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class FacultyController extends BaseController implements HttpHandler {
 
@@ -98,16 +106,91 @@ public class FacultyController extends BaseController implements HttpHandler {
                 sendResponse(t, 400, errorJson("Invalid request body"));
                 return;
             }
-            int id = facultyDAO.addFaculty(f, 0);
+            // Extract optional password (default: "123") like student creation.
+            String password = "123";
+            Pattern pwdPattern = Pattern.compile("\"password\"\\s*:\\s*\"([^\"]*)\"");
+            try {
+                java.util.regex.Matcher m = pwdPattern.matcher(body);
+                if (m.find() && !m.group(1).isEmpty()) {
+                    password = m.group(1);
+                }
+            } catch (Exception ignored) {
+            }
+
+            // Create a FACULTY user account and return credentials for parity.
+            int userId = createFacultyUser(f, password);
+            if (userId <= 0) {
+                sendResponse(t, 500, errorJson("Failed to create faculty user account"));
+                return;
+            }
+
+            // Capture generated credentials before they are masked in the stored record.
+            String generatedUsername = f.getUsername();
+
+            int id = facultyDAO.addFaculty(f, userId);
             if (id > 0) {
                 f.setId(id);
-                sendResponse(t, 201, JsonHelper.toJson(f));
+                f.setUserId(userId);
+                sendResponse(t, 201, "{\"id\":" + id
+                        + ",\"username\":\"" + escapeJson(generatedUsername)
+                        + "\",\"password\":\"" + escapeJson(password) + "\"}");
             } else {
                 sendResponse(t, 400, errorJson("Failed to create faculty"));
             }
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));
         }
+    }
+
+    private int createFacultyUser(Faculty f, String password) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+            String username = "FAC" + (int) (Math.random() * 9000 + 1000);
+            RoleDAO roleDAO = new RoleDAO();
+            UserDAO userDAO = new UserDAO();
+            Role role = roleDAO.getRoleByCode(conn, "FACULTY");
+            int roleId = (role != null) ? role.getId() : 0;
+            int userId;
+            if (roleId > 0) {
+                userId = userDAO.addUser(conn, username, password, "FACULTY", roleId);
+            } else {
+                userId = userDAO.addUser(conn, username, password, "FACULTY");
+            }
+            if (userId <= 0) {
+                conn.rollback();
+                return -1;
+            }
+            f.setUsername(username);
+            conn.commit();
+            return userId;
+        } catch (SQLException e) {
+            Logger.error("Failed to create faculty user", e);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    Logger.error("Rollback failed", ex);
+                }
+            }
+            return -1;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    Logger.error("Connection close failed", e);
+                }
+            }
+        }
+    }
+
+    private String escapeJson(String s) {
+        if (s == null)
+            return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private void handleUpdate(HttpExchange t, int id) throws IOException {
