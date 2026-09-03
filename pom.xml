@@ -11,7 +11,7 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>21.0.5</javafx.version>
+        <javafx.version>25.0.2</javafx.version>
     </properties>
 
     <dependencies>
@@ -151,6 +151,10 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.college.MainFX</mainClass>
+                    <options>
+                        <option>--upgrade-module-path</option>
+                        <option>${settings.localRepository}/org/openjfx/jdk-jsobject/${javafx.version}/jdk-jsobject-${javafx.version}-win.jar</option>
+                    </options>
                 </configuration>
             </plugin>
             <plugin>

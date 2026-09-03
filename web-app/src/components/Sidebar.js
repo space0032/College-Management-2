@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
   // ADMIN — full management panel (including Events, Clubs, Student Affairs)
   if (isAdmin) {
     navSections['Admin'] = [
-      { to: '/dashboard/management', label: 'Institute Mgmt', icon: '🏛️' },
+      { to: '/dashboard/management', label: 'Institute Management', icon: '🏛️' },
       { to: '/dashboard/roles', label: 'Role Management', icon: '🔑' },
       { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼' },
       { to: '/dashboard/payroll', label: 'Payroll', icon: '💸' },

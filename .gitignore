@@ -35,6 +35,7 @@ lint*.json
 .vscode/
 *.sublime-workspace
 *.sublime-project
+file/
 
 # OS specific
 .DS_Store
