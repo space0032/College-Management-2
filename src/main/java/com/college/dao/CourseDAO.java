@@ -88,7 +88,7 @@ public class CourseDAO {
     }
 
     public int getWeeklyCount() {
-        String sql = "SELECT COUNT(*) FROM courses WHERE created_at >= date('now', '-7 days')";
+        String sql = "SELECT COUNT(*) FROM courses WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'";
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {

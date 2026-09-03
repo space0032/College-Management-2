@@ -121,7 +121,7 @@ public class AuditLogDAO {
      */
     public static List<AuditLog> getLogsByDateRange(LocalDate startDate, LocalDate endDate) {
         List<AuditLog> logs = new ArrayList<>();
-        String sql = "SELECT * FROM audit_logs WHERE DATE(timestamp) BETWEEN ? AND ? " +
+        String sql = "SELECT * FROM audit_logs WHERE CAST(timestamp AS DATE) BETWEEN ? AND ? " +
                 "ORDER BY timestamp DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();

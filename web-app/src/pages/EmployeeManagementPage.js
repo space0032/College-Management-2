@@ -219,7 +219,7 @@ const EmployeeManagementPage = () => {
                             </div>
                             <div className="form-group">
                                 <label>Phone Contact</label>
-                                <input className="form-control" type="tel" inputMode="tel" pattern="[+]?[0-9 -]{7,15}" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                <input className="form-control" type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Join Date</label>

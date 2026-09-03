@@ -162,7 +162,7 @@ const VisitorPage = () => {
                                 <input
                                     type="tel"
                                     inputMode="tel"
-                                    pattern="[+]?[0-9 -]{10,15}"
+                                    pattern="[+]?[0-9\- ]{10,15}"
                                     required
                                     className="form-control"
                                     placeholder="Enter visitor's phone number..."
@@ -186,7 +186,7 @@ const VisitorPage = () => {
                             <form className="form-grid" onSubmit={handleRegisterEntry}>
                                 <div className="form-group">
                                     <label>Phone *</label>
-                                    <input type="tel" inputMode="tel" pattern="[+]?[0-9 -]{7,15}" className="form-control" required readOnly value={formData.phone} />
+                                    <input type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" className="form-control" required readOnly value={formData.phone} />
                                 </div>
                                 <div className="form-group">
                                     <label>Full Name *</label>
