@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import SessionManager from '../utils/SessionManager';
+import { getAllStudents } from '../services/studentService';
 import { submitFeedback, getStudentFeedback } from '../services/featureService';
 
 const FeedbackPage = () => {
@@ -7,15 +8,24 @@ const FeedbackPage = () => {
   const isStudent = user.role === 'STUDENT';
   const [feedback, setFeedback] = useState([]);
   const [queryId, setQueryId] = useState(isStudent ? user.username || '' : '');
+  const [students, setStudents] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ facultyId: '', feedbackText: '', category: 'General', private: false });
 
   const load = async () => {
-    if (!queryId) return;
+    if (!queryId) {
+      setFeedback([]);
+      setError('Select a student to load feedback.');
+      return;
+    }
+    setError('');
     try {
       const res = await getStudentFeedback(queryId);
       setFeedback(res?.data || []);
     } catch (err) {
       setFeedback([]);
+      setError(err?.response?.data?.error || 'Failed to load feedback.');
     }
   };
 
@@ -23,6 +33,17 @@ const FeedbackPage = () => {
     if (isStudent) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStudent]);
+
+  useEffect(() => {
+    if (!isStudent) {
+      getAllStudents().then((res) => setStudents(res?.data || [])).catch(() => setStudents([]));
+    }
+  }, [isStudent]);
+
+  const filteredStudents = students.filter((s) =>
+    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.username || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,13 +99,35 @@ const FeedbackPage = () => {
       <div className="card" style={{ padding: '20px' }}>
         <h3>Feedback History</h3>
         {!isStudent && (
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-            <input className="form-control" type="text" placeholder="Enrollment No." value={queryId} onChange={(e) => setQueryId(e.target.value)} style={{ maxWidth: '200px' }} />
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
+            <div style={{ flex: 1, maxWidth: '320px' }}>
+              <input
+                className="form-control"
+                type="text"
+                placeholder="Search student by name or enrollment…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ marginBottom: '8px' }}
+              />
+              <select
+                className="form-control"
+                value={queryId}
+                onChange={(e) => { setQueryId(e.target.value); setError(''); }}
+              >
+                <option value="">-- Select Student --</option>
+                {filteredStudents.map((s) => (
+                  <option key={s.id} value={s.username}>{s.name} ({s.username})</option>
+                ))}
+              </select>
+            </div>
             <button className="btn btn-secondary" onClick={load}>Load</button>
           </div>
         )}
+        {error && <p style={{ color: '#e53e3e', marginBottom: '12px' }}>{error}</p>}
         {feedback.length === 0 ? (
-          <p style={{ color: '#718096' }}>No feedback found.</p>
+          <p style={{ color: '#718096' }}>
+            {!isStudent && !queryId ? 'Select a student and click Load to view their feedback.' : 'No feedback found.'}
+          </p>
         ) : (
           <table className="table">
             <thead>
