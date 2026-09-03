@@ -45,14 +45,14 @@ const GradesPage = () => {
     useEffect(() => {
         if (activeTab === 'view') {
             if (user.role === 'STUDENT') {
-                loadStudentGrades(user.id);
+                loadStudentGrades(user.username);
             } else {
                 loadAllGrades();
             }
         } else if (activeTab === 'manage' || activeTab === 'bulk') {
             loadFormData();
         }
-    }, [activeTab, user.id, user.role]);
+    }, [activeTab, user.username, user.role]);
 
     const loadStudentGrades = async (studentId) => {
         try {

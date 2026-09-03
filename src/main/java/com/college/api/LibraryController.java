@@ -33,7 +33,7 @@ public class LibraryController extends BaseController implements HttpHandler {
                     handleAdd(t);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/library/issues/student/\\d+")) {
+            } else if (path.matches(".*/library/issues/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetIssuesByStudent(t, path);
                 else
@@ -53,7 +53,7 @@ public class LibraryController extends BaseController implements HttpHandler {
                     handleReturnBook(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/library/fines/\\d+")) {
+            } else if (path.matches(".*/library/fines/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetFines(t, path);
                 else

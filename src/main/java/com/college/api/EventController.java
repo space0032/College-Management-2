@@ -44,7 +44,7 @@ public class EventController extends BaseController implements HttpHandler {
                     handleMarkAttendance(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/events/student/\\d+")) {
+            } else if (path.matches(".*/events/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetStudentEvents(t, path);
                 else

@@ -33,7 +33,7 @@ public class EventDetailsController extends BaseController implements HttpHandle
         String path = t.getRequestURI().getPath();
 
         try {
-            if (path.matches(".*/event-details/volunteers/student/\\d+") && "GET".equals(method)) {
+            if (path.matches(".*/event-details/volunteers/student/[^/]+") && "GET".equals(method)) {
                 handleGetVolunteersByStudent(t, path);
             } else if (path.matches(".*/event-details/volunteers/\\d+") && "PUT".equals(method)) {
                 handleUpdateVolunteer(t, path);

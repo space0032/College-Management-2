@@ -31,7 +31,7 @@ public class FeedbackController extends BaseController implements HttpHandler {
         String path = t.getRequestURI().getPath();
 
         try {
-            if (path.matches(".*/feedback/student/\\d+") && "GET".equals(method)) {
+            if (path.matches(".*/feedback/student/[^/]+") && "GET".equals(method)) {
                 handleGetByStudent(t, path);
             } else if (path.endsWith("/feedback") && "POST".equals(method)) {
                 handleCreate(t);

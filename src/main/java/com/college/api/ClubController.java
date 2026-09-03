@@ -35,12 +35,12 @@ public class ClubController extends BaseController implements HttpHandler {
                     handleRejectMembership(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/clubs/memberships/student/\\d+")) {
+            } else if (path.matches(".*/clubs/memberships/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetMyMemberships(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/clubs/student/\\d+")) {
+            } else if (path.matches(".*/clubs/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetStudentClubs(t, path);
                 else

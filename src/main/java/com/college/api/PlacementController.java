@@ -46,7 +46,7 @@ public class PlacementController extends BaseController implements HttpHandler {
                     handleAddCompany(t);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/placements/applications/student/\\d+")) {
+            } else if (path.matches(".*/placements/applications/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetApplicationsForStudent(t, path);
                 else

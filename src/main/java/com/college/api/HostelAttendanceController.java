@@ -39,7 +39,7 @@ public class HostelAttendanceController extends BaseController implements HttpHa
                 handleMark(t);
             } else if (path.matches(".*/hostel/attendance/date/.+") && "GET".equals(method)) {
                 handleGetByDate(t, path);
-            } else if (path.matches(".*/hostel/attendance/student/\\d+") && "GET".equals(method)) {
+            } else if (path.matches(".*/hostel/attendance/student/[^/]+") && "GET".equals(method)) {
                 handleGetByStudent(t, path);
             } else {
                 sendResponse(t, 405, errorJson("Method not allowed"));

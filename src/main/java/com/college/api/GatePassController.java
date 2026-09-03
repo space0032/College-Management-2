@@ -21,7 +21,7 @@ public class GatePassController extends BaseController implements HttpHandler {
         String path = t.getRequestURI().getPath();
 
         try {
-            if (path.matches(".*/gatepass/student/\\d+")) {
+            if (path.matches(".*/gatepass/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetStudentPasses(t, path);
                 else

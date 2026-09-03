@@ -34,7 +34,7 @@ public class CourseRegistrationController extends BaseController implements Http
         try {
             if (path.endsWith("/course-registrations/pending") && "GET".equals(method)) {
                 handleGetPending(t);
-            } else if (path.matches(".*/course-registrations/student/\\d+/ids") && "GET".equals(method)) {
+            } else if (path.matches(".*/course-registrations/student/[^/]+/ids") && "GET".equals(method)) {
                 handleGetStudentIds(t, path);
             } else if (path.matches(".*/course-registrations/course/\\d+/students") && "GET".equals(method)) {
                 handleGetEnrolled(t, path);

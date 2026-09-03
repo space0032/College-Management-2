@@ -34,7 +34,7 @@ public class ComplaintController extends BaseController implements HttpHandler {
         try {
             if (path.endsWith("/complaints") && "GET".equals(method)) {
                 handleGetAll(t);
-            } else if (path.matches(".*/complaints/student/\\d+") && "GET".equals(method)) {
+            } else if (path.matches(".*/complaints/student/[^/]+") && "GET".equals(method)) {
                 handleGetByStudent(t, path);
             } else if (path.matches(".*/complaints/\\d+/status") && "PUT".equals(method)) {
                 handleUpdateStatus(t, path);

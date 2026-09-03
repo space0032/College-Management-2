@@ -6,13 +6,13 @@ const FeedbackPage = () => {
   const user = SessionManager.getUser() || {};
   const isStudent = user.role === 'STUDENT';
   const [feedback, setFeedback] = useState([]);
-  const [queryId, setQueryId] = useState(isStudent ? user.id || '' : '');
+  const [queryId, setQueryId] = useState(isStudent ? user.username || '' : '');
   const [form, setForm] = useState({ facultyId: '', feedbackText: '', category: 'General', private: false });
 
   const load = async () => {
     if (!queryId) return;
     try {
-      const res = await getStudentFeedback(Number(queryId));
+      const res = await getStudentFeedback(queryId);
       setFeedback(res?.data || []);
     } catch (err) {
       setFeedback([]);
@@ -79,7 +79,7 @@ const FeedbackPage = () => {
         <h3>Feedback History</h3>
         {!isStudent && (
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-            <input className="form-control" type="number" placeholder="Student ID" value={queryId} onChange={(e) => setQueryId(e.target.value)} style={{ maxWidth: '200px' }} />
+            <input className="form-control" type="text" placeholder="Enrollment No." value={queryId} onChange={(e) => setQueryId(e.target.value)} style={{ maxWidth: '200px' }} />
             <button className="btn btn-secondary" onClick={load}>Load</button>
           </div>
         )}

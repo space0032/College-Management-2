@@ -41,6 +41,19 @@ public class JsonHelper {
         if (obj instanceof java.time.LocalDate || obj instanceof java.time.LocalDateTime) {
             return "\"" + obj.toString() + "\"";
         }
+        if (obj instanceof java.util.Map) {
+            java.util.Map<?, ?> map = (java.util.Map<?, ?>) obj;
+            StringBuilder sb = new StringBuilder("{");
+            boolean first = true;
+            for (java.util.Map.Entry<?, ?> e : map.entrySet()) {
+                if (!first) sb.append(",");
+                first = false;
+                sb.append("\"").append(escape(String.valueOf(e.getKey()))).append("\":");
+                sb.append(toJson(e.getValue()));
+            }
+            sb.append("}");
+            return sb.toString();
+        }
         // Object serialization (Refection)
         StringBuilder sb = new StringBuilder("{");
         Field[] fields = obj.getClass().getDeclaredFields();

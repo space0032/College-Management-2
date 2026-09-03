@@ -27,7 +27,7 @@ public class AttendanceController extends BaseController implements HttpHandler 
         String path = t.getRequestURI().getPath();
 
         try {
-            if (path.matches(".*/attendance/student/\\d+")) {
+            if (path.matches(".*/attendance/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetByStudent(t, path);
                 else

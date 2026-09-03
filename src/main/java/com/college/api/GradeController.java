@@ -23,12 +23,12 @@ public class GradeController extends BaseController implements HttpHandler {
         String path = t.getRequestURI().getPath();
 
         try {
-            if (path.matches(".*/grades/student/\\d+/cgpa")) {
+            if (path.matches(".*/grades/student/[^/]+/cgpa")) {
                 if ("GET".equals(method))
                     handleGetCGPA(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/grades/student/\\d+")) {
+            } else if (path.matches(".*/grades/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetStudentGrades(t, path);
                 else
@@ -79,7 +79,7 @@ public class GradeController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_GRADES"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = resolvePathStudentId(parts[parts.length - 1]);
         List<Grade> grades = gradeDAO.getGradesByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(grades));
     }
@@ -106,7 +106,7 @@ public class GradeController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_GRADES"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 2]); // .../student/{id}/cgpa
+        int studentId = resolvePathStudentId(parts[parts.length - 2]); // .../student/{id}/cgpa
         double cgpa = gradeDAO.calculateCGPA(studentId);
         sendResponse(t, 200, "{\"cgpa\":" + cgpa + "}");
     }
