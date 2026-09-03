@@ -4,8 +4,8 @@
 -- Adds the permission codes used by the new /api/event-details endpoints
 -- (collaborators, event resources, volunteers) and grants them to the
 -- appropriate roles. VIEW_VOLUNTEER and MANAGE_VOLUNTEER already exist from
--- V54; the remaining collaborator / event-resource / volunteer-action codes
--- are new.
+-- V54 and the remaining collaborator / event-resource / volunteer-action
+-- codes are new.
 --
 -- All statements are idempotent (ON CONFLICT ... DO NOTHING).
 -- ============================================================================
@@ -25,7 +25,7 @@ INSERT INTO permissions (code, name, category) VALUES
 ('UPDATE_EVENT_RESOURCE', 'Update Event Resources', 'Events'),
 ('DELETE_EVENT_RESOURCE', 'Remove Event Resources', 'Events'),
 
--- Volunteers (action codes; VIEW_VOLUNTEER / MANAGE_VOLUNTEER already exist)
+-- Volunteers (action codes and VIEW_VOLUNTEER / MANAGE_VOLUNTEER already exist)
 ('REGISTER_VOLUNTEER', 'Register as Event Volunteer', 'Community'),
 ('UPDATE_VOLUNTEER', 'Update Volunteer Tasks', 'Community')
 
