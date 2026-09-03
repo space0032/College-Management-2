@@ -223,7 +223,11 @@ const StudentManagementPage = () => {
     : 0, [students]);
 
   const COLUMNS = useMemo(() => [
-    { key: 'id', label: 'ID' },
+    {
+      key: 'username', label: 'Enrollment No.', render: (v) => (
+        <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{v || 'N/A'}</span>
+      )
+    },
     {
       key: 'name', label: 'Name', render: (v, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -559,7 +563,7 @@ const StudentCard = React.memo(({ student, onEdit, onDelete }) => (
       </div>
       <div>
         <div style={{ fontWeight: 'bold', color: '#2d3748' }}>{student.name}</div>
-        <div style={{ fontSize: '0.8rem', color: '#718096' }}>ID: {student.id}</div>
+        <div style={{ fontSize: '0.8rem', color: '#718096', fontFamily: 'monospace' }}>{student.username || 'N/A'}</div>
       </div>
     </div>
 
