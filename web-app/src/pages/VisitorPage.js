@@ -3,6 +3,7 @@ import {
     getVisitorByPhone, getActiveVisitors, getAllVisitorLogs,
     logVisitorEntry, logVisitorExit
 } from '../services/visitorService';
+import { exportToExcel } from '../utils/exportUtils';
 
 const VisitorPage = () => {
     const [activeTab, setActiveTab] = useState('active_logs');
@@ -122,6 +123,13 @@ const VisitorPage = () => {
                     <button className={`btn btn-sm ${activeTab === 'register' ? 'btn-primary' : ''}`} style={activeTab !== 'register' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('register')}>Check-In</button>
                     <button className={`btn btn-sm ${activeTab === 'all_history' ? 'btn-primary' : ''}`} style={activeTab !== 'all_history' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('all_history')}>History</button>
                 </div>
+                {(activeTab === 'active_logs' || activeTab === 'all_history') && logs.length > 0 && (
+                    <button className="btn btn-sm btn-secondary" onClick={() => exportToExcel(
+                        ['Visitor', 'Phone', 'Meeting', 'Purpose', 'Entry Time', 'Exit Time'],
+                        logs.map(l => [l.visitorName, l.visitorPhone, l.personToMeet, l.purpose, new Date(l.entryTime).toLocaleString(), l.exitTime ? new Date(l.exitTime).toLocaleString() : '']),
+                        'visitor_logs_export'
+                    )}>⬇ Export Excel</button>
+                )}
             </div>
 
             {/* Stats Row */}

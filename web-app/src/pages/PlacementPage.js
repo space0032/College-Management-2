@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getDrives, addDrive, deleteDrive, getCompanies, addCompany, deleteCompany, getApplicationsForStudent, getApplicationsForDrive, applyForDrive, updateAppStatus } from '../services/placementService';
-import { exportToCSV } from '../utils/exportUtils';
+import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 
 const COMPANY_COLS = [
   { key: 'id', label: 'ID' },
@@ -171,6 +171,13 @@ const PlacementPage = () => {
               exportToCSV(['ID', 'Company', 'Role', 'Date', 'CTC', 'Eligibility'], drives.map(d => [d.id, d.companyName, d.jobRole, d.driveDate, d.packageLpa, d.eligibilityCriteria]), 'placement_drives_export');
             }
           }}>⬇ Export CSV</button>
+          <button className="btn btn-secondary" onClick={() => {
+            if (tab === 'companies') {
+              exportToExcel(['ID', 'Name', 'Industry', 'Website'], companies.map(c => [c.id, c.name, c.industry, c.website]), 'companies_export');
+            } else {
+              exportToExcel(['ID', 'Company', 'Role', 'Date', 'CTC', 'Eligibility'], drives.map(d => [d.id, d.companyName, d.jobRole, d.driveDate, d.packageLpa, d.eligibilityCriteria]), 'placement_drives_export');
+            }
+          }}>⬇ Export Excel</button>
           {canManage && <button className="btn btn-primary" onClick={openModal}>+ Add {tab === 'companies' ? 'Company' : 'Drive'}</button>}
         </div>
       </div>

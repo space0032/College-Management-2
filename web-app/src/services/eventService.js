@@ -26,3 +26,19 @@ export const createEventPoll = (eventId, data) => api.post(`/events/${eventId}/p
 export const closeEventPoll = (pollId) => api.put(`/events/polls/${pollId}/close`);
 export const voteEventPoll = (pollId, data) => api.post(`/events/polls/${pollId}/vote`, data);
 export const deleteEventPoll = (pollId) => api.delete(`/events/polls/${pollId}`);
+
+// Event Collaborators
+export const getEventCollaborators = (eventId) => api.get(`/event-details/${eventId}/collaborators`);
+export const addEventCollaborator = (eventId, data) => api.post(`/event-details/${eventId}/collaborators`, data);
+export const deleteEventCollaborator = (id) => api.delete(`/event-details/collaborators/${id}`);
+
+// Event Resources
+export const getEventResources = (eventId) => api.get(`/event-details/${eventId}/resources`);
+export const addEventResource = (eventId, data) => api.post(`/event-details/${eventId}/resources`, data);
+export const updateEventResourceStatus = (id, data) => api.put(`/event-details/resources/${id}`, data);
+export const deleteEventResource = (id) => api.delete(`/event-details/resources/${id}`);
+
+// Event Volunteers
+export const getEventVolunteers = (eventId) => api.get(`/event-details/${eventId}/volunteers`);
+export const registerEventVolunteer = (eventId, data) => api.post(`/event-details/${eventId}/volunteers`, data);
+export const updateEventVolunteer = (id, data) => api.put(`/event-details/volunteers/${id}`, data);

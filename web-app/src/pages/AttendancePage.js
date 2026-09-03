@@ -3,7 +3,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
 import { getAllStudents } from '../services/studentService';
-import { exportToCSV } from '../utils/exportUtils';
+import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -140,7 +140,12 @@ const AttendancePage = () => {
                 ['Student ID', 'Course ID', 'Date', 'Status'],
                 records.map(r => [r.studentId, r.courseId, r.date, r.status]),
                 'attendance_export'
-              )}>⬇ Export CSV</button>
+              )}              >⬇ Export CSV</button>
+              <button className="btn btn-secondary" onClick={() => exportToExcel(
+                ['Student ID', 'Course ID', 'Date', 'Status'],
+                records.map(r => [r.studentId, r.courseId, r.date, r.status]),
+                'attendance_export'
+              )}>⬇ Export Excel</button>
               <button className="btn btn-secondary" onClick={() => {
                 const doc = new jsPDF();
                 doc.setFontSize(16);

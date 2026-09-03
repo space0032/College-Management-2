@@ -24,6 +24,18 @@ public class EventDetailsDAO {
         }
     }
 
+    public boolean deleteCollaborator(int id) {
+        String sql = "DELETE FROM event_collaborators WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error deleting collaborator: " + e.getMessage());
+            return false;
+        }
+    }
+
     public List<EventCollaborator> getCollaborators(int eventId) {
         List<EventCollaborator> list = new ArrayList<>();
         String sql = "SELECT ec.*, d.name as dept_name " +
@@ -60,6 +72,18 @@ public class EventDetailsDAO {
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             Logger.error("Error adding resource: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deleteResource(int resourceId) {
+        String sql = "DELETE FROM event_resources WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, resourceId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Error deleting resource: " + e.getMessage());
             return false;
         }
     }

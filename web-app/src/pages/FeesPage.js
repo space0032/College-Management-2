@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getPendingFees, getAllFees, recordPayment, getPaymentHistory } from '../services/feesService';
-import { exportToCSV } from '../utils/exportUtils';
+import { getPendingFees, getAllFees, recordPayment, getPaymentHistory, getFeeCategories, createFeeEntry } from '../services/feesService';
+import { getAllStudents } from '../services/studentService';
+import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import ReceiptModal from '../components/ReceiptModal';
 
 const COLUMNS = [
@@ -32,6 +33,17 @@ const FeesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [receiptFee, setReceiptFee] = useState(null);
+
+  const [entryModal, setEntryModal] = useState(false);
+  const [entryForm, setEntryForm] = useState({ studentId: '', categoryId: '', amount: '', dueDate: '' });
+  const [categories, setCategories] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [entryError, setEntryError] = useState('');
+
+  useEffect(() => {
+    getFeeCategories().then(res => setCategories(res.data || [])).catch(() => {});
+    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+  }, []);
 
   const fetchFees = React.useCallback(async () => {
     setLoading(true);
@@ -90,6 +102,34 @@ const FeesPage = () => {
     }
   };
 
+  const openEntryModal = () => {
+    setEntryForm({ studentId: '', categoryId: '', amount: '', dueDate: '' });
+    setEntryError('');
+    setEntryModal(true);
+  };
+
+  const handleAddFeeSubmit = async () => {
+    if (!entryForm.studentId || !entryForm.categoryId || !entryForm.amount || Number(entryForm.amount) <= 0) {
+      setEntryError('Student, fee category and a positive amount are required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await createFeeEntry({
+        studentId: Number(entryForm.studentId),
+        categoryId: Number(entryForm.categoryId),
+        amount: Number(entryForm.amount),
+        dueDate: entryForm.dueDate || null
+      });
+      setEntryModal(false);
+      fetchFees();
+    } catch (err) {
+      setEntryError(err.response?.data?.error || 'Failed to create fee entry.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const extendedColumns = [
     ...COLUMNS,
     { key: 'totalAmount', label: 'Total Amount' },
@@ -122,6 +162,20 @@ const FeesPage = () => {
               'fees_export'
             )}>
             ⬇ Export CSV
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportToExcel(
+              ['Student', 'Fee Type', 'Amount', 'Due Date', 'Status', 'Total', 'Paid'],
+              fees.map(f => [f.studentName, f.feeType, f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
+              'fees_export'
+            )}>
+            ⬇ Export Excel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={openEntryModal}>
+            ＋ Add Fee Entry
           </button>
           <button
             className={allFees ? "btn btn-secondary" : "btn btn-primary"}
@@ -188,6 +242,34 @@ const FeesPage = () => {
               data={history}
             />
           )}
+        </Modal>
+      )}
+
+      {entryModal && (
+        <Modal isOpen={entryModal} title="Add Fee Entry" onClose={() => setEntryModal(false)} onSubmit={handleAddFeeSubmit} submitLabel={saving ? 'Saving...' : 'Create Fee Entry'}>
+          {entryError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{entryError}</div>}
+          <div className="form-group">
+            <label className="form-label">Student</label>
+            <select className="form-control" value={entryForm.studentId} onChange={(e) => setEntryForm((p) => ({ ...p, studentId: e.target.value }))}>
+              <option value="">Select student…</option>
+              {students.map(s => <option key={s.id} value={s.id}>{s.name || s.username}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Fee Category</label>
+            <select className="form-control" value={entryForm.categoryId} onChange={(e) => setEntryForm((p) => ({ ...p, categoryId: e.target.value }))}>
+              <option value="">Select fee category…</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Amount</label>
+            <input type="number" className="form-control" value={entryForm.amount} onChange={(e) => setEntryForm((p) => ({ ...p, amount: e.target.value }))} placeholder="0.00" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Due Date</label>
+            <input type="date" className="form-control" value={entryForm.dueDate} onChange={(e) => setEntryForm((p) => ({ ...p, dueDate: e.target.value }))} />
+          </div>
         </Modal>
       )}
 

@@ -3,8 +3,12 @@ import {
     getEvents, registerEvent, getStudentEvents, unregisterEvent,
     getEventRegistrations, markAttendance, createEvent,
     getEventBudgets, addEventBudget, deleteEventBudget, updateBudgetActualCost,
-    getEventPolls, createEventPoll, closeEventPoll, voteEventPoll
+    getEventPolls, createEventPoll, closeEventPoll, voteEventPoll,
+    getEventCollaborators, addEventCollaborator, deleteEventCollaborator,
+    getEventResources, addEventResource, updateEventResourceStatus, deleteEventResource,
+    getEventVolunteers, registerEventVolunteer, updateEventVolunteer
 } from '../services/eventService';
+import { getDepartments } from '../services/departmentService';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import SessionManager from '../utils/SessionManager';
@@ -22,7 +26,11 @@ const EventsPage = () => {
     const [eventRegistrations, setEventRegistrations] = useState([]);
     const [budgets, setBudgets] = useState([]);
     const [polls, setPolls] = useState([]);
-    const [manageMode, setManageMode] = useState('attendance'); // attendance, budget, polls
+    const [collaborators, setCollaborators] = useState([]);
+    const [resources, setResources] = useState([]);
+    const [volunteers, setVolunteers] = useState([]);
+    const [departmentOptions, setDepartmentOptions] = useState([]);
+    const [manageMode, setManageMode] = useState('attendance'); // attendance, budget, polls, collaborators, resources, volunteers
 
     // Create event form
     const EMPTY_EVENT = { name: '', eventType: 'Workshop', description: '', location: '', startTime: '', endTime: '', maxParticipants: '', status: 'UPCOMING' };
@@ -33,6 +41,9 @@ const EventsPage = () => {
     const [itemModal, setItemModal] = useState({ open: false, type: '', title: '' });
     const [budgetForm, setBudgetForm] = useState({ item: '', estimatedCost: '', actualCost: '0', status: 'PLANNED' });
     const [pollForm, setPollForm] = useState({ question: '', options: '', status: 'ACTIVE' });
+    const [collabForm, setCollabForm] = useState({ departmentId: '' });
+    const [resourceForm, setResourceForm] = useState({ resourceName: '', quantity: 1 });
+    const [volunteerForm, setVolunteerForm] = useState({ studentId: '', task: '' });
 
     const user = SessionManager.getUser() || {};
     const userRole = SessionManager.getUserRole() || 'STUDENT';
@@ -59,17 +70,27 @@ const EventsPage = () => {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    useEffect(() => {
+        getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => {});
+    }, []);
+
     const loadEventDetails = useCallback(async (eventId) => {
         if (!eventId) return;
         try {
-            const [regRes, budRes, pollRes] = await Promise.all([
+            const [regRes, budRes, pollRes, collabRes, resRes, volRes] = await Promise.all([
                 getEventRegistrations(eventId),
                 getEventBudgets(eventId),
-                getEventPolls(eventId)
+                getEventPolls(eventId),
+                getEventCollaborators(eventId),
+                getEventResources(eventId),
+                getEventVolunteers(eventId)
             ]);
             setEventRegistrations(regRes.data || []);
             setBudgets(budRes.data || []);
             setPolls(pollRes.data || []);
+            setCollaborators(collabRes.data || []);
+            setResources(resRes.data || []);
+            setVolunteers(volRes.data || []);
         } catch (err) {
             console.error(err);
         }
@@ -153,6 +174,67 @@ const EventsPage = () => {
         } catch (err) {
             alert('Failed to update cost.');
         }
+    };
+
+    const handleSaveCollaborator = async () => {
+        if (!collabForm.departmentId) { alert('Select a department.'); return; }
+        try {
+            await addEventCollaborator(selectedEventId, { departmentId: parseInt(collabForm.departmentId) });
+            setItemModal({ open: false });
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert(err.response?.data?.error || 'Failed to add collaborator.'); }
+    };
+
+    const handleDeleteCollaborator = async (id) => {
+        try {
+            await deleteEventCollaborator(id);
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert('Failed to remove collaborator.'); }
+    };
+
+    const handleSaveResource = async () => {
+        if (!resourceForm.resourceName.trim()) { alert('Enter a resource name.'); return; }
+        try {
+            await addEventResource(selectedEventId, {
+                resourceName: resourceForm.resourceName,
+                quantity: parseInt(resourceForm.quantity) || 1
+            });
+            setItemModal({ open: false });
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert(err.response?.data?.error || 'Failed to add resource.'); }
+    };
+
+    const handleUpdateResourceStatus = async (id, status, e) => {
+        try {
+            await updateEventResourceStatus(id, { status });
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert('Failed to update resource status.'); }
+    };
+
+    const handleDeleteResource = async (id) => {
+        try {
+            await deleteEventResource(id);
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert('Failed to remove resource.'); }
+    };
+
+    const handleSaveVolunteer = async () => {
+        if (!volunteerForm.studentId || !volunteerForm.task.trim()) { alert('Student ID and task are required.'); return; }
+        try {
+            await registerEventVolunteer(selectedEventId, {
+                studentId: parseInt(volunteerForm.studentId),
+                task: volunteerForm.task
+            });
+            setItemModal({ open: false });
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert(err.response?.data?.error || 'Failed to register volunteer.'); }
+    };
+
+    const handleUpdateVolunteer = async (id, task, status) => {
+        try {
+            await updateEventVolunteer(id, { task, status });
+            loadEventDetails(selectedEventId);
+        } catch (err) { alert('Failed to update volunteer.'); }
     };
 
     const stats = [
@@ -262,6 +344,9 @@ const EventsPage = () => {
                             <button className={`btn-tab ${manageMode === 'attendance' ? 'active' : ''}`} onClick={() => setManageMode('attendance')}>👥 Attendance</button>
                             <button className={`btn-tab ${manageMode === 'budget' ? 'active' : ''}`} onClick={() => setManageMode('budget')}>💰 Budget</button>
                             <button className={`btn-tab ${manageMode === 'polls' ? 'active' : ''}`} onClick={() => setManageMode('polls')}>🗳️ Polls</button>
+                            <button className={`btn-tab ${manageMode === 'collaborators' ? 'active' : ''}`} onClick={() => setManageMode('collaborators')}>🤝 Collaborators</button>
+                            <button className={`btn-tab ${manageMode === 'resources' ? 'active' : ''}`} onClick={() => setManageMode('resources')}>📦 Resources</button>
+                            <button className={`btn-tab ${manageMode === 'volunteers' ? 'active' : ''}`} onClick={() => setManageMode('volunteers')}>🙋 Volunteers</button>
                         </div>
 
                         {manageMode === 'attendance' && (
@@ -374,6 +459,84 @@ const EventsPage = () => {
                                 ))}
                             </div>
                         )}
+
+                        {manageMode === 'collaborators' && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                    <h3>Departments Collaborating</h3>
+                                    <button className="btn btn-sm btn-primary" onClick={() => { setCollabForm({ departmentId: '' }); setItemModal({ open: true, type: 'collaborator', title: 'Add Collaborating Department' }); }}>+ Add Department</button>
+                                </div>
+                                {collaborators.length === 0 ? (
+                                    <p style={{ color: '#94a3b8' }}>No collaborating departments yet.</p>
+                                ) : (
+                                    <DataTable
+                                        columns={[
+                                            { label: 'Department', key: 'departmentName' },
+                                            { label: 'Status', key: 'status', render: (v) => <span className={`badge ${v === 'ACCEPTED' ? 'badge-success' : v === 'DECLINED' ? 'badge-danger' : 'badge-secondary'}`}>{v}</span> },
+                                            { label: 'Action', key: 'id', render: (v) => <button className="btn btn-sm btn-danger" onClick={() => handleDeleteCollaborator(v)}>Remove</button> }
+                                        ]}
+                                        data={collaborators}
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {manageMode === 'resources' && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                    <h3>Event Resources</h3>
+                                    <button className="btn btn-sm btn-primary" onClick={() => { setResourceForm({ resourceName: '', quantity: 1 }); setItemModal({ open: true, type: 'resource', title: 'Add Resource' }); }}>+ Add Resource</button>
+                                </div>
+                                {resources.length === 0 ? (
+                                    <p style={{ color: '#94a3b8' }}>No resources requested yet.</p>
+                                ) : (
+                                    <DataTable
+                                        columns={[
+                                            { label: 'Resource', key: 'resourceName' },
+                                            { label: 'Qty', key: 'quantity' },
+                                            {
+                                                label: 'Status', key: 'status',
+                                                render: (v, row) => (
+                                                    <select value={v} onChange={(e) => handleUpdateResourceStatus(row.id, e.target.value)} style={{ padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                                                        {['REQUESTED', 'APPROVED', 'DENIED'].map(s => <option key={s} value={s}>{s}</option>)}
+                                                    </select>
+                                                )
+                                            },
+                                            { label: 'Action', key: 'id', render: (v) => <button className="btn btn-sm btn-danger" onClick={() => handleDeleteResource(v)}>Remove</button> }
+                                        ]}
+                                        data={resources}
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {manageMode === 'volunteers' && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                    <h3>Event Volunteers</h3>
+                                    <button className="btn btn-sm btn-primary" onClick={() => { setVolunteerForm({ studentId: '', task: '' }); setItemModal({ open: true, type: 'volunteer', title: 'Register Volunteer' }); }}>+ Add Volunteer</button>
+                                </div>
+                                {volunteers.length === 0 ? (
+                                    <p style={{ color: '#94a3b8' }}>No volunteers registered for this event.</p>
+                                ) : (
+                                    <DataTable
+                                        columns={[
+                                            { label: 'Student', key: 'studentName' },
+                                            { label: 'Task', key: 'taskDescription' },
+                                            {
+                                                label: 'Status', key: 'status',
+                                                render: (v, row) => (
+                                                    <select value={v} onChange={(e) => handleUpdateVolunteer(row.id, row.taskDescription, e.target.value)} style={{ padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                                                        {['REGISTERED', 'APPROVED', 'COMPLETED'].map(s => <option key={s} value={s}>{s}</option>)}
+                                                    </select>
+                                                )
+                                            }
+                                        ]}
+                                        data={volunteers}
+                                    />
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -422,16 +585,49 @@ const EventsPage = () => {
             )}
 
             {/* Support Modals */}
-            <Modal isOpen={itemModal.open} title={itemModal.title} onClose={() => setItemModal({ open: false })} onSubmit={itemModal.type === 'budget' ? handleSaveBudget : handleSavePoll}>
-                {itemModal.type === 'budget' ? (
+            <Modal
+                isOpen={itemModal.open}
+                title={itemModal.title}
+                onClose={() => setItemModal({ open: false })}
+                onSubmit={
+                    itemModal.type === 'budget' ? handleSaveBudget
+                        : itemModal.type === 'poll' ? handleSavePoll
+                            : itemModal.type === 'collaborator' ? handleSaveCollaborator
+                                : itemModal.type === 'resource' ? handleSaveResource
+                                    : handleSaveVolunteer
+                }
+            >
+                {itemModal.type === 'budget' && (
                     <>
                         <div className="form-group"><label>Line Item</label><input type="text" value={budgetForm.item} onChange={e => setBudgetForm({ ...budgetForm, item: e.target.value })} /></div>
                         <div className="form-group"><label>Est. Cost</label><input type="number" value={budgetForm.estimatedCost} onChange={e => setBudgetForm({ ...budgetForm, estimatedCost: parseFloat(e.target.value) })} /></div>
                     </>
-                ) : (
+                )}
+                {itemModal.type === 'poll' && (
                     <>
                         <div className="form-group"><label>Question</label><input type="text" value={pollForm.question} onChange={e => setPollForm({ ...pollForm, question: e.target.value })} /></div>
                         <div className="form-group"><label>Options (comma separated)</label><input type="text" value={pollForm.options} onChange={e => setPollForm({ ...pollForm, options: e.target.value })} /></div>
+                    </>
+                )}
+                {itemModal.type === 'collaborator' && (
+                    <div className="form-group">
+                        <label>Department</label>
+                        <select value={collabForm.departmentId} onChange={e => setCollabForm({ ...collabForm, departmentId: e.target.value })}>
+                            <option value="">Select department</option>
+                            {departmentOptions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                    </div>
+                )}
+                {itemModal.type === 'resource' && (
+                    <>
+                        <div className="form-group"><label>Resource Name</label><input type="text" value={resourceForm.resourceName} onChange={e => setResourceForm({ ...resourceForm, resourceName: e.target.value })} placeholder="e.g. Projector, PA System" /></div>
+                        <div className="form-group"><label>Quantity</label><input type="number" min="1" value={resourceForm.quantity} onChange={e => setResourceForm({ ...resourceForm, quantity: e.target.value })} /></div>
+                    </>
+                )}
+                {itemModal.type === 'volunteer' && (
+                    <>
+                        <div className="form-group"><label>Student ID</label><input type="number" min="1" value={volunteerForm.studentId} onChange={e => setVolunteerForm({ ...volunteerForm, studentId: e.target.value })} /></div>
+                        <div className="form-group"><label>Task Description</label><input type="text" value={volunteerForm.task} onChange={e => setVolunteerForm({ ...volunteerForm, task: e.target.value })} placeholder="e.g. Stage setup" /></div>
                     </>
                 )}
             </Modal>

@@ -5,7 +5,7 @@ import {
 import { safeParseFloat } from '../utils/validationUtils';
 import { getAllCourses } from '../services/courseService';
 import { getAllStudents } from '../services/studentService';
-import { exportToCSV } from '../utils/exportUtils';
+import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -263,6 +263,18 @@ const GradesPage = () => {
                             ),
                             'grades_export'
                         )}>⬇ Export CSV</button>
+                    )}
+                    {activeTab === 'view' && grades.length > 0 && (
+                        <button className="btn btn-secondary" onClick={() => exportToExcel(
+                            user.role !== 'STUDENT'
+                                ? ['Student', 'Enrollment No', 'Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
+                                : ['Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
+                            grades.map(g => user.role !== 'STUDENT'
+                                ? [g.studentName, g.enrollmentNumber, g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
+                                : [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
+                            ),
+                            'grades_export'
+                        )}>⬇ Export Excel</button>
                     )}
                     {activeTab === 'view' && grades.length > 0 && (user.role === 'STUDENT' || SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
                         <button className="btn btn-primary" onClick={generateTranscript}>
