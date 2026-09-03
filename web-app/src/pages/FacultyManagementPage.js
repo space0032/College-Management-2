@@ -312,7 +312,7 @@ const FacultyManagementPage = () => {
           </div>
           <div className="form-group">
             <label>Phone Number</label>
-            <input name="phone" type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" className="form-control" value={form.phone} onChange={handleFormChange} />
+            <input name="phone" type="tel" inputMode="tel" pattern="[+]?[0-9 -]{7,15}" className="form-control" value={form.phone} onChange={handleFormChange} />
           </div>
           <div className="form-group">
             <label>Department *</label>

@@ -138,6 +138,70 @@ public class StudentDAO {
         }
     }
 
+    /**
+     * Update an existing student, throwing a RuntimeException with the
+     * underlying SQL message on failure so callers (e.g. the API) can surface a
+     * useful error to the user (e.g. duplicate email).
+     */
+    public boolean updateStudentChecked(Student student) {
+        try {
+            String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
+                    "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=?, " +
+                    "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=? "
+                    +
+                    "WHERE id=?";
+
+            try (Connection conn = DatabaseConnection.getConnection();
+                    PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setString(1, student.getName());
+                pstmt.setString(2, student.getEmail());
+                pstmt.setString(3, student.getPhone());
+                pstmt.setString(4, student.getCourse());
+                pstmt.setString(5, student.getBatch());
+                pstmt.setDate(6, student.getEnrollmentDate() == null
+                        ? null
+                        : new java.sql.Date(student.getEnrollmentDate().getTime()));
+                pstmt.setString(7, student.getAddress());
+                pstmt.setString(8, student.getDepartment() != null ? student.getDepartment() : "General");
+                pstmt.setInt(9, student.getSemester() > 0 ? student.getSemester() : 1);
+                pstmt.setBoolean(10, student.isHostelite());
+                pstmt.setDate(11, student.getDob() != null ? new java.sql.Date(student.getDob().getTime()) : null);
+                pstmt.setString(12, student.getGender());
+                pstmt.setString(13, student.getBloodGroup());
+                pstmt.setString(14, student.getCategory());
+                pstmt.setString(15, student.getNationality());
+                pstmt.setString(16, student.getFatherName());
+                pstmt.setString(17, student.getMotherName());
+                pstmt.setString(18, student.getGuardianContact());
+                pstmt.setString(19, student.getPreviousSchool());
+                pstmt.setDouble(20, student.getTenthPercentage());
+                pstmt.setDouble(21, student.getTwelfthPercentage());
+                pstmt.setString(22, student.getExtracurricularActivities());
+                pstmt.setString(23, student.getProfilePhotoPath());
+                pstmt.setInt(24, student.getId());
+
+                int rowsAffected = pstmt.executeUpdate();
+                return rowsAffected > 0;
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to update student: " + student.getName(), e);
+            throw new RuntimeException(friendlyUpdateMessage(e), e);
+        }
+    }
+
+    private String friendlyUpdateMessage(SQLException e) {
+        String msg = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+        String cause = e.getCause() != null && e.getCause().getMessage() != null
+                ? e.getCause().getMessage().toLowerCase()
+                : "";
+        String combined = msg + " " + cause;
+        if (combined.contains("students_email_key") || (combined.contains("duplicate key") && combined.contains("email"))) {
+            return "Email is already registered.";
+        }
+        return "Failed to update student: " + (e.getMessage() == null ? "unknown error" : e.getMessage());
+    }
+
     static java.sql.Date enrollmentDateOrToday(java.util.Date enrollmentDate) {
         long timestamp = enrollmentDate == null ? System.currentTimeMillis() : enrollmentDate.getTime();
         return new java.sql.Date(timestamp);

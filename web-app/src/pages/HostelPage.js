@@ -213,7 +213,7 @@ const HostelPage = () => {
             <div className="form-group"><label>Type</label><select value={hostelForm.type} onChange={e => setHostelForm({ ...hostelForm, type: e.target.value })}>{HOSTEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
             <div className="form-group"><label>Total Capacity *</label><input type="number" min="1" required value={hostelForm.totalCapacity} onChange={e => setHostelForm({ ...hostelForm, totalCapacity: e.target.value })} /></div>
             <div className="form-group"><label>Warden Name</label><input type="text" value={hostelForm.wardenName} onChange={e => setHostelForm({ ...hostelForm, wardenName: e.target.value })} /></div>
-            <div className="form-group"><label>Warden Contact</label><input type="tel" inputMode="tel" pattern="\+?[0-9\s-]{7,15}" value={hostelForm.wardenContact} onChange={e => setHostelForm({ ...hostelForm, wardenContact: e.target.value })} /></div>
+            <div className="form-group"><label>Warden Contact</label><input type="tel" inputMode="tel" pattern="[+]?[0-9 -]{7,15}" value={hostelForm.wardenContact} onChange={e => setHostelForm({ ...hostelForm, wardenContact: e.target.value })} /></div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Address</label><textarea value={hostelForm.address} onChange={e => setHostelForm({ ...hostelForm, address: e.target.value })} /></div>
           </div>
         ) : tab === 'rooms' ? (

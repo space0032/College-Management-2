@@ -166,6 +166,9 @@ public class StudentController extends BaseController implements HttpHandler {
             } else {
                 sendResponse(t, 400, "{\"error\":\"Failed to create student. Check logs for details.\"}");
             }
+        } catch (com.college.dao.EnrollmentException ee) {
+            ee.printStackTrace();
+            sendResponse(t, 400, "{\"error\":\"" + escapeJson(ee.getMessage()) + "\"}");
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
@@ -186,12 +189,15 @@ public class StudentController extends BaseController implements HttpHandler {
                 return;
             }
             student.setId(id);
-            boolean ok = studentDAO.updateStudent(student);
+            boolean ok = studentDAO.updateStudentChecked(student);
             if (ok) {
                 sendResponse(t, 200, "{\"status\":\"updated\",\"id\":" + id + "}");
             } else {
                 sendResponse(t, 400, "{\"error\":\"Failed to update student\"}");
             }
+        } catch (RuntimeException re) {
+            re.printStackTrace();
+            sendResponse(t, 400, "{\"error\":\"" + escapeJson(re.getMessage()) + "\"}");
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");

@@ -114,7 +114,7 @@ public class EnrollmentDAO {
                 // Log but don't throw - connection might already be closed
                 Logger.error("Could not rollback transaction", rollbackEx);
             }
-            return null;
+            throw new EnrollmentException(friendlyEnrollmentMessage(e), e);
         } finally {
             if (conn != null) {
                 try {
@@ -190,5 +190,26 @@ public class EnrollmentDAO {
             Logger.error("Failed to auto-assign fees for student: " + studentId, e);
             // Don't fail the enrollment execution just because fees failed, but log it
         }
+    }
+
+    /**
+     * Translate a raw database exception into a user-friendly message.
+     */
+    private String friendlyEnrollmentMessage(SQLException e) {
+        String msg = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+        String cause = e.getCause() != null && e.getCause().getMessage() != null
+                ? e.getCause().getMessage().toLowerCase()
+                : "";
+        String combined = msg + " " + cause;
+        if (combined.contains("students_email_key") || combined.contains("duplicate key") && combined.contains("email")) {
+            return "Email is already registered.";
+        }
+        if (combined.contains("users_username_key") || combined.contains("duplicate key") && combined.contains("username")) {
+            return "Username (enrollment number) already exists. Try again.";
+        }
+        if (combined.contains("users_username_key")) {
+            return "An account with this username already exists.";
+        }
+        return "Failed to enroll student: " + (e.getMessage() == null ? "unknown error" : e.getMessage());
     }
 }
