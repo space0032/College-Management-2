@@ -1205,6 +1205,35 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .page-actions .btn, .filter-bar .form-control { flex: 1; }
 }
 
+/* ===== Improved student dialog ===== */
+.modal-large { max-width: 720px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.form-grid .form-group { margin-bottom: 0; }
+.form-span-2 { grid-column: 1 / -1; }
+.form-section { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; background: #fff; }
+.form-section-title { margin: 0 0 12px; font-size: 0.85rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.field-hint { display: block; margin-top: 5px; color: #718096; font-size: 0.75rem; line-height: 1.4; }
+.field-error { display: block; margin-top: 5px; color: #b42318; font-size: 0.75rem; font-weight: 600; }
+.form-control.is-invalid { border-color: #f04438; }
+.form-control.is-invalid:focus { border-color: #f04438; box-shadow: 0 0 0 4px rgba(240, 68, 56, 0.12); }
+.password-row { display: flex; gap: 8px; }
+.password-row .form-control { flex: 1; }
+.hostel-toggle { border-top: 1px solid #edf2f7; padding-top: 12px; margin-top: 4px; }
+.hostel-toggle-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+.hostel-toggle-label input { width: 18px; height: 18px; accent-color: var(--primary); }
+.credentials-box { background: #f7fafc; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: grid; gap: 12px; }
+.credentials-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.credentials-label { font-size: 0.7rem; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.05em; }
+.credentials-value { font-size: 1rem; font-weight: 700; color: #2d3748; font-family: monospace; word-break: break-all; }
+.credentials-secret { color: #e53e3e; }
+.credentials-warning { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin-bottom: 6px; font-size: 0.82rem; color: #92400e; }
+@media (max-width: 640px) {
+  .modal-large { max-width: 100%; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-span-2 { grid-column: auto; }
+  .password-row { flex-wrap: wrap; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

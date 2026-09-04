@@ -9,7 +9,7 @@ import SessionManager from '../utils/SessionManager';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', email: '', phone: '', course: '', department: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
+const EMPTY_FORM = { name: '', email: '', phone: '', address: '', batch: '', course: '', department: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
 
 const initialState = {
   students: [],
@@ -24,6 +24,7 @@ const initialState = {
   form: EMPTY_FORM,
   editId: null,
   formError: '',
+  fieldErrors: {},
   saving: false,
   viewMode: 'table',
   filterDept: '',
@@ -55,11 +56,26 @@ function studentReducer(state, action) {
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.payload };
     case 'OPEN_MODAL':
-      return { ...state, modalOpen: true, form: action.form || EMPTY_FORM, editId: action.editId || null, formError: '' };
+      return { ...state, modalOpen: true, form: action.form || EMPTY_FORM, editId: action.editId || null, formError: '', fieldErrors: {} };
     case 'CLOSE_MODAL':
-      return { ...state, modalOpen: false };
-    case 'SET_FORM':
-      return { ...state, form: { ...state.form, [action.name]: action.value }, formError: '' };
+      return { ...state, modalOpen: false, fieldErrors: {} };
+    case 'SET_FORM': {
+      const nextForm = { ...state.form, [action.name]: action.value };
+      // Clear stale course when department changes
+      if (action.name === 'department' && state.form.course) {
+        nextForm.course = '';
+      }
+      // Clear stale hostel/room when hostelite is unchecked
+      if (action.name === 'isHostelite' && !action.value) {
+        nextForm.hostelId = '';
+        nextForm.roomId = '';
+      }
+      const nextErrors = { ...state.fieldErrors };
+      delete nextErrors[action.name];
+      return { ...state, form: nextForm, formError: '', fieldErrors: nextErrors };
+    }
+    case 'SET_FIELD_ERRORS':
+      return { ...state, fieldErrors: action.payload, saving: false };
     case 'SET_FORM_ERROR':
       return { ...state, formError: action.payload, saving: false };
     case 'SAVING_START':
@@ -82,7 +98,8 @@ const StudentManagementPage = () => {
   const [hostelOptions, setHostelOptions] = useState([]);
   const [roomOptions, setRoomOptions] = useState([]);
   const [allocationList, setAllocationList] = useState([]);
-  const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, viewMode, filterDept, filterSem, createdCredentials } = state;
+  const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, fieldErrors, saving, viewMode, filterDept, filterSem, createdCredentials } = state;
+  const [showPassword, setShowPassword] = useState(false);
 
   const searchDebounce = useRef(null);
 
@@ -155,11 +172,53 @@ const StudentManagementPage = () => {
   }, [handleSearch]);
 
   const handleFormChange = useCallback((e) => {
-    dispatch({ type: 'SET_FORM', name: e.target.name, value: e.target.value });
+    const { name, value } = e.target;
+    dispatch({ type: 'SET_FORM', name, value });
   }, []);
+
+  const validateField = useCallback((name, value, currentForm = form) => {
+    const v = (value ?? currentForm[name] ?? '').toString().trim();
+    switch (name) {
+      case 'name':
+        if (!v) return 'Full name is required.';
+        if (v.length < 2) return 'Enter at least 2 characters.';
+        return '';
+      case 'email':
+        if (!v) return 'Email is required.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Enter a valid email address.';
+        return '';
+      case 'phone':
+        if (!v) return '';
+        if (!/^\+?[0-9\s-]{7,15}$/.test(v)) return 'Enter a valid phone number.';
+        return '';
+      case 'department':
+        return v ? '' : 'Department is required.';
+      case 'course':
+        return v ? '' : 'Course is required.';
+      case 'semester': {
+        if (!v) return 'Semester is required.';
+        const n = Number(v);
+        if (!Number.isInteger(n) || n < 1 || n > 8) return 'Semester must be between 1 and 8.';
+        return '';
+      }
+      case 'hostelId':
+        return currentForm.isHostelite && !v ? 'Select a hostel.' : '';
+      case 'roomId':
+        return currentForm.isHostelite && !v ? 'Select a room.' : '';
+      default:
+        return '';
+    }
+  }, [form]);
+
+  const handleFieldBlur = useCallback((e) => {
+    const { name, value } = e.target;
+    const msg = validateField(name, value);
+    if (msg) dispatch({ type: 'SET_FIELD_ERRORS', payload: { ...fieldErrors, [name]: msg } });
+  }, [validateField, fieldErrors]);
 
   const openAdd = useCallback(() => {
     dispatch({ type: 'OPEN_MODAL', form: { ...EMPTY_FORM } });
+    setShowPassword(false);
   }, []);
 
   const openEdit = useCallback((row) => {
@@ -167,11 +226,13 @@ const StudentManagementPage = () => {
     const currentRoom = roomOptions.find(r => r.id === alloc?.roomId);
     dispatch({ type: 'OPEN_MODAL', form: {
       name: row.name || '', email: row.email || '', phone: row.phone || '',
+      address: row.address || '', batch: row.batch || '',
       course: row.course || '', department: row.department || '', semester: row.semester || '',
       isHostelite: row.isHostelite || row.hostelite || !!alloc,
       hostelId: currentRoom ? String(currentRoom.hostelId) : '',
       roomId: alloc ? String(alloc.roomId) : ''
     }, editId: row.id });
+    setShowPassword(false);
   }, [allocationList, roomOptions]);
 
   const syncAllocation = useCallback(async (studentId, nextForm) => {
@@ -210,27 +271,19 @@ const StudentManagementPage = () => {
   }, [allocationList]);
 
   const handleSave = useCallback(async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.department || !form.course || !form.semester) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Name, email, department, course, and semester are required.' });
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Enter a valid email address.' });
-      return;
-    }
-    if (form.phone && !/^\+?[0-9\s-]{7,15}$/.test(form.phone.trim())) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Enter a valid phone number.' });
-      return;
-    }
-    if (form.semester && (Number(form.semester) < 1 || Number(form.semester) > 8)) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Semester must be between 1 and 8.' });
+    const fieldsToCheck = ['name', 'email', 'phone', 'department', 'course', 'semester'];
+    if (form.isHostelite) fieldsToCheck.push('hostelId', 'roomId');
+    const errors = {};
+    fieldsToCheck.forEach((f) => {
+      const msg = validateField(f, form[f], form);
+      if (msg) errors[f] = msg;
+    });
+    if (Object.keys(errors).length > 0) {
+      dispatch({ type: 'SET_FIELD_ERRORS', payload: errors });
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Please fix the highlighted fields.' });
       return;
     }
     const wantHostel = !!form.isHostelite;
-    if (wantHostel && (!form.hostelId || !form.roomId)) {
-      dispatch({ type: 'SET_FORM_ERROR', payload: 'Select a hostel and room for the hostelite student.' });
-      return;
-    }
     dispatch({ type: 'SAVING_START' });
     const currentUser = SessionManager.getUser() || {};
     const payload = { ...form, isHostelite: wantHostel };
@@ -262,8 +315,7 @@ const StudentManagementPage = () => {
         dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Student created but room allocation failed. Please allocate the room in the Hostel section.' });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, editId, fetchStudents, syncAllocation]);
+  }, [form, editId, fetchStudents, syncAllocation, validateField]);
 
   const handleDelete = useCallback(async (id) => {
     if (!window.confirm('Are you sure you want to delete this student?')) return;
@@ -577,169 +629,195 @@ const StudentManagementPage = () => {
       <Modal
         isOpen={modalOpen}
         title={editId ? 'Edit Student' : 'Add New Student'}
-        onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
+        size="large"
+        onClose={() => { if (!saving) dispatch({ type: 'CLOSE_MODAL' }); }}
         onSubmit={handleSave}
-        submitLabel={saving ? 'Saving...' : 'Save Student'}
+        submitting={saving}
+        submitLabel="Save Student"
       >
         {formError && <div className="alert alert-danger" style={{ marginBottom: '15px' }}>{formError}</div>}
-        <div className="form-grid">
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label>Full Name *</label>
-            <input name="name" type="text" value={form.name} onChange={handleFormChange} required />
-          </div>
-          <div className="form-group">
-            <label>Email Address *</label>
-            <input name="email" type="email" value={form.email} onChange={handleFormChange} required />
-          </div>
-          <div className="form-group">
-            <label>Phone Number</label>
-            <input name="phone" type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" value={form.phone} onChange={handleFormChange} />
-          </div>
-          <div className="form-group">
-            <label>Department *</label>
-            <select name="department" required value={form.department} onChange={handleFormChange}>
-              <option value="">Select department</option>
-              {form.department && !departmentOptions.some(d => d.name === form.department) && (
-                <option value={form.department}>{form.department} (legacy value)</option>
-              )}
-              {departmentOptions.map(d => <option key={d.id} value={d.name}>{d.name} ({d.code})</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Course *</label>
-            <select name="course" required value={form.course} onChange={handleFormChange}>
-              <option value="">Select course</option>
-              {form.course && !courseOptions.some(c => c.name === form.course) && (
-                <option value={form.course}>{form.course} (legacy value)</option>
-              )}
-              {courseOptions.filter(c => !form.department || c.department === form.department).map(c => (
-                <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Semester *</label>
-            <input name="semester" type="number" min="1" max="8" required value={form.semester} onChange={handleFormChange} />
-          </div>
-          {!editId && (
-            <div className="form-group">
-              <label>Password</label>
-              <input name="password" type="text" value={form.password || ''} onChange={handleFormChange} placeholder="Leave empty for default: 123" />
-              <small style={{ color: '#718096', fontSize: '0.8rem' }}>Leave empty for default: 123</small>
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+          {/* Personal section */}
+          <div className="form-section">
+            <h3 className="form-section-title"><span aria-hidden="true">👤</span> Personal Information</h3>
+            <div className="form-grid">
+              <div className="form-group form-span-2">
+                <label className="form-label" htmlFor="student-name">Full Name *</label>
+                <input id="student-name" name="name" className={`form-control${fieldErrors.name ? ' is-invalid' : ''}`} type="text" autoComplete="name" placeholder="e.g. Aarav Sharma" value={form.name} onChange={handleFormChange} onBlur={handleFieldBlur} required aria-invalid={!!fieldErrors.name} aria-describedby={fieldErrors.name ? 'student-name-error' : undefined} />
+                {fieldErrors.name && <small id="student-name-error" className="field-error">{fieldErrors.name}</small>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="student-email">Email Address *</label>
+                <input id="student-email" name="email" className={`form-control${fieldErrors.email ? ' is-invalid' : ''}`} type="email" autoComplete="email" placeholder="student@college.edu" value={form.email} onChange={handleFormChange} onBlur={handleFieldBlur} required aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'student-email-error' : undefined} />
+                {fieldErrors.email && <small id="student-email-error" className="field-error">{fieldErrors.email}</small>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="student-phone">Phone Number</label>
+                <input id="student-phone" name="phone" className={`form-control${fieldErrors.phone ? ' is-invalid' : ''}`} type="tel" inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" value={form.phone} onChange={handleFormChange} onBlur={handleFieldBlur} aria-invalid={!!fieldErrors.phone} aria-describedby={fieldErrors.phone ? 'student-phone-error' : undefined} />
+                {fieldErrors.phone ? <small id="student-phone-error" className="field-error">{fieldErrors.phone}</small> : <small className="field-hint">Optional · 7–15 digits, spaces/-/+ allowed</small>}
+              </div>
+              <div className="form-group form-span-2">
+                <label className="form-label" htmlFor="student-address">Address</label>
+                <input id="student-address" name="address" className="form-control" type="text" autoComplete="street-address" placeholder="Street, city, PIN" value={form.address || ''} onChange={handleFormChange} />
+              </div>
             </div>
-          )}
-          <div className="form-group" style={{ gridColumn: '1 / -1', borderTop: '1px solid #edf2f7', paddingTop: '15px', marginTop: '5px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={!!form.isHostelite}
-                onChange={(e) => dispatch({ type: 'SET_FORM', name: 'isHostelite', value: e.target.checked })}
-                style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }}
-              />
-              Is Hostelite?
-            </label>
-            <small style={{ color: '#718096', fontSize: '0.8rem' }}>Hostelite students are assigned a hostel room and hostel fees.</small>
           </div>
-          {form.isHostelite && (
-            <>
+
+          {/* Academic section */}
+          <div className="form-section">
+            <h3 className="form-section-title"><span aria-hidden="true">🎓</span> Academic Details</h3>
+            <div className="form-grid">
               <div className="form-group">
-                <label>Hostel *</label>
-                <select
-                  className="form-control"
-                  required
-                  value={form.hostelId}
-                  onChange={(e) => dispatch({ type: 'SET_FORM', name: 'hostelId', value: e.target.value })}
-                >
-                  <option value="">Select hostel</option>
-                  {hostelOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                <label className="form-label" htmlFor="student-dept">Department *</label>
+                <select id="student-dept" name="department" className={`form-control${fieldErrors.department ? ' is-invalid' : ''}`} required value={form.department} onChange={handleFormChange} onBlur={handleFieldBlur} aria-invalid={!!fieldErrors.department}>
+                  <option value="">Select department</option>
+                  {form.department && !departmentOptions.some(d => d.name === form.department) && (
+                    <option value={form.department}>{form.department} (legacy value)</option>
+                  )}
+                  {departmentOptions.map(d => <option key={d.id} value={d.name}>{d.name} ({d.code})</option>)}
                 </select>
+                {fieldErrors.department && <small className="field-error">{fieldErrors.department}</small>}
               </div>
               <div className="form-group">
-                <label>Room *</label>
-                <select
-                  className="form-control"
-                  required
-                  value={form.roomId}
-                  onChange={(e) => dispatch({ type: 'SET_FORM', name: 'roomId', value: e.target.value })}
-                  disabled={!form.hostelId}
-                >
-                  <option value="">Select room</option>
-                  {roomOptions
-                    .filter(r => !form.hostelId || r.hostelId === Number(form.hostelId))
-                    .filter(r => r.occupiedCount != null && r.capacity != null ? r.occupiedCount < r.capacity : true)
-                    .map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}
+                <label className="form-label" htmlFor="student-course">Course *</label>
+                <select id="student-course" name="course" className={`form-control${fieldErrors.course ? ' is-invalid' : ''}`} required value={form.course} onChange={handleFormChange} onBlur={handleFieldBlur} aria-invalid={!!fieldErrors.course}>
+                  <option value="">Select course</option>
+                  {form.course && !courseOptions.some(c => c.name === form.course) && (
+                    <option value={form.course}>{form.course} (legacy value)</option>
+                  )}
+                  {courseOptions.filter(c => !form.department || c.department === form.department).map(c => (
+                    <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
+                  ))}
                 </select>
-                <small style={{ color: '#718096', fontSize: '0.8rem' }}>
-                  {!form.hostelId ? 'Select a hostel first.' :
-                    roomOptions.filter(r => r.hostelId === Number(form.hostelId) && r.occupiedCount != null && r.capacity != null ? r.occupiedCount < r.capacity : true).length === 0
-                      ? 'No available rooms in this hostel.' : 'Only rooms with available capacity are shown.'}
-                </small>
+                {fieldErrors.course ? <small className="field-error">{fieldErrors.course}</small> : (form.department && courseOptions.filter(c => !form.department || c.department === form.department).length === 0 ? <small className="field-hint">No courses found for this department.</small> : null)}
               </div>
-            </>
-          )}
-        </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="student-sem">Semester *</label>
+                <select id="student-sem" name="semester" className={`form-control${fieldErrors.semester ? ' is-invalid' : ''}`} required value={form.semester} onChange={handleFormChange} onBlur={handleFieldBlur} aria-invalid={!!fieldErrors.semester}>
+                  <option value="">Select semester</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Semester {s}</option>)}
+                </select>
+                {fieldErrors.semester && <small className="field-error">{fieldErrors.semester}</small>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="student-batch">Batch</label>
+                <input id="student-batch" name="batch" className="form-control" type="text" placeholder="e.g. 2023-2027" value={form.batch || ''} onChange={handleFormChange} />
+                <small className="field-hint">Optional · e.g. 2023-2027</small>
+              </div>
+            </div>
+          </div>
+
+          {/* Account + hostel section */}
+          <div className="form-section">
+            <h3 className="form-section-title"><span aria-hidden="true">🔑</span> Account & Hostel</h3>
+            {!editId && (
+              <div className="form-grid">
+                <div className="form-group form-span-2">
+                  <label className="form-label" htmlFor="student-password">Password</label>
+                  <div className="password-row">
+                    <input id="student-password" name="password" className="form-control" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={form.password || ''} onChange={handleFormChange} placeholder="Leave empty for default: 123" />
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowPassword(v => !v)} aria-pressed={showPassword}>{showPassword ? 'Hide' : 'Show'}</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => dispatch({ type: 'SET_FORM', name: 'password', value: Math.random().toString(36).slice(2, 10) })}>Generate</button>
+                  </div>
+                  <small className="field-hint">Leave empty for default: 123 · Enrollment number is auto-generated as username.</small>
+                </div>
+              </div>
+            )}
+            <div className="hostel-toggle">
+              <label className="hostel-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={!!form.isHostelite}
+                  onChange={(e) => dispatch({ type: 'SET_FORM', name: 'isHostelite', value: e.target.checked })}
+                />
+                Is Hostelite?
+              </label>
+              <small className="field-hint">Hostelite students are assigned a hostel room and hostel fees.</small>
+            </div>
+            {form.isHostelite && (
+              <div className="form-grid" style={{ marginTop: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="student-hostel">Hostel *</label>
+                  <select
+                    id="student-hostel"
+                    className={`form-control${fieldErrors.hostelId ? ' is-invalid' : ''}`}
+                    required
+                    value={form.hostelId}
+                    onChange={(e) => dispatch({ type: 'SET_FORM', name: 'hostelId', value: e.target.value })}
+                    onBlur={(e) => { const msg = validateField('hostelId', e.target.value); if (msg) dispatch({ type: 'SET_FIELD_ERRORS', payload: { ...fieldErrors, hostelId: msg } }); }}
+                  >
+                    <option value="">Select hostel</option>
+                    {hostelOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </select>
+                  {fieldErrors.hostelId && <small className="field-error">{fieldErrors.hostelId}</small>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="student-room">Room *</label>
+                  <select
+                    id="student-room"
+                    className={`form-control${fieldErrors.roomId ? ' is-invalid' : ''}`}
+                    required
+                    value={form.roomId}
+                    onChange={(e) => dispatch({ type: 'SET_FORM', name: 'roomId', value: e.target.value })}
+                    onBlur={(e) => { const msg = validateField('roomId', e.target.value); if (msg) dispatch({ type: 'SET_FIELD_ERRORS', payload: { ...fieldErrors, roomId: msg } }); }}
+                    disabled={!form.hostelId}
+                  >
+                    <option value="">Select room</option>
+                    {roomOptions
+                      .filter(r => !form.hostelId || r.hostelId === Number(form.hostelId))
+                      .filter(r => r.occupiedCount != null && r.capacity != null ? r.occupiedCount < r.capacity : true)
+                      .map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.hostelName})</option>)}
+                  </select>
+                  {fieldErrors.roomId ? <small className="field-error">{fieldErrors.roomId}</small> : (
+                    <small className="field-hint">
+                      {!form.hostelId ? 'Select a hostel first.' :
+                        roomOptions.filter(r => r.hostelId === Number(form.hostelId) && r.occupiedCount != null && r.capacity != null ? r.occupiedCount < r.capacity : true).length === 0
+                          ? 'No available rooms in this hostel.' : 'Only rooms with available capacity are shown.'}
+                    </small>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </form>
       </Modal>
 
-      {/* Credentials Dialog */}
-      {createdCredentials && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', zIndex: 9999
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '16px', padding: '32px',
-            maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{
-                width: '60px', height: '60px', borderRadius: '50%', margin: '0 auto 15px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.5rem', color: 'white'
-              }}>✓</div>
-              <h2 style={{ margin: 0, color: '#1a202c' }}>Student Created Successfully!</h2>
-              <p style={{ color: '#718096', margin: '5px 0 0' }}>Share these credentials with the student</p>
+      {/* Credentials dialog */}
+      <Modal
+        isOpen={!!createdCredentials}
+        title="Student Created Successfully!"
+        onClose={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
+        onSubmit={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
+        submitLabel="Got it!"
+      >
+        {createdCredentials && (
+          <>
+            <p style={{ color: '#718096', margin: '0 0 15px' }}>Share these credentials with the student</p>
+            <div className="credentials-box">
+              {[
+                { label: 'Enrollment Number', value: createdCredentials.enrollmentNumber },
+                { label: 'Username', value: createdCredentials.username },
+                { label: 'Password', value: createdCredentials.password, secret: true }
+              ].map((row) => (
+                <div key={row.label} className="credentials-row">
+                  <div>
+                    <div className="credentials-label">{row.label}</div>
+                    <div className={`credentials-value${row.secret ? ' credentials-secret' : ''}`}>{row.value}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { try { navigator.clipboard?.writeText(String(row.value ?? '')); } catch { /* clipboard unavailable */ } }}
+                  >
+                    Copy
+                  </button>
+                </div>
+              ))}
             </div>
-
-            <div style={{
-              background: '#f7fafc', borderRadius: '12px', padding: '20px',
-              border: '1px solid #e2e8f0', marginBottom: '20px'
-            }}>
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrollment Number</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2d3748', fontFamily: 'monospace' }}>{createdCredentials.enrollmentNumber}</div>
-              </div>
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Username</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#2d3748', fontFamily: 'monospace' }}>{createdCredentials.username}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#e53e3e', fontFamily: 'monospace' }}>{createdCredentials.password}</div>
-              </div>
-            </div>
-
-            <div style={{
-              background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '8px',
-              padding: '12px', marginBottom: '20px', fontSize: '0.85rem', color: '#92400e'
-            }}>
-              ⚠ Please save these credentials! The password cannot be recovered.
-            </div>
-
-            <button
-              onClick={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
-              style={{
-                width: '100%', padding: '12px', border: 'none', borderRadius: '8px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer'
-              }}
-            >
-              Got it!
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="credentials-warning">⚠ Please save these credentials! The password cannot be recovered.</div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 };
