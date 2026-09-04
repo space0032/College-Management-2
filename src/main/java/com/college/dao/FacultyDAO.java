@@ -109,6 +109,11 @@ public class FacultyDAO {
      * @return true if successful, false otherwise
      */
     public boolean deleteFaculty(int facultyId) {
+        // Feedback about this faculty is removed with them (mirrors the
+        // ON DELETE CASCADE on student_feedback.student_id for students).
+        // All other user references are ON DELETE SET NULL (see V58), so the
+        // user row can be deleted safely after this cleanup.
+        String deleteFeedbackSql = "DELETE FROM student_feedback WHERE faculty_id = (SELECT user_id FROM faculty WHERE id = ?)";
         String deleteUserSql = "DELETE FROM users WHERE id = (SELECT user_id FROM faculty WHERE id = ?)";
         String deleteSql = "DELETE FROM faculty WHERE id=?";
 
@@ -116,6 +121,11 @@ public class FacultyDAO {
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
+
+            try (PreparedStatement ps0 = conn.prepareStatement(deleteFeedbackSql)) {
+                ps0.setInt(1, facultyId);
+                ps0.executeUpdate();
+            }
 
             try (PreparedStatement ps1 = conn.prepareStatement(deleteUserSql)) {
                 ps1.setInt(1, facultyId);
