@@ -3,14 +3,26 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.CourseDAO;
+import com.college.dao.FacultyDAO;
+import com.college.dao.TimetableDAO;
+import com.college.dao.NotificationDAO;
 import com.college.models.Course;
+import com.college.models.Faculty;
+import com.college.models.Notification;
+import com.college.models.Timetable;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class CourseController extends BaseController implements HttpHandler {
 
     private final CourseDAO courseDAO = new CourseDAO();
+    private final FacultyDAO facultyDAO = new FacultyDAO();
+    private final TimetableDAO timetableDAO = new TimetableDAO();
+    private final NotificationDAO notificationDAO = new NotificationDAO();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
@@ -20,7 +32,17 @@ public class CourseController extends BaseController implements HttpHandler {
         String method = t.getRequestMethod();
         String path = t.getRequestURI().getPath();
 
-        if (path.matches(".*/courses/\\d+")) {
+        // /api/courses/{id}/assign
+        if (path.matches(".*/courses/\\d+/assign")) {
+            int courseId = extractId(path);
+            if ("POST".equals(method)) {
+                handleAssignFaculty(t, courseId);
+            } else if ("DELETE".equals(method)) {
+                handleUnassignFaculty(t, courseId);
+            } else {
+                sendResponse(t, 405, errorJson("Method Not Allowed"));
+            }
+        } else if (path.matches(".*/courses/\\d+")) {
             int id = extractId(path);
             if ("GET".equals(method)) {
                 handleGetById(t, id);
@@ -118,6 +140,85 @@ public class CourseController extends BaseController implements HttpHandler {
         try {
             boolean ok = courseDAO.deleteCourse(id);
             sendResponse(t, ok ? 200 : 400, ok ? "{\"status\":\"Deleted\"}" : errorJson("Delete failed"));
+        } catch (Exception e) {
+            sendResponse(t, 500, errorJson(e.getMessage()));
+        }
+    }
+
+    // ===== Assign / Unassign Faculty =====
+
+    @SuppressWarnings("unchecked")
+    private void handleAssignFaculty(HttpExchange t, int courseId) throws IOException {
+        if (!requirePermission(t, "UPDATE_COURSE")) return;
+
+        try {
+            String body = readBody(t);
+            Map<String, Object> bodyMap = JSON.fromJson(body, Map.class);
+            int facultyId = bodyMap.get("facultyId") != null ? ((Number) bodyMap.get("facultyId")).intValue() : 0;
+
+            if (facultyId <= 0) {
+                sendResponse(t, 400, errorJson("facultyId is required"));
+                return;
+            }
+
+            Faculty faculty = facultyDAO.getFacultyById(facultyId);
+            if (faculty == null) {
+                sendResponse(t, 404, errorJson("Faculty not found"));
+                return;
+            }
+
+            Course course = courseDAO.getCourseById(courseId);
+            if (course == null) {
+                sendResponse(t, 404, errorJson("Course not found"));
+                return;
+            }
+
+            // Check for time conflicts via timetable
+            List<Timetable> facultySchedule = timetableDAO.getTimetableByFaculty(faculty.getName());
+            List<Timetable> courseSchedule = timetableDAO.getTimetableBySubject(course.getName());
+            for (Timetable fEntry : facultySchedule) {
+                for (Timetable cEntry : courseSchedule) {
+                    if (fEntry.getDayOfWeek().equals(cEntry.getDayOfWeek()) &&
+                        fEntry.getTimeSlot().equals(cEntry.getTimeSlot())) {
+                        Map<String, Object> conflict = new HashMap<>();
+                        conflict.put("conflict", true);
+                        conflict.put("message", "Time conflict: Faculty is already busy on " + fEntry.getDayOfWeek() + " at " + fEntry.getTimeSlot() + " (" + fEntry.getSubject() + ")");
+                        conflict.put("dayOfWeek", fEntry.getDayOfWeek());
+                        conflict.put("timeSlot", fEntry.getTimeSlot());
+                        sendResponse(t, 409, JsonHelper.toJson(conflict));
+                        return;
+                    }
+                }
+            }
+
+            boolean ok = courseDAO.assignFaculty(courseId, facultyId);
+            if (ok) {
+                // Send notification
+                if (faculty.getEmail() != null && !faculty.getEmail().isEmpty()) {
+                    Notification note = new Notification(
+                        faculty.getUserId(),
+                        faculty.getEmail(),
+                        Notification.Type.EMAIL,
+                        "New Course Assignment: " + course.getName(),
+                        "Dear " + faculty.getName() + ",\n\nYou have been assigned the course: " + course.getCode() + " - " + course.getName() + ".\nCredits: " + course.getCredits() + "\n\nPlease check your schedule."
+                    );
+                    notificationDAO.createNotification(note);
+                }
+                sendResponse(t, 200, "{\"message\":\"Faculty assigned to course successfully\"}");
+            } else {
+                sendResponse(t, 400, errorJson("Failed to assign faculty"));
+            }
+        } catch (Exception e) {
+            sendResponse(t, 500, errorJson(e.getMessage()));
+        }
+    }
+
+    private void handleUnassignFaculty(HttpExchange t, int courseId) throws IOException {
+        if (!requirePermission(t, "UPDATE_COURSE")) return;
+
+        try {
+            boolean ok = courseDAO.assignFaculty(courseId, 0);
+            sendResponse(t, ok ? 200 : 400, ok ? "{\"message\":\"Faculty unassigned successfully\"}" : errorJson("Failed to unassign faculty"));
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));
         }

@@ -10,6 +10,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     Overview: [
       { to: '/dashboard', label: 'Home', icon: '🏠', end: true },
       { to: '/dashboard/profile', label: 'My Profile', icon: '👤' },
+      { to: '/dashboard/faculty-portal', label: 'Faculty Portal', icon: '🎓', perm: 'VIEW_FACULTY' },
     ],
     Academic: [
       { to: '/dashboard/students', label: 'Students', icon: '🎓', perm: 'VIEW_STUDENT' },
@@ -53,6 +54,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       { to: '/dashboard/payroll', label: 'Payroll', icon: '💸', perm: 'VIEW_PAYROLL' },
       { to: '/dashboard/leaves', label: 'Leave Approvals', icon: '📅', perm: 'VIEW_LEAVE' },
       { to: '/dashboard/workload', label: 'Faculty Workload', icon: '👨‍🏫', perm: 'VIEW_WORKLOAD' },
+      { to: '/dashboard/faculty-import', label: 'Faculty Import', icon: '📥', perm: 'CREATE_FACULTY' },
       { to: '/dashboard/student-affairs', label: 'Student Affairs', icon: '🎓', perm: 'VIEW_STUDENT' },
       { to: '/dashboard/events', label: 'Events', icon: '🎪', perm: 'VIEW_EVENT' },
       { to: '/dashboard/clubs', label: 'Clubs & Societies', icon: '👥', perm: 'VIEW_CLUB' },

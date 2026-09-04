@@ -49,7 +49,7 @@ public class DashboardController extends BaseController implements HttpHandler {
 
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalStudents", studentDAO.getTotalCount());
-            stats.put("totalFaculty", facultyDAO.getTotalFacultyCount());
+            stats.put("totalFaculty", facultyDAO.getTotalCount());
             stats.put("activeCourses", courseDAO.getTotalCount());
             stats.put("departments", deptDAO.getTotalCount());
 

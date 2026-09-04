@@ -53,6 +53,8 @@ const pages = {
   CourseRegistrationsPage: lazy(() => import('./CourseRegistrationsPage')),
   FeedbackPage: lazy(() => import('./FeedbackPage')),
   BookRequestsPage: lazy(() => import('./BookRequestsPage')),
+  FacultyPortalPage: lazy(() => import('./FacultyPortalPage')),
+  FacultyImportPage: lazy(() => import('./FacultyImportPage')),
   NotFoundPage: lazy(() => import('./NotFoundPage')),
 };
 
@@ -69,6 +71,7 @@ const {
   StudentAffairsPage, RoleManagementPage, NotFoundPage,
   HostelComplaintsPage, HostelAttendancePage, WardenManagementPage,
   CourseRegistrationsPage, FeedbackPage, BookRequestsPage,
+  FacultyPortalPage, FacultyImportPage,
 } = pages;
 
 const DashboardPage = () => {
@@ -130,6 +133,9 @@ const DashboardPage = () => {
             {(can('VIEW_LEAVE') || isAdmin || isFaculty) && (
               <Route path="staff-leave" element={<StaffLeavePage />} />
             )}
+            {can('VIEW_FACULTY') && (
+              <Route path="faculty-portal" element={<FacultyPortalPage />} />
+            )}
 
             {/* Admin Only Routes */}
             {isAdmin && (
@@ -139,6 +145,7 @@ const DashboardPage = () => {
                 <Route path="employees" element={<EmployeeManagementPage />} />
                 <Route path="leaves" element={<LeaveApprovalPage />} />
                 <Route path="workload" element={<FacultyWorkloadPage />} />
+                <Route path="faculty-import" element={<FacultyImportPage />} />
                 <Route path="payroll" element={<PayrollManagementPage />} />
                 <Route path="audit" element={<AuditLogPage />} />
                 <Route path="reports" element={<ReportsPage />} />

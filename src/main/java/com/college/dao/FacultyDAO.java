@@ -103,24 +103,43 @@ public class FacultyDAO {
     }
 
     /**
-     * Delete a faculty by ID
+     * Delete a faculty by ID and their associated user account
      * 
      * @param facultyId ID of the faculty to delete
      * @return true if successful, false otherwise
      */
     public boolean deleteFaculty(int facultyId) {
-        String sql = "DELETE FROM faculty WHERE id=?";
+        String deleteUserSql = "DELETE FROM users WHERE id = (SELECT user_id FROM faculty WHERE id = ?)";
+        String deleteSql = "DELETE FROM faculty WHERE id=?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
 
-            pstmt.setInt(1, facultyId);
-            int rowsAffected = pstmt.executeUpdate();
+            try (PreparedStatement ps1 = conn.prepareStatement(deleteUserSql)) {
+                ps1.setInt(1, facultyId);
+                ps1.executeUpdate();
+            }
+
+            int rowsAffected;
+            try (PreparedStatement ps2 = conn.prepareStatement(deleteSql)) {
+                ps2.setInt(1, facultyId);
+                rowsAffected = ps2.executeUpdate();
+            }
+
+            conn.commit();
             return rowsAffected > 0;
-
         } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { Logger.error("Rollback failed", ex); }
+            }
             Logger.error("Database operation failed", e);
             return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { Logger.error("Connection close failed", e); }
+            }
         }
     }
 
@@ -213,7 +232,7 @@ public class FacultyDAO {
                 "FROM faculty f " +
                 "LEFT JOIN users u ON f.user_id = u.id " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
-                "WHERE f.name ILIKE ? OR f.email ILIKE ? OR u.username ILIKE ? ORDER BY f.name";
+                "WHERE UPPER(f.name) LIKE UPPER(?) OR UPPER(f.email) LIKE UPPER(?) OR UPPER(u.username) LIKE UPPER(?) ORDER BY f.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -294,25 +313,6 @@ public class FacultyDAO {
             faculty.setRoleName(null);
         }
         return faculty;
-    }
-
-    /**
-     * Get total count of faculty for ID generation
-     */
-    public int getTotalFacultyCount() {
-        String sql = "SELECT COUNT(*) as count FROM faculty";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("count");
-            }
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-        }
-        return 0;
     }
 
     /**

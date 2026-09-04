@@ -3,8 +3,10 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.FacultyDAO;
+import com.college.dao.CourseDAO;
 import com.college.dao.TimetableDAO;
 import com.college.models.Faculty;
+import com.college.models.Course;
 import com.college.models.Timetable;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 public class WorkloadController extends BaseController implements HttpHandler {
 
     private final FacultyDAO facultyDAO = new FacultyDAO();
+    private final CourseDAO courseDAO = new CourseDAO();
     private final TimetableDAO timetableDAO = new TimetableDAO();
 
     @Override
@@ -33,6 +36,12 @@ public class WorkloadController extends BaseController implements HttpHandler {
             } else if (path.equals("/api/workload/faculty")) {
                  if ("GET".equals(method)) handleGetFacultyWorkload(t);
                  else sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.equals("/api/workload/check-conflict")) {
+                if ("GET".equals(method)) handleCheckConflict(t);
+                else sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.equals("/api/workload/suggest")) {
+                if ("GET".equals(method)) handleSuggestCourses(t);
+                else sendResponse(t, 405, errorJson("Method not allowed"));
             } else {
                 sendResponse(t, 404, errorJson("Not found"));
             }
@@ -48,22 +57,23 @@ public class WorkloadController extends BaseController implements HttpHandler {
         List<Map<String, Object>> analytics = new ArrayList<>();
 
         for (Faculty f : allFaculty) {
-            List<Timetable> classes = timetableDAO.getTimetableByFaculty(f.getName());
-            
-            int totalHours = classes.size(); // Assuming 1 hour per slot for simplicity
-            long uniqueSubjects = classes.stream().map(Timetable::getSubject).distinct().count();
+            CourseDAO.WorkloadStats stats = courseDAO.getFacultyWorkload(f.getId());
 
             Map<String, Object> map = new HashMap<>();
             map.put("facultyId", f.getId());
             map.put("facultyName", f.getName());
             map.put("department", f.getDepartment());
-            map.put("totalClasses", totalHours);
-            map.put("uniqueSubjects", uniqueSubjects);
-            
-            // Calculate a simple "load percentage" assuming max load is 20 classes per week
-            double loadPercentage = Math.min(100.0, (totalHours / 20.0) * 100);
+            map.put("totalClasses", stats.count);
+            map.put("uniqueSubjects", stats.count);
+            map.put("totalCredits", stats.credits);
+            map.put("totalStudents", stats.totalStudents);
+
+            double loadPercentage = Math.min(100.0, (stats.credits / 18.0) * 100);
             map.put("loadPercentage", Math.round(loadPercentage));
-            
+
+            String status = stats.credits < 8 ? "UNDERLOAD" : (stats.credits <= 18 ? "OPTIMAL" : "OVERLOAD");
+            map.put("status", status);
+
             analytics.add(map);
         }
 
@@ -83,7 +93,6 @@ public class WorkloadController extends BaseController implements HttpHandler {
 
         List<Timetable> classes = timetableDAO.getTimetableByFaculty(name);
         
-        // Group by subject to get credit distribution
         Map<String, Long> subjectCounts = classes.stream()
                 .collect(Collectors.groupingBy(Timetable::getSubject, Collectors.counting()));
                 
@@ -101,5 +110,87 @@ public class WorkloadController extends BaseController implements HttpHandler {
         response.put("totalHours", classes.size());
 
         sendResponse(t, 200, JsonHelper.toJson(response));
+    }
+
+    private void handleCheckConflict(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_WORKLOAD")) return;
+        Map<String, String> params = getQueryMap(t);
+        int facultyId = getIntParam(params, "facultyId", 0);
+        int courseId = getIntParam(params, "courseId", 0);
+
+        if (facultyId <= 0 || courseId <= 0) {
+            sendResponse(t, 400, errorJson("facultyId and courseId are required"));
+            return;
+        }
+
+        Faculty faculty = facultyDAO.getFacultyById(facultyId);
+        Course course = courseDAO.getCourseById(courseId);
+
+        if (faculty == null || course == null) {
+            sendResponse(t, 404, errorJson("Faculty or course not found"));
+            return;
+        }
+
+        List<Timetable> facultySchedule = timetableDAO.getTimetableByFaculty(faculty.getName());
+        List<Timetable> courseSchedule = timetableDAO.getTimetableBySubject(course.getName());
+
+        List<Map<String, String>> conflicts = new ArrayList<>();
+        for (Timetable fEntry : facultySchedule) {
+            for (Timetable cEntry : courseSchedule) {
+                if (fEntry.getDayOfWeek().equals(cEntry.getDayOfWeek()) &&
+                    fEntry.getTimeSlot().equals(cEntry.getTimeSlot())) {
+                    Map<String, String> conflict = new HashMap<>();
+                    conflict.put("dayOfWeek", fEntry.getDayOfWeek());
+                    conflict.put("timeSlot", fEntry.getTimeSlot());
+                    conflict.put("existingSubject", fEntry.getSubject());
+                    conflicts.add(conflict);
+                }
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("hasConflict", !conflicts.isEmpty());
+        response.put("conflicts", conflicts);
+        sendResponse(t, 200, JsonHelper.toJson(response));
+    }
+
+    private void handleSuggestCourses(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_WORKLOAD")) return;
+        Map<String, String> params = getQueryMap(t);
+        int facultyId = getIntParam(params, "facultyId", 0);
+
+        if (facultyId <= 0) {
+            sendResponse(t, 400, errorJson("facultyId is required"));
+            return;
+        }
+
+        Faculty faculty = facultyDAO.getFacultyById(facultyId);
+        if (faculty == null) {
+            sendResponse(t, 404, errorJson("Faculty not found"));
+            return;
+        }
+
+        if (faculty.getSpecialization() == null || faculty.getSpecialization().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("suggested", new ArrayList<>());
+            response.put("message", "No specialization set for this faculty member");
+            sendResponse(t, 200, JsonHelper.toJson(response));
+            return;
+        }
+
+        // Get all unassigned courses
+        List<Course> allCourses = courseDAO.getAllCourses();
+        List<Course> unassigned = allCourses.stream()
+                .filter(c -> c.getFacultyId() == 0)
+                .collect(Collectors.toList());
+
+        // Sort: matching specialization first
+        unassigned.sort((a, b) -> {
+            boolean aMatch = faculty.getSpecialization().equalsIgnoreCase(a.getSpecialization());
+            boolean bMatch = faculty.getSpecialization().equalsIgnoreCase(b.getSpecialization());
+            return Boolean.compare(bMatch, aMatch);
+        });
+
+        sendResponse(t, 200, JsonHelper.toJson(unassigned));
     }
 }

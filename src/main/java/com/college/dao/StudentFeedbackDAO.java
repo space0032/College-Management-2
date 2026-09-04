@@ -6,7 +6,9 @@ import com.college.utils.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class StudentFeedbackDAO {
 
@@ -29,14 +31,14 @@ public class StudentFeedbackDAO {
 
     public List<StudentFeedback> getFeedbackByStudent(int studentId) {
         List<StudentFeedback> list = new ArrayList<>();
-        String sql = "SELECT sf.*, s.name as student_name, u.username as faculty_name, u2.username AS enrollment_id " +
+        String sql = "SELECT sf.*, s.name as student_name, fc.name as faculty_name, u.username AS enrollment_id " +
                 "FROM student_feedback sf " +
                 "JOIN students s ON sf.student_id = s.id " +
-                "JOIN users u ON sf.faculty_id = u.id " +
-                "LEFT JOIN users u2 ON s.user_id = u2.id " +
+                "LEFT JOIN users fu ON sf.faculty_id = fu.id " +
+                "LEFT JOIN faculty fc ON fc.user_id = fu.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE sf.student_id = ? " +
                 "ORDER BY sf.created_at DESC";
-        // Note: Logic to curb 'is_private' viewing depends on caller. DAO returns all.
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, studentId);
@@ -46,6 +48,39 @@ public class StudentFeedbackDAO {
             }
         } catch (SQLException e) {
             Logger.error("Error fetching feedback: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getFeedbackByFacultyId(int facultyId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT sf.*, s.name as student_name, u.username as enrollment_id " +
+                "FROM student_feedback sf " +
+                "JOIN students s ON sf.student_id = s.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
+                "WHERE sf.faculty_id = (SELECT id FROM users WHERE id = (SELECT user_id FROM faculty WHERE id = ?)) " +
+                "OR sf.faculty_id = ? " +
+                "ORDER BY sf.created_at DESC";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, facultyId);
+            pstmt.setInt(2, facultyId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("id", rs.getInt("id"));
+                row.put("studentId", rs.getInt("student_id"));
+                row.put("facultyId", rs.getInt("faculty_id"));
+                row.put("feedbackText", rs.getString("feedback_text"));
+                row.put("category", rs.getString("category"));
+                row.put("isPrivate", rs.getBoolean("is_private"));
+                row.put("createdAt", rs.getTimestamp("created_at"));
+                row.put("studentName", rs.getString("student_name"));
+                row.put("enrollmentId", rs.getString("enrollment_id"));
+                list.add(row);
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching faculty feedback: " + e.getMessage());
         }
         return list;
     }
