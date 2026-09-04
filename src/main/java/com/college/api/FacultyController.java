@@ -204,6 +204,12 @@ public class FacultyController extends BaseController implements HttpHandler {
                 return;
             }
             f.setId(id);
+            if (f.getJoinDate() == null) {
+                Faculty existing = facultyDAO.getFacultyById(id);
+                if (existing != null) {
+                    f.setJoinDate(existing.getJoinDate());
+                }
+            }
             boolean ok = facultyDAO.updateFaculty(f);
             sendResponse(t, ok ? 200 : 400, ok ? JsonHelper.toJson(f) : errorJson("Update failed"));
         } catch (Exception e) {

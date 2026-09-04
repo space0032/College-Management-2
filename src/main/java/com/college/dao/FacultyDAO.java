@@ -87,7 +87,9 @@ public class FacultyDAO {
             pstmt.setString(3, faculty.getPhone());
             pstmt.setString(4, faculty.getDepartment());
             pstmt.setString(5, faculty.getQualification());
-            pstmt.setDate(6, new java.sql.Date(faculty.getJoinDate().getTime()));
+            pstmt.setDate(6, faculty.getJoinDate() == null
+                    ? new java.sql.Date(System.currentTimeMillis())
+                    : new java.sql.Date(faculty.getJoinDate().getTime()));
             pstmt.setString(7, faculty.getSpecialization());
             pstmt.setInt(8, faculty.getId());
 

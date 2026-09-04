@@ -55,6 +55,7 @@ function facultyReducer(state, action) {
 const FacultyManagementPage = () => {
   const [state, dispatch] = React.useReducer(facultyReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, createdCredentials } = state;
 
   const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
@@ -81,21 +82,27 @@ const FacultyManagementPage = () => {
     getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => setDepartmentOptions([]));
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const query = debouncedSearch.trim();
+    if (!query && !search) return;
+    if (!query) {
+      fetchFaculty(1, false);
+    } else {
+      dispatch({ type: 'FETCH_START' });
+      searchFaculty(query)
+        .then(res => dispatch({ type: 'FETCH_SUCCESS', payload: res.data || [], total: (res.data || []).length, page: 1, append: false }))
+        .catch(() => dispatch({ type: 'FETCH_ERROR', payload: 'Search failed.' }));
+    }
+  }, [debouncedSearch, search, fetchFaculty]);
+
   const handleLoadMore = () => {
     if (!loading && hasMore) {
       fetchFaculty(page + 1, true);
-    }
-  };
-
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    if (!search.trim()) return fetchFaculty(1, false);
-    dispatch({ type: 'FETCH_START' });
-    try {
-      const res = await searchFaculty(search);
-      dispatch({ type: 'FETCH_SUCCESS', payload: res.data || [], total: (res.data || []).length, page: 1, append: false });
-    } catch {
-      dispatch({ type: 'FETCH_ERROR', payload: 'Search failed.' });
     }
   };
 
@@ -245,16 +252,15 @@ const FacultyManagementPage = () => {
       </div>
 
       <div className="card" style={{ padding: '15px', marginBottom: '20px', display: 'flex', gap: '15px', background: 'white', borderRadius: '12px' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', flex: 1 }}>
+        <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
           <input
             type="text"
             className="form-control"
-            placeholder="Search faculty by name, email, or dept..."
+            placeholder="Search faculty as you type by name, email, or dept..."
             value={search}
             onChange={(e) => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
           />
-          <button type="submit" className="btn btn-primary">Search</button>
-        </form>
+        </div>
         <select
           className="form-control"
           style={{ width: '200px' }}
