@@ -1,6 +1,7 @@
 import SessionManager from '../utils/SessionManager';
 import React, { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
+import AiAssistModal from '../components/AiAssistModal';
 import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement } from '../services/announcementService';
 
 const EMPTY_FORM = { title: '', content: '', targetAudience: 'ALL', priority: 'NORMAL', pinned: false };
@@ -37,6 +38,7 @@ const AnnouncementPage = () => {
   const [filterPriority, setFilterPriority] = useState('ALL');
   const [searchQ, setSearchQ] = useState('');
   const [editId, setEditId] = useState(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const isAdmin = SessionManager.hasRole('ADMIN');
 
@@ -82,6 +84,21 @@ const AnnouncementPage = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  // A2: insert an AI-generated draft into the form for human review.
+  // A "Title: ..." line fills the title when it is still empty; the body
+  // respects the 500-character limit enforced by the content field.
+  const handleAiInsert = (draft) => {
+    const lines = draft.split('\n');
+    const titleLine = lines.find((l) => /^title\s*:/i.test(l.trim()));
+    const title = titleLine ? titleLine.replace(/^title\s*:/i, '').trim() : '';
+    const body = (titleLine ? lines.filter((l) => l !== titleLine).join('\n') : draft).trim();
+    setForm((prev) => ({
+      ...prev,
+      title: prev.title || title,
+      content: body.slice(0, 500),
+    }));
   };
 
   const handleDelete = async (row) => {
@@ -206,6 +223,7 @@ const AnnouncementPage = () => {
 
       <Modal isOpen={modalOpen} title={editId ? 'Edit Announcement' : 'Add Announcement'} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAiOpen(true)} style={{ marginBottom: '12px', width: '100%' }}>✨ Draft with AI</button>
         <div className="form-group">
           <label className="form-label">Title *</label>
           <input name="title" type="text" className="form-control" value={form.title} onChange={handleFormChange} placeholder="Enter title" />
@@ -238,6 +256,14 @@ const AnnouncementPage = () => {
           </label>
         </div>
       </Modal>
+
+      <AiAssistModal
+        isOpen={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onInsert={handleAiInsert}
+        feature="announcement"
+        defaults={{ audience: form.targetAudience }}
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import {
 } from '../services/assignmentService';
 import { getAllCourses } from '../services/courseService';
 import SessionManager from '../utils/SessionManager';
+import AiAssistModal from '../components/AiAssistModal';
 
 const AssignmentPage = () => {
     const [activeTab, setActiveTab] = useState('browse'); // browse, create, grade, submit
@@ -18,6 +19,7 @@ const AssignmentPage = () => {
     const [gradingForm, setGradingForm] = useState({ grade: '', feedback: '' });
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [courses, setCourses] = useState([]);
+    const [aiOpen, setAiOpen] = useState(false);
 
     const user = SessionManager.getUser() || { id: null, username: '', role: 'STUDENT' };
     const userId = user.id;
@@ -122,6 +124,24 @@ const AssignmentPage = () => {
             alert('Failed to save grade');
         }
     };
+
+    // F1: insert an AI-generated draft into the create form for human review.
+    // A "Title: ..." line fills the title when it is still empty.
+    const handleAiInsert = (draft) => {
+        const lines = draft.split('\n');
+        const titleLine = lines.find(l => /^title\s*:/i.test(l.trim()));
+        const title = titleLine ? titleLine.replace(/^title\s*:/i, '').trim().slice(0, 120) : '';
+        setAssignmentForm(prev => ({
+            ...prev,
+            title: prev.title || title,
+            description: draft
+        }));
+    };
+
+    const selectedCourseName = (() => {
+        const c = courses.find(c => String(c.id) === String(assignmentForm.courseId));
+        return c ? (c.name || c.courseName || '') : '';
+    })();
 
     // Stats
     const totalAssignments = assignments.length;
@@ -266,7 +286,8 @@ const AssignmentPage = () => {
                                 </select>
                             </div>
                             <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
-                                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontWeight: 'bold', fontSize: '1rem' }}>Launch Assignment</button>
+                                <button type="button" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 'bold' }} onClick={() => setAiOpen(true)}>✨ Generate Questions with AI</button>
+                                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontWeight: 'bold', fontSize: '1rem', marginTop: '10px' }}>Launch Assignment</button>
                                 <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: '10px' }} onClick={() => setActiveTab('browse')}>Cancel</button>
                             </div>
                         </form>
@@ -457,6 +478,13 @@ const AssignmentPage = () => {
                     )}
                 </div>
             )}
+            <AiAssistModal
+                isOpen={aiOpen}
+                onClose={() => setAiOpen(false)}
+                onInsert={handleAiInsert}
+                feature="assignment"
+                defaults={{ courseName: selectedCourseName }}
+            />
         </div>
     );
 };

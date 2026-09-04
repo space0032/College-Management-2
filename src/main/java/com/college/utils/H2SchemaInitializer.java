@@ -53,7 +53,8 @@ public class H2SchemaInitializer {
         "V45__Add_Visitor_Management.sql",
         "V46__Add_Manage_Rooms_Permission.sql",
         "V47__Grant_Room_Check_Permission.sql",
-        "V48__Add_Created_At_To_Courses.sql"
+        "V48__Add_Created_At_To_Courses.sql",
+        "V59__Add_AI_Permissions.sql"
     };
 
     /**
