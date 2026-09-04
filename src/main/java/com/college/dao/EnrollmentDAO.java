@@ -181,6 +181,11 @@ public class EnrollmentDAO {
                     if (item == null || item.getCategoryId() <= 0 || item.getAmount() <= 0) {
                         continue;
                     }
+                    // Bus fees are not part of department program fees.
+                    if (item.getCategoryName() != null
+                            && item.getCategoryName().toLowerCase().contains("bus")) {
+                        continue;
+                    }
                     // Skip hostel charges for day scholars.
                     if (!student.isHostelite() && item.getCategoryName() != null
                             && item.getCategoryName().toLowerCase().contains("hostel")) {

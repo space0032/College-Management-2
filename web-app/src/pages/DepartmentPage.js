@@ -111,9 +111,14 @@ const DepartmentPage = () => {
       } else {
         await addDepartment(form);
       }
+      const busIds = new Set(
+        categories
+          .filter((c) => (c.categoryName || '').toLowerCase().includes('bus'))
+          .map((c) => Number(c.id))
+      );
       const fees = Object.entries(feeAmounts)
         .map(([categoryId, amount]) => ({ categoryId: Number(categoryId), amount: Number(amount) }))
-        .filter((f) => Number.isFinite(f.amount) && f.amount > 0);
+        .filter((f) => Number.isFinite(f.amount) && f.amount > 0 && !busIds.has(f.categoryId));
       if (fees.length > 0) {
         try {
           await saveProgramFees(form.name.trim(), feeYear, fees);
@@ -176,7 +181,7 @@ const DepartmentPage = () => {
             <label className="form-label">Academic Year</label>
             <input type="text" className="form-control" value={feeYear} onChange={handleFeeYearChange} placeholder="e.g. 2026" />
           </div>
-          {categories.map((c) => (
+          {categories.filter((c) => !(c.categoryName || '').toLowerCase().includes('bus')).map((c) => (
             <div className="form-group" key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <label className="form-label" style={{ flex: '1 1 auto', margin: 0 }}>{c.categoryName}</label>
               <input

@@ -149,6 +149,13 @@ public class FeeController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("department and fees are required"));
             return;
         }
+        java.util.Set<Integer> busCategoryIds = new java.util.HashSet<>();
+        for (com.college.models.FeeCategory c : feeDAO.getAllCategories()) {
+            if (c.getCategoryName() != null
+                    && c.getCategoryName().toLowerCase(java.util.Locale.ROOT).contains("bus")) {
+                busCategoryIds.add(c.getId());
+            }
+        }
         java.util.List<com.college.models.ProgramFeeStructure> fees = new java.util.ArrayList<>();
         for (Object entry : (java.util.List<?>) feesObj) {
             if (!(entry instanceof java.util.Map)) {
@@ -163,7 +170,7 @@ public class FeeController extends BaseController implements HttpHandler {
             try {
                 int categoryId = ((Number) catObj).intValue();
                 double amount = ((Number) amtObj).doubleValue();
-                if (categoryId > 0 && amount > 0) {
+                if (categoryId > 0 && amount > 0 && !busCategoryIds.contains(categoryId)) {
                     fees.add(new com.college.models.ProgramFeeStructure(department, categoryId, academicYear, amount));
                 }
             } catch (ClassCastException e) {

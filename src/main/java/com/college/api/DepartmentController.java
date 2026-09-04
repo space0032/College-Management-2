@@ -105,6 +105,10 @@ public class DepartmentController extends BaseController implements HttpHandler 
                 }
                 java.util.List<com.college.models.ProgramFeeStructure> defaults = new java.util.ArrayList<>();
                 for (com.college.models.FeeCategory c : categories) {
+                    if (c.getCategoryName() != null
+                            && c.getCategoryName().toLowerCase(java.util.Locale.ROOT).contains("bus")) {
+                        continue;
+                    }
                     if (c.getBaseAmount() > 0) {
                         defaults.add(new com.college.models.ProgramFeeStructure(
                                 departmentName, c.getId(), year, c.getBaseAmount()));

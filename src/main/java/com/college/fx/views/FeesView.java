@@ -470,7 +470,10 @@ public class FeesView {
         TextField yearField = new TextField(java.time.Year.now().toString());
         yearField.setPromptText("Academic Year (e.g. 2026)");
 
-        java.util.List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories();
+        java.util.List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories().stream()
+                .filter(c -> c.getCategoryName() == null
+                        || !c.getCategoryName().toLowerCase(java.util.Locale.ROOT).contains("bus"))
+                .collect(java.util.stream.Collectors.toList());
         java.util.Map<Integer, TextField> amountFields = new java.util.HashMap<>();
         VBox feeBox = new VBox(8);
         for (com.college.models.FeeCategory c : categories) {
