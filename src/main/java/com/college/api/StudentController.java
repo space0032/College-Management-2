@@ -22,22 +22,22 @@ public class StudentController extends BaseController implements HttpHandler {
             return;
 
         String method = t.getRequestMethod();
-        String path = t.getRequestURI().getPath();
+        String path = normalizePath(t.getRequestURI().getPath());
 
         if (path.matches("/students/\\d+/courses")) {
             if ("GET".equals(method))
-                handleGetCourses(t);
+                handleGetCourses(t, extractStudentId(path));
             else
                 sendResponse(t, 405, "Method Not Allowed");
         } else if (path.matches("/students/\\d+/enroll")) {
             if ("POST".equals(method))
-                handleEnroll(t);
+                handleEnroll(t, extractStudentId(path));
             else
                 sendResponse(t, 405, "Method Not Allowed");
         } else if (path.endsWith("/students/search") && "GET".equals(method)) {
             handleSearch(t);
         } else if ("PUT".equals(method) && path.matches("/students/\\d+")) {
-            handlePut(t);
+            handlePut(t, extractStudentId(path));
         } else if ("GET".equals(method)) {
             handleGet(t);
         } else if ("POST".equals(method)) {
@@ -58,25 +58,27 @@ public class StudentController extends BaseController implements HttpHandler {
         sendResponse(t, 200, JsonHelper.toJson(studentDAO.searchStudents(keyword)));
     }
 
-    private int getIdFromPath(HttpExchange t) {
-        String path = t.getRequestURI().getPath();
-        String[] parts = path.split("/");
+    static String normalizePath(String path) {
+        return path.startsWith("/api/") ? path.substring(4) : path;
+    }
+
+    static int extractStudentId(String path) {
+        String normalizedPath = normalizePath(path);
+        String[] parts = normalizedPath.split("/");
         // /students/123/courses -> parts[0]="", [1]="students", [2]="123"
         return Integer.parseInt(parts[2]);
     }
 
-    private void handleGetCourses(HttpExchange t) throws IOException {
+    private void handleGetCourses(HttpExchange t, int studentId) throws IOException {
         if (!requirePermission(t, "VIEW_STUDENT"))
             return;
-        int studentId = getIdFromPath(t);
         List<?> courses = studentDAO.getRegisteredCourses(studentId);
         sendResponse(t, 200, JsonHelper.toJson(courses));
     }
 
-    private void handleEnroll(HttpExchange t) throws IOException {
+    private void handleEnroll(HttpExchange t, int studentId) throws IOException {
         if (!requirePermission(t, "UPDATE_STUDENT"))
             return;
-        int studentId = getIdFromPath(t);
         InputStream is = t.getRequestBody();
         String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         try {
@@ -175,11 +177,10 @@ public class StudentController extends BaseController implements HttpHandler {
         }
     }
 
-    private void handlePut(HttpExchange t) throws IOException {
+    private void handlePut(HttpExchange t, int id) throws IOException {
         if (!requirePermission(t, "UPDATE_STUDENT"))
             return;
         try {
-            int id = getIdFromPath(t);
             InputStream is = t.getRequestBody();
             String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
 
