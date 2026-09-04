@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents } from '../services/studentService';
+import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents, downloadStudentTemplate } from '../services/studentService';
 import { getDepartments } from '../services/departmentService';
 import { getAllCourses } from '../services/courseService';
 import { getHostels, getRooms, getAllocations, allocateRoom, vacateRoom } from '../services/hostelService';
@@ -296,6 +296,23 @@ const StudentManagementPage = () => {
 
   const fileInputRef = useRef(null);
 
+  const handleDownloadTemplate = useCallback(async () => {
+    try {
+      const res = await downloadStudentTemplate();
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'student_import_template.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to download template. Please try again.');
+    }
+  }, []);
+
   const handleImport = useCallback(async (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -417,6 +434,7 @@ const StudentManagementPage = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={handleExport}>⬇ Export CSV</button>
+          <button className="btn btn-secondary" onClick={handleDownloadTemplate}>📄 Download Template</button>
           <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>⬆ Import CSV</button>
           <button className="btn btn-primary" onClick={openAdd}>+ Add Student</button>
           <input ref={fileInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleImport} />

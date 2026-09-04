@@ -36,6 +36,8 @@ if (path.matches("/students/\\d+/courses")) {
                 sendResponse(t, 405, "Method Not Allowed");
         } else if (path.endsWith("/students/search") && "GET".equals(method)) {
             handleSearch(t);
+        } else if (path.endsWith("/students/template") && "GET".equals(method)) {
+            handleDownloadTemplate(t);
         } else if ("GET".equals(method) && path.matches("/students/\\d+")) {
             handleGetById(t, extractStudentId(path));
         } else if ("PUT".equals(method) && path.matches("/students/\\d+")) {
@@ -241,5 +243,21 @@ if (path.matches("/students/\\d+/courses")) {
     private String escapeJson(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private void handleDownloadTemplate(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT"))
+            return;
+        String csv = "name,email,phone,department,course,semester,batch,address,password,hostelite\n"
+                + "John Doe,john.doe@college.edu,9876543210,Computer Science,B.Tech,3,2023-2027,123 Main St,,No\n"
+                + "Jane Doe,jane.doe@college.edu,9123456780,IT,B.Tech,2,2024-2028,456 Park Ave,,No\n";
+        byte[] bytes = csv.getBytes(StandardCharsets.UTF_8);
+        t.getResponseHeaders().set("Content-Type", "text/csv");
+        t.getResponseHeaders().set("Content-Disposition", "attachment; filename=student_import_template.csv");
+        CorsSupport.addHeaders(t);
+        t.sendResponseHeaders(200, bytes.length);
+        try (java.io.OutputStream os = t.getResponseBody()) {
+            os.write(bytes);
+        }
     }
 }
