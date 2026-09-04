@@ -11,6 +11,7 @@ import java.util.List;
 public class DepartmentController extends BaseController implements HttpHandler {
 
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private final com.college.dao.EnhancedFeeDAO feeDAO = new com.college.dao.EnhancedFeeDAO();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
@@ -50,7 +51,10 @@ public class DepartmentController extends BaseController implements HttpHandler 
         }
         if (!normalizeAndValidate(t, department)) return;
         boolean ok = departmentDAO.addDepartment(department);
-        if (ok) sendResponse(t, 201, JsonHelper.toJson(department));
+        if (ok) {
+            seedDefaultProgramFees(department.getName());
+            sendResponse(t, 201, JsonHelper.toJson(department));
+        }
         else sendResponse(t, 400, errorJson("Failed to add department"));
     }
 
@@ -81,6 +85,36 @@ public class DepartmentController extends BaseController implements HttpHandler 
     private int extractId(String path) {
         String[] parts = path.split("/");
         return Integer.parseInt(parts[parts.length - 1]);
+    }
+
+    /**
+     * Seed editable default fee breakdown for a newly created program
+     * from current global base amounts. Failures are logged only.
+     */
+    private void seedDefaultProgramFees(String departmentName) {
+        try {
+            java.util.List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories();
+            if (categories == null || categories.isEmpty()) {
+                return;
+            }
+            String currentYear = java.time.Year.now().toString();
+            String nextYear = String.valueOf(java.time.Year.now().getValue() + 1);
+            for (String year : new String[] { currentYear, nextYear }) {
+                if (!feeDAO.getProgramFees(departmentName, year).isEmpty()) {
+                    continue;
+                }
+                java.util.List<com.college.models.ProgramFeeStructure> defaults = new java.util.ArrayList<>();
+                for (com.college.models.FeeCategory c : categories) {
+                    if (c.getBaseAmount() > 0) {
+                        defaults.add(new com.college.models.ProgramFeeStructure(
+                                departmentName, c.getId(), year, c.getBaseAmount()));
+                    }
+                }
+                feeDAO.saveProgramFees(departmentName, year, defaults);
+            }
+        } catch (Exception e) {
+            com.college.utils.Logger.error("Failed to seed default program fees for " + departmentName, e);
+        }
     }
 
     private boolean normalizeAndValidate(HttpExchange exchange, Department department) throws IOException {

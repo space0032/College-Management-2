@@ -59,7 +59,8 @@ class EnrollmentDAOTest {
     void enrollStudentRollsBackWhenUserCreationFails() throws SQLException {
         when(userDAO.addUser(connection, "CS2026001", "pass", "STUDENT", 2)).thenReturn(-1);
 
-        assertNull(enrollmentDAO.enrollStudent(student("Fail Student"), "pass"));
+        assertThrows(EnrollmentException.class,
+                () -> enrollmentDAO.enrollStudent(student("Fail Student"), "pass"));
 
         verify(connection).rollback();
         verify(connection, never()).commit();

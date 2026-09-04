@@ -163,10 +163,38 @@ public class EnrollmentDAO {
 
     private void assignAutoFees(Connection conn, int studentId, Student student, EnhancedFeeDAO feeDAO) {
         try {
-            List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories();
             java.sql.Date dueDate = java.sql.Date.valueOf(java.time.LocalDate.now().plusMonths(1)); // Due in 30 days
+            String academicYear = java.time.Year.now().toString();
 
-            // 1. Tuition Fees (Always apply)
+            // 1. Prefer the customizable per-program breakdown when it exists.
+            // Only applies to new enrollments, existing student_fees rows are untouched.
+            List<com.college.models.ProgramFeeStructure> programFees = new java.util.ArrayList<>();
+            if (student.getDepartment() != null && !student.getDepartment().trim().isEmpty()) {
+                try {
+                    programFees = feeDAO.getProgramFees(conn, student.getDepartment(), academicYear);
+                } catch (Exception e) {
+                    Logger.error("Failed to load program fees, using base amounts", e);
+                }
+            }
+            if (programFees != null && !programFees.isEmpty()) {
+                for (com.college.models.ProgramFeeStructure item : programFees) {
+                    if (item == null || item.getCategoryId() <= 0 || item.getAmount() <= 0) {
+                        continue;
+                    }
+                    // Skip hostel charges for day scholars.
+                    if (!student.isHostelite() && item.getCategoryName() != null
+                            && item.getCategoryName().toLowerCase().contains("hostel")) {
+                        continue;
+                    }
+                    feeDAO.addStudentFee(conn, studentId, item.getCategoryId(), item.getAmount(), dueDate);
+                }
+                return;
+            }
+
+            // 2. Fallback to global base amounts when no program customization exists.
+            List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories();
+
+            // Tuition Fees (Always apply)
             categories.stream()
                     .filter(c -> "Tuition Fees".equalsIgnoreCase(c.getCategoryName())
                             || "Tuition Fee".equalsIgnoreCase(c.getCategoryName()))
@@ -175,7 +203,7 @@ public class EnrollmentDAO {
                         feeDAO.addStudentFee(conn, studentId, c.getId(), c.getBaseAmount(), dueDate);
                     });
 
-            // 2. Hostel Fees (If hostelite)
+            // Hostel Fees (If hostelite)
             if (student.isHostelite()) {
                 categories.stream()
                         .filter(c -> "Hostel Fees".equalsIgnoreCase(c.getCategoryName())

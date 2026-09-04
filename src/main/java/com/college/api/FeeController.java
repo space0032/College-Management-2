@@ -34,6 +34,10 @@ public class FeeController extends BaseController implements HttpHandler {
                     if (!requireAnyPermission(t, "VIEW_FEES", "MANAGE_FEES"))
                         return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getAllCategories()));
+                } else if (path.contains("/structure")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "MANAGE_FEES"))
+                        return;
+                    handleGetStructure(t);
                 } else if (path.matches(".*/fees/history/\\d+")) {
                     if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES"))
                         return;
@@ -100,11 +104,78 @@ public class FeeController extends BaseController implements HttpHandler {
                 } else {
                     sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
                 }
+            } else if ("PUT".equals(method)) {
+                if (path.contains("/structure")) {
+                    if (!requireAnyPermission(t, "MANAGE_FEES", "CREATE_FEES"))
+                        return;
+                    handleSaveStructure(t);
+                } else {
+                    sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
+                }
             } else {
                 sendResponse(t, 405, "Method Not Allowed");
             }
         } catch (Exception e) {
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
+    private void handleGetStructure(HttpExchange t) throws IOException {
+        java.util.Map<String, String> params = getQueryMap(t);
+        String department = params.getOrDefault("department", "").trim();
+        String academicYear = params.getOrDefault("academicYear",
+                params.getOrDefault("year", java.time.Year.now().toString())).trim();
+        if (department.isEmpty()) {
+            sendResponse(t, 400, errorJson("department query parameter is required"));
+            return;
+        }
+        sendResponse(t, 200, JsonHelper.toJson(feeDAO.getProgramFees(department, academicYear)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleSaveStructure(HttpExchange t) throws IOException {
+        String body = readBody(t);
+        java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
+        if (map == null || map.get("department") == null) {
+            sendResponse(t, 400, errorJson("department and fees are required"));
+            return;
+        }
+        String department = String.valueOf(map.get("department")).trim();
+        Object yearObj = map.getOrDefault("academicYear", map.getOrDefault("year",
+                java.time.Year.now().toString()));
+        String academicYear = String.valueOf(yearObj).trim();
+        Object feesObj = map.get("fees");
+        if (department.isEmpty() || !(feesObj instanceof java.util.List)) {
+            sendResponse(t, 400, errorJson("department and fees are required"));
+            return;
+        }
+        java.util.List<com.college.models.ProgramFeeStructure> fees = new java.util.ArrayList<>();
+        for (Object entry : (java.util.List<?>) feesObj) {
+            if (!(entry instanceof java.util.Map)) {
+                continue;
+            }
+            java.util.Map<String, Object> row = (java.util.Map<String, Object>) entry;
+            Object catObj = row.get("categoryId");
+            Object amtObj = row.get("amount");
+            if (catObj == null || amtObj == null) {
+                continue;
+            }
+            try {
+                int categoryId = ((Number) catObj).intValue();
+                double amount = ((Number) amtObj).doubleValue();
+                if (categoryId > 0 && amount > 0) {
+                    fees.add(new com.college.models.ProgramFeeStructure(department, categoryId, academicYear, amount));
+                }
+            } catch (ClassCastException e) {
+                sendResponse(t, 400, errorJson("categoryId and amount must be numbers"));
+                return;
+            }
+        }
+        boolean ok = feeDAO.saveProgramFees(department, academicYear, fees);
+        if (ok) {
+            sendResponse(t, 200, "{\"status\":\"Program fee structure saved\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to save program fee structure"));
         }
     }
 }

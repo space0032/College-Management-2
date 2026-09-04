@@ -3,6 +3,7 @@ package com.college.dao;
 import com.college.models.FeeCategory;
 import com.college.models.StudentFee;
 import com.college.models.FeePayment;
+import com.college.models.ProgramFeeStructure;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
 
@@ -528,5 +529,123 @@ public class EnhancedFeeDAO {
             Logger.error("Database operation failed", e);
         }
         return payments;
+    }
+
+    /**
+     * Get customizable fee breakdown for a program or department and academic year.
+     * Returns an empty list when no customization exists or the table is missing.
+     */
+    public List<ProgramFeeStructure> getProgramFees(String department, String academicYear) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return getProgramFees(conn, department, academicYear);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return new ArrayList<>();
+        }
+    }
+
+    public List<ProgramFeeStructure> getProgramFees(Connection conn, String department, String academicYear) {
+        List<ProgramFeeStructure> fees = new ArrayList<>();
+        if (department == null || department.trim().isEmpty()
+                || academicYear == null || academicYear.trim().isEmpty()) {
+            return fees;
+        }
+        String sql = "SELECT pfs.*, fc.category_name FROM program_fee_structure pfs "
+                + "JOIN fee_categories fc ON pfs.category_id = fc.id "
+                + "WHERE pfs.department = ? AND pfs.academic_year = ? ORDER BY fc.category_name";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, department.trim());
+            pstmt.setString(2, academicYear.trim());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ProgramFeeStructure item = new ProgramFeeStructure();
+                    item.setId(rs.getInt("id"));
+                    item.setDepartment(rs.getString("department"));
+                    item.setCategoryId(rs.getInt("category_id"));
+                    item.setCategoryName(rs.getString("category_name"));
+                    item.setAcademicYear(rs.getString("academic_year"));
+                    item.setAmount(rs.getDouble("amount"));
+                    fees.add(item);
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to load program fees, falling back to base amounts", e);
+        }
+        return fees;
+    }
+
+    /**
+     * Replace the full fee breakdown for a program and academic year.
+     * Only entries with amount greater than zero are stored.
+     */
+    public boolean saveProgramFees(String department, String academicYear, List<ProgramFeeStructure> fees) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return saveProgramFees(conn, department, academicYear, fees);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    public boolean saveProgramFees(Connection conn, String department, String academicYear,
+            List<ProgramFeeStructure> fees) throws SQLException {
+        if (department == null || department.trim().isEmpty()
+                || academicYear == null || academicYear.trim().isEmpty()) {
+            return false;
+        }
+        String dept = department.trim();
+        String year = academicYear.trim();
+        boolean ownTransaction = conn.getAutoCommit();
+        try {
+            if (ownTransaction) {
+                conn.setAutoCommit(false);
+            }
+            try (PreparedStatement deleteStmt = conn.prepareStatement(
+                    "DELETE FROM program_fee_structure WHERE department = ? AND academic_year = ?")) {
+                deleteStmt.setString(1, dept);
+                deleteStmt.setString(2, year);
+                deleteStmt.executeUpdate();
+            }
+            if (fees != null && !fees.isEmpty()) {
+                String upsert = "INSERT INTO program_fee_structure (department, category_id, academic_year, amount) "
+                        + "VALUES (?, ?, ?, ?) "
+                        + "ON CONFLICT (department, category_id, academic_year) "
+                        + "DO UPDATE SET amount = EXCLUDED.amount, updated_at = CURRENT_TIMESTAMP";
+                try (PreparedStatement pstmt = conn.prepareStatement(upsert)) {
+                    for (ProgramFeeStructure item : fees) {
+                        if (item == null || item.getCategoryId() <= 0 || item.getAmount() <= 0) {
+                            continue;
+                        }
+                        pstmt.setString(1, dept);
+                        pstmt.setInt(2, item.getCategoryId());
+                        pstmt.setString(3, year);
+                        pstmt.setDouble(4, item.getAmount());
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
+                }
+            }
+            if (ownTransaction) {
+                conn.commit();
+            }
+            return true;
+        } catch (SQLException e) {
+            if (ownTransaction) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    Logger.error("Rollback failed", rollbackEx);
+                }
+            }
+            throw e;
+        } finally {
+            if (ownTransaction) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    Logger.error("Failed to reset auto-commit", e);
+                }
+            }
+        }
     }
 }

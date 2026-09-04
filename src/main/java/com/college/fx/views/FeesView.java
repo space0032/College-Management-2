@@ -184,7 +184,10 @@ public class FeesView {
             Button payBtn = createButton("Record Payment", "#3b82f6");
             payBtn.setOnAction(e -> showRecordPaymentDialog());
 
-            section.getChildren().addAll(addBtn, payBtn);
+            Button programBtn = createButton("Program Fees", "#8b5cf6");
+            programBtn.setOnAction(e -> showProgramFeesDialog());
+
+            section.getChildren().addAll(addBtn, payBtn, programBtn);
         } else if (role.equals("STUDENT")) {
             Button payBtn = createButton("Pay Online", "#14b8a6");
             payBtn.setOnAction(e -> showAlert("Payment Gateway", "Online payment integration would open here."));
@@ -429,6 +432,113 @@ public class FeesView {
                     showAlert("Success", "Payment recorded successfully!");
                 } catch (Exception e) {
                     showAlert("Error", "Failed to record payment: " + e.getMessage());
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait();
+    }
+
+    private void showProgramFeesDialog() {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        DialogUtils.styleDialog(dialog);
+        dialog.setTitle("Program Fees");
+        dialog.setHeaderText("Customizable fee breakdown per program (applies to new enrollments only)");
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<String> departmentCombo = new ComboBox<>();
+        departmentCombo.setPromptText("Select Program");
+        departmentCombo.setEditable(true);
+        departmentCombo.setPrefWidth(200);
+        try {
+            com.college.dao.DepartmentDAO deptDAO = new com.college.dao.DepartmentDAO();
+            for (com.college.models.Department d : deptDAO.getAllDepartments()) {
+                departmentCombo.getItems().add(d.getName());
+            }
+        } catch (Exception e) {
+            // Ignore, user can type the program name manually
+        }
+
+        TextField yearField = new TextField(java.time.Year.now().toString());
+        yearField.setPromptText("Academic Year (e.g. 2026)");
+
+        java.util.List<com.college.models.FeeCategory> categories = feeDAO.getAllCategories();
+        java.util.Map<Integer, TextField> amountFields = new java.util.HashMap<>();
+        VBox feeBox = new VBox(8);
+        for (com.college.models.FeeCategory c : categories) {
+            TextField amountField = new TextField(String.valueOf(c.getBaseAmount()));
+            amountField.setPromptText("Amount for " + c.getCategoryName());
+            amountFields.put(c.getId(), amountField);
+            DialogUtils.addFormRow(grid, c.getCategoryName() + ":", amountField, feeBox.getChildren().size() + 2);
+        }
+
+        Runnable reloadFees = () -> {
+            String dept = departmentCombo.getValue() == null ? "" : departmentCombo.getValue().trim();
+            String year = yearField.getText() == null || yearField.getText().trim().isEmpty()
+                    ? java.time.Year.now().toString()
+                    : yearField.getText().trim();
+            if (dept.isEmpty()) {
+                return;
+            }
+            java.util.List<com.college.models.ProgramFeeStructure> saved = feeDAO.getProgramFees(dept, year);
+            java.util.Map<Integer, Double> savedMap = new java.util.HashMap<>();
+            for (com.college.models.ProgramFeeStructure row : saved) {
+                savedMap.put(row.getCategoryId(), row.getAmount());
+            }
+            for (com.college.models.FeeCategory c : categories) {
+                TextField field = amountFields.get(c.getId());
+                if (field != null) {
+                    field.setText(String.valueOf(savedMap.getOrDefault(c.getId(), c.getBaseAmount())));
+                }
+            }
+        };
+        departmentCombo.setOnAction(e -> reloadFees.run());
+        yearField.textProperty().addListener((obs, oldVal, newVal) -> reloadFees.run());
+
+        DialogUtils.addFormRow(grid, "Program:", departmentCombo, 0);
+        DialogUtils.addFormRow(grid, "Academic Year:", yearField, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                try {
+                    String dept = departmentCombo.getValue() == null ? "" : departmentCombo.getValue().trim();
+                    String year = yearField.getText() == null || yearField.getText().trim().isEmpty()
+                            ? java.time.Year.now().toString()
+                            : yearField.getText().trim();
+                    if (dept.isEmpty()) {
+                        showAlert("Error", "Program name is required");
+                        return null;
+                    }
+                    java.util.List<com.college.models.ProgramFeeStructure> fees = new java.util.ArrayList<>();
+                    for (com.college.models.FeeCategory c : categories) {
+                        TextField field = amountFields.get(c.getId());
+                        if (field == null || field.getText() == null || field.getText().trim().isEmpty()) {
+                            continue;
+                        }
+                        double amount = Double.parseDouble(field.getText().trim());
+                        if (amount > 0) {
+                            fees.add(new com.college.models.ProgramFeeStructure(dept, c.getId(), year, amount));
+                        }
+                    }
+                    if (feeDAO.saveProgramFees(dept, year, fees)) {
+                        showAlert("Success", "Program fee breakdown saved for " + dept + " (" + year + ")");
+                    } else {
+                        showAlert("Error", "Failed to save program fees");
+                    }
+                } catch (NumberFormatException e) {
+                    showAlert("Error", "Amounts must be valid numbers");
+                } catch (Exception e) {
+                    showAlert("Error", "Failed to save program fees: " + e.getMessage());
                 }
             }
             return null;
