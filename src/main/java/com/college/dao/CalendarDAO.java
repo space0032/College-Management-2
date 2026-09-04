@@ -70,6 +70,24 @@ public class CalendarDAO {
         return events;
     }
 
+    public boolean updateEvent(int id, CalendarEvent event) {
+        String sql = "UPDATE calendar_events SET title = ?, event_date = ?, event_type = ?, description = ? WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, event.getTitle());
+            pstmt.setDate(2, Date.valueOf(event.getEventDate()));
+            pstmt.setString(3, event.getEventType().name());
+            pstmt.setString(4, event.getDescription());
+            pstmt.setInt(5, id);
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Failed to update calendar event", e);
+            return false;
+        }
+    }
+
     public boolean deleteEvent(int id) {
         String sql = "DELETE FROM calendar_events WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();

@@ -28,6 +28,8 @@ public class CalendarController extends BaseController implements HttpHandler {
             if (path.matches(".*/calendar/events/\\d+")) {
                 if ("DELETE".equals(method))
                     handleDeleteEvent(t, path);
+                else if ("PUT".equals(method))
+                    handleUpdateEvent(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/calendar/month/\\d+/\\d+")) { // year/month
@@ -94,6 +96,38 @@ public class CalendarController extends BaseController implements HttpHandler {
                 sendResponse(t, 201, "{\"message\":\"Event created successfully\"}");
             } else {
                 sendResponse(t, 400, errorJson("Failed to create event"));
+            }
+        } catch (IllegalArgumentException e) {
+            sendResponse(t, 400, errorJson("Invalid format for date or event type"));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleUpdateEvent(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "CREATE_CALENDAR"))
+            return;
+        String[] parts = path.split("/");
+        int id = Integer.parseInt(parts[parts.length - 1]);
+        String body = readBody(t);
+        Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
+
+        if (map == null || map.get("title") == null || map.get("eventDate") == null) {
+            sendResponse(t, 400, errorJson("Missing required fields"));
+            return;
+        }
+
+        try {
+            CalendarEvent event = new CalendarEvent();
+            event.setTitle((String) map.get("title"));
+            event.setEventDate(LocalDate.parse((String) map.get("eventDate")));
+            event.setEventType(CalendarEvent.EventType.valueOf((String) map.get("eventType")));
+            event.setDescription((String) map.get("description"));
+
+            boolean success = calendarDAO.updateEvent(id, event);
+            if (success) {
+                sendResponse(t, 200, "{\"message\":\"Event updated successfully\"}");
+            } else {
+                sendResponse(t, 404, errorJson("Event not found or update failed"));
             }
         } catch (IllegalArgumentException e) {
             sendResponse(t, 400, errorJson("Invalid format for date or event type"));
