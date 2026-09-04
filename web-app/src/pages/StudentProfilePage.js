@@ -1,5 +1,5 @@
 import SessionManager from '../utils/SessionManager';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 
@@ -10,20 +10,22 @@ const StudentProfilePage = () => {
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [fees, setFees] = useState([]);
-    const [attendance, setAttendance] = useState(null);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('academic');
     const [error, setError] = useState(null);
+    const [cgpa, setCgpa] = useState(null);
 
     useEffect(() => {
         const fetchAll = async () => {
             setLoading(true);
+            setError(null);
             try {
-                // Fetch student details
-                const sRes = await api.get(`/students/user/${user.id}`).catch(() => api.get('/students'));
+                // Fetch student details - use /students and filter client-side
+                const sRes = await api.get('/students');
                 const sList = Array.isArray(sRes.data) ? sRes.data : (sRes.data?.data || []);
                 const found = sList.find(s =>
                     s.userId === user.id || s.user_id === user.id ||
@@ -31,21 +33,37 @@ const StudentProfilePage = () => {
                 );
                 if (found) {
                     setStudent(found);
-                    // Fetch grades
-                    api.get(`/grades?studentId=${found.id}`).then(r => {
-                        setGrades(Array.isArray(r.data) ? r.data : (r.data?.data || []));
-                    }).catch(() => { });
-                    // Fetch fees
-                    api.get(`/fees?studentId=${found.id}`).then(r => {
-                        setFees(Array.isArray(r.data) ? r.data : (r.data?.data || []));
-                    }).catch(() => { });
-                    // Fetch attendance
-                    api.get(`/attendance?studentId=${found.id}`).then(r => {
-                        const data = r.data;
-                        if (data && typeof data === 'object' && !Array.isArray(data)) {
-                            setAttendance(data);
-                        }
-                    }).catch(() => { });
+                    const studentId = found.id;
+
+                    // Fetch grades using correct endpoint
+                    try {
+                        const gRes = await api.get(`/grades/student/${studentId}`);
+                        const gData = Array.isArray(gRes.data) ? gRes.data : (gRes.data?.data || []);
+                        setGrades(gData);
+                    } catch { setGrades([]); }
+
+                    // Fetch CGPA using backend endpoint
+                    try {
+                        const cgpaRes = await api.get(`/grades/student/${studentId}/cgpa`);
+                        const cgpaData = cgpaRes.data;
+                        setCgpa(typeof cgpaData === 'object' ? cgpaData.cgpa : parseFloat(cgpaData));
+                    } catch { setCgpa(null); }
+
+                    // Fetch fees and filter by student
+                    try {
+                        const fRes = await api.get('/fees');
+                        const fList = Array.isArray(fRes.data) ? fRes.data : (fRes.data?.data || []);
+                        setFees(fList.filter(f => f.studentId === studentId || f.student_id === studentId));
+                    } catch { setFees([]); }
+
+                    // Fetch attendance records using correct endpoint
+                    try {
+                        const aRes = await api.get(`/attendance/student/${studentId}`);
+                        const aData = Array.isArray(aRes.data) ? aRes.data : (aRes.data?.data || []);
+                        setAttendanceRecords(aData);
+                    } catch { setAttendanceRecords([]); }
+                } else {
+                    setError('Student record not found.');
                 }
             } catch {
                 setError('Could not load student profile.');
@@ -56,15 +74,17 @@ const StudentProfilePage = () => {
         fetchAll();
     }, [user.id, user.email]);
 
-    const cgpa = grades.length > 0
-        ? (grades.reduce((s, g) => s + (parseFloat(g.gpa) || parseFloat(g.grade) || 0), 0) / grades.length).toFixed(2)
-        : null;
+    // Compute attendance percentage from records
+    const attPct = useMemo(() => {
+        if (!attendanceRecords.length) return null;
+        const present = attendanceRecords.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+        return (present / attendanceRecords.length) * 100;
+    }, [attendanceRecords]);
 
-    const totalFees = fees.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-    const paidFees = fees.filter(f => f.status === 'PAID').reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
-    const pendingFees = totalFees - paidFees;
-
-    const attPct = attendance?.attendancePercentage ?? attendance?.percentage ?? null;
+    // Fee calculations (already use filtered fees)
+    const totalFees = useMemo(() => fees.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0), [fees]);
+    const paidFees = useMemo(() => fees.filter(f => f.status === 'PAID').reduce((s, f) => s + (parseFloat(f.amount) || 0), 0), [fees]);
+    const pendingFees = useMemo(() => totalFees - paidFees, [totalFees, paidFees]);
 
     const initials = (user.name || user.username || 'S')
         .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -247,8 +267,22 @@ const StudentProfilePage = () => {
                             { label: 'Enrollment No.', value: student?.enrollmentId || student?.username || student?.enrollmentNumber || student?.enrollment_number },
                             { label: 'Department', value: student?.department },
                             { label: 'Course', value: student?.course },
+                            { label: 'Semester', value: student?.semester },
                             { label: 'Batch Year', value: student?.batchYear || student?.batch_year },
                             { label: 'Gender', value: student?.gender },
+                            { label: 'Date of Birth', value: student?.dob },
+                            { label: 'Blood Group', value: student?.bloodGroup },
+                            { label: 'Category', value: student?.category },
+                            { label: 'Nationality', value: student?.nationality },
+                            { label: 'Address', value: student?.address },
+                            { label: 'Father\'s Name', value: student?.fatherName },
+                            { label: 'Mother\'s Name', value: student?.motherName },
+                            { label: 'Guardian Contact', value: student?.guardianContact },
+                            { label: 'Previous School', value: student?.previousSchool },
+                            { label: '10th Percentage', value: student?.tenthPercentage },
+                            { label: '12th Percentage', value: student?.twelfthPercentage },
+                            { label: 'Extracurricular Activities', value: student?.extracurricularActivities },
+                            { label: 'Hostel Status', value: student?.isHostelite || student?.hostelite ? 'Hostelite' : 'Dayscholar' },
                             { label: 'Role', value: user.role },
                         ].filter(f => f.value).map(f => (
                             <React.Fragment key={f.label}>
@@ -257,72 +291,6 @@ const StudentProfilePage = () => {
                             </React.Fragment>
                         ))}
                     </dl>
-                    {/* Edit Modal */}
-                    {showEditModal && (
-                        <Modal
-                            isOpen={showEditModal}
-                            title="Modify Digital Profile"
-                            onClose={() => setShowEditModal(false)}
-                            onSubmit={async () => {
-                                setSaving(true);
-                                try {
-                                    // Unified update logic
-                                    if (userRole === 'STUDENT') await api.put(`/students/${student.id}`, editForm);
-                                    else if (userRole === 'FACULTY') await api.put(`/faculty/${student.id}`, editForm);
-                                    setShowEditModal(false);
-                                    window.location.reload(); // Refresh to show new data
-                                } catch {
-                                    alert('Update failed. Check system logs.');
-                                } finally { setSaving(false); }
-                            }}
-                            submitLabel={saving ? 'Updating...' : 'Save Changes'}
-                        >
-                            <div className="form-grid">
-                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                    <label>Full Display Name</label>
-                                    <input className="form-control" type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Primary Contact</label>
-                                    <input className="form-control" type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Gender</label>
-                                    <select className="form-control" value={editForm.gender || ''} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
-                                        <option value="MALE">Male</option>
-                                        <option value="FEMALE">Female</option>
-                                        <option value="OTHER">Other</option>
-                                    </select>
-                                </div>
-                                {userRole === 'STUDENT' ? (
-                                    <>
-                                        <div className="form-group">
-                                            <label>Batch Year</label>
-                                            <input className="form-control" type="text" value={editForm.batchYear || ''} onChange={e => setEditForm({ ...editForm, batchYear: e.target.value })} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Hostel Status</label>
-                                            <select className="form-control" value={editForm.hostelite ? 'YES' : 'NO'} onChange={e => setEditForm({ ...editForm, hostelite: e.target.value === 'YES' })}>
-                                                <option value="NO">Dayscholar</option>
-                                                <option value="YES">Hostelite</option>
-                                            </select>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="form-group">
-                                            <label>Qualification</label>
-                                            <input className="form-control" type="text" value={editForm.qualification || ''} onChange={e => setEditForm({ ...editForm, qualification: e.target.value })} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Specialization</label>
-                                            <input className="form-control" type="text" value={editForm.specialization || ''} onChange={e => setEditForm({ ...editForm, specialization: e.target.value })} />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </Modal>
-                    )}
                 </div>
             )}
             {/* Edit Modal */}
@@ -373,6 +341,54 @@ const StudentProfilePage = () => {
                                         <option value="NO">Dayscholar</option>
                                         <option value="YES">Hostelite</option>
                                     </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Address</label>
+                                    <input className="form-control" type="text" value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Date of Birth</label>
+                                    <input className="form-control" type="date" value={editForm.dob || ''} onChange={e => setEditForm({ ...editForm, dob: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Blood Group</label>
+                                    <input className="form-control" type="text" value={editForm.bloodGroup || ''} onChange={e => setEditForm({ ...editForm, bloodGroup: e.target.value })} placeholder="e.g., A+, O-" />
+                                </div>
+                                <div className="form-group">
+                                    <label>Category</label>
+                                    <input className="form-control" type="text" value={editForm.category || ''} onChange={e => setEditForm({ ...editForm, category: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Nationality</label>
+                                    <input className="form-control" type="text" value={editForm.nationality || ''} onChange={e => setEditForm({ ...editForm, nationality: e.target.value })} />
+                                </div>
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label>Father's Name</label>
+                                    <input className="form-control" type="text" value={editForm.fatherName || ''} onChange={e => setEditForm({ ...editForm, fatherName: e.target.value })} />
+                                </div>
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label>Mother's Name</label>
+                                    <input className="form-control" type="text" value={editForm.motherName || ''} onChange={e => setEditForm({ ...editForm, motherName: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Guardian Contact</label>
+                                    <input className="form-control" type="text" value={editForm.guardianContact || ''} onChange={e => setEditForm({ ...editForm, guardianContact: e.target.value })} />
+                                </div>
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label>Previous School</label>
+                                    <input className="form-control" type="text" value={editForm.previousSchool || ''} onChange={e => setEditForm({ ...editForm, previousSchool: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>10th Percentage</label>
+                                    <input className="form-control" type="number" step="0.01" value={editForm.tenthPercentage || ''} onChange={e => setEditForm({ ...editForm, tenthPercentage: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>12th Percentage</label>
+                                    <input className="form-control" type="number" step="0.01" value={editForm.twelfthPercentage || ''} onChange={e => setEditForm({ ...editForm, twelfthPercentage: e.target.value })} />
+                                </div>
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label>Extracurricular Activities</label>
+                                    <textarea className="form-control" rows={3} value={editForm.extracurricularActivities || ''} onChange={e => setEditForm({ ...editForm, extracurricularActivities: e.target.value })} placeholder="List activities, sports, clubs, achievements..." />
                                 </div>
                             </>
                         ) : (
