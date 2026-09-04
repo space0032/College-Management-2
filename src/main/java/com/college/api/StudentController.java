@@ -24,7 +24,7 @@ public class StudentController extends BaseController implements HttpHandler {
         String method = t.getRequestMethod();
         String path = normalizePath(t.getRequestURI().getPath());
 
-        if (path.matches("/students/\\d+/courses")) {
+if (path.matches("/students/\\d+/courses")) {
             if ("GET".equals(method))
                 handleGetCourses(t, extractStudentId(path));
             else
@@ -36,6 +36,8 @@ public class StudentController extends BaseController implements HttpHandler {
                 sendResponse(t, 405, "Method Not Allowed");
         } else if (path.endsWith("/students/search") && "GET".equals(method)) {
             handleSearch(t);
+        } else if ("GET".equals(method) && path.matches("/students/\\d+")) {
+            handleGetById(t, extractStudentId(path));
         } else if ("PUT".equals(method) && path.matches("/students/\\d+")) {
             handlePut(t, extractStudentId(path));
         } else if ("GET".equals(method)) {
@@ -120,6 +122,22 @@ public class StudentController extends BaseController implements HttpHandler {
 
             String json = JsonHelper.toJson(students);
             sendResponse(t, 200, json);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
+    private void handleGetById(HttpExchange t, int studentId) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT_PROFILE"))
+            return;
+        try {
+            Student student = studentDAO.getStudentById(studentId);
+            if (student != null) {
+                sendResponse(t, 200, JsonHelper.toJson(student));
+            } else {
+                sendResponse(t, 404, "{\"error\":\"Student not found\"}");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");

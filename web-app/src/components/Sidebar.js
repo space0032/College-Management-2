@@ -13,7 +13,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     ],
     Academic: [
       { to: '/dashboard/students', label: 'Students', icon: '🎓', perm: 'VIEW_STUDENT' },
-      { to: '/dashboard/student-profile', label: 'Student Profile', icon: '📋', perm: 'VIEW_STUDENT' },
+      { to: '/dashboard/student-profile', label: 'Student Profile', icon: '📋', perm: 'VIEW_STUDENT_PROFILE' },
       { to: '/dashboard/faculty', label: 'Faculty', icon: '👩‍🏫', perm: 'VIEW_FACULTY' },
       { to: '/dashboard/courses', label: 'Courses', icon: '📚', perm: 'VIEW_COURSE' },
       { to: '/dashboard/course-registrations', label: 'Course Registration', icon: '✅', perm: 'VIEW_COURSE' },

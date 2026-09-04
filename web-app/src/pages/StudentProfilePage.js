@@ -1,11 +1,15 @@
 import SessionManager from '../utils/SessionManager';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import api from '../services/api';
+import { searchStudents } from '../services/studentService';
 import Modal from '../components/Modal';
 
 const StudentProfilePage = () => {
     const user = SessionManager.getUser() || {};
     const userRole = SessionManager.getUserRole() || 'STUDENT';
+    const isAdmin = userRole === 'ADMIN';
+    const isFaculty = userRole === 'FACULTY';
+    const canSearch = SessionManager.hasPermission('VIEW_STUDENT_PROFILE') && (isAdmin || isFaculty);
 
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
@@ -18,61 +22,126 @@ const StudentProfilePage = () => {
     const [activeTab, setActiveTab] = useState('academic');
     const [error, setError] = useState(null);
     const [cgpa, setCgpa] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const [viewedStudentId, setViewedStudentId] = useState(null);
+    const searchRef = useRef(null);
 
+    // Fetch student profile data
+    const fetchStudentData = useCallback(async (studentId) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const sRes = await api.get(`/students/${studentId}`);
+            const found = sRes.data;
+            if (found) {
+                setStudent(found);
+
+                // Fetch grades using correct endpoint
+                try {
+                    const gRes = await api.get(`/grades/student/${studentId}`);
+                    const gData = Array.isArray(gRes.data) ? gRes.data : (gRes.data?.data || []);
+                    setGrades(gData);
+                } catch { setGrades([]); }
+
+                // Fetch CGPA using backend endpoint
+                try {
+                    const cgpaRes = await api.get(`/grades/student/${studentId}/cgpa`);
+                    const cgpaData = cgpaRes.data;
+                    setCgpa(typeof cgpaData === 'object' ? cgpaData.cgpa : parseFloat(cgpaData));
+                } catch { setCgpa(null); }
+
+                // Fetch fees and filter by student
+                try {
+                    const fRes = await api.get('/fees');
+                    const fList = Array.isArray(fRes.data) ? fRes.data : (fRes.data?.data || []);
+                    setFees(fList.filter(f => f.studentId === studentId || f.student_id === studentId));
+                } catch { setFees([]); }
+
+                // Fetch attendance records using correct endpoint
+                try {
+                    const aRes = await api.get(`/attendance/student/${studentId}`);
+                    const aData = Array.isArray(aRes.data) ? aRes.data : (aRes.data?.data || []);
+                    setAttendanceRecords(aData);
+                } catch { setAttendanceRecords([]); }
+            } else {
+                setError('Student record not found.');
+            }
+        } catch {
+            setError('Could not load student profile.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Load own profile on mount
     useEffect(() => {
-        const fetchAll = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                // Fetch student details - use /students and filter client-side
-                const sRes = await api.get('/students');
-                const sList = Array.isArray(sRes.data) ? sRes.data : (sRes.data?.data || []);
-                const found = sList.find(s =>
-                    s.userId === user.id || s.user_id === user.id ||
-                    s.email === user.email
-                );
-                if (found) {
-                    setStudent(found);
-                    const studentId = found.id;
-
-                    // Fetch grades using correct endpoint
-                    try {
-                        const gRes = await api.get(`/grades/student/${studentId}`);
-                        const gData = Array.isArray(gRes.data) ? gRes.data : (gRes.data?.data || []);
-                        setGrades(gData);
-                    } catch { setGrades([]); }
-
-                    // Fetch CGPA using backend endpoint
-                    try {
-                        const cgpaRes = await api.get(`/grades/student/${studentId}/cgpa`);
-                        const cgpaData = cgpaRes.data;
-                        setCgpa(typeof cgpaData === 'object' ? cgpaData.cgpa : parseFloat(cgpaData));
-                    } catch { setCgpa(null); }
-
-                    // Fetch fees and filter by student
-                    try {
-                        const fRes = await api.get('/fees');
-                        const fList = Array.isArray(fRes.data) ? fRes.data : (fRes.data?.data || []);
-                        setFees(fList.filter(f => f.studentId === studentId || f.student_id === studentId));
-                    } catch { setFees([]); }
-
-                    // Fetch attendance records using correct endpoint
-                    try {
-                        const aRes = await api.get(`/attendance/student/${studentId}`);
-                        const aData = Array.isArray(aRes.data) ? aRes.data : (aRes.data?.data || []);
-                        setAttendanceRecords(aData);
-                    } catch { setAttendanceRecords([]); }
-                } else {
-                    setError('Student record not found.');
+        if (viewedStudentId === null) {
+            const fetchOwn = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const sRes = await api.get('/students');
+                    const sList = Array.isArray(sRes.data) ? sRes.data : (sRes.data?.data || []);
+                    const found = sList.find(s =>
+                        s.userId === user.id || s.user_id === user.id ||
+                        s.email === user.email
+                    );
+                    if (found) {
+                        await fetchStudentData(found.id);
+                    } else {
+                        setError('Student record not found.');
+                        setLoading(false);
+                    }
+                } catch {
+                    setError('Could not load student profile.');
+                    setLoading(false);
                 }
-            } catch {
-                setError('Could not load student profile.');
-            } finally {
-                setLoading(false);
+            };
+            fetchOwn();
+        }
+    }, [user.id, user.email, fetchStudentData]);
+
+    // Load viewed student when viewedStudentId changes
+    useEffect(() => {
+        if (viewedStudentId !== null) {
+            fetchStudentData(viewedStudentId);
+        }
+    }, [viewedStudentId, fetchStudentData]);
+
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Search students when debounced query changes
+    useEffect(() => {
+        const query = debouncedSearchQuery.trim();
+        if (!query) {
+            setSearchResults([]);
+            return;
+        }
+        searchStudents(query)
+            .then(res => {
+                const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                setSearchResults(data);
+            })
+            .catch(() => setSearchResults([]));
+    }, [debouncedSearchQuery]);
+
+    // Click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setShowSearchDropdown(false);
             }
         };
-        fetchAll();
-    }, [user.id, user.email]);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Compute attendance percentage from records
     const attPct = useMemo(() => {
@@ -86,7 +155,7 @@ const StudentProfilePage = () => {
     const paidFees = useMemo(() => fees.filter(f => f.status === 'PAID').reduce((s, f) => s + (parseFloat(f.amount) || 0), 0), [fees]);
     const pendingFees = useMemo(() => totalFees - paidFees, [totalFees, paidFees]);
 
-    const initials = (user.name || user.username || 'S')
+    const initials = (student?.name || user.name || user.username || 'S')
         .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
     const tabStyle = (tab) => ({
@@ -100,7 +169,21 @@ const StudentProfilePage = () => {
 
     if (loading) return <div style={{ textAlign: 'center', padding: '50px', color: '#888' }}>Loading profile...</div>;
 
-    return (
+    const handleSelectStudent = (selectedStudent) => {
+        setViewedStudentId(selectedStudent.id);
+        setSearchQuery(`${selectedStudent.name} (${selectedStudent.username || selectedStudent.enrollmentId || selectedStudent.enrollmentNumber})`);
+        setShowSearchDropdown(false);
+        setSearchResults([]);
+    };
+
+    const handleClearSearch = () => {
+        setViewedStudentId(null);
+        setSearchQuery('');
+        setSearchResults([]);
+        setShowSearchDropdown(false);
+    };
+
+return (
         <div className="page-container">
             <div className="page-header">
                 <div>
@@ -112,7 +195,107 @@ const StudentProfilePage = () => {
                 </button>
             </div>
 
+            {/* Student Search (Admin/Faculty only) */}
+            {canSearch && (
+                <div ref={searchRef} style={{ marginBottom: '20px' }}>
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Search student by name, enrollment ID, or email..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setShowSearchDropdown(true);
+                            }}
+                            onFocus={() => searchQuery && setShowSearchDropdown(true)}
+                            style={{ paddingRight: viewedStudentId ? '40px' : '0' }}
+                        />
+                        {viewedStudentId && (
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', padding: '4px 10px', fontSize: '0.8rem' }}
+                                onClick={handleClearSearch}
+                            >
+                                ✕ Clear
+                            </button>
+                        )}
+                        {showSearchDropdown && searchResults.length > 0 && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: '0',
+                                right: '0',
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                zIndex: 100,
+                                maxHeight: '300px',
+                                overflowY: 'auto',
+                                marginTop: '4px'
+                            }}>
+                                {searchResults.map((s, i) => (
+                                    <button
+                                        key={s.id || i}
+                                        type="button"
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            textAlign: 'left',
+                                            border: 'none',
+                                            background: 'white',
+                                            cursor: 'pointer',
+                                            borderBottom: i < searchResults.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                        }}
+                                        onMouseEnter={() => {}}
+                                        onClick={() => handleSelectStudent(s)}
+                                    >
+                                        <div style={{ fontWeight: 600, color: '#1a202c' }}>{s.name}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#718096', display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                            {s.username && <span>Enrollment: <code>{s.username}</code></span>}
+                                            {s.enrollmentId && <span>Enrollment: <code>{s.enrollmentId}</code></span>}
+                                            {s.email && <span>✉ {s.email}</span>}
+                                            {s.course && <span>📚 {s.course}</span>}
+                                            {s.department && <span>🏛 {s.department}</span>}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {showSearchDropdown && searchResults.length === 0 && searchQuery && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: '0',
+                                right: '0',
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                zIndex: 100,
+                                padding: '16px',
+                                textAlign: 'center',
+                                color: '#718096',
+                                marginTop: '4px'
+                            }}>
+                                No students found
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {error && <div style={{ color: '#e53e3e', marginBottom: '16px', padding: '12px', background: '#fff5f5', borderRadius: '8px' }}>{error}</div>}
+
+            {/* Viewing another student indicator */}
+            {viewedStudentId !== null && (
+                <div style={{ marginBottom: '16px', padding: '12px', background: '#ebf8ff', border: '1px solid #bee3f8', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#2b6cb0', fontWeight: 500 }}>Viewing another student's profile</span>
+                    <button className="btn btn-sm btn-secondary" onClick={handleClearSearch}>Back to My Profile</button>
+                </div>
+            )}
 
             {/* Profile Card */}
             <div style={{

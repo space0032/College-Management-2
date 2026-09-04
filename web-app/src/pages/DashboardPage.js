@@ -122,8 +122,10 @@ const DashboardPage = () => {
             {(can('VIEW_STUDENT') || isAdmin || isFaculty) && (
               <>
                 <Route path="students" element={<StudentManagementPage />} />
-                <Route path="student-profile" element={<StudentProfilePage />} />
               </>
+            )}
+            {can('VIEW_STUDENT_PROFILE') && (
+              <Route path="student-profile" element={<StudentProfilePage />} />
             )}
             {(can('VIEW_LEAVE') || isAdmin || isFaculty) && (
               <Route path="staff-leave" element={<StaffLeavePage />} />
