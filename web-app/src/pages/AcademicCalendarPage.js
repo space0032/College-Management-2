@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getMonthEvents, addCalendarEvent, deleteCalendarEvent } from '../services/calendarService';
 import './AcademicCalendarPage.css';
 
@@ -6,11 +6,11 @@ const AcademicCalendarPage = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState([]);
     const [selectedDate, setSelectedDate] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
     const [formData, setFormData] = useState({ title: '', eventType: 'EVENT', description: '' });
+    const dialogRef = useRef(null);
 
     const loadEvents = React.useCallback(async () => {
         try {
@@ -35,7 +35,7 @@ const AcademicCalendarPage = () => {
             setIsDetailOpen(true);
         } else {
             setSelectedDate(dayStr);
-            setIsModalOpen(true);
+            dialogRef.current?.showModal();
         }
     };
 
@@ -43,7 +43,7 @@ const AcademicCalendarPage = () => {
         e.preventDefault();
         try {
             await addCalendarEvent({ ...formData, eventDate: selectedDate });
-            setIsModalOpen(false);
+            dialogRef.current?.close();
             setFormData({ title: '', eventType: 'EVENT', description: '' });
             loadEvents();
         } catch (err) { alert('Failed to add event'); }
@@ -426,7 +426,7 @@ const AcademicCalendarPage = () => {
                         </div>
                         <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
                             <button 
-                                onClick={() => { setIsDetailOpen(false); setIsModalOpen(true); }}
+                                onClick={() => { setIsDetailOpen(false); dialogRef.current?.showModal(); }}
                                 className="btn btn-primary"
                                 style={{ width: '100%', padding: '12px' }}
                             >
@@ -437,37 +437,42 @@ const AcademicCalendarPage = () => {
                 </div>
             )}
 
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '450px', borderRadius: '20px', padding: '30px' }}>
-                        <h2 style={{ marginBottom: '5px' }}>Draft Event</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '25px' }}>Scheduled for: <strong>{selectedDate}</strong></p>
-                        <form onSubmit={handleSaveEvent} className="form-grid">
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Subject / Title *</label>
-                                <input required className="form-control" type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Mid-term Physics" />
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Classification *</label>
-                                <select className="form-control" value={formData.eventType} onChange={e => setFormData({ ...formData, eventType: e.target.value })}>
-                                    <option value="EVENT">General Event</option>
-                                    <option value="HOLIDAY">Holiday (Campus Closed)</option>
-                                    <option value="EXAM">Institutional Exam</option>
-                                    <option value="DEADLINE">Academic Deadline</option>
-                                </select>
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Context / Details</label>
-                                <textarea className="form-control" rows="3" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Optional description..."></textarea>
-                            </div>
-                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '10px' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '12px' }} onClick={() => setIsModalOpen(false)}>Discard</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '12px' }}>Publish to Calendar</button>
-                            </div>
-                        </form>
+            <dialog 
+                ref={dialogRef} 
+                className="event-dialog"
+                onClose={(e) => { if (e.target === e.currentTarget) dialogRef.current?.close(); }}
+            >
+                <form method="dialog" onSubmit={handleSaveEvent}>
+                    <header>
+                        <h2>Draft Event</h2>
+                        <button type="button" onClick={() => dialogRef.current?.close()} aria-label="Close">×</button>
+                    </header>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '20px' }}>Scheduled for: <strong>{selectedDate}</strong></p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Subject / Title *</label>
+                            <input required className="form-control" type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Mid-term Physics" style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }} />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Classification *</label>
+                            <select className="form-control" value={formData.eventType} onChange={e => setFormData({ ...formData, eventType: e.target.value })} style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
+                                <option value="EVENT">General Event</option>
+                                <option value="HOLIDAY">Holiday (Campus Closed)</option>
+                                <option value="EXAM">Institutional Exam</option>
+                                <option value="DEADLINE">Academic Deadline</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Context / Details</label>
+                            <textarea className="form-control" rows="3" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Optional description..." style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem', resize: 'vertical' }}></textarea>
+                        </div>
                     </div>
-                </div>
-            )}
+                    <div className="dialog-actions" style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
+                        <button type="button" value="cancel" onClick={() => dialogRef.current?.close()} style={{ padding: '12px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: '600', cursor: 'pointer' }}>Discard</button>
+                        <button type="submit" style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', background: 'var(--primary-color)', color: 'white', fontWeight: '600', cursor: 'pointer' }}>Publish to Calendar</button>
+                    </div>
+                </form>
+            </dialog>
         </div>
     );
 };

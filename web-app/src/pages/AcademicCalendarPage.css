@@ -107,4 +107,78 @@
   .calendar-day {
     position: relative;
   }
+
+  /* Native dialog styles */
+  .event-dialog {
+    border: none;
+    border-radius: 20px;
+    padding: 0;
+    max-width: 450px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  }
+  .event-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .event-dialog header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .event-dialog header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .event-dialog header button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .event-dialog header button:hover {
+    color: #64748b;
+  }
+  .event-dialog form {
+    padding: 24px;
+  }
+  .event-dialog .dialog-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: flex-end;
+  }
+  .event-dialog .dialog-actions button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .event-dialog .dialog-actions button[value="cancel"] {
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+  }
+  .event-dialog .dialog-actions button[value="cancel"]:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+  .event-dialog .dialog-actions button[type="submit"] {
+    border: none;
+    background: var(--primary-color);
+    color: white;
+  }
+  .event-dialog .dialog-actions button[type="submit"]:hover {
+    background: var(--primary-dark);
+  }
+  .event-dialog p {
+    margin: 0 0 8px;
+  }
   
