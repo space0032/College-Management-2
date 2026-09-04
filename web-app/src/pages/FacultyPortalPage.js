@@ -339,6 +339,7 @@ const FacultyPortalPage = () => {
                 <div className="card" style={{ padding: '25px', maxWidth: '600px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3 style={{ marginTop: 0 }}>Profile Information</h3>
+                        {SessionManager.hasPermission('UPDATE_MY_FACULTY_PROFILE') && (
                         <button className="btn btn-secondary btn-sm" onClick={() => {
                             if (editMode) {
                                 setEditMode(false);
@@ -353,6 +354,7 @@ const FacultyPortalPage = () => {
                         }}>
                             {editMode ? 'Cancel' : 'Edit Profile'}
                         </button>
+                        )}
                     </div>
 
                     {editMode ? (

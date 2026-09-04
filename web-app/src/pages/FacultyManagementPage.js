@@ -5,6 +5,7 @@ import { getAllFaculty, createFaculty, updateFaculty, deleteFaculty, searchFacul
 import { getDepartments } from '../services/departmentService';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
+import FacultyImportModal from '../components/FacultyImportModal';
 
 const EMPTY_FORM = { name: '', email: '', phone: '', department: '', qualification: '', password: '' };
 
@@ -23,7 +24,8 @@ const initialState = {
   formError: '',
   saving: false,
   filterDept: '',
-  createdCredentials: null
+  createdCredentials: null,
+  importOpen: false
 };
 
 function facultyReducer(state, action) {
@@ -48,6 +50,8 @@ function facultyReducer(state, action) {
     case 'SAVING_DONE': return { ...state, saving: false, modalOpen: false };
     case 'SHOW_CREDENTIALS': return { ...state, saving: false, modalOpen: false, createdCredentials: action.payload };
     case 'CLOSE_CREDENTIALS': return { ...state, createdCredentials: null };
+    case 'OPEN_IMPORT': return { ...state, importOpen: true };
+    case 'CLOSE_IMPORT': return { ...state, importOpen: false };
     default: return state;
   }
 }
@@ -57,7 +61,7 @@ const FacultyManagementPage = () => {
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const firstRender = useRef(true);
-  const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, createdCredentials } = state;
+  const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, createdCredentials, importOpen } = state;
 
   const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
     dispatch({ type: 'FETCH_START' });
@@ -228,6 +232,7 @@ const FacultyManagementPage = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={handleExport}>⬇ Export CSV</button>
+          <button className="btn btn-secondary" onClick={() => dispatch({ type: 'OPEN_IMPORT' })}>📥 Import</button>
           <button className="btn btn-primary" onClick={openAdd}>+ Add Faculty</button>
         </div>
       </div>
@@ -368,6 +373,14 @@ const FacultyManagementPage = () => {
           </div>
         </div>
       )}
+      <FacultyImportModal
+        isOpen={importOpen}
+        onClose={() => dispatch({ type: 'CLOSE_IMPORT' })}
+        onImported={() => {
+          dispatch({ type: 'CLOSE_IMPORT' });
+          fetchFaculty(1, false);
+        }}
+      />
     </div>
   );
 };

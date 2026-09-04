@@ -319,13 +319,13 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMe(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_FACULTY")) return;
+        if (!requirePermission(t, "VIEW_FACULTY_PORTAL")) return;
         Faculty f = resolveFacultyFromToken(t);
         if (f != null) sendResponse(t, 200, JsonHelper.toJson(f));
     }
 
     private void handleUpdateMe(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "UPDATE_FACULTY")) return;
+        if (!requirePermission(t, "UPDATE_MY_FACULTY_PROFILE")) return;
         Faculty f = resolveFacultyFromToken(t);
         if (f == null) return;
 
@@ -346,7 +346,7 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMyCourses(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_FACULTY")) return;
+        if (!requirePermission(t, "VIEW_FACULTY_PORTAL")) return;
         Faculty f = resolveFacultyFromToken(t);
         if (f == null) return;
 
@@ -355,7 +355,7 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMyWorkload(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_FACULTY")) return;
+        if (!requirePermission(t, "VIEW_FACULTY_PORTAL")) return;
         Faculty f = resolveFacultyFromToken(t);
         if (f == null) return;
 
@@ -376,7 +376,7 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMyFeedback(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_FACULTY")) return;
+        if (!requirePermission(t, "VIEW_FACULTY_PORTAL")) return;
         Faculty f = resolveFacultyFromToken(t);
         if (f == null) return;
 
@@ -389,7 +389,7 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private void handleGetMySchedule(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_FACULTY")) return;
+        if (!requirePermission(t, "VIEW_FACULTY_PORTAL")) return;
         Faculty f = resolveFacultyFromToken(t);
         if (f == null) return;
 
