@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getWorkloadAnalytics, getFacultyWorkload, assignCourse, unassignCourse, checkConflict, suggestCourses } from '../services/workloadService';
-import { getAllFaculty } from '../services/facultyService';
+
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -10,7 +10,6 @@ const FacultyWorkloadPage = () => {
     const [analytics, setAnalytics] = useState([]);
     const [selectedFaculty, setSelectedFaculty] = useState(null);
     const [facultyDetails, setFacultyDetails] = useState(null);
-    const [allFaculty, setAllFaculty] = useState([]);
     const [loading, setLoading] = useState(true);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [detailsError, setDetailsError] = useState(null);
@@ -29,7 +28,6 @@ const FacultyWorkloadPage = () => {
 
     useEffect(() => {
         fetchAnalytics();
-        fetchAllFaculty();
     }, []);
 
     const fetchAnalytics = async () => {
@@ -42,15 +40,6 @@ const FacultyWorkloadPage = () => {
             setError('Failed to load workload analytics.');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchAllFaculty = async () => {
-        try {
-            const res = await getAllFaculty();
-            setAllFaculty(res.data || []);
-        } catch (err) {
-            console.error(err);
         }
     };
 

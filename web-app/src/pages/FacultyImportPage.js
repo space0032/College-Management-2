@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { importFaculty, downloadTemplate } from '../services/facultyService';
-import { exportToCSV } from '../utils/exportUtils';
+
 
 const FacultyImportPage = () => {
     const [file, setFile] = useState(null);
