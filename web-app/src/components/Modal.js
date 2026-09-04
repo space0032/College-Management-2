@@ -2,11 +2,18 @@ import React, { useEffect, useRef } from 'react';
 
 const Modal = ({ isOpen, title, onClose, onSubmit, children, submitLabel = 'Save', submitting = false, size = '', submitDisabled = false }) => {
   const modalRef = useRef(null);
-  const firstFieldRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const submittingRef = useRef(submitting);
+  const wasOpenRef = useRef(false);
+
+  // Keep latest callbacks in refs so the keydown listener + autofocus effect
+  // don't re-run on every parent render (parent passes inline arrows).
+  onCloseRef.current = onClose;
+  submittingRef.current = submitting;
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape' && !submitting) onClose();
+      if (e.key === 'Escape' && !submittingRef.current) onCloseRef.current?.();
       // Simple focus trap: keep Tab inside the dialog
       if (e.key === 'Tab' && modalRef.current) {
         const focusable = modalRef.current.querySelectorAll(
@@ -24,25 +31,28 @@ const Modal = ({ isOpen, title, onClose, onSubmit, children, submitLabel = 'Save
         }
       }
     };
-    if (isOpen) {
-      document.addEventListener('keydown', handleKey);
-      document.body.style.overflow = 'hidden';
-      // Autofocus first required field after mount
-      const t = setTimeout(() => {
-        const target = modalRef.current?.querySelector('input[required], select[required]') || firstFieldRef.current;
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return undefined;
+    }
+    document.addEventListener('keydown', handleKey);
+    document.body.style.overflow = 'hidden';
+    // Autofocus only on the closed -> open transition, never on re-renders
+    // (e.g. typing in a field must not yank focus back to the first input).
+    let t;
+    if (!wasOpenRef.current) {
+      t = setTimeout(() => {
+        const target = modalRef.current?.querySelector('input[required], select[required]');
         target?.focus?.({ preventScroll: true });
       }, 30);
-      return () => {
-        clearTimeout(t);
-        document.removeEventListener('keydown', handleKey);
-        document.body.style.overflow = '';
-      };
     }
+    wasOpenRef.current = true;
     return () => {
+      clearTimeout(t);
       document.removeEventListener('keydown', handleKey);
       document.body.style.overflow = '';
     };
-  }, [isOpen, onClose, submitting]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,7 +81,7 @@ const Modal = ({ isOpen, title, onClose, onSubmit, children, submitLabel = 'Save
         ref={modalRef}
       >
         <div className="modal-header">
-          <h2 className="modal-title" id="modal-title" ref={firstFieldRef} tabIndex={-1}>{title}</h2>
+          <h2 className="modal-title" id="modal-title" tabIndex={-1}>{title}</h2>
           <button className="modal-close" onClick={onClose} aria-label="Close" disabled={submitting}>✕</button>
         </div>
         <div className="modal-body">{children}</div>

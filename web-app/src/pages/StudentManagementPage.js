@@ -76,6 +76,13 @@ function studentReducer(state, action) {
     }
     case 'SET_FIELD_ERRORS':
       return { ...state, fieldErrors: action.payload, saving: false };
+    case 'SET_FIELD_ERROR':
+      return { ...state, fieldErrors: { ...state.fieldErrors, [action.name]: action.payload }, saving: false };
+    case 'CLEAR_FIELD_ERROR': {
+      const nextErrors = { ...state.fieldErrors };
+      delete nextErrors[action.name];
+      return { ...state, fieldErrors: nextErrors };
+    }
     case 'SET_FORM_ERROR':
       return { ...state, formError: action.payload, saving: false };
     case 'SAVING_START':
@@ -176,7 +183,9 @@ const StudentManagementPage = () => {
     dispatch({ type: 'SET_FORM', name, value });
   }, []);
 
-  const validateField = useCallback((name, value, currentForm = form) => {
+  // Pure validator: takes the form explicitly so the callback identity is
+  // stable and never triggers re-renders / refocus loops while typing.
+  const validateField = useCallback((name, value, currentForm = {}) => {
     const v = (value ?? currentForm[name] ?? '').toString().trim();
     switch (name) {
       case 'name':
@@ -208,13 +217,33 @@ const StudentManagementPage = () => {
       default:
         return '';
     }
-  }, [form]);
+  }, []);
+
+  // Ref mirror of the form so blur validation can read the latest
+  // isHostelite flag without making this callback depend on `form`.
+  const formRef = useRef(form);
+  formRef.current = form;
 
   const handleFieldBlur = useCallback((e) => {
     const { name, value } = e.target;
-    const msg = validateField(name, value);
-    if (msg) dispatch({ type: 'SET_FIELD_ERRORS', payload: { ...fieldErrors, [name]: msg } });
-  }, [validateField, fieldErrors]);
+    const snapshot = { [name]: value, isHostelite: formRef.current.isHostelite };
+    const msg = validateField(name, value, snapshot);
+    if (msg) {
+      dispatch({ type: 'SET_FIELD_ERROR', name, payload: msg });
+    } else {
+      dispatch({ type: 'CLEAR_FIELD_ERROR', name });
+    }
+  }, [validateField]);
+
+  // Stable close handler: Modal keeps callbacks in refs, but a stable
+  // reference also avoids needless effect re-runs elsewhere.
+  const closeModal = useCallback(() => {
+    dispatch({ type: 'CLOSE_MODAL' });
+  }, []);
+
+  const closeCredentials = useCallback(() => {
+    dispatch({ type: 'CLOSE_CREDENTIALS' });
+  }, []);
 
   const openAdd = useCallback(() => {
     dispatch({ type: 'OPEN_MODAL', form: { ...EMPTY_FORM } });
@@ -630,13 +659,13 @@ const StudentManagementPage = () => {
         isOpen={modalOpen}
         title={editId ? 'Edit Student' : 'Add New Student'}
         size="large"
-        onClose={() => { if (!saving) dispatch({ type: 'CLOSE_MODAL' }); }}
+        onClose={closeModal}
         onSubmit={handleSave}
         submitting={saving}
         submitLabel="Save Student"
       >
         {formError && <div className="alert alert-danger" style={{ marginBottom: '15px' }}>{formError}</div>}
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+        <div>
           {/* Personal section */}
           <div className="form-section">
             <h3 className="form-section-title"><span aria-hidden="true">👤</span> Personal Information</h3>
@@ -744,7 +773,7 @@ const StudentManagementPage = () => {
                     required
                     value={form.hostelId}
                     onChange={(e) => dispatch({ type: 'SET_FORM', name: 'hostelId', value: e.target.value })}
-                    onBlur={(e) => { const msg = validateField('hostelId', e.target.value); if (msg) dispatch({ type: 'SET_FIELD_ERRORS', payload: { ...fieldErrors, hostelId: msg } }); }}
+                    onBlur={(e) => { const msg = validateField('hostelId', e.target.value, { hostelId: e.target.value, isHostelite: formRef.current.isHostelite }); if (msg) dispatch({ type: 'SET_FIELD_ERROR', name: 'hostelId', payload: msg }); else dispatch({ type: 'CLEAR_FIELD_ERROR', name: 'hostelId' }); }}
                   >
                     <option value="">Select hostel</option>
                     {hostelOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -759,7 +788,7 @@ const StudentManagementPage = () => {
                     required
                     value={form.roomId}
                     onChange={(e) => dispatch({ type: 'SET_FORM', name: 'roomId', value: e.target.value })}
-                    onBlur={(e) => { const msg = validateField('roomId', e.target.value); if (msg) dispatch({ type: 'SET_FIELD_ERRORS', payload: { ...fieldErrors, roomId: msg } }); }}
+                    onBlur={(e) => { const msg = validateField('roomId', e.target.value, { roomId: e.target.value, isHostelite: formRef.current.isHostelite }); if (msg) dispatch({ type: 'SET_FIELD_ERROR', name: 'roomId', payload: msg }); else dispatch({ type: 'CLEAR_FIELD_ERROR', name: 'roomId' }); }}
                     disabled={!form.hostelId}
                   >
                     <option value="">Select room</option>
@@ -779,15 +808,15 @@ const StudentManagementPage = () => {
               </div>
             )}
           </div>
-        </form>
+        </div>
       </Modal>
 
       {/* Credentials dialog */}
       <Modal
         isOpen={!!createdCredentials}
         title="Student Created Successfully!"
-        onClose={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
-        onSubmit={() => dispatch({ type: 'CLOSE_CREDENTIALS' })}
+        onClose={closeCredentials}
+        onSubmit={closeCredentials}
         submitLabel="Got it!"
       >
         {createdCredentials && (
