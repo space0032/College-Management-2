@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getRoles, addRole, deleteRole, getUsers } from '../services/instituteService';
+import { getRoles, addRole, deleteRole, getUsers, updateUserRole } from '../services/instituteService';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 
@@ -57,6 +57,14 @@ const RoleManagementPage = () => {
         if (!window.confirm(`Delete role "${name}"? This cannot be undone.`)) return;
         try { await deleteRole(id); fetchAll(); }
         catch { alert('Failed to delete role.'); }
+    };
+
+    const handleRoleChange = async (userId, roleId) => {
+        if (!roleId) return;
+        try {
+            await updateUserRole(userId, Number(roleId));
+            fetchAll();
+        } catch (err) { alert(err.response?.data?.error || 'Failed to update role.'); }
     };
 
     const filteredUsers = users.filter(u =>
@@ -162,8 +170,19 @@ const RoleManagementPage = () => {
                             { key: 'username', label: 'Username' },
                             { key: 'email', label: 'Email' },
                             {
-                                key: 'role', label: 'Role', render: v => (
-                                    <span className={`badge badge-${v === 'ADMIN' ? 'danger' : v === 'FACULTY' ? 'primary' : 'success'}`}>{v}</span>
+                                key: 'role', label: 'Role', render: (v, row) => (
+                                    <select
+                                        className="form-control"
+                                        value={row.roleId || ''}
+                                        onChange={e => handleRoleChange(row.id, e.target.value)}
+                                        style={{ minWidth: '140px' }}
+                                        title="Assign role to this user"
+                                    >
+                                        <option value="">-- Select --</option>
+                                        {roles.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name || r.code}</option>
+                                        ))}
+                                    </select>
                                 )
                             },
                             { key: 'department', label: 'Department' },

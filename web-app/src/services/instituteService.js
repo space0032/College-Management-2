@@ -11,6 +11,7 @@ export const deleteRole = (id) => api.delete(`/roles/${id}`);
 
 export const getUsers = () => api.get('/users');
 export const deleteUser = (id) => api.delete(`/users/${id}`);
+export const updateUserRole = (id, roleId) => api.put(`/users/${id}/role`, { roleId });
 
 export const getAllPermissions = () => api.get('/roles/permissions');
 export const getRolePermissions = (roleId) => api.get(`/roles/${roleId}/permissions`);

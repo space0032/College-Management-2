@@ -23,6 +23,9 @@ public class UserController extends BaseController implements HttpHandler {
             if (path.matches(".*/users/\\d+/password")) {
                 if ("PUT".equals(method)) handleUpdatePassword(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/users/\\d+/role")) {
+                if ("PUT".equals(method)) handleUpdateRole(t, path);
+                else sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/users/\\d+")) {
                 if ("DELETE".equals(method)) handleDelete(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
@@ -47,6 +50,30 @@ public class UserController extends BaseController implements HttpHandler {
         boolean ok = userDAO.deleteUser(id);
         if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");
         else sendResponse(t, 400, errorJson("Failed to delete user"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleUpdateRole(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_USER")) return;
+        String[] parts = path.split("/");
+        int userId = Integer.parseInt(parts[parts.length - 2]); // /users/{id}/role
+        String body = readBody(t);
+        java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
+        if (map == null || map.get("roleId") == null) {
+            sendResponse(t, 400, errorJson("roleId is required"));
+            return;
+        }
+        int roleId = ((Number) map.get("roleId")).intValue();
+        com.college.dao.RoleDAO roleDAO = new com.college.dao.RoleDAO();
+        com.college.models.Role role = roleDAO.getRoleById(roleId);
+        if (role == null) {
+            sendResponse(t, 404, errorJson("Role not found"));
+            return;
+        }
+        boolean ok = roleDAO.assignRoleToUser(userId, roleId);
+        if (ok) userDAO.updateUserRole(userId, role.getCode()); // sync legacy column
+        if (ok) sendResponse(t, 200, "{\"status\":\"Role updated\"}");
+        else sendResponse(t, 400, errorJson("Failed to update role"));
     }
 
     @SuppressWarnings("unchecked")
