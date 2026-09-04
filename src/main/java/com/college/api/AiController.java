@@ -3,7 +3,10 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.AuditLogDAO;
+import com.college.services.ChatResult;
 import com.college.services.OpenRouterService;
+import com.college.services.TokenRaService;
+import com.college.utils.Logger;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -33,6 +36,7 @@ public class AiController extends BaseController implements HttpHandler {
     private static final ConcurrentHashMap<Integer, ArrayDeque<Long>> HITS = new ConcurrentHashMap<>();
 
     private final OpenRouterService ai = new OpenRouterService();
+    private final TokenRaService tokenRa = new TokenRaService();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
@@ -144,21 +148,38 @@ public class AiController extends BaseController implements HttpHandler {
             return;
         }
 
-        OpenRouterService.ChatResult result;
-        try {
-            result = ai.chatWithFallback(systemPrompt, userPrompt, temperature);
-        } catch (OpenRouterService.AiException e) {
-            sendResponse(t, e.statusHint, errorJson(e.getMessage()));
-            return;
+        // Provider chain: TokenRa (primary) -> OpenRouter (secondary).
+        // TokenRa is skipped when no key is configured; any TokenRa failure
+        // fails over to OpenRouter. Only the OpenRouter error reaches the client.
+        ChatResult result = null;
+        String provider = null;
+        if (TokenRaService.isConfigured()) {
+            try {
+                result = tokenRa.chat(systemPrompt, userPrompt, temperature);
+                provider = "tokenra";
+            } catch (OpenRouterService.AiException e) {
+                Logger.error("TokenRa primary failed, failing over to OpenRouter: " + e.getMessage());
+            }
+        }
+        if (result == null) {
+            try {
+                result = ai.chatWithFallback(systemPrompt, userPrompt, temperature);
+                provider = "openrouter";
+            } catch (OpenRouterService.AiException e) {
+                sendResponse(t, e.statusHint, errorJson(e.getMessage()));
+                return;
+            }
         }
 
-        // Audit the usage (hash only — never prompt text; the provider retains prompts).
+        // Audit the usage (hash only — never prompt text; providers may retain prompts).
         AuditLogDAO.logAction(token.userId, token.username, "AI_GENERATE", "AI", null,
-                feature + " model=" + result.model + " prompt_sha=" + sha256hex(userPrompt));
+                feature + " provider=" + provider + " model=" + result.model
+                        + " prompt_sha=" + sha256hex(userPrompt));
 
         sendResponse(t, 200, JSON.toJson(Map.of(
                 "text", result.text,
                 "model", result.model,
+                "provider", provider,
                 "feature", feature)));
     }
 

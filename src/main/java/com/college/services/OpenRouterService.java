@@ -26,19 +26,8 @@ public class OpenRouterService {
 
     private static final String API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-    private static final String DEFAULT_PRIMARY = "stealth/ox-alpha";
-    private static final String DEFAULT_FALLBACK = "nvidia/nemotron-3-nano-30b-a3b";
-
-    /** Successful chat result: model that produced it + generated text. */
-    public static final class ChatResult {
-        public final String model;
-        public final String text;
-
-        public ChatResult(String model, String text) {
-            this.model = model;
-            this.text = text;
-        }
-    }
+    private static final String DEFAULT_PRIMARY = "z-ai/glm-5.3-flash";
+    private static final String DEFAULT_FALLBACK = "nvidia/nemotron-3-nano-30b-a3b:free";
 
     /**
      * Failure details. statusHint is the HTTP status the controller should
@@ -142,7 +131,7 @@ public class OpenRouterService {
             if (text == null || text.isBlank()) {
                 throw new AiException("Provider returned an empty completion.", 502);
             }
-            return new ChatResult(model, text.trim());
+            return new ChatResult("openrouter/" + model, text.trim());
         } catch (AiException e) {
             throw e;
         } catch (InterruptedException e) {
