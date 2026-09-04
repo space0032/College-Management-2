@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllFaculty, createFaculty, updateFaculty, deleteFaculty, searchFaculty } from '../services/facultyService';
@@ -56,6 +56,7 @@ const FacultyManagementPage = () => {
   const [state, dispatch] = React.useReducer(facultyReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const firstRender = useRef(true);
   const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, createdCredentials } = state;
 
   const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
@@ -88,8 +89,8 @@ const FacultyManagementPage = () => {
   }, [search]);
 
   useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
     const query = debouncedSearch.trim();
-    if (!query && !search) return;
     if (!query) {
       fetchFaculty(1, false);
     } else {
@@ -162,7 +163,7 @@ const FacultyManagementPage = () => {
 
 
   const COLUMNS = [
-    { key: 'id', label: 'ID' },
+    { key: 'username', label: 'Faculty ID', render: (v, row) => <strong>{v || `FAC${String(row.id).padStart(3, '0')}`}</strong> },
     {
       key: 'name', label: 'Name', render: (v, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -208,8 +209,8 @@ const FacultyManagementPage = () => {
   const phds = useMemo(() => faculty.filter(f => (f.qualification || '').toUpperCase().includes('PHD')).length, [faculty]);
   const handleExport = useCallback(() => {
     exportToCSV(
-      ['ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
-      faculty.map(f => [f.id, f.name, f.email, f.phone, f.department, f.qualification]),
+      ['Faculty ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
+      faculty.map(f => [f.username || `FAC${String(f.id).padStart(3, '0')}`, f.name, f.email, f.phone, f.department, f.qualification]),
       'faculty_export'
     );
   }, [faculty]);
