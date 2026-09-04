@@ -213,7 +213,7 @@ public class FacultyDAO {
                 "FROM faculty f " +
                 "LEFT JOIN users u ON f.user_id = u.id " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
-                "WHERE f.name ILIKE ? OR f.email ILIKE ? ORDER BY f.name";
+                "WHERE f.name ILIKE ? OR f.email ILIKE ? OR u.username ILIKE ? ORDER BY f.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -221,6 +221,7 @@ public class FacultyDAO {
             String searchPattern = "%" + keyword + "%";
             pstmt.setString(1, searchPattern);
             pstmt.setString(2, searchPattern);
+            pstmt.setString(3, searchPattern);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
