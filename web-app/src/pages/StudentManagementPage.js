@@ -270,8 +270,8 @@ const StudentManagementPage = () => {
     try {
       await deleteStudent(id);
       fetchStudents(1, false);
-    } catch {
-      alert('Failed to delete student.');
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete student.');
     }
   }, [fetchStudents]);
 

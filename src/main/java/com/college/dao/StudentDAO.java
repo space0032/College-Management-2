@@ -208,24 +208,43 @@ public class StudentDAO {
     }
 
     /**
-     * Delete a student by ID
-     * 
+     * Delete a student by ID and their associated user account
+     *
      * @param studentId ID of the student to delete
      * @return true if successful, false otherwise
      */
     public boolean deleteStudent(int studentId) {
-        String sql = "DELETE FROM students WHERE id=?";
+        String deleteUserSql = "DELETE FROM users WHERE id = (SELECT user_id FROM students WHERE id = ?)";
+        String deleteSql = "DELETE FROM students WHERE id=?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
 
-            pstmt.setInt(1, studentId);
-            int rowsAffected = pstmt.executeUpdate();
+            try (PreparedStatement ps1 = conn.prepareStatement(deleteUserSql)) {
+                ps1.setInt(1, studentId);
+                ps1.executeUpdate();
+            }
+
+            int rowsAffected;
+            try (PreparedStatement ps2 = conn.prepareStatement(deleteSql)) {
+                ps2.setInt(1, studentId);
+                rowsAffected = ps2.executeUpdate();
+            }
+
+            conn.commit();
             return rowsAffected > 0;
-
         } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { Logger.error("Rollback failed", ex); }
+            }
             Logger.error("Database operation failed", e);
             return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { Logger.error("Connection close failed", e); }
+            }
         }
     }
 

@@ -160,8 +160,8 @@ const FacultyManagementPage = () => {
     try {
       await deleteFaculty(id);
       fetchFaculty(1, false);
-    } catch {
-      alert('Failed to delete.');
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete.');
     }
   }, [fetchFaculty]);
 

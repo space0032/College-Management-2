@@ -40,6 +40,8 @@ if (path.matches("/students/\\d+/courses")) {
             handleGetById(t, extractStudentId(path));
         } else if ("PUT".equals(method) && path.matches("/students/\\d+")) {
             handlePut(t, extractStudentId(path));
+        } else if ("DELETE".equals(method) && path.matches("/students/\\d+")) {
+            handleDelete(t, extractStudentId(path));
         } else if ("GET".equals(method)) {
             handleGet(t);
         } else if ("POST".equals(method)) {
@@ -220,6 +222,19 @@ if (path.matches("/students/\\d+/courses")) {
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
+    private void handleDelete(HttpExchange t, int id) throws IOException {
+        if (!requirePermission(t, "DELETE_STUDENT"))
+            return;
+        try {
+            // deleteStudent now cascades to the associated user account
+            boolean ok = studentDAO.deleteStudent(id);
+            sendResponse(t, ok ? 200 : 400, ok ? "{\"status\":\"Deleted\"}" : "{\"error\":\"Delete failed\"}");
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(t, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
         }
     }
 
