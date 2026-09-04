@@ -87,4 +87,24 @@
   .event-exam { background-color: #fca311; color: white; } /* orange */
   .event-deadline { background-color: #06d6a0; color: white; } /* green */
   .event-event { background-color: #118ab2; color: white; } /* blue */
+
+  .event-count-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--primary-color, #0366d6);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .calendar-day {
+    position: relative;
+  }
   

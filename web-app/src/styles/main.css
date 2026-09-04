@@ -20,6 +20,17 @@
   --radius: 6px;
   --sidebar-width: 240px;
   --header-height: 60px;
+
+  /* Calendar compatibility variables */
+  --primary-color: var(--primary);
+  --secondary-bg: var(--bg);
+  --surface-color: var(--bg-white);
+  --border-color: var(--border);
+  --text-color: var(--text);
+  --event-holiday-color: #ef476f;
+  --event-exam-color: #fca311;
+  --event-deadline-color: #06d6a0;
+  --event-event-color: #118ab2;
 }
 
 /* ===== Reset ===== */

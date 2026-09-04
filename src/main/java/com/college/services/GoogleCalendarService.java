@@ -88,7 +88,10 @@ public class GoogleCalendarService {
                             event.setTitle(summary);
                             event.setEventDate(date);
                             event.setEventType(EventType.HOLIDAY);
-                            event.setDescription("Public Holiday from Google Calendar");
+                            String description = eventJson.has("description") 
+                                ? eventJson.get("description").getAsString() 
+                                : "Public Holiday from Google Calendar";
+                            event.setDescription(description);
 
                             holidays.add(event);
                         }

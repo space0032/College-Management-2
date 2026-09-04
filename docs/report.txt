@@ -1,0 +1,26 @@
+The completed audit already found these confirmed problems:
+
+Multiple backend/API requests return HTTP 403.
+Students: “Failed to load students.”
+Courses: “Failed to load courses.”
+Departments: “Failed to load departments.”
+Room Availability: “Failed to query room availability.”
+Resources: entire page shows “Failed to load resources data.”
+Placements: “Failed to load placement data.”
+Announcements and Notifications fail to load.
+Employees: “System error retrieving staff records.”
+Faculty Workload fails to load.
+Audit Log: “Failed to load audit logs. Ensure backend is running.”
+Roles/users request logs an application error.
+Student Profile tries to load a student profile for the admin account and fails.
+Dashboard reports 2 students while Student Management reports 0.
+Student Affairs displays Alice and Bob although the Students module cannot retrieve students.
+Several statistics appear hard-coded or contradictory:
+82% assignment average with zero assignments
+₹12.4M scholarship disbursement and 240+ beneficiaries with zero active grants
+94% crowdfunding success with zero projects
+98.2% employee retention with zero employees
+Gold volunteer rank with zero hours
+1.4K+ downloads and a 12-day streak with zero learning materials
+Failed requests often fall back to 0, making API failures look like legitimate empty data.
+All tested pages use the same generic browser title instead of module-specific titles.
