@@ -102,7 +102,7 @@ const StudentProfilePage = () => {
             };
             fetchOwn();
         }
-    }, [user.id, user.email, fetchStudentData]);
+    }, [user.id, user.email, fetchStudentData, viewedStudentId]);
 
     // Load viewed student when viewedStudentId changes
     useEffect(() => {
