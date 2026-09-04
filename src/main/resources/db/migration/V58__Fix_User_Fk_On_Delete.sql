@@ -5,8 +5,8 @@
 -- Recreate each FK with ON DELETE SET NULL so user deletion nullifies
 -- audit/creator references instead of failing.
 --
--- NOTE: MigrationRunner splits SQL on ";" so DO blocks cannot be used here.
--- Constraint names follow PostgreSQL's auto-generated convention.
+-- NOTE: MigrationRunner splits SQL on semicolons so DO blocks cannot be used here.
+-- Constraint names follow the Postgres auto-generated convention.
 
 -- 1. student_feedback.faculty_id (was NOT NULL, no ON DELETE)
 ALTER TABLE IF EXISTS student_feedback ALTER COLUMN faculty_id DROP NOT NULL;
