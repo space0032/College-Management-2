@@ -1,6 +1,7 @@
 import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import api from '../services/api';
+import { getStudentFees } from '../services/feesService';
 import { searchStudents } from '../services/studentService';
 import Modal from '../components/Modal';
 
@@ -54,11 +55,11 @@ const StudentProfilePage = () => {
                     setCgpa(typeof cgpaData === 'object' ? cgpaData.cgpa : parseFloat(cgpaData));
                 } catch { setCgpa(null); }
 
-                // Fetch fees and filter by student
+                // Fetch fees for this student using dedicated endpoint
                 try {
-                    const fRes = await api.get('/fees');
+                    const fRes = await getStudentFees(studentId);
                     const fList = Array.isArray(fRes.data) ? fRes.data : (fRes.data?.data || []);
-                    setFees(fList.filter(f => f.studentId === studentId || f.student_id === studentId));
+                    setFees(fList);
                 } catch { setFees([]); }
 
                 // Fetch attendance records using correct endpoint
@@ -158,9 +159,9 @@ const StudentProfilePage = () => {
         return (present / attendanceRecords.length) * 100;
     }, [attendanceRecords]);
 
-    // Fee calculations (already use filtered fees)
-    const totalFees = useMemo(() => fees.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0), [fees]);
-    const paidFees = useMemo(() => fees.filter(f => f.status === 'PAID').reduce((s, f) => s + (parseFloat(f.amount) || 0), 0), [fees]);
+    // Fee calculations
+    const totalFees = useMemo(() => fees.reduce((s, f) => s + (parseFloat(f.totalAmount) || 0), 0), [fees]);
+    const paidFees = useMemo(() => fees.reduce((s, f) => s + (parseFloat(f.paidAmount) || 0), 0), [fees]);
     const pendingFees = useMemo(() => totalFees - paidFees, [totalFees, paidFees]);
 
     const initials = (student?.name || user.name || user.username || 'S')
@@ -447,10 +448,10 @@ return (
                                 ) : (
                                     fees.map((f, i) => (
                                         <tr key={f.id || i}>
-                                            <td>{f.feeType || f.fee_type || f.type || 'Tuition Fee'}</td>
-                                            <td style={{ fontWeight: 500 }}>₹{parseFloat(f.amount || 0).toLocaleString()}</td>
+                                            <td>{f.categoryName || f.feeType || f.fee_type || f.type || 'Tuition Fee'}</td>
+                                            <td style={{ fontWeight: 500 }}>₹{parseFloat(f.totalAmount || 0).toLocaleString()}</td>
                                             <td>{f.dueDate || f.due_date || '—'}</td>
-                                            <td>{f.paidDate || f.paid_date || '—'}</td>
+                                            <td>{f.academicYear || f.paidDate || f.paid_date || '—'}</td>
                                             <td><span className={`status-badge ${f.status === 'PAID' ? 'status-active' : 'status-pending'}`}>{f.status || 'PENDING'}</span></td>
                                         </tr>
                                     ))

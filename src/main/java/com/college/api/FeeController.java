@@ -22,7 +22,12 @@ public class FeeController extends BaseController implements HttpHandler {
             if (!requireAuth(t))
                 return;
             if ("GET".equals(method)) {
-                if (path.endsWith("/pending")) {
+                if (path.matches(".*/fees/student/\\d+")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES"))
+                        return;
+                    int studentId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+                    sendResponse(t, 200, JsonHelper.toJson(feeDAO.getStudentFees(studentId)));
+                } else if (path.endsWith("/pending")) {
                     if (!requirePermission(t, "VIEW_FEES"))
                         return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPendingFees()));
