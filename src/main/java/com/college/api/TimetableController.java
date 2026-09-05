@@ -73,6 +73,17 @@ public class TimetableController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Department, semester, day, time slot, and subject are required"));
             return;
         }
+        // Prevent cross-department double-booking of the same room (overlap-aware)
+        if (entry.getRoomNumber() != null && !entry.getRoomNumber().isBlank()) {
+            com.college.models.Timetable occupant = timetableDAO.findOccupant(
+                    entry.getRoomNumber().trim(), entry.getDayOfWeek(), entry.getTimeSlot(), entry.getId());
+            if (occupant != null) {
+                sendResponse(t, 409, errorJson("Room " + entry.getRoomNumber().trim()
+                        + " is already occupied on " + occupant.getDayOfWeek() + " " + occupant.getTimeSlot()
+                        + " by " + occupant.getSubject() + " (" + occupant.getDepartment() + ")"));
+                return;
+            }
+        }
         boolean ok = timetableDAO.saveTimetableEntry(entry);
         if (ok) sendResponse(t, 201, JsonHelper.toJson(entry));
         else sendResponse(t, 400, errorJson("Failed to save timetable entry"));

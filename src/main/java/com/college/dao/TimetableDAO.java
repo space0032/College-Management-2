@@ -3,6 +3,7 @@ package com.college.dao;
 import com.college.models.Timetable;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
+import com.college.utils.TimeSlotUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -240,25 +241,42 @@ public class TimetableDAO {
      * Extract Timetable object from ResultSet
      */
     /**
-     * Check for room conflict
+     * Check for room conflict (legacy signature kept for compatibility).
+     * The semester parameter is ignored: a room cannot be double-booked
+     * by any department/semester on overlapping time.
      */
     public boolean checkConflict(String roomNumber, String day, String timeSlot, int semester, int excludeId) {
-        String sql = "SELECT COUNT(*) FROM timetable WHERE room_number = ? AND day_of_week = ? AND time_slot = ? AND semester = ? AND id != ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, roomNumber);
-            pstmt.setString(2, day);
-            pstmt.setString(3, timeSlot);
-            pstmt.setInt(4, semester);
-            pstmt.setInt(5, excludeId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
-        } catch (SQLException e) {
-            Logger.error("Error checking conflict: " + e.getMessage());
+        return isRoomOccupied(roomNumber, day, timeSlot, excludeId);
+    }
+
+    /**
+     * True if the room is occupied on the given day at an overlapping time slot.
+     * Uses interval overlap instead of exact string equality.
+     */
+    public boolean isRoomOccupied(String roomNumber, String day, String timeSlot, int excludeId) {
+        return findOccupant(roomNumber, day, timeSlot, excludeId) != null;
+    }
+
+    /**
+     * Find the timetable entry occupying the room at an overlapping time, or null.
+     */
+    public Timetable findOccupant(String roomNumber, String day, String timeSlot, int excludeId) {
+        if (roomNumber == null || roomNumber.isBlank() || day == null || timeSlot == null) {
+            return null;
         }
-        return false;
+        String normalizedDay = TimeSlotUtil.normalizeDay(day);
+        for (Timetable entry : getTimetableByDay(normalizedDay)) {
+            if (entry.getId() == excludeId) {
+                continue;
+            }
+            if (entry.getRoomNumber() == null || !entry.getRoomNumber().equalsIgnoreCase(roomNumber.trim())) {
+                continue;
+            }
+            if (TimeSlotUtil.overlaps(entry.getTimeSlot(), timeSlot)) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     private Timetable extractTimetableFromResultSet(ResultSet rs) throws SQLException {
@@ -285,23 +303,45 @@ public class TimetableDAO {
     }
 
     /**
-     * Get occupied rooms for a specific day and time slot
+     * Get occupied rooms for a specific day and time slot.
+     * Uses interval overlap so "09:00-10:30" blocks "09:00 - 10:00 AM".
      */
     public List<String> getOccupiedRooms(String day, String timeSlot) {
         List<String> occupied = new ArrayList<>();
-        String sql = "SELECT DISTINCT room_number FROM timetable WHERE day_of_week = ? AND time_slot = ? AND room_number IS NOT NULL AND room_number != ''";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, day);
-            pstmt.setString(2, timeSlot);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                occupied.add(rs.getString("room_number"));
+        if (day == null || timeSlot == null) {
+            return occupied;
+        }
+        String normalizedDay = TimeSlotUtil.normalizeDay(day);
+        for (Timetable entry : getTimetableByDay(normalizedDay)) {
+            if (entry.getRoomNumber() == null || entry.getRoomNumber().isBlank()) {
+                continue;
             }
-        } catch (SQLException e) {
-            Logger.error("Error fetching occupied rooms: " + e.getMessage());
+            if (TimeSlotUtil.overlaps(entry.getTimeSlot(), timeSlot)
+                    && !occupied.contains(entry.getRoomNumber())) {
+                occupied.add(entry.getRoomNumber());
+            }
         }
         return occupied;
+    }
+
+    /**
+     * Get all timetable entries for a day (case-insensitive).
+     */
+    public List<Timetable> getTimetableByDay(String day) {
+        List<Timetable> timetable = new ArrayList<>();
+        String normalizedDay = TimeSlotUtil.normalizeDay(day);
+        String sql = "SELECT * FROM timetable WHERE LOWER(day_of_week) = LOWER(?) ORDER BY time_slot";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, normalizedDay);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                timetable.add(extractTimetableFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Error fetching timetable by day: " + e.getMessage());
+        }
+        return timetable;
     }
 
     /**
