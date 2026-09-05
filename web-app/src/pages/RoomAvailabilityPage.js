@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './RoomAvailabilityPage.css';
+import SessionManager from '../utils/SessionManager';
+import BookRoomModal from './BookRoomModal';
 import { getRooms, checkAvailability, getFreeSlots, getDayGrid, createRoom, deleteRoom } from '../services/roomService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -40,6 +42,10 @@ const RoomAvailabilityPage = () => {
     const [freeResult, setFreeResult] = useState(null);
     const [freeRoom, setFreeRoom] = useState('');
     const [newRoom, setNewRoom] = useState({ roomNumber: '', building: '', capacity: 40, type: 'CLASSROOM' });
+    const [booking, setBooking] = useState(null); // { roomNumber, day, timeSlot, source }
+    const [notice, setNotice] = useState(null);
+
+    const canBook = SessionManager.hasPermission('BOOK_ROOM') || SessionManager.hasPermission('CREATE_TIMETABLE');
 
     const [searchParams, setSearchParams] = useState({
         day: getTodayDay(),
@@ -83,6 +89,7 @@ const RoomAvailabilityPage = () => {
         if (e) e.preventDefault();
         setLoading(true);
         setError(null);
+        setNotice(null);
         const day = overrideDay || searchParams.day;
         const timeSlot = overrideSlot || searchParams.timeSlot;
         try {
@@ -107,6 +114,7 @@ const RoomAvailabilityPage = () => {
     const handleGrid = async () => {
         setLoading(true);
         setError(null);
+        setNotice(null);
         try {
             const res = await getDayGrid(searchParams.day, { type: typeFilter, building: buildingFilter });
             setGrid(res.data);
@@ -126,6 +134,7 @@ const RoomAvailabilityPage = () => {
         }
         setLoading(true);
         setError(null);
+        setNotice(null);
         try {
             const res = await getFreeSlots(searchParams.day, freeRoom);
             setFreeResult(res.data);
@@ -163,6 +172,49 @@ const RoomAvailabilityPage = () => {
             loadInventory();
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to delete room.');
+        }
+    };
+
+    const openBooking = (roomNumber, day, timeSlot, source) => {
+        setNotice(null);
+        setError(null);
+        setBooking({ roomNumber, day, timeSlot, source });
+    };
+
+    const handleBooked = async () => {
+        if (!booking) return;
+        const done = { ...booking };
+        setBooking(null);
+        const msg = `✅ ${done.roomNumber} booked for ${done.day} · ${done.timeSlot}.`;
+        if (done.source === 'grid') {
+            await handleGrid();
+        } else if (done.source === 'free') {
+            setLoading(true);
+            try {
+                const res = await getFreeSlots(done.day, done.roomNumber);
+                setFreeResult(res.data);
+            } catch (err) {
+                setError(err.response?.data?.error || 'Booking saved, but free slots could not be refreshed.');
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            await handleCheckAfterBooking(done);
+        }
+        setNotice(msg);
+    };
+
+    const handleCheckAfterBooking = async (done) => {
+        setLoading(true);
+        try {
+            const res = await checkAvailability(done.day, done.timeSlot, filters);
+            setAvailability(Array.isArray(res.data) ? res.data : []);
+            setHasQueried(true);
+            setView('check');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Booking saved, but availability could not be refreshed.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -206,6 +258,14 @@ const RoomAvailabilityPage = () => {
                         <>📚 {room.course}</>
                     )}
                 </div>
+            )}
+            {av && canBook && (
+                <button
+                    className="btn btn-primary btn-sm room-card-book"
+                    onClick={() => openBooking(room.roomNumber, searchParams.day, searchParams.timeSlot, 'check')}
+                >
+                    📅 Book this slot
+                </button>
             )}
         </div>
     );
@@ -292,6 +352,7 @@ const RoomAvailabilityPage = () => {
             </div>
 
             {error && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{error}</div>}
+            {notice && <div className="alert alert-success" style={{ marginBottom: '16px' }}>{notice}</div>}
 
             {view === 'check' && (
                 <>
@@ -398,9 +459,17 @@ const RoomAvailabilityPage = () => {
                                                         const cell = r.slots[s];
                                                         return (
                                                             <td key={s} className={cell ? 'cell-busy' : 'cell-free'}
-                                                                title={cell ? `${cell.subject} — ${cell.facultyName || ''}` : 'Free'}>
+                                                                title={cell ? `${cell.subject} — ${cell.facultyName || ''}` : `Free — book ${r.roomNumber} at ${s}`}>
                                                                 {cell ? (
                                                                     <>✗<small>{cell.subject}</small></>
+                                                                ) : canBook ? (
+                                                                    <button
+                                                                        className="cell-book-btn"
+                                                                        onClick={() => openBooking(r.roomNumber, grid.day, s, 'grid')}
+                                                                        title={`Book ${r.roomNumber} · ${grid.day} · ${s}`}
+                                                                    >
+                                                                        ✓ Book
+                                                                    </button>
                                                                 ) : '✓'}
                                                             </td>
                                                         );
@@ -451,7 +520,18 @@ const RoomAvailabilityPage = () => {
                                 </p>
                                 <div className="slot-chips">
                                     {freeResult.freeSlots.map(s => (
-                                        <span key={s} className="slot-chip">✓ {s}</span>
+                                        <span key={s} className="slot-chip">
+                                            ✓ {s}
+                                            {canBook && (
+                                                <button
+                                                    className="chip-book-btn"
+                                                    onClick={() => openBooking(freeResult.roomNumber, freeResult.day, s, 'free')}
+                                                    title={`Book ${freeResult.roomNumber} · ${freeResult.day} · ${s}`}
+                                                >
+                                                    Book
+                                                </button>
+                                            )}
+                                        </span>
                                     ))}
                                     {freeResult.freeSlots.length === 0 && <span className="text-muted">Fully booked that day.</span>}
                                 </div>
@@ -527,6 +607,12 @@ const RoomAvailabilityPage = () => {
                     </div>
                 </div>
             )}
+
+            <BookRoomModal
+                booking={booking}
+                onClose={() => setBooking(null)}
+                onBooked={handleBooked}
+            />
         </div>
     );
 };

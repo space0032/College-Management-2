@@ -58,7 +58,9 @@ public class TimetableController extends BaseController implements HttpHandler {
     }
 
     private void handlePost(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "CREATE_TIMETABLE")) return;
+        // BOOK_ROOM holders may book room slots from the availability page
+        // without holding full timetable-create rights.
+        if (!requireAnyPermission(t, "CREATE_TIMETABLE", "BOOK_ROOM")) return;
         String body = readBody(t);
         Timetable entry = JsonHelper.fromJson(body, Timetable.class);
         if (entry == null) {

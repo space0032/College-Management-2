@@ -176,6 +176,43 @@
 
 .manage-form-grid .form-group { margin-bottom: 0; }
 
+.room-card-book {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.cell-book-btn {
+  border: 1px solid #a6f4c5;
+  background: #fff;
+  color: #027a48;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.cell-book-btn:hover {
+  background: #ecfdf3;
+  transform: translateY(-1px);
+}
+
+.chip-book-btn {
+  margin-left: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.chip-book-btn:hover {
+  background: var(--primary-dark);
+}
+
 @media (max-width: 640px) {
   .room-filter-actions .btn { width: 100%; justify-content: center; }
   .data-table th.sticky-col,
