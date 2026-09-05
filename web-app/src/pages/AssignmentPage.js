@@ -4,6 +4,7 @@ import {
     getStudentSubmission, submitAssignment, gradeSubmission
 } from '../services/assignmentService';
 import { getAllCourses } from '../services/courseService';
+import { searchStudents, getStudentCourses } from '../services/studentService';
 import SessionManager from '../utils/SessionManager';
 import AiAssistModal from '../components/AiAssistModal';
 
@@ -19,6 +20,8 @@ const AssignmentPage = () => {
     const [gradingForm, setGradingForm] = useState({ grade: '', feedback: '' });
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [courses, setCourses] = useState([]);
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
+    const [studentId, setStudentId] = useState(null);
     const [aiOpen, setAiOpen] = useState(false);
 
     const user = SessionManager.getUser() || { id: null, username: '', role: 'STUDENT' };
@@ -26,35 +29,62 @@ const AssignmentPage = () => {
     const username = user.username;
     const userRole = user.role;
 
+    const resolveStudentId = React.useCallback(async () => {
+        if (userRole !== 'STUDENT') return null;
+        if (studentId) return studentId;
+        try {
+            const res = await searchStudents(username);
+            const match = (res.data || []).find(s => s.username === username || s.enrollmentId === username) || (res.data || [])[0];
+            if (match) {
+                setStudentId(match.id);
+                return match.id;
+            }
+        } catch { /* ignore */ }
+        return null;
+    }, [userRole, username, studentId]);
+
     const loadAssignments = React.useCallback(async () => {
         try {
-            const res = await getAssignments(userRole, userId);
-            setAssignments(res.data || []);
+            if (userRole === 'STUDENT') {
+                const sid = await resolveStudentId();
+                const res = await getAssignments(userRole, userId, sid || undefined);
+                setAssignments(res.data || []);
+                if (sid) {
+                    try {
+                        const cRes = await getStudentCourses(sid);
+                        setEnrolledCourses(cRes.data || []);
+                    } catch { /* ignore */ }
+                }
+            } else {
+                const res = await getAssignments(userRole, userId);
+                setAssignments(res.data || []);
+            }
         } catch (err) {
             console.error(err);
         }
-    }, [userId, userRole]);
+    }, [userId, userRole, resolveStudentId]);
 
     useEffect(() => {
         loadAssignments();
         if (userRole === 'FACULTY' || userRole === 'ADMIN') {
-            getAllCourses().then(res => setCourses(res.data || [])).catch(() => { });
+            getAllCourses(1, 500).then(res => setCourses(res.data || [])).catch(() => { });
         }
     }, [activeTab, loadAssignments, userRole]);
 
     const handleCreateAssignment = async (e) => {
         e.preventDefault();
-        if (!assignmentForm.courseId) { alert('Please select a course.'); return; }
+        if (!assignmentForm.courseId) { alert('Please select a subject.'); return; }
         const today = new Date().toISOString().split('T')[0];
         if (assignmentForm.dueDate && assignmentForm.dueDate < today) { alert('Due date cannot be in the past.'); return; }
+        const selected = courses.find(c => String(c.id) === String(assignmentForm.courseId));
         try {
             await createAssignment({
                 ...assignmentForm,
                 courseId: parseInt(assignmentForm.courseId),
-                semester: parseInt(assignmentForm.semester),
+                semester: selected?.semester ? parseInt(selected.semester) : parseInt(assignmentForm.semester),
                 createdBy: userId
             });
-            setAssignmentForm({ title: '', description: '', dueDate: '', courseId: '1', semester: 1 });
+            setAssignmentForm({ title: '', description: '', dueDate: '', courseId: '', semester: 1 });
             setActiveTab('browse');
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to create assignment');
@@ -154,8 +184,8 @@ const AssignmentPage = () => {
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">📝 Course Assignments</h1>
-                    <p className="page-subtitle">Track, submit, and grade academic assignments across your courses</p>
+                    <h1 className="page-title">📝 Subject Assignments</h1>
+                    <p className="page-subtitle">Track, submit, and grade academic assignments across your enrolled subjects{userRole === 'STUDENT' && enrolledCourses.length > 0 ? ` (${enrolledCourses.length} enrolled)` : ''}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button className={`btn ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>
@@ -215,7 +245,7 @@ const AssignmentPage = () => {
                                         <div>
                                             <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#2d3748' }}>{a.title}</h3>
                                             <div style={{ fontSize: '0.8rem', color: '#718096', marginTop: '4px' }}>
-                                                {a.courseName || `Course ID ${a.courseId}`}
+                                                {a.courseName || `Subject ID ${a.courseId}`}
                                             </div>
                                         </div>
                                         <span className={`badge ${isOverdue ? 'badge-danger' : isDueSoon ? 'badge-warning' : 'badge-success'}`}>
@@ -276,12 +306,12 @@ const AssignmentPage = () => {
                                 <input required type="date" min={new Date().toISOString().split('T')[0]} className="form-control" value={assignmentForm.dueDate} onChange={e => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Target Course *</label>
+                                <label>Target Subject *</label>
                                 <select required className="form-control" value={assignmentForm.courseId}
                                     onChange={e => setAssignmentForm({ ...assignmentForm, courseId: e.target.value })}>
-                                    <option value="">-- Select Course --</option>
+                                    <option value="">-- Select Subject --</option>
                                     {courses.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name || c.courseName} (ID: {c.id})</option>
+                                        <option key={c.id} value={c.id}>{c.code} — {c.name || c.courseName}{c.specialization ? ` [${c.specialization}]` : ''} (Sem {c.semester})</option>
                                     ))}
                                 </select>
                             </div>

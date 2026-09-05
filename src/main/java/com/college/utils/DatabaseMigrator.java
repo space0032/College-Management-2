@@ -50,7 +50,12 @@ public class DatabaseMigrator {
             "V45__Add_Visitor_Management.sql",
             "V46__Add_Manage_Rooms_Permission.sql",
             "V47__Grant_Room_Check_Permission.sql",
-            "V48__Add_Created_At_To_Courses.sql"
+            "V48__Add_Created_At_To_Courses.sql",
+            "V49__Fix_Runtime_Schema_Issues.sql",
+            "V51__Complete_Course_Schema.sql",
+            "V53__Complete_Faculty_And_Content_Schema.sql",
+            "V62__Add_Track_Specialization.sql",
+            "V63__Add_Track_To_Program_Fees.sql"
         };
 
         try (Connection conn = DatabaseConnection.getConnection();

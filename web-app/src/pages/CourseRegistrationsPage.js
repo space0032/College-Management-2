@@ -2,16 +2,19 @@ import React, { useEffect, useState } from 'react';
 import SessionManager from '../utils/SessionManager';
 import { getPendingRegistrations, registerForCourse, approveRegistration, rejectRegistration } from '../services/featureService';
 import { getAllStudents } from '../services/studentService';
+import { getAllCourses } from '../services/courseService';
 
 const CourseRegistrationsPage = () => {
   const user = SessionManager.getUser() || {};
   const isStudent = user.role === 'STUDENT';
   const [pending, setPending] = useState([]);
   const [students, setStudents] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [form, setForm] = useState({ enrollmentId: user.username || '', courseId: '' });
 
   useEffect(() => {
     getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+    getAllCourses(1, 500).then(res => setCourses(res.data || [])).catch(() => {});
   }, []);
 
   const load = async () => {
@@ -55,8 +58,8 @@ const CourseRegistrationsPage = () => {
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1>Course Registration</h1>
-          <p>{isStudent ? 'Request elective course registration' : 'Review and manage registration requests'}</p>
+          <h1>Subject Registration</h1>
+          <p>{isStudent ? 'Request elective subject registration (subjects are part of a course/track)' : 'Review and manage subject registration requests'}</p>
         </div>
       </div>
 
@@ -70,7 +73,7 @@ const CourseRegistrationsPage = () => {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Course</th>
+                  <th>Subject</th>
                   <th>Code</th>
                   <th>Date</th>
                   <th>Action</th>
@@ -96,7 +99,7 @@ const CourseRegistrationsPage = () => {
       )}
 
       <div className="card" style={{ padding: '20px' }}>
-        <h3>{isStudent ? 'Request Registration' : 'Register a Student'}</h3>
+        <h3>{isStudent ? 'Request Registration' : 'Register a Student for a Subject'}</h3>
         <form onSubmit={handleRequest} style={{ maxWidth: '420px' }}>
           <div className="form-group">
             <label className="form-label">Enrollment No.</label>
@@ -106,8 +109,11 @@ const CourseRegistrationsPage = () => {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Course ID</label>
-            <input className="form-control" type="number" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} required />
+            <label className="form-label">Subject</label>
+            <select className="form-control" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} required>
+              <option value="">Select subject…</option>
+              {courses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''} (Sem {c.semester}, {c.courseType || 'CORE'})</option>)}
+            </select>
           </div>
           <button className="btn btn-primary" type="submit">Submit Request</button>
         </form>

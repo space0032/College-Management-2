@@ -13,6 +13,9 @@ public class Timetable {
     private String subject;
     private String facultyName;
     private String roomNumber;
+    // Track inside department (e.g. 'Cyber Security') + optional link to subject row in courses
+    private String specialization;
+    private int courseId;
 
     // Constructors
     public Timetable() {
@@ -92,6 +95,22 @@ public class Timetable {
 
     public void setRoomNumber(String roomNumber) {
         this.roomNumber = roomNumber;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
+    }
+
+    public int getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(int courseId) {
+        this.courseId = courseId;
     }
 
     @Override

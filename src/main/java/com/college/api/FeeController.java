@@ -125,11 +125,13 @@ public class FeeController extends BaseController implements HttpHandler {
         String department = params.getOrDefault("department", "").trim();
         String academicYear = params.getOrDefault("academicYear",
                 params.getOrDefault("year", java.time.Year.now().toString())).trim();
+        String specialization = params.getOrDefault("specialization", params.getOrDefault("track", "")).trim();
         if (department.isEmpty()) {
             sendResponse(t, 400, errorJson("department query parameter is required"));
             return;
         }
-        sendResponse(t, 200, JsonHelper.toJson(feeDAO.getProgramFees(department, academicYear)));
+        sendResponse(t, 200,
+                JsonHelper.toJson(feeDAO.getProgramFees(department, specialization, academicYear)));
     }
 
     @SuppressWarnings("unchecked")
@@ -144,6 +146,8 @@ public class FeeController extends BaseController implements HttpHandler {
         Object yearObj = map.getOrDefault("academicYear", map.getOrDefault("year",
                 java.time.Year.now().toString()));
         String academicYear = String.valueOf(yearObj).trim();
+        Object specObj = map.getOrDefault("specialization", map.getOrDefault("track", ""));
+        String specialization = specObj == null ? "" : String.valueOf(specObj).trim();
         Object feesObj = map.get("fees");
         if (department.isEmpty() || !(feesObj instanceof java.util.List)) {
             sendResponse(t, 400, errorJson("department and fees are required"));
@@ -171,14 +175,15 @@ public class FeeController extends BaseController implements HttpHandler {
                 int categoryId = ((Number) catObj).intValue();
                 double amount = ((Number) amtObj).doubleValue();
                 if (categoryId > 0 && amount > 0 && !busCategoryIds.contains(categoryId)) {
-                    fees.add(new com.college.models.ProgramFeeStructure(department, categoryId, academicYear, amount));
+                    fees.add(new com.college.models.ProgramFeeStructure(department, specialization, categoryId,
+                            academicYear, amount));
                 }
             } catch (ClassCastException e) {
                 sendResponse(t, 400, errorJson("categoryId and amount must be numbers"));
                 return;
             }
         }
-        boolean ok = feeDAO.saveProgramFees(department, academicYear, fees);
+        boolean ok = feeDAO.saveProgramFees(department, specialization, academicYear, fees);
         if (ok) {
             sendResponse(t, 200, "{\"status\":\"Program fee structure saved\"}");
         } else {

@@ -2,6 +2,7 @@ import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSyllabiBycourse, addSyllabus, deleteSyllabus, downloadSyllabus } from '../services/syllabusService';
 import { getAllCourses } from '../services/courseService';
+import { searchStudents, getStudentCourses } from '../services/studentService';
 
 const getFileIcon = (path) => {
     if (!path) return '📄';
@@ -30,12 +31,38 @@ const SyllabusManagementPage = () => {
     const [selectedFile, setSelectedFile] = useState(null);
 
     useEffect(() => {
-        getAllCourses().then(res => {
-            const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        const user = SessionManager.getUser() || {};
+        const applyList = (list) => {
             setCourses(list);
             if (list.length > 0) setSelectedCourse(String(list[0].id));
-        }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
-    }, []);
+        };
+        if (!canManage && user.role === 'STUDENT' && user.username) {
+            searchStudents(user.username).then(res => {
+                const match = (res.data || []).find(s => s.username === user.username) || (res.data || [])[0];
+                if (match) {
+                    return getStudentCourses(match.id).then(cRes => {
+                        const enrolled = cRes.data || [];
+                        if (enrolled.length > 0) {
+                            applyList(enrolled);
+                            return;
+                        }
+                        throw new Error('no-enrolled');
+                    });
+                }
+                throw new Error('no-student');
+            }).catch(() => {
+                getAllCourses(1, 500).then(res => {
+                    const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                    applyList(list);
+                }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
+            });
+        } else {
+            getAllCourses(1, 500).then(res => {
+                const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                applyList(list);
+            }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
+        }
+    }, [canManage]);
 
     const fetchSyllabi = useCallback(() => {
         if (!selectedCourse) return;

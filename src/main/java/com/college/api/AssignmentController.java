@@ -8,6 +8,7 @@ import com.college.models.Assignment;
 import com.college.models.Submission;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.sql.Timestamp;
@@ -74,7 +75,13 @@ public class AssignmentController extends BaseController implements HttpHandler 
         if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String query = t.getRequestURI().getQuery();
         List<Assignment> list;
-        if (query != null && query.contains("courseId=")) {
+        if (query != null && query.contains("studentId=")) {
+            int studentId = parseIntParam(query, "studentId", 0);
+            list = studentId > 0 ? assignmentDAO.getAssignmentsByStudent(studentId)
+                    : assignmentDAO.getAssignmentsBySemester(1);
+        } else if (query != null && query.contains("courseIds=")) {
+            list = assignmentDAO.getAssignmentsByCourseIds(parseIdList(queryParam(query, "courseIds")));
+        } else if (query != null && query.contains("courseId=")) {
             int courseId = Integer.parseInt(query.split("courseId=")[1].split("&")[0]);
             list = assignmentDAO.getAssignmentsByCourse(courseId);
         } else if (query != null && query.contains("facultyId=")) {
@@ -85,6 +92,41 @@ public class AssignmentController extends BaseController implements HttpHandler 
             list = assignmentDAO.getAssignmentsBySemester(1);
         }
         sendResponse(t, 200, JsonHelper.toJson(list));
+    }
+
+    private static String queryParam(String query, String key) {
+        for (String param : query.split("&")) {
+            String[] kv = param.split("=", 2);
+            if (kv.length == 2 && kv[0].equals(key)) {
+                return java.net.URLDecoder.decode(kv[1], java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return "";
+    }
+
+    private static int parseIntParam(String query, String key, int def) {
+        try {
+            return Integer.parseInt(queryParam(query, key).split(",")[0].trim());
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    private static List<Integer> parseIdList(String csv) {
+        List<Integer> ids = new ArrayList<>();
+        if (csv == null || csv.trim().isEmpty()) {
+            return ids;
+        }
+        for (String part : csv.split(",")) {
+            try {
+                int id = Integer.parseInt(part.trim());
+                if (id > 0) {
+                    ids.add(id);
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return ids;
     }
 
     @SuppressWarnings("unchecked")

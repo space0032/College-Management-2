@@ -9,7 +9,7 @@ import SessionManager from '../utils/SessionManager';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', email: '', phone: '', address: '', batch: '', course: '', department: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
+const EMPTY_FORM = { name: '', email: '', phone: '', address: '', batch: '', course: '', department: '', specialization: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
 
 const initialState = {
   students: [],
@@ -61,9 +61,10 @@ function studentReducer(state, action) {
       return { ...state, modalOpen: false, fieldErrors: {} };
     case 'SET_FORM': {
       const nextForm = { ...state.form, [action.name]: action.value };
-      // Clear stale course when department changes
-      if (action.name === 'department' && state.form.course) {
+      // Clear stale course/track when department changes
+      if (action.name === 'department' && (state.form.course || state.form.specialization)) {
         nextForm.course = '';
+        nextForm.specialization = '';
       }
       // Clear stale hostel/room when hostelite is unchecked
       if (action.name === 'isHostelite' && !action.value) {
@@ -256,7 +257,7 @@ const StudentManagementPage = () => {
     dispatch({ type: 'OPEN_MODAL', form: {
       name: row.name || '', email: row.email || '', phone: row.phone || '',
       address: row.address || '', batch: row.batch || '',
-      course: row.course || '', department: row.department || '', semester: row.semester || '',
+      course: row.course || '', department: row.department || '', specialization: row.specialization || '', semester: row.semester || '',
       isHostelite: row.isHostelite || row.hostelite || !!alloc,
       hostelId: currentRoom ? String(currentRoom.hostelId) : '',
       roomId: alloc ? String(alloc.roomId) : ''
@@ -359,7 +360,7 @@ const StudentManagementPage = () => {
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
       const query = search.trim().toLowerCase();
-      const matchesSearch = !query || [s.name, s.email, s.username, s.course, s.department]
+      const matchesSearch = !query || [s.name, s.email, s.username, s.course, s.department, s.specialization]
         .some(value => String(value || '').toLowerCase().includes(query));
       const matchesDept = !filterDept || s.department === filterDept;
       const matchesSem = !filterSem || s.semester?.toString() === filterSem;
@@ -369,8 +370,8 @@ const StudentManagementPage = () => {
 
   const handleExport = useCallback(() => {
     exportToCSV(
-      ['ID', 'Name', 'Email', 'Phone', 'Course', 'Department', 'Semester'],
-      filteredStudents.map(s => [s.id, s.name, s.email, s.phone, s.course, s.department, s.semester]),
+      ['ID', 'Name', 'Email', 'Phone', 'Course', 'Department', 'Track', 'Semester'],
+      filteredStudents.map(s => [s.id, s.name, s.email, s.phone, s.course, s.department, s.specialization || '', s.semester]),
       'students_export'
     );
   }, [filteredStudents]);
@@ -419,6 +420,7 @@ const StudentManagementPage = () => {
           phone: record.phone || '',
           course: record.course || '',
           department: record.department || '',
+          specialization: record.specialization || record.track || '',
           semester: record.semester || '',
           password: record.password || '',
           isHostelite: /^(yes|true|1|y)$/i.test(record.hostelite || record.is_hostelite || '')
@@ -491,6 +493,7 @@ const StudentManagementPage = () => {
         <span className="badge badge-primary">{v}</span>
       )
     },
+    { key: 'specialization', label: 'Track', render: (v) => (v ? <span className="badge badge-secondary">{v}</span> : <span style={{ color: '#a0aec0' }}>—</span>) },
     {
       key: 'semester', label: 'Semester', render: (v) => (
         <span className="badge badge-secondary">S{v}</span>
@@ -719,6 +722,14 @@ const StudentManagementPage = () => {
                   ))}
                 </select>
                 {fieldErrors.course ? <small className="field-error">{fieldErrors.course}</small> : (form.department && courseOptions.filter(c => !form.department || c.department === form.department).length === 0 ? <small className="field-hint">No courses found for this department.</small> : null)}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="student-track">Track / Specialization</label>
+                <input id="student-track" name="specialization" className="form-control" type="text" placeholder="e.g. Cyber Security (blank = all)" value={form.specialization || ''} onChange={handleFormChange} list="student-track-suggestions" />
+                <datalist id="student-track-suggestions">
+                  {[...new Set(courseOptions.filter(c => !form.department || c.department === form.department).map(c => c.specialization).filter(Boolean))].map(t => <option key={t} value={t} />)}
+                </datalist>
+                <small className="field-hint">Track inside department — controls which CORE subjects auto-enroll.</small>
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="student-sem">Semester *</label>

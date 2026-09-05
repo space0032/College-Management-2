@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getResources, getResourceCategories, addResource, deleteResource, incrementDownload } from '../services/resourceService';
 import { getAllCourses } from '../services/courseService';
+import { searchStudents, getStudentCourses } from '../services/studentService';
 import SessionManager from '../utils/SessionManager';
 
 const ResourceManagementPage = () => {
@@ -22,8 +23,29 @@ const ResourceManagementPage = () => {
         fileSize: 1024,
         isPublic: true
     });
+    const [enrolledIds, setEnrolledIds] = useState(null);
 
     const currentUser = SessionManager.getUser() || {};
+    const isStudent = currentUser.role === 'STUDENT';
+
+    useEffect(() => {
+        if (isStudent && currentUser.username) {
+            searchStudents(currentUser.username).then(res => {
+                const match = (res.data || []).find(s => s.username === currentUser.username) || (res.data || [])[0];
+                if (match) {
+                    return getStudentCourses(match.id).then(cRes => {
+                        const ids = new Set((cRes.data || []).map(c => String(c.id)));
+                        if (ids.size > 0) setEnrolledIds(ids);
+                    });
+                }
+            }).catch(() => {});
+        }
+    }, [isStudent, currentUser.username]);
+
+    const visibleResources = useMemo(() => {
+        if (!isStudent || !enrolledIds) return resources;
+        return resources.filter(r => !r.courseId || enrolledIds.has(String(r.courseId)));
+    }, [resources, enrolledIds, isStudent]);
 
     useEffect(() => {
         fetchData();
@@ -35,7 +57,7 @@ const ResourceManagementPage = () => {
             const [resRes, catRes, crsRes] = await Promise.all([
                 getResources(),
                 getResourceCategories(),
-                getAllCourses()
+                getAllCourses(1, 500)
             ]);
             setResources(resRes.data || []);
             setCategories(catRes.data || []);
@@ -151,10 +173,10 @@ const ResourceManagementPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {resources.length === 0 ? (
-                            <tr><td colSpan="7" style={{ textAlign: 'center' }}>No resources found</td></tr>
+                        {visibleResources.length === 0 ? (
+                            <tr><td colSpan="7" style={{ textAlign: 'center' }}>{isStudent && enrolledIds ? 'No resources for your enrolled subjects yet' : 'No resources found'}</td></tr>
                         ) : (
-                            resources.map(res => (
+                            visibleResources.map(res => (
                                 <tr key={res.id}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

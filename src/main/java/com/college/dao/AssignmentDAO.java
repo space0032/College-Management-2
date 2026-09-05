@@ -151,6 +151,71 @@ public class AssignmentDAO {
     }
 
     /**
+     * Get assignments for a set of subject ids (e.g. a student's enrolled subjects).
+     */
+    public List<Assignment> getAssignmentsByCourseIds(List<Integer> courseIds) {
+        List<Assignment> assignments = new ArrayList<>();
+        if (courseIds == null || courseIds.isEmpty()) {
+            return assignments;
+        }
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < courseIds.size(); i++) {
+            if (i > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+        String sql = "SELECT a.*, c.name as course_name, u.username as faculty_name " +
+                "FROM assignments a " +
+                "JOIN courses c ON a.course_id = c.id " +
+                "JOIN users u ON a.created_by = u.id " +
+                "WHERE a.course_id IN (" + placeholders + ") ORDER BY a.due_date DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            for (int i = 0; i < courseIds.size(); i++) {
+                pstmt.setInt(i + 1, courseIds.get(i));
+            }
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                assignments.add(extractAssignmentFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return assignments;
+    }
+
+    /**
+     * Get assignments for all subjects a student is enrolled in (source of truth:
+     * course_registrations, with legacy student_courses as fallback).
+     */
+    public List<Assignment> getAssignmentsByStudent(int studentId) {
+        List<Assignment> assignments = new ArrayList<>();
+        String sql = "SELECT DISTINCT a.*, c.name as course_name, u.username as faculty_name " +
+                "FROM assignments a " +
+                "JOIN courses c ON a.course_id = c.id " +
+                "JOIN users u ON a.created_by = u.id " +
+                "LEFT JOIN course_registrations cr ON cr.course_id = a.course_id AND cr.student_id = ? "
+                + "AND (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED' OR cr.status = 'APPROVED') "
+                + "LEFT JOIN student_courses sc ON sc.course_id = a.course_id AND sc.student_id = ? "
+                + "WHERE cr.student_id IS NOT NULL OR sc.student_id IS NOT NULL "
+                + "ORDER BY a.due_date DESC";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            pstmt.setInt(2, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                assignments.add(extractAssignmentFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return assignments;
+    }
+
+    /**
      * Get assignment by ID
      */
     public Assignment getAssignmentById(int id) {

@@ -7,7 +7,7 @@ import { exportToCSV } from '../utils/exportUtils';
 import SessionManager from '../utils/SessionManager';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', code: '', credits: '', department: '', semester: '' };
+const EMPTY_FORM = { name: '', code: '', credits: '', department: '', semester: '', courseType: 'CORE', specialization: '', capacity: 60 };
 
 const initialState = {
   courses: [],
@@ -115,12 +115,24 @@ const CourseManagementPage = () => {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Credits must be greater than zero.' });
       return;
     }
+    if (form.capacity !== '' && form.capacity !== null && (!Number.isFinite(Number(form.capacity)) || Number(form.capacity) < 0)) {
+      dispatch({ type: 'SET_FORM_ERROR', payload: 'Capacity must be zero or more.' });
+      return;
+    }
     dispatch({ type: 'SAVING_START' });
     try {
+      const payload = {
+        ...form,
+        credits: Number(form.credits),
+        semester: Number(form.semester),
+        capacity: form.capacity === '' || form.capacity === null ? 60 : Number(form.capacity),
+        courseType: (form.courseType || 'CORE').toUpperCase(),
+        specialization: (form.specialization || '').trim(),
+      };
       if (editId) {
-        await updateCourse(editId, form);
+        await updateCourse(editId, payload);
       } else {
-        await createCourse(form);
+        await createCourse(payload);
       }
       dispatch({ type: 'SAVING_DONE' });
       fetchCourses(1, false);
@@ -141,6 +153,7 @@ const CourseManagementPage = () => {
 
   const departments = useMemo(() => [...new Set(courses.map(c => c.department).filter(Boolean))].sort(), [courses]);
   const semesters = useMemo(() => [...new Set(courses.map(c => String(c.semester)).filter(Boolean))].sort((a, b) => Number(a) - Number(b)), [courses]);
+  const tracks = useMemo(() => [...new Set(courses.map(c => c.specialization).filter(Boolean))].sort(), [courses]);
 
   const filtered = useMemo(() => courses
     .filter(c => !search || (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.code || '').toLowerCase().includes(search.toLowerCase()))
@@ -161,6 +174,10 @@ const CourseManagementPage = () => {
       )
     },
     { key: 'department', label: 'Department' },
+    { key: 'specialization', label: 'Track', render: (v) => (v ? <span style={{ background: '#faf5ff', color: '#6b46c1', padding: '2px 10px', borderRadius: '12px', fontWeight: '600', fontSize: '0.83rem' }}>{v}</span> : <span style={{ color: '#a0aec0' }}>—</span>) },
+    { key: 'courseType', label: 'Type', render: (v) => (
+      <span style={{ background: v === 'ELECTIVE' ? '#fefcbf' : '#e9d8fd', color: v === 'ELECTIVE' ? '#744210' : '#553c9a', padding: '2px 10px', borderRadius: '12px', fontWeight: '700', fontSize: '0.78rem' }}>{v || 'CORE'}</span>
+    ) },
     {
       key: 'semester', label: 'Semester', render: (v) => (
         <span style={{ background: '#fffaf0', color: '#c05621', padding: '2px 10px', borderRadius: '12px', fontWeight: '600', fontSize: '0.83rem' }}>Sem {v}</span>
@@ -175,8 +192,8 @@ const CourseManagementPage = () => {
         <div style={{ display: 'flex', gap: '8px' }}>
           {filtered.length > 0 && (
             <button className="btn btn-secondary" onClick={() => exportToCSV(
-              ['ID', 'Name', 'Code', 'Credits', 'Department', 'Semester'],
-              filtered.map(c => [c.id, c.name, c.code, c.credits, c.department, c.semester]),
+              ['ID', 'Name', 'Code', 'Credits', 'Department', 'Track', 'Type', 'Semester'],
+              filtered.map(c => [c.id, c.name, c.code, c.credits, c.department, c.specialization || '', c.courseType || 'CORE', c.semester]),
               'courses_export'
             )}>⬇ Export CSV</button>
           )}
@@ -246,6 +263,24 @@ const CourseManagementPage = () => {
               <option value="">Select semester</option>
               {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Semester {s}</option>)}
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Subject Type</label>
+            <select name="courseType" className="form-control" value={form.courseType || 'CORE'} onChange={handleFormChange}>
+              <option value="CORE">CORE (auto-enrolled)</option>
+              <option value="ELECTIVE">ELECTIVE (via subject registration)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Track / Specialization</label>
+            <input name="specialization" type="text" className="form-control" value={form.specialization || ''} onChange={handleFormChange} placeholder="e.g. Cyber Security (blank = all tracks)" list="track-suggestions" />
+            <datalist id="track-suggestions">
+              {tracks.map(t => <option key={t} value={t} />)}
+            </datalist>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Capacity</label>
+            <input name="capacity" type="number" min="0" step="1" className="form-control" value={form.capacity ?? 60} onChange={handleFormChange} />
           </div>
         </div>
       </Modal>

@@ -344,6 +344,7 @@ const FacultyWorkloadPage = () => {
                                                     <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                                                         <div>
                                                             <strong>{c.code}</strong> - {c.name}
+                                                            {c.specialization ? <span style={{ marginLeft: '6px', fontSize: '0.78rem', color: '#6b46c1' }}>[{c.specialization}]</span> : null}
                                                             <span style={{ marginLeft: '8px', fontSize: '0.85rem', color: '#666' }}>({c.credits} credits)</span>
                                                         </div>
                                                         <button className="btn btn-danger btn-sm" onClick={() => handleUnassign(c)}>Unassign</button>
@@ -372,7 +373,7 @@ const FacultyWorkloadPage = () => {
                                                         const isRecommended = assignModal.department === c.department || (c.specialization && c.specialization === (assignModal.specialization || ''));
                                                         return (
                                                             <option key={c.id} value={c.id}>
-                                                                {c.code} - {c.name} ({c.credits} cr)
+                                                                {c.code} - {c.name}{c.specialization ? ` [${c.specialization}]` : ''} ({c.credits} cr)
                                                                 {isRecommended ? ' ★ Recommended' : ''}
                                                             </option>
                                                         );

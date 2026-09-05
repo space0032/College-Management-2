@@ -13,6 +13,7 @@ const StudentProfilePage = () => {
 
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
     const [fees, setFees] = useState([]);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -66,6 +67,13 @@ const StudentProfilePage = () => {
                     const aData = Array.isArray(aRes.data) ? aRes.data : (aRes.data?.data || []);
                     setAttendanceRecords(aData);
                 } catch { setAttendanceRecords([]); }
+
+                // Fetch enrolled subjects (source of truth: course_registrations)
+                try {
+                    const cRes = await api.get(`/students/${studentId}/courses`);
+                    const cData = Array.isArray(cRes.data) ? cRes.data : (cRes.data?.data || []);
+                    setEnrolledCourses(cData);
+                } catch { setEnrolledCourses([]); }
             } else {
                 setError('Student record not found.');
             }
@@ -321,6 +329,7 @@ return (
                             : `User ID: ${user.id}`}
                         {student?.department && <span style={{ marginLeft: '16px' }}>🏛 {student.department}</span>}
                         {student?.course && <span style={{ marginLeft: '16px' }}>📚 {student.course}</span>}
+                        {student?.specialization && <span style={{ marginLeft: '16px' }}>🎯 Track: {student.specialization}</span>}
                     </div>
                     <div style={{ opacity: 0.8, fontSize: '0.85rem' }}>
                         {user.email && `✉ ${user.email}`}
@@ -362,6 +371,19 @@ return (
 
             {/* Academic tab */}
             {activeTab === 'academic' && (
+                <>
+                {enrolledCourses.length > 0 && (
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', marginBottom: '16px' }}>
+                        <div style={{ fontWeight: '700', color: '#2d3748', marginBottom: '8px' }}>📚 Enrolled Subjects ({enrolledCourses.length})</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {enrolledCourses.map(c => (
+                                <span key={c.id} style={{ background: '#ebf8ff', color: '#2b6cb0', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>
+                                    {c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <div className="data-table-container">
                     <table className="data-table">
                         <thead>
@@ -383,7 +405,7 @@ return (
                             ) : (
                                 grades.map((g, i) => (
                                     <tr key={g.id || i}>
-                                        <td style={{ fontWeight: 500 }}>{g.courseName || g.subject || `Course ${g.courseId}`}</td>
+                                        <td style={{ fontWeight: 500 }}>{g.courseName || g.subject || `Subject ${g.courseId}`}</td>
                                         <td>{g.semester || g.term || '—'}</td>
                                         <td>{g.internalMarks ?? g.internal ?? '—'}</td>
                                         <td>{g.externalMarks ?? g.external ?? '—'}</td>
@@ -396,6 +418,7 @@ return (
                         </tbody>
                     </table>
                 </div>
+                </>
             )}
 
             {/* Fees Tab */}
@@ -450,6 +473,7 @@ return (
                             { label: 'Enrollment No.', value: student?.enrollmentId || student?.username || student?.enrollmentNumber || student?.enrollment_number },
                             { label: 'Department', value: student?.department },
                             { label: 'Course', value: student?.course },
+                            { label: 'Track / Specialization', value: student?.specialization },
                             { label: 'Semester', value: student?.semester },
                             { label: 'Batch Year', value: student?.batchYear || student?.batch_year },
                             { label: 'Gender', value: student?.gender },

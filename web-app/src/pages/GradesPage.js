@@ -255,8 +255,8 @@ const GradesPage = () => {
                     {activeTab === 'view' && grades.length > 0 && (
                         <button className="btn btn-secondary" onClick={() => exportToCSV(
                             user.role !== 'STUDENT'
-                                ? ['Student', 'Enrollment No', 'Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
-                                : ['Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
+                                ? ['Student', 'Enrollment No', 'Subject', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
+                                : ['Subject', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
                             grades.map(g => user.role !== 'STUDENT'
                                 ? [g.studentName, g.enrollmentNumber, g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
                                 : [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
@@ -267,8 +267,8 @@ const GradesPage = () => {
                     {activeTab === 'view' && grades.length > 0 && (
                         <button className="btn btn-secondary" onClick={() => exportToExcel(
                             user.role !== 'STUDENT'
-                                ? ['Student', 'Enrollment No', 'Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
-                                : ['Course', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
+                                ? ['Student', 'Enrollment No', 'Subject', 'Credits', 'Exam Type', 'Marks (%)', 'Grade']
+                                : ['Subject', 'Credits', 'Exam Type', 'Marks (%)', 'Grade'],
                             grades.map(g => user.role !== 'STUDENT'
                                 ? [g.studentName, g.enrollmentNumber, g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
                                 : [g.courseName, g.credits, g.examType, g.marksObtained, g.grade]
@@ -388,14 +388,14 @@ const GradesPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Course *</label>
+                            <label>Subject *</label>
                             <select
                                 required
                                 value={formData.courseId}
                                 onChange={e => setFormData({ ...formData, courseId: e.target.value })}
                             >
-                                <option value="">-- Select Course --</option>
-                                {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                <option value="">-- Select Subject --</option>
+                                {courses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
                             </select>
                         </div>
 

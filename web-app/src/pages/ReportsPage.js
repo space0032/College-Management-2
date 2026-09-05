@@ -3,6 +3,7 @@ import { generateVisitorReportPdf, getPlacementStats } from '../services/reportS
 import { getAllFees } from '../services/feesService';
 import { getAllGrades } from '../services/gradeService';
 import { getCourseStats } from '../services/attendanceService';
+import { getAllCourses } from '../services/courseService';
 import { exportToCSV } from '../utils/exportUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 
@@ -19,6 +20,7 @@ const ReportsPage = () => {
     const [attendanceStats, setAttendanceStats] = useState(null);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
     const [courseIdInput, setCourseIdInput] = useState('');
+    const [subjectOptions, setSubjectOptions] = useState([]);
     const [feesSummary, setFeesSummary] = useState({ totalRevenue: 0, collected: 0, pending: 0, feeByType: [] });
     const [feesLoading, setFeesLoading] = useState(false);
     const [gradeData, setGradeData] = useState([]);
@@ -36,7 +38,10 @@ const ReportsPage = () => {
         if (activeTab === 'placements') loadPlacementStats();
         if (activeTab === 'fees') loadFeesSummary();
         if (activeTab === 'grades') loadGradeDistribution();
-    }, [activeTab]);
+        if (activeTab === 'attendance' && subjectOptions.length === 0) {
+            getAllCourses(1, 500).then(res => setSubjectOptions(res.data || [])).catch(() => {});
+        }
+    }, [activeTab, subjectOptions.length]);
 
     const loadPlacementStats = async () => {
         try { const res = await getPlacementStats(); setPlacementStats(res.data); }
@@ -125,10 +130,12 @@ const ReportsPage = () => {
                         <h3 style={{ margin: '0 0 16px' }}>📈 Attendance Analytics</h3>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                             <div className="form-group" style={{ margin: 0, flex: 1 }}>
-                                <label className="form-label">Course ID</label>
-                                <input className="form-control" placeholder="e.g. CS101" value={courseIdInput}
-                                    onChange={e => setCourseIdInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && loadAttendanceStats()} />
+                                <label className="form-label">Subject</label>
+                                <select className="form-control" value={courseIdInput}
+                                    onChange={e => setCourseIdInput(e.target.value)}>
+                                    <option value="">Select subject…</option>
+                                    {subjectOptions.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
+                                </select>
                             </div>
                             <button className="btn btn-primary" onClick={loadAttendanceStats} disabled={attendanceLoading}>
                                 {attendanceLoading ? '⌛ Loading...' : '🔍 Load Stats'}

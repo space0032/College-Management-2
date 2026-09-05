@@ -12,3 +12,4 @@ export const updateStudent = (id, student) => API.put(`/students/${id}`, student
 export const deleteStudent = (id) => API.delete(`/students/${id}`);
 export const searchStudents = (q) => API.get(`/students/search?q=${encodeURIComponent(q)}`);
 export const downloadStudentTemplate = () => API.get('/students/template', { responseType: 'blob' });
+export const getStudentCourses = (studentId) => API.get(`/students/${studentId}/courses`);

@@ -18,23 +18,51 @@ public class TimetableDAO {
      * Get timetable for specific department and semester
      */
     public List<Timetable> getTimetableByDepartmentAndSemester(String department, int semester) {
+        return getTimetableByDepartmentSemesterAndTrack(department, semester, null);
+    }
+
+    /**
+     * Get timetable for specific department, semester and track/specialization.
+     * Null/blank specialization returns all tracks (backward compatible).
+     */
+    public List<Timetable> getTimetableByDepartmentSemesterAndTrack(String department, int semester,
+            String specialization) {
         List<Timetable> timetable = new ArrayList<>();
-        String sql = "SELECT * FROM timetable WHERE department = ? AND semester = ? " +
-                "ORDER BY CASE day_of_week " +
-                "WHEN 'Monday' THEN 1 " +
-                "WHEN 'Tuesday' THEN 2 " +
-                "WHEN 'Wednesday' THEN 3 " +
-                "WHEN 'Thursday' THEN 4 " +
-                "WHEN 'Friday' THEN 5 " +
-                "WHEN 'Saturday' THEN 6 " +
-                "WHEN 'Sunday' THEN 7 " +
-                "ELSE 8 END, time_slot";
+        boolean hasSpec = specialization != null && !specialization.trim().isEmpty();
+        String sql;
+        if (hasSpec) {
+            // Tolerant: specialization column may not exist on very old DBs -> fall back below on error
+            sql = "SELECT * FROM timetable WHERE department = ? AND semester = ? AND specialization = ? " +
+                    "ORDER BY CASE day_of_week " +
+                    "WHEN 'Monday' THEN 1 " +
+                    "WHEN 'Tuesday' THEN 2 " +
+                    "WHEN 'Wednesday' THEN 3 " +
+                    "WHEN 'Thursday' THEN 4 " +
+                    "WHEN 'Friday' THEN 5 " +
+                    "WHEN 'Saturday' THEN 6 " +
+                    "WHEN 'Sunday' THEN 7 " +
+                    "ELSE 8 END, time_slot";
+        } else {
+            sql = "SELECT * FROM timetable WHERE department = ? AND semester = ? " +
+                    "ORDER BY CASE day_of_week " +
+                    "WHEN 'Monday' THEN 1 " +
+                    "WHEN 'Tuesday' THEN 2 " +
+                    "WHEN 'Wednesday' THEN 3 " +
+                    "WHEN 'Thursday' THEN 4 " +
+                    "WHEN 'Friday' THEN 5 " +
+                    "WHEN 'Saturday' THEN 6 " +
+                    "WHEN 'Sunday' THEN 7 " +
+                    "ELSE 8 END, time_slot";
+        }
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, department);
             pstmt.setInt(2, semester);
+            if (hasSpec) {
+                pstmt.setString(3, specialization.trim());
+            }
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -42,6 +70,11 @@ public class TimetableDAO {
             }
 
         } catch (SQLException e) {
+            // If specialization column is missing, fall back to dept+sem query
+            if (hasSpec && e.getMessage() != null
+                    && e.getMessage().toLowerCase().contains("specialization")) {
+                return getTimetableByDepartmentAndSemester(department, semester);
+            }
             Logger.error("Database operation failed", e);
         }
         return timetable;
@@ -51,6 +84,46 @@ public class TimetableDAO {
      * Save or update timetable entry
      */
     public boolean saveTimetableEntry(Timetable entry) {
+        // Preferred: track-aware upsert (requires V62 columns). Conflict is per track.
+        String sql = "INSERT INTO timetable (department, semester, specialization, course_id, day_of_week, time_slot, subject, faculty_name, room_number) "
+                +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON CONFLICT (department, semester, day_of_week, time_slot) DO UPDATE SET " +
+                "subject = EXCLUDED.subject, " +
+                "faculty_name = EXCLUDED.faculty_name, " +
+                "room_number = EXCLUDED.room_number";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, entry.getDepartment());
+            pstmt.setInt(2, entry.getSemester());
+            pstmt.setString(3, entry.getSpecialization());
+            if (entry.getCourseId() > 0) {
+                pstmt.setInt(4, entry.getCourseId());
+            } else {
+                pstmt.setNull(4, java.sql.Types.INTEGER);
+            }
+            pstmt.setString(5, entry.getDayOfWeek());
+            pstmt.setString(6, entry.getTimeSlot());
+            pstmt.setString(7, entry.getSubject());
+            pstmt.setString(8, entry.getFacultyName());
+            pstmt.setString(9, entry.getRoomNumber());
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            // Fallback for DBs without V62 columns
+            if (e.getMessage() != null && (e.getMessage().toLowerCase().contains("specialization")
+                    || e.getMessage().toLowerCase().contains("course_id"))) {
+                return saveTimetableEntryLegacy(entry);
+            }
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    private boolean saveTimetableEntryLegacy(Timetable entry) {
         String sql = "INSERT INTO timetable (department, semester, day_of_week, time_slot, subject, faculty_name, room_number) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?) " +
@@ -69,7 +142,6 @@ public class TimetableDAO {
             pstmt.setString(5, entry.getSubject());
             pstmt.setString(6, entry.getFacultyName());
             pstmt.setString(7, entry.getRoomNumber());
-            // Params 8-10 removed because EXCLUDED accesses VALUES(?,...) automatically
 
             return pstmt.executeUpdate() > 0;
 
@@ -199,6 +271,16 @@ public class TimetableDAO {
         timetable.setSubject(rs.getString("subject"));
         timetable.setFacultyName(rs.getString("faculty_name"));
         timetable.setRoomNumber(rs.getString("room_number"));
+        try {
+            timetable.setSpecialization(rs.getString("specialization"));
+        } catch (SQLException e) {
+            // Pre-V62 DBs have no specialization column
+        }
+        try {
+            timetable.setCourseId(rs.getInt("course_id"));
+        } catch (SQLException e) {
+            // Pre-V62 DBs have no course_id column
+        }
         return timetable;
     }
 

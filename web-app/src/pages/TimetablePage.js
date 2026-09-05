@@ -4,7 +4,7 @@ import Modal from '../components/Modal';
 import { getTimetable, saveTimetableEntry, deleteTimetableEntry } from '../services/timetableService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const EMPTY_FORM = { dayOfWeek: '', timeSlot: '', subject: '', roomNumber: '', facultyName: '' };
+const EMPTY_FORM = { dayOfWeek: '', timeSlot: '', subject: '', roomNumber: '', facultyName: '', specialization: '', courseId: '' };
 
 const SUBJECT_COLORS = [
   '#ebf8ff', '#f0fff4', '#fffaf0', '#fef5ff', '#fff5f5', '#f0f9ff',
@@ -23,6 +23,7 @@ const TimetablePage = () => {
   const [error, setError] = useState('');
   const [dept, setDept] = useState('');
   const [semester, setSemester] = useState('');
+  const [track, setTrack] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -33,11 +34,11 @@ const TimetablePage = () => {
   const isAdmin = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
 
   const handleFetch = async () => {
-    if (!dept || !semester) { setError('Please enter both Department and Semester.'); return; }
+    if (!dept || !semester) { setError('Please enter both Department and Semester (track optional).'); return; }
     setError('');
     setLoading(true);
     try {
-      const res = await getTimetable(dept, semester);
+      const res = await getTimetable(dept, semester, track);
       setEntries(res.data || []);
     } catch {
       setError('Failed to load timetable.');
@@ -67,7 +68,14 @@ const TimetablePage = () => {
 
     setSaving(true);
     try {
-      await saveTimetableEntry({ ...form, department: dept, semester });
+      const payload = {
+        ...form,
+        department: dept,
+        semester,
+        specialization: (form.specialization || track || '').trim(),
+        courseId: form.courseId ? Number(form.courseId) : 0,
+      };
+      await saveTimetableEntry(payload);
       setModalOpen(false);
       setForm(EMPTY_FORM);
       if (dept && semester) handleFetch();
@@ -124,6 +132,7 @@ const TimetablePage = () => {
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
         <input type="text" className="form-control" placeholder="Department (e.g. CS)" value={dept} onChange={(e) => setDept(e.target.value)} style={{ maxWidth: '200px' }} />
         <input type="number" min="1" max="8" className="form-control" placeholder="Semester (1-8)" value={semester} onChange={(e) => setSemester(e.target.value)} style={{ maxWidth: '160px' }} />
+        <input type="text" className="form-control" placeholder="Track e.g. Cyber Security (optional)" value={track} onChange={(e) => setTrack(e.target.value)} style={{ maxWidth: '220px' }} />
         <button className="btn btn-primary" onClick={handleFetch}>Load Timetable</button>
         {entries.length > 0 && (
           <span style={{ fontSize: '0.82rem', color: '#718096' }}>{entries.length} class{entries.length !== 1 ? 'es' : ''} loaded</span>
@@ -255,6 +264,10 @@ const TimetablePage = () => {
 
       <Modal isOpen={modalOpen} title="Add Timetable Entry" onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
+        <div className="form-group">
+          <label className="form-label">Track / Specialization</label>
+          <input name="specialization" type="text" className="form-control" value={form.specialization || track || ''} onChange={handleFormChange} placeholder="e.g. Cyber Security (blank = all tracks)" />
+        </div>
         <div className="form-group">
           <label className="form-label">Day *</label>
           <select name="dayOfWeek" required className="form-control" value={form.dayOfWeek} onChange={handleFormChange}>

@@ -18,6 +18,8 @@ public class Student {
     private int userId;
     private String department;
     private int semester;
+    // Track inside department, e.g. department='Computer Engineering', specialization='Cyber Security'
+    private String specialization;
 
     // Constructors
     public Student() {
@@ -122,6 +124,14 @@ public class Student {
 
     public void setSemester(int semester) {
         this.semester = semester;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
     }
 
     private boolean isHostelite;

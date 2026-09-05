@@ -132,7 +132,7 @@ public class EnrollmentDAO {
     private void assignCoreCourses(Connection conn, int studentId, Student student) {
         try {
             List<com.college.models.Course> coreCourses = courseDAO.getCoreCourses(student.getDepartment(),
-                    student.getSemester());
+                    student.getSpecialization(), student.getSemester());
             if (coreCourses.isEmpty()) {
                 return;
             }
@@ -171,7 +171,8 @@ public class EnrollmentDAO {
             List<com.college.models.ProgramFeeStructure> programFees = new java.util.ArrayList<>();
             if (student.getDepartment() != null && !student.getDepartment().trim().isEmpty()) {
                 try {
-                    programFees = feeDAO.getProgramFees(conn, student.getDepartment(), academicYear);
+                    programFees = feeDAO.getProgramFees(conn, student.getDepartment(), student.getSpecialization(),
+                            academicYear);
                 } catch (Exception e) {
                     Logger.error("Failed to load program fees, using base amounts", e);
                 }

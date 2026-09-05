@@ -54,9 +54,14 @@ public class H2SchemaInitializer {
         "V46__Add_Manage_Rooms_Permission.sql",
         "V47__Grant_Room_Check_Permission.sql",
         "V48__Add_Created_At_To_Courses.sql",
+        "V49__Fix_Runtime_Schema_Issues.sql",
+        "V51__Complete_Course_Schema.sql",
+        "V53__Complete_Faculty_And_Content_Schema.sql",
         "V59__Add_AI_Permissions.sql",
         "V60__Program_Fee_Structure.sql",
-        "V61__Remove_Bus_Fees_From_Programs.sql"
+        "V61__Remove_Bus_Fees_From_Programs.sql",
+        "V62__Add_Track_Specialization.sql",
+        "V63__Add_Track_To_Program_Fees.sql"
     };
 
     /**

@@ -8,6 +8,8 @@ package com.college.models;
 public class ProgramFeeStructure {
     private int id;
     private String department;
+    // Track inside department ('' or null = applies to all tracks)
+    private String specialization;
     private int categoryId;
     private String categoryName;
     private String academicYear;
@@ -18,6 +20,15 @@ public class ProgramFeeStructure {
 
     public ProgramFeeStructure(String department, int categoryId, String academicYear, double amount) {
         this.department = department;
+        this.categoryId = categoryId;
+        this.academicYear = academicYear;
+        this.amount = amount;
+    }
+
+    public ProgramFeeStructure(String department, String specialization, int categoryId, String academicYear,
+            double amount) {
+        this.department = department;
+        this.specialization = specialization;
         this.categoryId = categoryId;
         this.academicYear = academicYear;
         this.amount = amount;
@@ -37,6 +48,14 @@ public class ProgramFeeStructure {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
     }
 
     public int getCategoryId() {

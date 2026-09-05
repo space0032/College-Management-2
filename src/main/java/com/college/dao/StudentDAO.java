@@ -33,8 +33,8 @@ public class StudentDAO {
     public int addStudent(Connection conn, Student student, int userId) throws SQLException {
         String sql = "INSERT INTO students (name, email, phone, course, batch, enrollment_date, address, department, semester, is_hostelite, "
                 +
-                "dob, gender, blood_group, category, nationality, father_name, mother_name, guardian_contact, previous_school, tenth_percentage, twelfth_percentage, extracurricular_activities, profile_photo_path, user_id, enrollment_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "dob, gender, blood_group, category, nationality, father_name, mother_name, guardian_contact, previous_school, tenth_percentage, twelfth_percentage, extracurricular_activities, profile_photo_path, user_id, enrollment_id, specialization) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, student.getName());
@@ -70,6 +70,7 @@ public class StudentDAO {
             }
             // 25. Enrollment ID (from username field)
             pstmt.setString(25, student.getUsername());
+            pstmt.setString(26, student.getSpecialization());
 
             int rowsAffected = pstmt.executeUpdate();
 
@@ -92,7 +93,7 @@ public class StudentDAO {
     public boolean updateStudent(Student student) {
         String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
                 "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=?, " +
-                "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=? "
+                "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=?, specialization=? "
                 +
                 "WHERE id=?";
 
@@ -126,8 +127,9 @@ public class StudentDAO {
             pstmt.setDouble(21, student.getTwelfthPercentage());
             pstmt.setString(22, student.getExtracurricularActivities());
             pstmt.setString(23, student.getProfilePhotoPath());
+            pstmt.setString(24, student.getSpecialization());
 
-            pstmt.setInt(24, student.getId());
+            pstmt.setInt(25, student.getId());
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -147,7 +149,7 @@ public class StudentDAO {
         try {
             String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
                     "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=?, " +
-                    "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=? "
+                    "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=?, specialization=? "
                     +
                     "WHERE id=?";
 
@@ -179,7 +181,8 @@ public class StudentDAO {
                 pstmt.setDouble(21, student.getTwelfthPercentage());
                 pstmt.setString(22, student.getExtracurricularActivities());
                 pstmt.setString(23, student.getProfilePhotoPath());
-                pstmt.setInt(24, student.getId());
+                pstmt.setString(24, student.getSpecialization());
+                pstmt.setInt(25, student.getId());
 
                 int rowsAffected = pstmt.executeUpdate();
                 return rowsAffected > 0;
@@ -448,6 +451,12 @@ public class StudentDAO {
         }
 
         try {
+            student.setSpecialization(rs.getString("specialization"));
+        } catch (SQLException e) {
+            // Column added by V62; ignore on older schemas
+        }
+
+        try {
             student.setEnrollmentId(rs.getString("enrollment_id"));
         } catch (SQLException e) {
             // Fallback to username if enrollment_id column not present
@@ -548,18 +557,24 @@ public class StudentDAO {
     }
 
     /**
-     * Get list of courses registered by the student
+     * Get list of subjects registered by the student.
+     * Single source of truth is course_registrations; student_courses is
+     * included for backward compatibility with legacy rows.
      */
     public List<Course> getRegisteredCourses(int studentId) {
         List<Course> courses = new ArrayList<>();
-        String sql = "SELECT c.*, sc.status as enrollment_status FROM courses c " +
-                "JOIN student_courses sc ON c.id = sc.course_id " +
-                "WHERE sc.student_id = ? ORDER BY c.code";
+        String sql = "SELECT DISTINCT c.id, c.name, c.code, c.credits, c.department_id, c.department, c.semester, "
+                + "c.course_type, c.specialization FROM courses c "
+                + "LEFT JOIN course_registrations cr ON c.id = cr.course_id AND cr.student_id = ? "
+                + "AND (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED' OR cr.status = 'APPROVED') "
+                + "LEFT JOIN student_courses sc ON c.id = sc.course_id AND sc.student_id = ? "
+                + "WHERE (cr.student_id IS NOT NULL OR sc.student_id IS NOT NULL) ORDER BY c.code";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentId);
+            pstmt.setInt(2, studentId);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 Course c = new Course();
@@ -567,7 +582,26 @@ public class StudentDAO {
                 c.setName(rs.getString("name"));
                 c.setCode(rs.getString("code"));
                 c.setCredits(rs.getInt("credits"));
-                c.setDepartmentId(rs.getInt("department_id"));
+                try {
+                    c.setDepartmentId(rs.getInt("department_id"));
+                } catch (SQLException ignored) {
+                }
+                try {
+                    c.setDepartment(rs.getString("department"));
+                } catch (SQLException ignored) {
+                }
+                try {
+                    c.setSemester(rs.getInt("semester"));
+                } catch (SQLException ignored) {
+                }
+                try {
+                    c.setCourseType(rs.getString("course_type"));
+                } catch (SQLException ignored) {
+                }
+                try {
+                    c.setSpecialization(rs.getString("specialization"));
+                } catch (SQLException ignored) {
+                }
                 courses.add(c);
             }
         } catch (SQLException e) {
@@ -577,21 +611,43 @@ public class StudentDAO {
     }
 
     /**
-     * Register student for a course
+     * Register student for a subject. Writes to course_registrations (source of
+     * truth) and mirrors to legacy student_courses on a best-effort basis.
      */
     public boolean registerCourse(int studentId, int courseId, int semester, int year) {
-        String sql = "INSERT INTO student_courses (student_id, course_id, semester, academic_year, status) VALUES (?, ?, ?, ?, 'ENROLLED')";
+        boolean primary = false;
+        String sql = "INSERT INTO course_registrations (student_id, course_id, registration_date, status) "
+                + "VALUES (?, ?, CURRENT_DATE, 'ENROLLED') "
+                + "ON CONFLICT (student_id, course_id) DO UPDATE SET status = 'ENROLLED'";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
+            pstmt.setInt(1, studentId);
+            pstmt.setInt(2, courseId);
+            primary = pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            // Fall back to plain insert for DBs without the unique constraint
+            try (Connection conn = DatabaseConnection.getConnection();
+                    PreparedStatement retry = conn.prepareStatement(
+                            "INSERT INTO course_registrations (student_id, course_id, registration_date, status) VALUES (?, ?, CURRENT_DATE, 'ENROLLED')")) {
+                retry.setInt(1, studentId);
+                retry.setInt(2, courseId);
+                primary = retry.executeUpdate() > 0;
+            } catch (SQLException ex) {
+                Logger.error("Failed to register subject " + courseId + " for student " + studentId, ex);
+            }
+        }
+        // Legacy mirror (ignore failures - table may not exist on some schemas)
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(
+                        "INSERT INTO student_courses (student_id, course_id, semester, academic_year, status) VALUES (?, ?, ?, ?, 'ENROLLED')")) {
             pstmt.setInt(1, studentId);
             pstmt.setInt(2, courseId);
             pstmt.setInt(3, semester);
             pstmt.setInt(4, year);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            return false;
+            pstmt.executeUpdate();
+        } catch (SQLException ignored) {
         }
+        return primary;
     }
 
     /**

@@ -38,6 +38,7 @@ public class TimetableController extends BaseController implements HttpHandler {
         String query = t.getRequestURI().getQuery();
         String department = "";
         int semester = 1;
+        String specialization = null;
         if (query != null) {
             for (String param : query.split("&")) {
                 String[] kv = param.split("=", 2);
@@ -45,11 +46,14 @@ public class TimetableController extends BaseController implements HttpHandler {
                     if ("department".equals(kv[0])) department = java.net.URLDecoder.decode(kv[1], java.nio.charset.StandardCharsets.UTF_8);
                     else if ("semester".equals(kv[0])) {
                         try { semester = Integer.parseInt(kv[1]); } catch (Exception ignored) {}
+                    } else if ("specialization".equals(kv[0]) || "track".equals(kv[0])) {
+                        specialization = java.net.URLDecoder.decode(kv[1], java.nio.charset.StandardCharsets.UTF_8);
+                        if (specialization.trim().isEmpty()) specialization = null;
                     }
                 }
             }
         }
-        List<Timetable> list = timetableDAO.getTimetableByDepartmentAndSemester(department, semester);
+        List<Timetable> list = timetableDAO.getTimetableByDepartmentSemesterAndTrack(department, semester, specialization);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 

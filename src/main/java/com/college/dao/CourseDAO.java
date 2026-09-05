@@ -157,11 +157,17 @@ public class CourseDAO {
     }
 
     public List<Course> getCoreCourses(String department, int semester) {
+        return getCoreCourses(department, null, semester);
+    }
+
+    public List<Course> getCoreCourses(String department, String specialization, int semester) {
         List<Course> courses = new ArrayList<>();
+        boolean hasSpec = specialization != null && !specialization.trim().isEmpty();
         String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
                 "LEFT JOIN departments d ON c.department_id = d.id " +
                 "LEFT JOIN faculty f ON c.faculty_id = f.id " +
-                "WHERE (c.department = ? OR d.name = ?) AND c.semester = ? AND c.course_type = 'CORE'";
+                "WHERE (c.department = ? OR d.name = ?) AND c.semester = ? AND c.course_type = 'CORE'"
+                + (hasSpec ? " AND (c.specialization IS NULL OR c.specialization = '' OR c.specialization = ?)" : "");
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -169,6 +175,9 @@ public class CourseDAO {
             pstmt.setString(1, department);
             pstmt.setString(2, department);
             pstmt.setInt(3, semester);
+            if (hasSpec) {
+                pstmt.setString(4, specialization.trim());
+            }
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

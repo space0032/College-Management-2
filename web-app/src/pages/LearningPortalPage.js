@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getSyllabiBycourse } from '../services/syllabusService';
 import { getResources } from '../services/resourceService';
 import { getAllCourses } from '../services/courseService';
+import { searchStudents, getStudentCourses } from '../services/studentService';
+import SessionManager from '../utils/SessionManager';
 
 const getFileIcon = (path) => {
     const ext = (path?.split('.').pop() || '').toLowerCase();
@@ -20,13 +22,41 @@ const LearningPortalPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [enrolledOnly, setEnrolledOnly] = useState(false);
 
     useEffect(() => {
-        getAllCourses().then(res => {
-            const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        const user = SessionManager.getUser() || {};
+        const applyList = (list) => {
             setCourses(list);
             if (list.length > 0) setSelectedCourse(String(list[0].id));
-        }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
+        };
+        if (user.role === 'STUDENT' && user.username) {
+            searchStudents(user.username).then(res => {
+                const match = (res.data || []).find(s => s.username === user.username) || (res.data || [])[0];
+                if (match) {
+                    return getStudentCourses(match.id).then(cRes => {
+                        const enrolled = cRes.data || [];
+                        if (enrolled.length > 0) {
+                            setEnrolledOnly(true);
+                            applyList(enrolled);
+                            return;
+                        }
+                        throw new Error('no-enrolled');
+                    });
+                }
+                throw new Error('no-student');
+            }).catch(() => {
+                getAllCourses(1, 500).then(res => {
+                    const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                    applyList(list);
+                }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
+            });
+        } else {
+            getAllCourses(1, 500).then(res => {
+                const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+                applyList(list);
+            }).catch(err => setError(err.response?.data?.error || 'Courses could not be loaded.'));
+        }
     }, []);
 
     useEffect(() => {
@@ -51,11 +81,13 @@ const LearningPortalPage = () => {
         }
     }, [activeTab, selectedCourse]);
 
-    const filteredResources = resources.filter(r =>
-        !searchTerm ||
-        (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (r.courseName || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const enrolledIds = new Set((courses || []).map(c => String(c.id)));
+    const filteredResources = resources.filter(r => {
+        if (enrolledOnly && r.courseId && !enrolledIds.has(String(r.courseId))) return false;
+        return !searchTerm ||
+            (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (r.courseName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>

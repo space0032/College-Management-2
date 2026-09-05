@@ -3,6 +3,8 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAttendance, markAttendance, bulkMarkAttendance, getCourseStats } from '../services/attendanceService';
 import { getAllStudents } from '../services/studentService';
+import { getAllCourses } from '../services/courseService';
+import { getEnrolledStudents } from '../services/featureService';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import jsPDF from 'jspdf';
@@ -16,7 +18,7 @@ const COLUMNS = [
       {r.enrollmentId || r.enrollmentNumber || r.username || v || 'N/A'}
     </span>
   )},
-  { key: 'courseId', label: 'Course ID' },
+  { key: 'courseId', label: 'Subject' },
   { key: 'date', label: 'Date' },
   { key: 'status', label: 'Status' },
 ];
@@ -36,13 +38,15 @@ const AttendancePage = () => {
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
+  const [subjects, setSubjects] = useState([]);
 
   useEffect(() => {
     getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+    getAllCourses(1, 500).then(res => setSubjects(res.data || [])).catch(() => {});
   }, []);
 
   const handleFetch = useCallback(async () => {
-    if (!filterCourse || !filterDate) { setError('Please enter both Course ID and Date.'); return; }
+    if (!filterCourse || !filterDate) { setError('Please select both Subject and Date.'); return; }
     setError('');
     setLoading(true);
     try {
@@ -87,9 +91,16 @@ const AttendancePage = () => {
   const handleFetchStudentsForBulk = async () => {
     if (!bulkForm.courseId) return;
     try {
-      const res = await getAllStudents(); // In a real app, this would be filtered by course
-      // Simulate filtering for demo:
-      const courseStudents = (res.data || []).map(s => ({ ...s, status: bulkForm.status }));
+      // Prefer students enrolled in this subject; fall back to all students.
+      const res = await getEnrolledStudents(bulkForm.courseId);
+      const enrolled = res.data || [];
+      if (enrolled.length > 0) {
+        const byId = new Map((students || []).map(s => [s.id, s]));
+        setBulkStudents(enrolled.map(s => ({ ...s, username: s.username || byId.get(s.id)?.username, name: s.name || byId.get(s.id)?.name, status: bulkForm.status })));
+        return;
+      }
+      const all = await getAllStudents();
+      const courseStudents = (all.data || []).map(s => ({ ...s, status: bulkForm.status }));
       setBulkStudents(courseStudents);
     } catch {
       setFormError('Failed to load student list.');
@@ -146,12 +157,12 @@ const AttendancePage = () => {
           {records.length > 0 && (
             <>
               <button className="btn btn-secondary" onClick={() => exportToCSV(
-                ['Enrollment No.', 'Course ID', 'Date', 'Status'],
+                ['Enrollment No.', 'Subject', 'Date', 'Status'],
                 records.map(r => [r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A', r.courseId, r.date, r.status]),
                 'attendance_export'
               )}              >⬇ Export CSV</button>
               <button className="btn btn-secondary" onClick={() => exportToExcel(
-                ['Enrollment No.', 'Course ID', 'Date', 'Status'],
+                ['Enrollment No.', 'Subject', 'Date', 'Status'],
                 records.map(r => [r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A', r.courseId, r.date, r.status]),
                 'attendance_export'
               )}>⬇ Export Excel</button>
@@ -166,7 +177,7 @@ const AttendancePage = () => {
                 doc.text(`Present: ${present}  Absent: ${records.length - present}  Total: ${records.length}`, 14, 33);
                 doc.autoTable({
                   startY: 38,
-                  head: [['Enrollment No.', 'Course ID', 'Date', 'Status']],
+                  head: [['Enrollment No.', 'Subject', 'Date', 'Status']],
                   body: records.map(r => [r.enrollmentId || r.enrollmentNumber || r.username || r.studentId || 'N/A', r.courseId, r.date, r.status]),
                   styles: { fontSize: 9 },
                   headStyles: { fillColor: [59, 130, 246] },
@@ -180,14 +191,15 @@ const AttendancePage = () => {
       </div>
 
       <div className="filter-bar">
-        <input
-          type="text"
+        <select
           required
           className="form-control"
-          placeholder="Course ID"
           value={filterCourse}
           onChange={(e) => setFilterCourse(e.target.value)}
-        />
+        >
+          <option value="">Select subject…</option>
+          {subjects.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
+        </select>
         <input
           type="date"
           required
@@ -241,7 +253,7 @@ const AttendancePage = () => {
 
       <Modal isOpen={markModal} title="Mark Attendance" onClose={() => setMarkModal(false)} onSubmit={handleMark} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
-        {[{ name: 'courseId', label: 'Course ID' }, { name: 'date', label: 'Date', type: 'date' }].map(({ name, label, type = 'text' }) => (
+        {[{ name: 'courseId', label: 'Subject' }, { name: 'date', label: 'Date', type: 'date' }].map(({ name, label, type = 'text' }) => (
           <div className="form-group" key={name}>
             <label className="form-label">{label}</label>
             <input type={type} name={name} required max={type === 'date' ? new Date().toISOString().split('T')[0] : undefined} className="form-control" value={markForm[name]} onChange={(e) => setMarkForm((p) => ({ ...p, [name]: e.target.value }))} />
@@ -268,7 +280,7 @@ const AttendancePage = () => {
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
           <div className="form-group" style={{ flex: 1 }}>
-            <label className="form-label">Course ID</label>
+            <label className="form-label">Subject</label>
             <input type="text" required className="form-control" value={bulkForm.courseId} onChange={(e) => setBulkForm((p) => ({ ...p, courseId: e.target.value }))} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>

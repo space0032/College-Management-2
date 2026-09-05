@@ -1,9 +1,17 @@
 import api from './api';
 
-export const getAssignments = (role, userId) => {
+export const getAssignments = (role, userId, studentId) => {
     if (role === 'FACULTY') return api.get(`/assignments?facultyId=${userId}`);
-    if (role === 'STUDENT') return api.get(`/assignments?courseId=1`); // Simplified for demo
+    if (role === 'STUDENT') {
+        if (studentId) return api.get(`/assignments?studentId=${studentId}`);
+        return api.get(`/assignments?studentId=${userId}`);
+    }
     return api.get('/assignments'); // Admin viewing all
+};
+
+export const getAssignmentsByCourseIds = (courseIds) => {
+    const ids = (courseIds || []).join(',');
+    return api.get(`/assignments?courseIds=${encodeURIComponent(ids)}`);
 };
 
 export const createAssignment = (data) => api.post('/assignments', data);
