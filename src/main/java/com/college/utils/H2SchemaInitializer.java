@@ -61,7 +61,8 @@ public class H2SchemaInitializer {
         "V60__Program_Fee_Structure.sql",
         "V61__Remove_Bus_Fees_From_Programs.sql",
         "V62__Add_Track_Specialization.sql",
-        "V63__Add_Track_To_Program_Fees.sql"
+        "V63__Add_Track_To_Program_Fees.sql",
+        "V64__Add_Specializations_Master.sql"
     };
 
     /**

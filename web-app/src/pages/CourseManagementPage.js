@@ -3,6 +3,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllCourses, createCourse, updateCourse, deleteCourse } from '../services/courseService';
 import { getDepartments } from '../services/departmentService';
+import { getSpecializations } from '../services/specializationService';
 import { exportToCSV } from '../utils/exportUtils';
 import SessionManager from '../utils/SessionManager';
 import { CONFIG } from '../config';
@@ -68,6 +69,7 @@ function courseReducer(state, action) {
 const CourseManagementPage = () => {
   const [state, dispatch] = useReducer(courseReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [specOptions, setSpecOptions] = useState([]);
   const { courses, loading, error, search, page, hasMore, pageSize, modalOpen, form, editId, formError, saving, filterDept, filterSem } = state;
 
   const userRole = SessionManager.getUserRole() || 'STUDENT';
@@ -94,6 +96,7 @@ const CourseManagementPage = () => {
 
   useEffect(() => {
     getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => setDepartmentOptions([]));
+    getSpecializations().then(res => setSpecOptions(res.data || [])).catch(() => setSpecOptions([]));
   }, []);
 
   const handleLoadMore = useCallback(() => {
@@ -104,6 +107,10 @@ const CourseManagementPage = () => {
 
   const handleFormChange = (e) => {
     dispatch({ type: 'SET_FORM', name: e.target.name, value: e.target.value });
+    // Clear stale track when department changes
+    if (e.target.name === 'department' && form.specialization) {
+      dispatch({ type: 'SET_FORM', name: 'specialization', value: '' });
+    }
   };
 
   const handleSave = async () => {
@@ -153,7 +160,7 @@ const CourseManagementPage = () => {
 
   const departments = useMemo(() => [...new Set(courses.map(c => c.department).filter(Boolean))].sort(), [courses]);
   const semesters = useMemo(() => [...new Set(courses.map(c => String(c.semester)).filter(Boolean))].sort((a, b) => Number(a) - Number(b)), [courses]);
-  const tracks = useMemo(() => [...new Set(courses.map(c => c.specialization).filter(Boolean))].sort(), [courses]);
+  const deptTracks = useMemo(() => specOptions.filter(s => !form.department || s.departmentName === form.department || departmentOptions.find(d => d.name === form.department && d.id === s.departmentId)), [specOptions, form.department, departmentOptions]);
 
   const filtered = useMemo(() => courses
     .filter(c => !search || (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.code || '').toLowerCase().includes(search.toLowerCase()))
@@ -273,10 +280,13 @@ const CourseManagementPage = () => {
           </div>
           <div className="form-group">
             <label className="form-label">Track / Specialization</label>
-            <input name="specialization" type="text" className="form-control" value={form.specialization || ''} onChange={handleFormChange} placeholder="e.g. Cyber Security (blank = all tracks)" list="track-suggestions" />
-            <datalist id="track-suggestions">
-              {tracks.map(t => <option key={t} value={t} />)}
-            </datalist>
+            <select name="specialization" className="form-control" value={form.specialization || ''} onChange={handleFormChange}>
+              <option value="">Common (all tracks)</option>
+              {form.specialization && !deptTracks.some(s => s.name === form.specialization) && (
+                <option value={form.specialization}>{form.specialization} (legacy value)</option>
+              )}
+              {deptTracks.map(s => <option key={s.id} value={s.name}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
+            </select>
           </div>
           <div className="form-group">
             <label className="form-label">Capacity</label>

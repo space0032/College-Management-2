@@ -3,13 +3,13 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents, downloadStudentTemplate } from '../services/studentService';
 import { getDepartments } from '../services/departmentService';
-import { getAllCourses } from '../services/courseService';
+import { getSpecializations } from '../services/specializationService';
 import { getHostels, getRooms, getAllocations, allocateRoom, vacateRoom } from '../services/hostelService';
 import SessionManager from '../utils/SessionManager';
 import { exportToCSV } from '../utils/exportUtils';
 import { CONFIG } from '../config';
 
-const EMPTY_FORM = { name: '', email: '', phone: '', address: '', batch: '', course: '', department: '', specialization: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
+const EMPTY_FORM = { name: '', email: '', phone: '', address: '', batch: '', department: '', specialization: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
 
 const initialState = {
   students: [],
@@ -61,9 +61,8 @@ function studentReducer(state, action) {
       return { ...state, modalOpen: false, fieldErrors: {} };
     case 'SET_FORM': {
       const nextForm = { ...state.form, [action.name]: action.value };
-      // Clear stale course/track when department changes
-      if (action.name === 'department' && (state.form.course || state.form.specialization)) {
-        nextForm.course = '';
+      // Clear stale track when department changes
+      if (action.name === 'department' && state.form.specialization) {
         nextForm.specialization = '';
       }
       // Clear stale hostel/room when hostelite is unchecked
@@ -102,7 +101,7 @@ function studentReducer(state, action) {
 const StudentManagementPage = () => {
   const [state, dispatch] = React.useReducer(studentReducer, initialState);
   const [departmentOptions, setDepartmentOptions] = useState([]);
-  const [courseOptions, setCourseOptions] = useState([]);
+  const [specOptions, setSpecOptions] = useState([]);
   const [hostelOptions, setHostelOptions] = useState([]);
   const [roomOptions, setRoomOptions] = useState([]);
   const [allocationList, setAllocationList] = useState([]);
@@ -132,14 +131,14 @@ const StudentManagementPage = () => {
   }, [fetchStudents]);
 
   useEffect(() => {
-    Promise.all([getDepartments(), getAllCourses(1, 500)])
-      .then(([departmentRes, courseRes]) => {
+    Promise.all([getDepartments(), getSpecializations()])
+      .then(([departmentRes, specRes]) => {
         setDepartmentOptions(departmentRes.data || []);
-        setCourseOptions(courseRes.data || []);
+        setSpecOptions(specRes.data || []);
       })
       .catch(() => {
         setDepartmentOptions([]);
-        setCourseOptions([]);
+        setSpecOptions([]);
       });
     Promise.all([getHostels(), getRooms(), getAllocations()])
       .then(([hostelRes, roomRes, allocRes]) => {
@@ -203,8 +202,6 @@ const StudentManagementPage = () => {
         return '';
       case 'department':
         return v ? '' : 'Department is required.';
-      case 'course':
-        return v ? '' : 'Course is required.';
       case 'semester': {
         if (!v) return 'Semester is required.';
         const n = Number(v);
@@ -257,7 +254,7 @@ const StudentManagementPage = () => {
     dispatch({ type: 'OPEN_MODAL', form: {
       name: row.name || '', email: row.email || '', phone: row.phone || '',
       address: row.address || '', batch: row.batch || '',
-      course: row.course || '', department: row.department || '', specialization: row.specialization || '', semester: row.semester || '',
+      department: row.department || '', specialization: row.specialization || '', semester: row.semester || '',
       isHostelite: row.isHostelite || row.hostelite || !!alloc,
       hostelId: currentRoom ? String(currentRoom.hostelId) : '',
       roomId: alloc ? String(alloc.roomId) : ''
@@ -301,7 +298,7 @@ const StudentManagementPage = () => {
   }, [allocationList]);
 
   const handleSave = useCallback(async () => {
-    const fieldsToCheck = ['name', 'email', 'phone', 'department', 'course', 'semester'];
+    const fieldsToCheck = ['name', 'email', 'phone', 'department', 'semester'];
     if (form.isHostelite) fieldsToCheck.push('hostelId', 'roomId');
     const errors = {};
     fieldsToCheck.forEach((f) => {
@@ -316,7 +313,7 @@ const StudentManagementPage = () => {
     const wantHostel = !!form.isHostelite;
     dispatch({ type: 'SAVING_START' });
     const currentUser = SessionManager.getUser() || {};
-    const payload = { ...form, isHostelite: wantHostel };
+    const payload = { ...form, course: form.course || '', isHostelite: wantHostel };
     try {
       if (editId) {
         await updateStudent(editId, payload);
@@ -711,25 +708,17 @@ const StudentManagementPage = () => {
                 {fieldErrors.department && <small className="field-error">{fieldErrors.department}</small>}
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="student-course">Course *</label>
-                <select id="student-course" name="course" className={`form-control${fieldErrors.course ? ' is-invalid' : ''}`} required value={form.course} onChange={handleFormChange} onBlur={handleFieldBlur} aria-invalid={!!fieldErrors.course}>
-                  <option value="">Select course</option>
-                  {form.course && !courseOptions.some(c => c.name === form.course) && (
-                    <option value={form.course}>{form.course} (legacy value)</option>
+                <label className="form-label" htmlFor="student-track">Track / Specialization</label>
+                <select id="student-track" name="specialization" className="form-control" value={form.specialization || ''} onChange={handleFormChange} onBlur={handleFieldBlur}>
+                  <option value="">No track (common subjects)</option>
+                  {form.specialization && !specOptions.filter(s => !form.department || s.departmentName === form.department).some(s => s.name === form.specialization) && (
+                    <option value={form.specialization}>{form.specialization} (legacy value)</option>
                   )}
-                  {courseOptions.filter(c => !form.department || c.department === form.department).map(c => (
-                    <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
+                  {specOptions.filter(s => !form.department || s.departmentName === form.department).map(s => (
+                    <option key={s.id} value={s.name}>{s.name}{s.code ? ` (${s.code})` : ''}</option>
                   ))}
                 </select>
-                {fieldErrors.course ? <small className="field-error">{fieldErrors.course}</small> : (form.department && courseOptions.filter(c => !form.department || c.department === form.department).length === 0 ? <small className="field-hint">No courses found for this department.</small> : null)}
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="student-track">Track / Specialization</label>
-                <input id="student-track" name="specialization" className="form-control" type="text" placeholder="e.g. Cyber Security (blank = all)" value={form.specialization || ''} onChange={handleFormChange} list="student-track-suggestions" />
-                <datalist id="student-track-suggestions">
-                  {[...new Set(courseOptions.filter(c => !form.department || c.department === form.department).map(c => c.specialization).filter(Boolean))].map(t => <option key={t} value={t} />)}
-                </datalist>
-                <small className="field-hint">Track inside department — controls which CORE subjects auto-enroll.</small>
+                <small className="field-hint">Track inside department — controls which CORE subjects auto-enroll. Manage tracks in Tracks page.</small>
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="student-sem">Semester *</label>

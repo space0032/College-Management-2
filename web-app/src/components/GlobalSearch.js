@@ -7,6 +7,7 @@ const ROUTES = [
     { label: 'Students', path: '/dashboard/students', keywords: ['students', 'student', 'enrollment', 'admission'] },
     { label: 'Faculty', path: '/dashboard/faculty', keywords: ['faculty', 'teacher', 'professor', 'staff'] },
     { label: 'Departments', path: '/dashboard/departments', keywords: ['department', 'dept'] },
+    { label: 'Tracks', path: '/dashboard/specializations', keywords: ['track', 'specialization', 'specialisation', 'cyber', 'branch'] },
     { label: 'Courses', path: '/dashboard/courses', keywords: ['course', 'subject', 'curriculum'] },
     { label: 'Attendance', path: '/dashboard/attendance', keywords: ['attendance', 'present', 'absent', 'mark'] },
     { label: 'Grades', path: '/dashboard/grades', keywords: ['grade', 'marks', 'cgpa', 'transcript', 'results'] },

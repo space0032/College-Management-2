@@ -41,6 +41,7 @@ const pages = {
   StudentProfilePage: lazy(() => import('./StudentProfilePage')),
   AuditLogPage: lazy(() => import('./AuditLogPage')),
   DepartmentPage: lazy(() => import('./DepartmentPage')),
+  SpecializationManagementPage: lazy(() => import('./SpecializationManagementPage')),
   ProfilePage: lazy(() => import('./ProfilePage')),
   StaffLeavePage: lazy(() => import('./StaffLeavePage')),
   ChangePasswordPage: lazy(() => import('./ChangePasswordPage')),
@@ -66,7 +67,7 @@ const {
   LeaveApprovalPage, RoomAvailabilityPage, FacultyWorkloadPage, StudentActivitiesPage,
   AnnouncementPage, NotificationPage, PayrollManagementPage, SyllabusManagementPage,
   LearningPortalPage, VolunteerTasksPage, StudentProfilePage, AuditLogPage,
-  DepartmentPage, ProfilePage, StaffLeavePage, ChangePasswordPage, SettingsPage,
+  DepartmentPage, SpecializationManagementPage, ProfilePage, StaffLeavePage, ChangePasswordPage, SettingsPage,
   StudentAffairsPage, RoleManagementPage, NotFoundPage,
   HostelComplaintsPage, HostelAttendancePage, WardenManagementPage,
   CourseRegistrationsPage, FeedbackPage, BookRequestsPage,
@@ -111,6 +112,7 @@ const DashboardPage = () => {
             <Route path="announcements" element={<AnnouncementPage />} />
             <Route path="notifications" element={<NotificationPage />} />
             <Route path="departments" element={<DepartmentPage />} />
+            <Route path="specializations" element={<SpecializationManagementPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="rooms" element={<RoomAvailabilityPage />} />
             <Route path="syllabus" element={<SyllabusManagementPage />} />

@@ -19,6 +19,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       { to: '/dashboard/courses', label: 'Courses', icon: '📚', perm: 'VIEW_COURSE' },
       { to: '/dashboard/course-registrations', label: 'Course Registration', icon: '✅', perm: 'VIEW_COURSE' },
       { to: '/dashboard/departments', label: 'Departments', icon: '🏛️', perm: 'VIEW_DEPARTMENT' },
+      { to: '/dashboard/specializations', label: 'Tracks', icon: '🎯', perm: 'VIEW_DEPARTMENT' },
       { to: '/dashboard/attendance', label: 'Attendance', icon: '📋', perm: 'VIEW_ATTENDANCE' },
       { to: '/dashboard/timetable', label: 'Timetable', icon: '🗓️', perm: 'VIEW_TIMETABLE' },
       { to: '/dashboard/rooms', label: 'Room Availability', icon: '🚪', perm: 'VIEW_ROOM' },

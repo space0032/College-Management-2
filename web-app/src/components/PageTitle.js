@@ -10,7 +10,8 @@ const TITLES = {
   resources: 'Resources', employees: 'Employees', leaves: 'Leave Approvals', rooms: 'Room Availability',
   workload: 'Faculty Workload', activities: 'Student Activities', announcements: 'Announcements',
   notifications: 'Notifications', payroll: 'Payroll', syllabus: 'Syllabus', learning: 'Learning Portal',
-  volunteer: 'Volunteer Tasks', 'student-profile': 'Student Profile', audit: 'Audit Log', departments: 'Departments',
+   volunteer: 'Volunteer Tasks', 'student-profile': 'Student Profile', audit: 'Audit Log', departments: 'Departments',
+   specializations: 'Tracks',
   profile: 'Profile', 'staff-leave': 'Staff Leave', 'change-password': 'Change Password', settings: 'Settings',
   'student-affairs': 'Student Affairs', roles: 'Roles & Users'
 };
