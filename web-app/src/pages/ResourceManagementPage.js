@@ -145,7 +145,6 @@ const ResourceManagementPage = () => {
 
     const canUpload = SessionManager.hasPermission('CREATE_RESOURCE');
     const canDelete = SessionManager.hasPermission('DELETE_RESOURCE') || SessionManager.hasPermission('MANAGE_RESOURCE');
-    const canManage = canUpload || canDelete;
 
     return (
         <div className="page-container">
