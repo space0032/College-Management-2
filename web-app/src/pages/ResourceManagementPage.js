@@ -24,6 +24,7 @@ const ResourceManagementPage = () => {
         isPublic: true
     });
     const [sizeError, setSizeError] = useState('');
+    const [sizeMb, setSizeMb] = useState('0.1');
     const [enrolledIds, setEnrolledIds] = useState(null);
 
     const currentUser = SessionManager.getUser() || {};
@@ -85,7 +86,10 @@ const ResourceManagementPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const sizeBytes = parseInt(formData.fileSize);
+        // D05: validate the exact typed MB value so 0.05 is rejected instead
+        // of displaying as rounded 0.1 while the error persists.
+        const mb = parseFloat(sizeMb);
+        const sizeBytes = Number.isFinite(mb) ? Math.round(mb * 1048576) : NaN;
         if (!Number.isFinite(sizeBytes) || sizeBytes < 104858) {
             setSizeError('File size must be at least 0.1 MB.');
             return;
@@ -96,11 +100,13 @@ const ResourceManagementPage = () => {
                 ...formData,
                 courseId: formData.courseId ? parseInt(formData.courseId) : null,
                 categoryId: parseInt(formData.categoryId),
-                fileSize: parseInt(formData.fileSize),
+                fileSize: sizeBytes,
                 uploadedBy: currentUser.id
             };
             await addResource(formattedData);
             setShowModal(false);
+            setSizeMb('0.1');
+            setFormData(prev => ({ ...prev, fileSize: 104858 }));
             fetchData();
         } catch (err) {
             console.error(err);
@@ -161,7 +167,7 @@ const ResourceManagementPage = () => {
                     <p className="text-muted">Digital library, lecture notes, and course materials.</p>
                 </div>
                 {canUpload && (
-                    <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                    <button className="btn btn-primary" onClick={() => { setSizeMb(((formData.fileSize || 104858) / 1048576).toFixed(1)); setSizeError(''); setShowModal(true); }}>
                         + Upload Resource
                     </button>
                 )}
@@ -286,11 +292,13 @@ const ResourceManagementPage = () => {
                                     min="0.1"
                                     required
                                     placeholder="e.g. 2.5"
-                                    value={formData.fileSize > 0 ? (formData.fileSize / 1048576).toFixed(1) : ''}
+                                    value={sizeMb}
                                     onChange={e => {
-                                        const bytes = Math.round(parseFloat(e.target.value || '0') * 1048576);
-                                        setFormData(prev => ({ ...prev, fileSize: bytes }));
-                                        if (Number.isFinite(bytes) && bytes >= 104858) setSizeError('');
+                                        setSizeMb(e.target.value);
+                                        const nextMb = parseFloat(e.target.value);
+                                        const nextBytes = Number.isFinite(nextMb) ? Math.round(nextMb * 1048576) : NaN;
+                                        setFormData(prev => ({ ...prev, fileSize: Number.isFinite(nextBytes) ? nextBytes : prev.fileSize }));
+                                        if (Number.isFinite(nextBytes) && nextBytes >= 104858) setSizeError('');
                                     }}
                                 />
                                 {sizeError && <small style={{ color: '#e53e3e' }}>{sizeError}</small>}

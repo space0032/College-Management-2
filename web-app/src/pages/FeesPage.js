@@ -12,9 +12,9 @@ const COLUMNS = [
     <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{v || 'N/A'}</span>
   )},
   { key: 'studentName', label: 'Student Name' },
-  { key: 'amount', label: 'Amount' },
+  { key: 'totalAmount', label: 'Amount', render: (v, f) => `₹${Number(v ?? f?.amount ?? 0).toLocaleString('en-IN')}` },
   { key: 'dueDate', label: 'Due Date' },
-  { key: 'feeType', label: 'Fee Type' },
+  { key: 'categoryName', label: 'Fee Type', render: (v, f) => v || f?.feeType || f?.fee_type || '—' },
   {
     key: 'status', label: 'Status', render: (v) => (
       <span className={`badge badge-${v === 'PAID' ? 'success' : 'danger'}`}>{v || 'PENDING'}</span>
@@ -160,7 +160,7 @@ const FeesPage = () => {
             className="btn btn-secondary"
             onClick={() => exportToCSV(
               ['Student', 'Fee Type', 'Amount', 'Due Date', 'Status', 'Total', 'Paid'],
-              fees.map(f => [f.studentName, f.feeType, f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
+              fees.map(f => [f.studentName, f.categoryName || f.feeType, f.totalAmount ?? f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
               'fees_export'
             )}>
             ⬇ Export CSV
@@ -169,7 +169,7 @@ const FeesPage = () => {
             className="btn btn-secondary"
             onClick={() => exportToExcel(
               ['Student', 'Fee Type', 'Amount', 'Due Date', 'Status', 'Total', 'Paid'],
-              fees.map(f => [f.studentName, f.feeType, f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
+              fees.map(f => [f.studentName, f.categoryName || f.feeType, f.totalAmount ?? f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
               'fees_export'
             )}>
             ⬇ Export Excel

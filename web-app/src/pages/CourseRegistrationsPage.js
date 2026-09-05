@@ -11,6 +11,9 @@ const CourseRegistrationsPage = () => {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [form, setForm] = useState({ enrollmentId: user.username || '', courseId: '' });
+  const [notice, setNotice] = useState(null);
+  const [formError, setFormError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
@@ -34,13 +37,19 @@ const CourseRegistrationsPage = () => {
 
   const handleRequest = async (e) => {
     e.preventDefault();
-    if (!form.courseId) return;
+    if (!form.courseId || submitting) return;
+    setSubmitting(true);
+    setNotice(null);
+    setFormError(null);
     try {
       const res = await registerForCourse({ enrollmentId: form.enrollmentId, courseId: Number(form.courseId) });
-      alert(res?.data?.message || 'Registration requested');
+      setNotice(res?.data?.message || 'Registration requested');
       setForm({ enrollmentId: user.username || '', courseId: '' });
+      load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to register');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to register');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -50,7 +59,7 @@ const CourseRegistrationsPage = () => {
       else await rejectRegistration(id);
       load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Action failed');
+      setFormError(err.response?.data?.error || 'Action failed');
     }
   };
 
@@ -100,6 +109,8 @@ const CourseRegistrationsPage = () => {
 
       <div className="card" style={{ padding: '20px' }}>
         <h3>{isStudent ? 'Request Registration' : 'Register a Student for a Subject'}</h3>
+        {notice && <div className="alert alert-success" style={{ marginBottom: 12 }}>{notice}</div>}
+        {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <form onSubmit={handleRequest} style={{ maxWidth: '420px' }}>
           <div className="form-group">
             <label className="form-label">Enrollment No.</label>
@@ -115,7 +126,7 @@ const CourseRegistrationsPage = () => {
               {courses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''} (Sem {c.semester}, {c.courseType || 'CORE'})</option>)}
             </select>
           </div>
-          <button className="btn btn-primary" type="submit">Submit Request</button>
+          <button className="btn btn-primary" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit Request'}</button>
         </form>
       </div>
     </div>

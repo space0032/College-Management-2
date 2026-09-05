@@ -71,9 +71,17 @@ public class CourseController extends BaseController implements HttpHandler {
             java.util.Map<String, String> params = getQueryMap(t);
             int page = getIntParam(params, "page", 1);
             int size = getIntParam(params, "size", 10);
+            String search = params.getOrDefault("search", params.getOrDefault("q", "")).trim();
 
-            List<Course> list = courseDAO.getAllCoursesPaginated(page, size);
-            int total = courseDAO.getTotalCount();
+            List<Course> list;
+            int total;
+            if (!search.isEmpty()) {
+                list = courseDAO.searchCoursesPaginated(search, page, size);
+                total = courseDAO.countSearch(search);
+            } else {
+                list = courseDAO.getAllCoursesPaginated(page, size);
+                total = courseDAO.getTotalCount();
+            }
 
             t.getResponseHeaders().add("X-Total-Count", String.valueOf(total));
             t.getResponseHeaders().add("Access-Control-Expose-Headers", "X-Total-Count");
@@ -173,11 +181,15 @@ public class CourseController extends BaseController implements HttpHandler {
                 return;
             }
 
-            // Check for time conflicts via timetable
+            // Check for time conflicts via timetable (null-safe; only exact matches block).
             List<Timetable> facultySchedule = timetableDAO.getTimetableByFaculty(faculty.getName());
             List<Timetable> courseSchedule = timetableDAO.getTimetableBySubject(course.getName());
+            if (facultySchedule == null) facultySchedule = new ArrayList<>();
+            if (courseSchedule == null) courseSchedule = new ArrayList<>();
             for (Timetable fEntry : facultySchedule) {
+                if (fEntry == null || fEntry.getDayOfWeek() == null || fEntry.getTimeSlot() == null) continue;
                 for (Timetable cEntry : courseSchedule) {
+                    if (cEntry == null || cEntry.getDayOfWeek() == null || cEntry.getTimeSlot() == null) continue;
                     if (fEntry.getDayOfWeek().equals(cEntry.getDayOfWeek()) &&
                         fEntry.getTimeSlot().equals(cEntry.getTimeSlot())) {
                         Map<String, Object> conflict = new HashMap<>();
@@ -191,22 +203,32 @@ public class CourseController extends BaseController implements HttpHandler {
                 }
             }
 
+            // Reject re-assigning to the same faculty so retries are explicit.
+            if (course.getFacultyId() == facultyId) {
+                sendResponse(t, 409, errorJson("Course is already assigned to this faculty"));
+                return;
+            }
+
             boolean ok = courseDAO.assignFaculty(courseId, facultyId);
             if (ok) {
-                // Send notification
-                if (faculty.getEmail() != null && !faculty.getEmail().isEmpty()) {
-                    Notification note = new Notification(
-                        faculty.getUserId(),
-                        faculty.getEmail(),
-                        Notification.Type.EMAIL,
-                        "New Course Assignment: " + course.getName(),
-                        "Dear " + faculty.getName() + ",\n\nYou have been assigned the course: " + course.getCode() + " - " + course.getName() + ".\nCredits: " + course.getCredits() + "\n\nPlease check your schedule."
-                    );
-                    notificationDAO.createNotification(note);
+                // Best-effort notification: assignment already persisted.
+                try {
+                    if (faculty.getEmail() != null && !faculty.getEmail().isEmpty()) {
+                        Notification note = new Notification(
+                            faculty.getUserId(),
+                            faculty.getEmail(),
+                            Notification.Type.EMAIL,
+                            "New Course Assignment: " + course.getName(),
+                            "Dear " + faculty.getName() + ",\n\nYou have been assigned the course: " + course.getCode() + " - " + course.getName() + ".\nCredits: " + course.getCredits() + "\n\nPlease check your schedule."
+                        );
+                        notificationDAO.createNotification(note);
+                    }
+                } catch (Exception notifyEx) {
+                    com.college.utils.Logger.warn("Assignment notification failed for course " + courseId + ": " + notifyEx.getMessage());
                 }
                 sendResponse(t, 200, "{\"message\":\"Faculty assigned to course successfully\"}");
             } else {
-                sendResponse(t, 400, errorJson("Failed to assign faculty"));
+                sendResponse(t, 400, errorJson("Failed to assign faculty (course may not exist or database update failed)"));
             }
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));

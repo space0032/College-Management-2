@@ -89,6 +89,7 @@ const RoomAvailabilityPage = () => {
 
     const handleCheck = async (e, overrideDay, overrideSlot) => {
         if (e) e.preventDefault();
+        requestSeq.current++;
         setLoading(true);
         setError(null);
         setNotice(null);
@@ -290,10 +291,16 @@ const RoomAvailabilityPage = () => {
             handleGrid();
         } else if (key === 'free') {
             // Switch immediately so a pending grid load cannot revert the tab.
+            // Bump the sequence to invalidate stale loads and clear any
+            // in-flight spinner — the stale finally-block must not leave
+            // the new view disabled (D08).
             requestSeq.current++;
+            setLoading(false);
+            setError(null);
             setView('free');
         } else {
             requestSeq.current++;
+            setLoading(false);
             setView(key);
         }
     };

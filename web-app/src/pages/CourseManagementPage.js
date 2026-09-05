@@ -75,16 +75,17 @@ const CourseManagementPage = () => {
   const canCreate = SessionManager.hasPermission('CREATE_COURSE');
   const canUpdate = SessionManager.hasPermission('UPDATE_COURSE');
   const canDelete = SessionManager.hasPermission('DELETE_COURSE');
-  const fetchCourses = useCallback(async (pageNum = 1, append = false) => {
+  // D02: server-side search covers the full dataset; browse mode keeps pagination.
+  const fetchCourses = useCallback(async (pageNum = 1, append = false, q = '') => {
     dispatch({ type: 'FETCH_START' });
     try {
-      const res = await getAllCourses(pageNum, pageSize);
+      const res = await getAllCourses(pageNum, pageSize, q);
       dispatch({
         type: 'FETCH_SUCCESS',
         payload: res.data || [],
         total: parseInt(res.headers['x-total-count'] || '0'),
         page: pageNum,
-        append
+        append: append && !q
       });
     } catch {
       dispatch({ type: 'FETCH_ERROR', payload: 'Failed to load courses.' });
@@ -92,8 +93,17 @@ const CourseManagementPage = () => {
   }, [pageSize]);
 
   useEffect(() => {
-    fetchCourses(1, false);
+    fetchCourses(1, false, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchCourses]);
+
+  // Debounced server search — QAHC0905 is now discoverable without Load More.
+  useEffect(() => {
+    if (!search) return;
+    const t = setTimeout(() => fetchCourses(1, false, search), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   useEffect(() => {
     getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => setDepartmentOptions([]));
@@ -101,10 +111,10 @@ const CourseManagementPage = () => {
   }, []);
 
   const handleLoadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      fetchCourses(page + 1, true);
+    if (!loading && hasMore && !search) {
+      fetchCourses(page + 1, true, '');
     }
-  }, [fetchCourses, loading, hasMore, page]);
+  }, [fetchCourses, loading, hasMore, page, search]);
 
   const handleFormChange = (e) => {
     dispatch({ type: 'SET_FORM', name: e.target.name, value: e.target.value });
@@ -217,7 +227,11 @@ const CourseManagementPage = () => {
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <input type="text" placeholder="Search loaded courses by name or code…" value={search} onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
+        <input type="text" placeholder="Search all courses by name or code…" value={search} onChange={e => {
+            const v = e.target.value;
+            dispatch({ type: 'SET_SEARCH', payload: v });
+            if (!v) fetchCourses(1, false, '');
+          }}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', flex: '1 1 200px', fontSize: '0.87rem' }} />
         <select value={filterDept} onChange={e => dispatch({ type: 'SET_FILTER_DEPT', payload: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.87rem' }}>
@@ -229,7 +243,7 @@ const CourseManagementPage = () => {
           <option value="">All Semesters</option>
           {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
         </select>
-        <span style={{ fontSize: '0.78rem', color: '#718096' }}>Search covers loaded rows — use Load More to extend coverage.</span>
+        <span style={{ fontSize: '0.78rem', color: '#718096' }}>Search covers all courses; filters apply to loaded rows.</span>
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}

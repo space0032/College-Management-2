@@ -509,9 +509,13 @@ return (
                     onClose={() => setShowEditModal(false)}
                     onSubmit={async () => {
                         setSaving(true);
+                        setError(null);
                         try {
-                            // Map profile-form field names to the student API shape.
-                            const payload = { ...editForm };
+                            // Merge: persisted student first, edited fields win.
+                            // Never send undefined over saved values.
+                            const base = student || {};
+                            const payload = { ...base, ...editForm };
+                            Object.keys(payload).forEach(k => { if (payload[k] === undefined) delete payload[k]; });
                             if (payload.batchYear !== undefined && payload.batch === undefined) payload.batch = payload.batchYear;
                             if (payload.hostelite !== undefined && payload.isHostelite === undefined) payload.isHostelite = payload.hostelite;
                             if (typeof payload.phone === 'string') payload.phone = payload.phone.trim();
@@ -522,9 +526,10 @@ return (
                             else await api.put(`/students/${targetId}`, payload);
                             setShowEditModal(false);
                             // Preserve the viewed-student context instead of reloading to own profile.
+                            setViewedStudentId(targetId);
                             await fetchStudentData(targetId);
-                        } catch {
-                            alert('Update failed. Check system logs.');
+                        } catch (err) {
+                            setError(err.response?.data?.error || err.message || 'Update failed. Check system logs.');
                         } finally { setSaving(false); }
                     }}
                     submitLabel={saving ? 'Updating...' : 'Save Changes'}

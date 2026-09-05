@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getAllStudents, createStudent, updateStudent, deleteStudent, searchStudents, downloadStudentTemplate } from '../services/studentService';
+import { getAllStudents, getStudentById, createStudent, updateStudent, deleteStudent, searchStudents, downloadStudentTemplate } from '../services/studentService';
 import { getDepartments } from '../services/departmentService';
 import { getSpecializations } from '../services/specializationService';
 import { getHostels, getRooms, getAllocations, allocateRoom, vacateRoom } from '../services/hostelService';
@@ -254,14 +254,23 @@ const StudentManagementPage = () => {
     setShowPassword(false);
   }, []);
 
-  const openEdit = useCallback((row) => {
+  const openEdit = useCallback(async (row) => {
+    // D16: list rows may omit email/phone — fetch full record so the editor
+    // never opens with empty contact fields for an existing student.
+    let full = row;
+    try {
+      const res = await getStudentById(row.id);
+      if (res?.data) full = { ...row, ...res.data };
+    } catch {
+      // Fall back to the table row if detail fetch fails.
+    }
     const alloc = (allocationList || []).find(a => a.studentId === row.id);
     const currentRoom = roomOptions.find(r => r.id === alloc?.roomId);
     dispatch({ type: 'OPEN_MODAL', form: {
-      name: row.name || '', email: row.email || '', phone: row.phone || '',
-      address: row.address || '', batch: row.batch || '',
-      department: row.department || '', specialization: row.specialization || '', semester: row.semester || '',
-      isHostelite: row.isHostelite || row.hostelite || !!alloc,
+      name: full.name || '', email: full.email || '', phone: full.phone || '',
+      address: full.address || '', batch: full.batch || '',
+      department: full.department || '', specialization: full.specialization || '', semester: full.semester || '',
+      isHostelite: full.isHostelite ?? full.hostelite ?? !!alloc,
       hostelId: currentRoom ? String(currentRoom.hostelId) : '',
       roomId: alloc ? String(alloc.roomId) : ''
     }, editId: row.id });

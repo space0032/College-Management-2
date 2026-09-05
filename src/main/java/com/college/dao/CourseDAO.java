@@ -87,6 +87,46 @@ public class CourseDAO {
         return 0;
     }
 
+    public List<Course> searchCoursesPaginated(String query, int page, int size) {
+        List<Course> courses = new ArrayList<>();
+        int offset = Math.max(page - 1, 0) * size;
+        String like = "%" + (query == null ? "" : query.trim().toLowerCase()) + "%";
+        String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +
+                "LEFT JOIN departments d ON c.department_id = d.id " +
+                "LEFT JOIN faculty f ON c.faculty_id = f.id " +
+                "WHERE LOWER(c.code) LIKE ? OR LOWER(c.name) LIKE ? " +
+                "ORDER BY c.code LIMIT ? OFFSET ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, like);
+            pstmt.setString(2, like);
+            pstmt.setInt(3, size);
+            pstmt.setInt(4, offset);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) courses.add(extractCourseFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return courses;
+    }
+
+    public int countSearch(String query) {
+        String like = "%" + (query == null ? "" : query.trim().toLowerCase()) + "%";
+        String sql = "SELECT COUNT(*) FROM courses c WHERE LOWER(c.code) LIKE ? OR LOWER(c.name) LIKE ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, like);
+            pstmt.setString(2, like);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
+    }
+
     public int getWeeklyCount() {
         String sql = "SELECT COUNT(*) FROM courses WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'";
         try (Connection conn = DatabaseConnection.getConnection();
