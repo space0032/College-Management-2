@@ -89,21 +89,30 @@ const RoomAvailabilityPage = () => {
 
     const handleCheck = async (e, overrideDay, overrideSlot) => {
         if (e) e.preventDefault();
-        requestSeq.current++;
+        const seq = ++requestSeq.current;
         setLoading(true);
         setError(null);
         setNotice(null);
         const day = overrideDay || searchParams.day;
         const timeSlot = overrideSlot || searchParams.timeSlot;
+        const timeout = setTimeout(() => {
+            if (requestSeq.current === seq) {
+                setLoading(false);
+                setError('Request timed out. Retry.');
+            }
+        }, 15000);
         try {
             const res = await checkAvailability(day, timeSlot, filters);
+            if (requestSeq.current !== seq) return;
             setAvailability(Array.isArray(res.data) ? res.data : []);
             setHasQueried(true);
             setView('check');
         } catch (err) {
+            if (requestSeq.current !== seq) return;
             setError(err.response?.data?.error || 'Failed to query room availability.');
         } finally {
-            setLoading(false);
+            clearTimeout(timeout);
+            if (requestSeq.current === seq) setLoading(false);
         }
     };
 
@@ -120,6 +129,12 @@ const RoomAvailabilityPage = () => {
         setError(null);
         setNotice(null);
         setView('grid');
+        const timeout = setTimeout(() => {
+            if (requestSeq.current === seq) {
+                setLoading(false);
+                setError('Request timed out. Retry.');
+            }
+        }, 15000);
         try {
             const res = await getDayGrid(searchParams.day, { type: typeFilter, building: buildingFilter });
             if (requestSeq.current !== seq) return;
@@ -128,6 +143,7 @@ const RoomAvailabilityPage = () => {
             if (requestSeq.current !== seq) return;
             setError(err.response?.data?.error || 'Failed to load day grid.');
         } finally {
+            clearTimeout(timeout);
             if (requestSeq.current === seq) setLoading(false);
         }
     };
@@ -143,6 +159,12 @@ const RoomAvailabilityPage = () => {
         setError(null);
         setNotice(null);
         setView('free');
+        const timeout = setTimeout(() => {
+            if (requestSeq.current === seq) {
+                setLoading(false);
+                setError('Request timed out. Retry.');
+            }
+        }, 15000);
         try {
             const res = await getFreeSlots(searchParams.day, freeRoom);
             if (requestSeq.current !== seq) return;
@@ -151,6 +173,7 @@ const RoomAvailabilityPage = () => {
             if (requestSeq.current !== seq) return;
             setError(err.response?.data?.error || 'Failed to load free slots.');
         } finally {
+            clearTimeout(timeout);
             if (requestSeq.current === seq) setLoading(false);
         }
     };
@@ -214,16 +237,19 @@ const RoomAvailabilityPage = () => {
     };
 
     const handleCheckAfterBooking = async (done) => {
+        const seq = ++requestSeq.current;
         setLoading(true);
         try {
             const res = await checkAvailability(done.day, done.timeSlot, filters);
+            if (requestSeq.current !== seq) return;
             setAvailability(Array.isArray(res.data) ? res.data : []);
             setHasQueried(true);
             setView('check');
         } catch (err) {
+            if (requestSeq.current !== seq) return;
             setError(err.response?.data?.error || 'Booking saved, but availability could not be refreshed.');
         } finally {
-            setLoading(false);
+            if (requestSeq.current === seq) setLoading(false);
         }
     };
 

@@ -75,7 +75,6 @@ const CourseManagementPage = () => {
   const canCreate = SessionManager.hasPermission('CREATE_COURSE');
   const canUpdate = SessionManager.hasPermission('UPDATE_COURSE');
   const canDelete = SessionManager.hasPermission('DELETE_COURSE');
-  // D02: server-side search covers the full dataset; browse mode keeps pagination.
   const fetchCourses = useCallback(async (pageNum = 1, append = false, q = '') => {
     dispatch({ type: 'FETCH_START' });
     try {
@@ -85,7 +84,7 @@ const CourseManagementPage = () => {
         payload: res.data || [],
         total: parseInt(res.headers['x-total-count'] || '0'),
         page: pageNum,
-        append: append && !q
+        append
       });
     } catch {
       dispatch({ type: 'FETCH_ERROR', payload: 'Failed to load courses.' });
@@ -111,8 +110,8 @@ const CourseManagementPage = () => {
   }, []);
 
   const handleLoadMore = useCallback(() => {
-    if (!loading && hasMore && !search) {
-      fetchCourses(page + 1, true, '');
+    if (!loading && hasMore) {
+      fetchCourses(page + 1, true, search);
     }
   }, [fetchCourses, loading, hasMore, page, search]);
 
@@ -180,10 +179,10 @@ const CourseManagementPage = () => {
   const semesters = useMemo(() => ['1', '2', '3', '4', '5', '6', '7', '8'], []);
   const deptTracks = useMemo(() => specOptions.filter(s => !form.department || s.departmentName === form.department || departmentOptions.find(d => d.name === form.department && d.id === s.departmentId)), [specOptions, form.department, departmentOptions]);
 
+  // Server already filters by search; client applies only dept/sem.
   const filtered = useMemo(() => courses
-    .filter(c => !search || (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.code || '').toLowerCase().includes(search.toLowerCase()))
     .filter(c => !filterDept || c.department === filterDept)
-    .filter(c => !filterSem || String(c.semester) === filterSem), [courses, search, filterDept, filterSem]);
+    .filter(c => !filterSem || String(c.semester) === filterSem), [courses, filterDept, filterSem]);
 
   const COLUMNS = [
     { key: 'id', label: 'ID' },
@@ -243,7 +242,7 @@ const CourseManagementPage = () => {
           <option value="">All Semesters</option>
           {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
         </select>
-        <span style={{ fontSize: '0.78rem', color: '#718096' }}>Search covers all courses; filters apply to loaded rows.</span>
+        <span style={{ fontSize: '0.78rem', color: '#718096' }}>Search covers all courses across pages.</span>
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}

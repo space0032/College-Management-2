@@ -171,13 +171,15 @@ public class CourseController extends BaseController implements HttpHandler {
 
             Faculty faculty = facultyDAO.getFacultyById(facultyId);
             if (faculty == null) {
-                sendResponse(t, 404, errorJson("Faculty not found"));
+                com.college.utils.Logger.warn("Assign failed: faculty " + facultyId + " not found for course " + courseId);
+                sendResponse(t, 404, errorJson("Faculty not found (id " + facultyId + ")"));
                 return;
             }
 
             Course course = courseDAO.getCourseById(courseId);
             if (course == null) {
-                sendResponse(t, 404, errorJson("Course not found"));
+                com.college.utils.Logger.warn("Assign failed: course " + courseId + " not found for faculty " + facultyId);
+                sendResponse(t, 404, errorJson("Course not found (id " + courseId + ")"));
                 return;
             }
 
@@ -228,7 +230,8 @@ public class CourseController extends BaseController implements HttpHandler {
                 }
                 sendResponse(t, 200, "{\"message\":\"Faculty assigned to course successfully\"}");
             } else {
-                sendResponse(t, 400, errorJson("Failed to assign faculty (course may not exist or database update failed)"));
+                com.college.utils.Logger.warn("Assign failed: DAO returned false for course " + courseId + " faculty " + facultyId);
+                sendResponse(t, 400, errorJson("Failed to assign faculty (course " + courseId + ", faculty " + facultyId + ": no rows updated)"));
             }
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));

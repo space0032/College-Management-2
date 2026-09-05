@@ -136,6 +136,7 @@ const FacultyWorkloadPage = () => {
         } catch (err) {
             const status = err.response?.status;
             const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to assign course';
+            console.error(`Assign failed course ${selectedCourse.id} faculty ${assignModal.facultyId}:`, status, msg);
             if (status === 409) {
                 setConflictInfo([{ dayOfWeek: 'Conflict', timeSlot: '', existingSubject: msg }]);
             } else if (status === 403) {
@@ -143,7 +144,7 @@ const FacultyWorkloadPage = () => {
             } else if (status === 404) {
                 setAssignError(`Assign failed: ${msg}. The faculty or course ID may be stale — reopen Manage and retry.`);
             } else {
-                setAssignError(status ? `Assign failed (${status}): ${msg}` : msg);
+                setAssignError(status ? `Assign failed (${status}) course ${selectedCourse.id} faculty ${assignModal.facultyId}: ${msg}` : `${msg} (course ${selectedCourse.id} faculty ${assignModal.facultyId})`);
             }
         } finally {
             setAssignLoading(false);

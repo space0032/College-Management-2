@@ -107,6 +107,7 @@ const StudentManagementPage = () => {
   const [allocationList, setAllocationList] = useState([]);
   const { students, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, fieldErrors, saving, viewMode, filterDept, filterSem, createdCredentials } = state;
   const [showPassword, setShowPassword] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
   const searchDebounce = useRef(null);
 
@@ -254,16 +255,29 @@ const StudentManagementPage = () => {
     setShowPassword(false);
   }, []);
 
+  const editReq = useRef(0);
   const openEdit = useCallback(async (row) => {
     // D16: list rows may omit email/phone — fetch full record so the editor
     // never opens with empty contact fields for an existing student.
+    const req = ++editReq.current;
+    setEditLoading(true);
     let full = row;
     try {
       const res = await getStudentById(row.id);
-      if (res?.data) full = { ...row, ...res.data };
+      if (req !== editReq.current) return;
+      const d = res?.data || {};
+      // Normalize snake_case ↔ camelCase so backend naming drift can't blank fields.
+      const norm = { ...d };
+      if (norm.email == null && d.email_id != null) norm.email = d.email_id;
+      if (norm.phone == null && d.phone_number != null) norm.phone = d.phone_number;
+      if (norm.isHostelite == null && d.is_hostelite != null) norm.isHostelite = d.is_hostelite;
+      if (req === editReq.current && (res?.data)) full = { ...row, ...norm };
     } catch {
       // Fall back to the table row if detail fetch fails.
+    } finally {
+      if (req === editReq.current) setEditLoading(false);
     }
+    if (req !== editReq.current) return;
     const alloc = (allocationList || []).find(a => a.studentId === row.id);
     const currentRoom = roomOptions.find(r => r.id === alloc?.roomId);
     dispatch({ type: 'OPEN_MODAL', form: {
@@ -516,12 +530,12 @@ const StudentManagementPage = () => {
     {
       key: 'actions', label: 'Actions', render: (_, row) => (
         <div style={{ display: 'flex', gap: '5px' }}>
-          <button className="btn btn-sm btn-secondary" onClick={() => openEdit(row)}>Edit</button>
+          <button className="btn btn-sm btn-secondary" onClick={() => openEdit(row)} disabled={editLoading}>{editLoading ? 'Loading…' : 'Edit'}</button>
           <button className="btn btn-sm btn-danger" onClick={() => handleDelete(row.id)}>Delete</button>
         </div>
       )
     }
-  ], [handleDelete, openEdit]);
+  ], [handleDelete, openEdit, editLoading]);
 
   return (
     <div className="page-container">
