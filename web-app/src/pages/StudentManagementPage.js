@@ -180,7 +180,9 @@ const StudentManagementPage = () => {
 
   const handleFormChange = useCallback((e) => {
     const { name, value } = e.target;
-    dispatch({ type: 'SET_FORM', name, value });
+    // Normalize clearing of the optional phone field so a stale error cannot stick.
+    const normalized = name === 'phone' && typeof value === 'string' && value.trim() === '' ? '' : value;
+    dispatch({ type: 'SET_FORM', name, value: normalized });
   }, []);
 
   // Pure validator: takes the form explicitly so the callback identity is
@@ -196,10 +198,14 @@ const StudentManagementPage = () => {
         if (!v) return 'Email is required.';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Enter a valid email address.';
         return '';
-      case 'phone':
-        if (!v) return '';
+      case 'phone': {
+        const raw = (value ?? currentForm[name] ?? '').toString();
+        const v = raw.trim();
+        // Optional: empty, whitespace-only, or no digits at all clears the error.
+        if (!v || !/[0-9]/.test(v)) return '';
         if (!/^\+?[0-9\s-]{7,15}$/.test(v)) return 'Enter a valid phone number.';
         return '';
+      }
       case 'department':
         return v ? '' : 'Department is required.';
       case 'semester': {
@@ -298,11 +304,13 @@ const StudentManagementPage = () => {
   }, [allocationList]);
 
   const handleSave = useCallback(async () => {
+    const normalizedForm = { ...form, phone: typeof form.phone === 'string' ? form.phone.trim() : form.phone };
+    if (!normalizedForm.phone || !/[0-9]/.test(String(normalizedForm.phone))) normalizedForm.phone = '';
     const fieldsToCheck = ['name', 'email', 'phone', 'department', 'semester'];
-    if (form.isHostelite) fieldsToCheck.push('hostelId', 'roomId');
+    if (normalizedForm.isHostelite) fieldsToCheck.push('hostelId', 'roomId');
     const errors = {};
     fieldsToCheck.forEach((f) => {
-      const msg = validateField(f, form[f], form);
+      const msg = validateField(f, normalizedForm[f], normalizedForm);
       if (msg) errors[f] = msg;
     });
     if (Object.keys(errors).length > 0) {
@@ -310,14 +318,14 @@ const StudentManagementPage = () => {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Please fix the highlighted fields.' });
       return;
     }
-    const wantHostel = !!form.isHostelite;
+    const wantHostel = !!normalizedForm.isHostelite;
     dispatch({ type: 'SAVING_START' });
     const currentUser = SessionManager.getUser() || {};
-    const payload = { ...form, course: form.course || '', isHostelite: wantHostel };
+    const payload = { ...normalizedForm, course: normalizedForm.course || '', isHostelite: wantHostel };
     try {
       if (editId) {
         await updateStudent(editId, payload);
-        await syncAllocation(editId, form);
+        await syncAllocation(editId, normalizedForm);
         dispatch({ type: 'SAVING_DONE' });
       } else {
         const res = await createStudent(payload);
@@ -325,7 +333,7 @@ const StudentManagementPage = () => {
         if (wantHostel && newId) {
           await allocateRoom({
             studentId: newId,
-            roomId: Number(form.roomId),
+            roomId: Number(normalizedForm.roomId),
             checkInDate: new Date().toISOString().split('T')[0],
             remarks: 'Allocated during student creation',
             allocatedBy: currentUser.id || null

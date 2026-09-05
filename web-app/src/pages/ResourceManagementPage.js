@@ -20,9 +20,10 @@ const ResourceManagementPage = () => {
         categoryId: '',
         filePath: '',
         fileType: 'pdf',
-        fileSize: 1024,
+        fileSize: 104858,
         isPublic: true
     });
+    const [sizeError, setSizeError] = useState('');
     const [enrolledIds, setEnrolledIds] = useState(null);
 
     const currentUser = SessionManager.getUser() || {};
@@ -84,6 +85,12 @@ const ResourceManagementPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const sizeBytes = parseInt(formData.fileSize);
+        if (!Number.isFinite(sizeBytes) || sizeBytes < 104858) {
+            setSizeError('File size must be at least 0.1 MB.');
+            return;
+        }
+        setSizeError('');
         try {
             const formattedData = {
                 ...formData,
@@ -272,15 +279,21 @@ const ResourceManagementPage = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>File Size (MB)</label>
+                                <label>File Size (MB, min 0.1)</label>
                                 <input
                                     type="number"
                                     step="0.1"
                                     min="0.1"
+                                    required
                                     placeholder="e.g. 2.5"
                                     value={formData.fileSize > 0 ? (formData.fileSize / 1048576).toFixed(1) : ''}
-                                    onChange={e => setFormData(prev => ({ ...prev, fileSize: Math.round(parseFloat(e.target.value || '0') * 1048576) }))}
+                                    onChange={e => {
+                                        const bytes = Math.round(parseFloat(e.target.value || '0') * 1048576);
+                                        setFormData(prev => ({ ...prev, fileSize: bytes }));
+                                        if (Number.isFinite(bytes) && bytes >= 104858) setSizeError('');
+                                    }}
                                 />
+                                {sizeError && <small style={{ color: '#e53e3e' }}>{sizeError}</small>}
                             </div>
 
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>

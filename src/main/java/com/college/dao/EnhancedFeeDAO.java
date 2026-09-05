@@ -645,6 +645,7 @@ public class EnhancedFeeDAO {
     /**
      * Replace the full fee breakdown for a program and academic year.
      * Only entries with amount greater than zero are stored.
+     * Zero/blank is treated as unset and falls back to global defaults.
      */
     public boolean saveProgramFees(String department, String academicYear, List<ProgramFeeStructure> fees) {
         try (Connection conn = DatabaseConnection.getConnection()) {

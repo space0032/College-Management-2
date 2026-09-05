@@ -91,6 +91,19 @@ const FacultyWorkloadPage = () => {
         setAssignSuccess(null);
         setConflictInfo(null);
 
+        // Re-validate the selected course against a fresh list so a stale
+        // ID (e.g. after pagination reset) surfaces a clear error.
+        try {
+            const freshRes = await import('../services/api').then(m => m.default.get('/courses?page=1&size=1000'));
+            const freshList = freshRes.data || [];
+            if (!freshList.some(c => c.id === selectedCourse.id)) {
+                setAssignError(`Course ${selectedCourse.code || selectedCourse.id} no longer exists. Refresh and retry.`);
+                return;
+            }
+        } catch {
+            // Non-critical: continue with conflict check + assign attempt.
+        }
+
         // Check for time conflicts first
         try {
             const conflictRes = await checkConflict(assignModal.facultyId, selectedCourse.id);
@@ -121,11 +134,16 @@ const FacultyWorkloadPage = () => {
             setConflictInfo(null);
             fetchAnalytics();
         } catch (err) {
+            const status = err.response?.status;
             const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to assign course';
-            if (err.response?.status === 409) {
+            if (status === 409) {
                 setConflictInfo([{ dayOfWeek: 'Conflict', timeSlot: '', existingSubject: msg }]);
+            } else if (status === 403) {
+                setAssignError(`Not permitted to assign courses (${msg}). Requires UPDATE_COURSE permission.`);
+            } else if (status === 404) {
+                setAssignError(`Assign failed: ${msg}. The faculty or course ID may be stale — reopen Manage and retry.`);
             } else {
-                setAssignError(msg);
+                setAssignError(status ? `Assign failed (${status}): ${msg}` : msg);
             }
         } finally {
             setAssignLoading(false);
@@ -150,9 +168,15 @@ const FacultyWorkloadPage = () => {
 
     const handleSuggestFit = async () => {
         if (!assignModal) return;
+        setAssignError(null);
         try {
             const res = await suggestCourses(assignModal.facultyId);
-            const suggested = res.data || [];
+            // Backend returns { suggested: [...] }; tolerate a bare array for old builds.
+            const suggested = Array.isArray(res.data) ? res.data : (res.data?.suggested || []);
+            if (res.data && !Array.isArray(res.data) && res.data.message && suggested.length === 0) {
+                setAssignError(res.data.message);
+                return;
+            }
             if (suggested.length === 0) {
                 setAssignError('No matching courses found for this faculty specialization.');
                 return;
@@ -160,7 +184,7 @@ const FacultyWorkloadPage = () => {
             setAvailableCourses(suggested);
             setSelectedCourse(suggested[0]);
         } catch (err) {
-            setAssignError('Failed to get suggestions.');
+            setAssignError(err.response?.data?.error || err.response?.data?.message || 'Failed to get suggestions.');
         }
     };
 

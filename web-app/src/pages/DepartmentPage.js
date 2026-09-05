@@ -62,9 +62,13 @@ const DepartmentPage = () => {
         if (map[c.id] === undefined) map[c.id] = c.baseAmount ?? '';
       });
       setFeeAmounts(map);
-      setFeeNote((res.data || []).length === 0
+      const hasCustom = (res.data || []).length > 0;
+      const hasDefaults = categories.some((c) => map[c.id] !== undefined && !(res.data || []).some((r) => r.categoryId === c.id));
+      setFeeNote(!hasCustom
         ? (track ? `No track-specific fees for "${track}" — showing department defaults.` : 'No customization saved yet — showing global defaults.')
-        : (track ? `Custom fee breakdown for this track and year (falls back to department defaults per category).` : 'Custom fee breakdown for this program and year.'));
+        : (hasDefaults
+          ? (track ? `Custom fee breakdown for this track and year. Blank or zero entries use department defaults (zero is not stored).` : 'Custom fee breakdown for this program and year. Blank or zero entries use global defaults (zero is not stored).')
+          : (track ? `Custom fee breakdown for this track and year (falls back to department defaults per category).` : 'Custom fee breakdown for this program and year.')));
     } catch {
       const defaults = {};
       categories.forEach((c) => { defaults[c.id] = c.baseAmount ?? ''; });
@@ -123,16 +127,26 @@ const DepartmentPage = () => {
           .filter((c) => (c.categoryName || '').toLowerCase().includes('bus'))
           .map((c) => Number(c.id))
       );
+      // Zero is treated as unset (not stored): blank or zero falls back to global defaults.
+      const zeroed = Object.entries(feeAmounts)
+        .filter(([categoryId, amount]) => {
+          if (busIds.has(Number(categoryId))) return false;
+          if (amount === '' || amount === null || amount === undefined) return true;
+          const n = Number(amount);
+          return Number.isFinite(n) && n <= 0;
+        }).length;
       const fees = Object.entries(feeAmounts)
         .map(([categoryId, amount]) => ({ categoryId: Number(categoryId), amount: Number(amount) }))
         .filter((f) => Number.isFinite(f.amount) && f.amount > 0 && !busIds.has(f.categoryId));
-      if (fees.length > 0) {
-        try {
-          await saveProgramFees(form.name.trim(), feeYear, fees, feeTrack.trim());
-        } catch (feeErr) {
-          setFormError(feeErr.response?.data?.error || 'Department saved, but program fees failed to save.');
-          return;
+      // Always persist (even when empty) so clearing all overrides removes prior customization.
+      try {
+        await saveProgramFees(form.name.trim(), feeYear, fees, feeTrack.trim());
+        if (zeroed > 0) {
+          setFeeNote(`Saved. ${zeroed} zero/blank categor${zeroed === 1 ? 'y uses' : 'ies use'} global defaults (zero is not stored).`);
         }
+      } catch (feeErr) {
+        setFormError(feeErr.response?.data?.error || 'Department saved, but program fees failed to save.');
+        return;
       }
       setModalOpen(false);
       fetchData();
@@ -182,6 +196,7 @@ const DepartmentPage = () => {
           <label className="form-label">Program Fees — customizable breakdown *</label>
           <p style={{ fontSize: '0.82rem', color: '#4a5568', margin: '0 0 8px' }}>
             Set per-category fees for new enrollments in this program. Blank track = department default; a track name (e.g. Cyber Security) overrides it per category. Applies to future students only.
+            Enter 0 or leave blank to use the global default for that category — zero values are not stored.
             {feeNote && <><br />{feeNote}</>}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>

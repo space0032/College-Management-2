@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './RoomAvailabilityPage.css';
 import SessionManager from '../utils/SessionManager';
 import BookRoomModal from './BookRoomModal';
@@ -44,6 +44,8 @@ const RoomAvailabilityPage = () => {
     const [newRoom, setNewRoom] = useState({ roomNumber: '', building: '', capacity: 40, type: 'CLASSROOM' });
     const [booking, setBooking] = useState(null); // { roomNumber, day, timeSlot, source }
     const [notice, setNotice] = useState(null);
+    // Guards against stale async responses overwriting the latest tab selection.
+    const requestSeq = useRef(0);
 
     const canBook = SessionManager.hasPermission('BOOK_ROOM') || SessionManager.hasPermission('CREATE_TIMETABLE');
 
@@ -112,17 +114,20 @@ const RoomAvailabilityPage = () => {
     };
 
     const handleGrid = async () => {
+        const seq = ++requestSeq.current;
         setLoading(true);
         setError(null);
         setNotice(null);
+        setView('grid');
         try {
             const res = await getDayGrid(searchParams.day, { type: typeFilter, building: buildingFilter });
+            if (requestSeq.current !== seq) return;
             setGrid(res.data);
-            setView('grid');
         } catch (err) {
+            if (requestSeq.current !== seq) return;
             setError(err.response?.data?.error || 'Failed to load day grid.');
         } finally {
-            setLoading(false);
+            if (requestSeq.current === seq) setLoading(false);
         }
     };
 
@@ -132,17 +137,20 @@ const RoomAvailabilityPage = () => {
             setError('Select a room first.');
             return;
         }
+        const seq = ++requestSeq.current;
         setLoading(true);
         setError(null);
         setNotice(null);
+        setView('free');
         try {
             const res = await getFreeSlots(searchParams.day, freeRoom);
+            if (requestSeq.current !== seq) return;
             setFreeResult(res.data);
-            setView('free');
         } catch (err) {
+            if (requestSeq.current !== seq) return;
             setError(err.response?.data?.error || 'Failed to load free slots.');
         } finally {
-            setLoading(false);
+            if (requestSeq.current === seq) setLoading(false);
         }
     };
 
@@ -280,7 +288,12 @@ const RoomAvailabilityPage = () => {
     const handleTab = (key) => {
         if (key === 'grid') {
             handleGrid();
+        } else if (key === 'free') {
+            // Switch immediately so a pending grid load cannot revert the tab.
+            requestSeq.current++;
+            setView('free');
         } else {
+            requestSeq.current++;
             setView(key);
         }
     };

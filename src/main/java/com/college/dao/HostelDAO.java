@@ -114,9 +114,23 @@ public class HostelDAO {
     }
 
     /**
-     * Allocate room to student
+     * Allocate room to student.
+     * Rejects duplicate ACTIVE allocations for the same student and
+     * refuses rooms that are already at capacity.
      */
     public boolean allocateRoom(HostelAllocation allocation) {
+        if (allocation == null || allocation.getStudentId() <= 0 || allocation.getRoomId() <= 0) {
+            return false;
+        }
+        if (hasActiveAllocation(allocation.getStudentId())) {
+            Logger.error("Allocate rejected: student " + allocation.getStudentId() + " already has an ACTIVE allocation", null);
+            return false;
+        }
+        Room room = getRoomById(allocation.getRoomId());
+        if (room == null || room.getOccupiedCount() >= room.getCapacity()) {
+            Logger.error("Allocate rejected: room " + allocation.getRoomId() + " is full or missing", null);
+            return false;
+        }
         String sql = "INSERT INTO hostel_allocations (student_id, room_id, check_in_date, remarks, allocated_by, status) "
                 +
                 "VALUES (?, ?, ?, ?, ?, 'ACTIVE')";
@@ -251,23 +265,43 @@ public class HostelDAO {
     }
 
     /**
-     * Update room occupancy
+     * Update room occupancy. Uses post-update value for FULL/AVAILABLE status.
      */
     private void updateRoomOccupancy(int roomId, int change) {
         String sql = "UPDATE rooms SET occupied_count = occupied_count + ?, " +
-                "status = CASE WHEN occupied_count >= capacity THEN 'FULL' ELSE 'AVAILABLE' END " +
+                "status = CASE WHEN occupied_count + ? >= capacity THEN 'FULL' ELSE 'AVAILABLE' END " +
                 "WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, change);
-            pstmt.setInt(2, roomId);
+            pstmt.setInt(2, change);
+            pstmt.setInt(3, roomId);
             pstmt.executeUpdate();
 
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
         }
+    }
+
+    /**
+     * Get a single room by ID (with hostel name).
+     */
+    public Room getRoomById(int roomId) {
+        String sql = "SELECT r.*, h.name as hostel_name FROM rooms r " +
+                "JOIN hostels h ON r.hostel_id = h.id WHERE r.id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return extractRoomFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return null;
     }
 
     /**

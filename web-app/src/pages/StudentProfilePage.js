@@ -199,7 +199,7 @@ return (
                     <h2>👤 Profile Center</h2>
                     <p className="text-muted">Manage your personal and institutional records</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => { setEditForm({ ...student, ...user }); setShowEditModal(true); }}>
+                <button className="btn btn-primary" onClick={() => { setEditForm({ ...user, ...student }); setShowEditModal(true); }}>
                     ✏️ Edit Profile
                 </button>
             </div>
@@ -333,7 +333,7 @@ return (
                         {student?.specialization && <span style={{ marginLeft: '16px' }}>🎯 Track: {student.specialization}</span>}
                     </div>
                     <div style={{ opacity: 0.8, fontSize: '0.85rem' }}>
-                        {user.email && `✉ ${user.email}`}
+                        {(student?.email || user.email) && `✉ ${student?.email || user.email}`}
                         {student?.phone && <span style={{ marginLeft: '16px' }}>📱 {student.phone}</span>}
                     </div>
                 </div>
@@ -358,8 +358,8 @@ return (
                     <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Pending Fees</div>
                 </div>
                 <div style={{ padding: '16px', background: '#faf5ff', borderRadius: '10px', border: '1px solid #d6bcfa', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#553c9a' }}>{grades.length}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Subjects</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#553c9a' }}>{enrolledCourses.length}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Enrolled Subjects</div>
                 </div>
             </div>
 
@@ -448,10 +448,10 @@ return (
                                 ) : (
                                     fees.map((f, i) => (
                                         <tr key={f.id || i}>
-                                            <td>{f.categoryName || f.feeType || f.fee_type || f.type || 'Tuition Fee'}</td>
+                                            <td>{f.categoryName || f.feeType || f.fee_type || f.type || '—'}</td>
                                             <td style={{ fontWeight: 500 }}>₹{parseFloat(f.totalAmount || 0).toLocaleString()}</td>
                                             <td>{f.dueDate || f.due_date || '—'}</td>
-                                            <td>{f.academicYear || f.paidDate || f.paid_date || '—'}</td>
+                                            <td>{f.paidDate || f.paid_date || '—'}</td>
                                             <td><span className={`status-badge ${f.status === 'PAID' ? 'status-active' : 'status-pending'}`}>{f.status || 'PENDING'}</span></td>
                                         </tr>
                                     ))
@@ -491,7 +491,7 @@ return (
                             { label: '12th Percentage', value: student?.twelfthPercentage },
                             { label: 'Extracurricular Activities', value: student?.extracurricularActivities },
                             { label: 'Hostel Status', value: student?.isHostelite || student?.hostelite ? 'Hostelite' : 'Dayscholar' },
-                            { label: 'Role', value: student?.role || user.role },
+                            { label: 'Role', value: student?.role || 'STUDENT' },
                         ].filter(f => f.value).map(f => (
                             <React.Fragment key={f.label}>
                                 <dt style={{ color: '#718096', fontSize: '0.85rem', fontWeight: '500' }}>{f.label}</dt>
@@ -510,10 +510,19 @@ return (
                     onSubmit={async () => {
                         setSaving(true);
                         try {
-                            if (userRole === 'STUDENT') await api.put(`/students/${student.id}`, editForm);
-                            else if (userRole === 'FACULTY') await api.put(`/faculty/${student.id}`, editForm);
+                            // Map profile-form field names to the student API shape.
+                            const payload = { ...editForm };
+                            if (payload.batchYear !== undefined && payload.batch === undefined) payload.batch = payload.batchYear;
+                            if (payload.hostelite !== undefined && payload.isHostelite === undefined) payload.isHostelite = payload.hostelite;
+                            if (typeof payload.phone === 'string') payload.phone = payload.phone.trim();
+                            const targetId = student?.id || viewedStudentId;
+                            if (!targetId) throw new Error('No student selected');
+                            if (userRole === 'STUDENT') await api.put(`/students/${targetId}`, payload);
+                            else if (userRole === 'FACULTY') await api.put(`/faculty/${targetId}`, payload);
+                            else await api.put(`/students/${targetId}`, payload);
                             setShowEditModal(false);
-                            window.location.reload();
+                            // Preserve the viewed-student context instead of reloading to own profile.
+                            await fetchStudentData(targetId);
                         } catch {
                             alert('Update failed. Check system logs.');
                         } finally { setSaving(false); }

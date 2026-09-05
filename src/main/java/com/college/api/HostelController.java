@@ -146,6 +146,19 @@ public class HostelController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("studentId or enrollmentId is required"));
             return;
         }
+        if (hostelDAO.hasActiveAllocation(allocation.getStudentId())) {
+            sendResponse(t, 409, errorJson("Student already has an active hostel allocation"));
+            return;
+        }
+        com.college.models.Room room = hostelDAO.getRoomById(allocation.getRoomId());
+        if (room == null) {
+            sendResponse(t, 404, errorJson("Room not found"));
+            return;
+        }
+        if (room.getOccupiedCount() >= room.getCapacity()) {
+            sendResponse(t, 409, errorJson("Room is already full"));
+            return;
+        }
         boolean ok = hostelDAO.allocateRoom(allocation);
         if (ok)
             sendResponse(t, 201, JsonHelper.toJson(allocation));

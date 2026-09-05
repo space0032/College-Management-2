@@ -191,6 +191,9 @@ public class WorkloadController extends BaseController implements HttpHandler {
             return Boolean.compare(bMatch, aMatch);
         });
 
-        sendResponse(t, 200, JsonHelper.toJson(unassigned));
+        // Always return a consistent object shape so callers never receive a bare array.
+        Map<String, Object> response = new HashMap<>();
+        response.put("suggested", unassigned);
+        sendResponse(t, 200, JsonHelper.toJson(response));
     }
 }

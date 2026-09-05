@@ -118,8 +118,7 @@ const CourseManagementPage = () => {
     if (!form.name.trim() || !form.code.trim() || !form.department.trim() || !form.semester) {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Name, code, department, and semester are required.' });
       return;
-    }
-    if (!Number.isFinite(Number(form.credits)) || Number(form.credits) <= 0) {
+    }    if (!Number.isFinite(Number(form.credits)) || Number(form.credits) <= 0) {
       dispatch({ type: 'SET_FORM_ERROR', payload: 'Credits must be greater than zero.' });
       return;
     }
@@ -143,6 +142,11 @@ const CourseManagementPage = () => {
         await createCourse(payload);
       }
       dispatch({ type: 'SAVING_DONE' });
+      // Clear search/filters so the saved record stays discoverable without
+      // manually loading unrelated pages (search only covers loaded rows).
+      dispatch({ type: 'SET_SEARCH', payload: '' });
+      dispatch({ type: 'SET_FILTER_DEPT', payload: '' });
+      dispatch({ type: 'SET_FILTER_SEM', payload: '' });
       fetchCourses(1, false);
     } catch (err) {
       dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save course.' });
@@ -159,8 +163,11 @@ const CourseManagementPage = () => {
     }
   };
 
-  const departments = useMemo(() => [...new Set(courses.map(c => c.department).filter(Boolean))].sort(), [courses]);
-  const semesters = useMemo(() => [...new Set(courses.map(c => String(c.semester)).filter(Boolean))].sort((a, b) => Number(a) - Number(b)), [courses]);
+  const departments = useMemo(() => {
+    if (departmentOptions.length > 0) return [...new Set(departmentOptions.map(d => d.name).filter(Boolean))].sort();
+    return [...new Set(courses.map(c => c.department).filter(Boolean))].sort();
+  }, [courses, departmentOptions]);
+  const semesters = useMemo(() => ['1', '2', '3', '4', '5', '6', '7', '8'], []);
   const deptTracks = useMemo(() => specOptions.filter(s => !form.department || s.departmentName === form.department || departmentOptions.find(d => d.name === form.department && d.id === s.departmentId)), [specOptions, form.department, departmentOptions]);
 
   const filtered = useMemo(() => courses
@@ -210,7 +217,7 @@ const CourseManagementPage = () => {
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <input type="text" placeholder="Search by name or code…" value={search} onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
+        <input type="text" placeholder="Search loaded courses by name or code…" value={search} onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', flex: '1 1 200px', fontSize: '0.87rem' }} />
         <select value={filterDept} onChange={e => dispatch({ type: 'SET_FILTER_DEPT', payload: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.87rem' }}>
@@ -222,6 +229,7 @@ const CourseManagementPage = () => {
           <option value="">All Semesters</option>
           {semesters.map(s => <option key={s} value={s}>Semester {s}</option>)}
         </select>
+        <span style={{ fontSize: '0.78rem', color: '#718096' }}>Search covers loaded rows — use Load More to extend coverage.</span>
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}

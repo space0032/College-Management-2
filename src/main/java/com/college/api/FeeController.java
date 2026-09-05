@@ -179,6 +179,7 @@ public class FeeController extends BaseController implements HttpHandler {
             try {
                 int categoryId = ((Number) catObj).intValue();
                 double amount = ((Number) amtObj).doubleValue();
+                // Zero is treated as unset (not stored); blank/zero falls back to global defaults.
                 if (categoryId > 0 && amount > 0 && !busCategoryIds.contains(categoryId)) {
                     fees.add(new com.college.models.ProgramFeeStructure(department, specialization, categoryId,
                             academicYear, amount));

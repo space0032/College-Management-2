@@ -13,15 +13,29 @@ const TITLES = {
    volunteer: 'Volunteer Tasks', 'student-profile': 'Student Profile', audit: 'Audit Log', departments: 'Departments',
    specializations: 'Tracks',
   profile: 'Profile', 'staff-leave': 'Staff Leave', 'change-password': 'Change Password', settings: 'Settings',
-  'student-affairs': 'Student Affairs', roles: 'Roles & Users'
+  'student-affairs': 'Student Affairs', roles: 'Roles & Users',
+  'faculty-portal': 'Faculty Portal', 'course-registrations': 'Course Registration',
+  complaints: 'Hostel Complaints', wardens: 'Wardens', 'book-requests': 'Book Requests',
+  feedback: 'Feedback', 'hostel/attendance': 'Hostel Attendance',
+};
+
+const PATH_TITLES = {
+  '/dashboard/hostel/complaints': 'Hostel Complaints',
+  '/dashboard/hostel/attendance': 'Hostel Attendance',
+  '/dashboard/course-registrations': 'Course Registration',
+  '/dashboard/faculty-portal': 'Faculty Portal',
+  '/dashboard/wardens': 'Wardens',
+  '/dashboard/book-requests': 'Book Requests',
+  '/dashboard/feedback': 'Feedback',
 };
 
 const PageTitle = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    const exact = PATH_TITLES[pathname];
     const section = pathname.split('/').filter(Boolean).pop() || '';
-    document.title = `${TITLES[section] || 'Page'} | CampusOne`;
+    document.title = `${exact || TITLES[section] || 'Page'} | CampusOne`;
   }, [pathname]);
 
   return null;
