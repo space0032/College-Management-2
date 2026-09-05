@@ -5,10 +5,12 @@ import DashboardPage from './pages/DashboardPage';
 import PrivateRoute from './components/PrivateRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageTitle from './components/PageTitle';
+import { ToastProvider } from './components/Toast';
 
 const App = () => {
   return (
     <ErrorBoundary>
+      <ToastProvider>
       <Router>
         <PageTitle />
         <Routes>
@@ -24,6 +26,7 @@ const App = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+      </ToastProvider>
     </ErrorBoundary>
   );
 };

@@ -4,13 +4,23 @@ import {
     logVisitorEntry, logVisitorExit
 } from '../services/visitorService';
 import { exportToExcel } from '../utils/exportUtils';
+import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonCards } from '../components/Skeleton';
 
 const VisitorPage = () => {
     const [activeTab, setActiveTab] = useState('active_logs');
     const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [isVisitorFound, setIsVisitorFound] = useState(false);
     const [phoneSearch, setPhoneSearch] = useState('');
+    const [checkInOpen, setCheckInOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [pendingExit, setPendingExit] = useState(null);
 
     const [formData, setFormData] = useState({
         phone: '',
@@ -23,30 +33,44 @@ const VisitorPage = () => {
         gateNumber: 'Gate 1'
     });
 
-    const loadActiveLogs = async () => {
+    const loadActiveLogs = async (signal) => {
+        setLoading(true);
+        setLoadError('');
         try {
-            const res = await getActiveVisitors();
+            const res = await getActiveVisitors(signal);
+            if (signal?.aborted) return;
             setLogs(res.data || []);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setLoadError(err?.response?.data?.error || 'Could not load visitor logs.');
+        } finally { if (!signal?.aborted) setLoading(false); }
     };
 
-    const loadAllLogs = async () => {
+    const loadAllLogs = async (signal) => {
+        setLoading(true);
+        setLoadError('');
         try {
-            const res = await getAllVisitorLogs();
+            const res = await getAllVisitorLogs(signal);
+            if (signal?.aborted) return;
             setLogs(res.data || []);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setLoadError(err?.response?.data?.error || 'Could not load visitor history.');
+        } finally { if (!signal?.aborted) setLoading(false); }
     };
 
     useEffect(() => {
-        if (activeTab === 'active_logs') loadActiveLogs();
-        if (activeTab === 'all_history') loadAllLogs();
+        const controller = new AbortController();
+        if (activeTab === 'active_logs') loadActiveLogs(controller.signal);
+        if (activeTab === 'all_history') loadAllLogs(controller.signal);
+        return () => controller.abort();
     }, [activeTab]);
 
     const handlePhoneSearch = async (e) => {
         if (e) e.preventDefault();
         const searchedPhone = phoneSearch.trim();
         if (!/^\+?[0-9\s-]{10,15}$/.test(searchedPhone)) {
-            alert('Enter a valid phone number using 10 to 15 digits.');
+            toast.error('Enter a valid phone number using 10 to 15 digits.');
             return;
         }
         setIsSearching(true);
@@ -78,33 +102,43 @@ const VisitorPage = () => {
         }
     };
 
-    const handleRegisterEntry = async (e) => {
-        e.preventDefault();
+    const handleRegisterEntry = async () => {
         if (!/^\+?[0-9\s-]{10,15}$/.test(formData.phone.trim())) {
-            alert('Enter a valid visitor phone number.');
+            toast.error('Enter a valid visitor phone number.');
             return;
         }
+        setSaving(true);
         try {
+            const refId = getSuccessRefId();
             await logVisitorEntry(formData);
-            alert('Security clearance granted. Entry logged.');
+            toast.success('Security clearance granted. Entry logged.', { refId });
             setFormData({
                 phone: '', name: '', email: '', idProofType: 'Aadhar', idProofNumber: '',
                 purpose: '', personToMeet: '', gateNumber: 'Gate 1'
             });
             setPhoneSearch('');
             setIsVisitorFound(false);
+            setCheckInOpen(false);
             setActiveTab('active_logs');
+            loadActiveLogs();
         } catch (err) {
-            alert(err.response?.data?.error || 'Check-in failed.');
-        }
+            const { message, status, refId } = getErrorMessage(err, 'Check-in failed.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setSaving(false); }
     };
 
-    const handleTriggerExit = async (logId) => {
-        if (!window.confirm('Log visitor exit?')) return;
+    const handleTriggerExit = async () => {
+        if (!pendingExit) return;
         try {
-            await logVisitorExit(logId);
-            loadActiveLogs();
-        } catch (err) { alert('Exit logging failed.'); }
+            await logVisitorExit(pendingExit);
+            setPendingExit(null);
+            toast.success('Visitor exit logged.', { refId: getSuccessRefId() });
+            if (activeTab === 'active_logs') loadActiveLogs();
+            else loadAllLogs();
+        } catch (err) {
+            const { message, refId } = getErrorMessage(err, 'Could not log visitor exit.');
+            toast.error(message, { refId });
+        }
     };
 
     // Stats
@@ -118,10 +152,12 @@ const VisitorPage = () => {
                     <h1 className="page-title">🛡️ Visitor Surveillance</h1>
                     <p className="page-subtitle">Track campus entries, verify identities, and monitor on-site guests</p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '4px', borderRadius: '8px' }}>
-                    <button className={`btn btn-sm ${activeTab === 'active_logs' ? 'btn-primary' : ''}`} style={activeTab !== 'active_logs' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('active_logs')}>Live Roster</button>
-                    <button className={`btn btn-sm ${activeTab === 'register' ? 'btn-primary' : ''}`} style={activeTab !== 'register' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('register')}>Check-In</button>
-                    <button className={`btn btn-sm ${activeTab === 'all_history' ? 'btn-primary' : ''}`} style={activeTab !== 'all_history' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('all_history')}>History</button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '4px', borderRadius: '8px' }}>
+                        <button className={`btn btn-sm ${activeTab === 'active_logs' ? 'btn-primary' : ''}`} style={activeTab !== 'active_logs' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('active_logs')}>Live Roster</button>
+                        <button className={`btn btn-sm ${activeTab === 'all_history' ? 'btn-primary' : ''}`} style={activeTab !== 'all_history' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('all_history')}>History</button>
+                    </div>
+                    <button className="btn btn-sm btn-primary" onClick={() => setCheckInOpen(true)}>+ Check-In Visitor</button>
                 </div>
                 {(activeTab === 'active_logs' || activeTab === 'all_history') && logs.length > 0 && (
                     <button className="btn btn-sm btn-secondary" onClick={() => exportToExcel(
@@ -153,95 +189,96 @@ const VisitorPage = () => {
                 </div>
             </div>
 
-            {activeTab === 'register' && (
-                <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                        <div className="stat-card" style={{ marginBottom: '25px' }}>
-                            <h4 style={{ margin: '0 0 15px 0' }}>Step 1: ID Discovery</h4>
-                            <form onSubmit={handlePhoneSearch} style={{ display: 'flex', gap: '10px' }}>
-                                <input
-                                    type="tel"
-                                    inputMode="tel"
-                                    pattern="[+]?[0-9\- ]{10,15}"
-                                    required
-                                    className="form-control"
-                                    placeholder="Enter visitor's phone number..."
-                                    value={phoneSearch}
-                                    onChange={(e) => setPhoneSearch(e.target.value)}
-                                    style={{ fontSize: '1.1rem' }}
-                                />
-                                <button type="submit" className="btn btn-secondary" disabled={isSearching}>
-                                    {isSearching ? '🔍' : 'Check Records'}
-                                </button>
-                            </form>
-                            {isVisitorFound && (
-                                <div style={{ marginTop: '15px', color: '#10b981', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                                    ✓ Returning visitor identified. Profile pre-loaded.
-                                </div>
-                            )}
+            <Modal
+                isOpen={checkInOpen}
+                title="Check-In Visitor"
+                onClose={() => setCheckInOpen(false)}
+                onSubmit={handleRegisterEntry}
+                submitLabel="Grant Entry & Log Token"
+                submitting={saving}
+                submitDisabled={!formData.phone || !formData.name || !formData.personToMeet || !formData.purpose}
+                isDirty={Boolean(formData.phone || formData.name || formData.purpose)}
+                size="medium"
+            >
+                <form onSubmit={(e) => { e.preventDefault(); handleRegisterEntry(); }}>
+                    <div className="form-group">
+                        <label className="form-label">Step 1 — Phone lookup</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                                type="tel"
+                                inputMode="tel"
+                                pattern="[+]?[0-9\- ]{10,15}"
+                                required
+                                className="form-control"
+                                placeholder="Enter visitor's phone number..."
+                                value={phoneSearch}
+                                onChange={(e) => setPhoneSearch(e.target.value)}
+                            />
+                            <button type="button" className="btn btn-secondary" disabled={isSearching} onClick={handlePhoneSearch}>
+                                {isSearching ? 'Searching…' : 'Check Records'}
+                            </button>
                         </div>
-
-                        <div className="stat-card">
-                            <h4 style={{ margin: '0 0 20px 0' }}>Step 2: Security Verification</h4>
-                            <form className="form-grid" onSubmit={handleRegisterEntry}>
-                                <div className="form-group">
-                                    <label>Phone *</label>
-                                    <input type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" className="form-control" required readOnly value={formData.phone} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Full Name *</label>
-                                    <input type="text" className="form-control" required value={formData.name} readOnly={isVisitorFound} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Identity Proof *</label>
-                                    <select className="form-control" value={formData.idProofType} disabled={isVisitorFound} onChange={e => setFormData({ ...formData, idProofType: e.target.value })}>
-                                        <option value="Aadhar">Aadhar Card</option>
-                                        <option value="Driving License">Driving License</option>
-                                        <option value="Passport">Passport</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>ID Reference # *</label>
-                                    <input type="text" className="form-control" required value={formData.idProofNumber} readOnly={isVisitorFound} onChange={e => setFormData({ ...formData, idProofNumber: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Institutional Host *</label>
-                                    <input type="text" className="form-control" placeholder="Room/Person to meet" required value={formData.personToMeet} onChange={e => setFormData({ ...formData, personToMeet: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Assigned Gate</label>
-                                    <select className="form-control" value={formData.gateNumber} onChange={e => setFormData({ ...formData, gateNumber: e.target.value })}>
-                                        <option value="Gate 1">Main Arch (G1)</option>
-                                        <option value="Gate 2">North Gate (G2)</option>
-                                        <option value="Gate 3">Faculty Gate (G3)</option>
-                                    </select>
-                                </div>
-                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                    <label>Nature of Visit *</label>
-                                    <textarea className="form-control" required rows="3" value={formData.purpose} onChange={e => setFormData({ ...formData, purpose: e.target.value })} placeholder="Deliveries, Meeting, Campus Tour, etc."></textarea>
-                                </div>
-                                <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '15px' }}>
-                                    <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '15px', fontWeight: 'bold', fontSize: '1.05rem' }}>
-                                        Grant Entry & Log Token
-                                    </button>
-                                </div>
-                            </form>
+                        {isVisitorFound && <span className="field-hint" style={{ color: '#027a48' }}>✓ Returning visitor identified. Profile pre-loaded.</span>}
+                    </div>
+                    <div className="form-grid" style={{ marginTop: '12px' }}>
+                        <div className="form-group">
+                            <label className="form-label">Phone *</label>
+                            <input type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" className="form-control" required readOnly value={formData.phone} placeholder="Run lookup first" />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Full Name *</label>
+                            <input type="text" className="form-control" required value={formData.name} readOnly={isVisitorFound} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Identity Proof *</label>
+                            <select className="form-control" value={formData.idProofType} disabled={isVisitorFound} onChange={e => setFormData({ ...formData, idProofType: e.target.value })}>
+                                <option value="Aadhar">Aadhar Card</option>
+                                <option value="Driving License">Driving License</option>
+                                <option value="Passport">Passport</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">ID Reference # *</label>
+                            <input type="text" className="form-control" required value={formData.idProofNumber} readOnly={isVisitorFound} onChange={e => setFormData({ ...formData, idProofNumber: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Institutional Host *</label>
+                            <input type="text" className="form-control" placeholder="Room/Person to meet" required value={formData.personToMeet} onChange={e => setFormData({ ...formData, personToMeet: e.target.value })} />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Assigned Gate</label>
+                            <select className="form-control" value={formData.gateNumber} onChange={e => setFormData({ ...formData, gateNumber: e.target.value })}>
+                                <option value="Gate 1">Main Arch (G1)</option>
+                                <option value="Gate 2">North Gate (G2)</option>
+                                <option value="Gate 3">Faculty Gate (G3)</option>
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label className="form-label">Nature of Visit *</label>
+                            <textarea className="form-control" required rows="3" value={formData.purpose} onChange={e => setFormData({ ...formData, purpose: e.target.value })} placeholder="Deliveries, Meeting, Campus Tour, etc."></textarea>
                         </div>
                     </div>
+                </form>
+            </Modal>
+            <ConfirmDialog
+                isOpen={Boolean(pendingExit)}
+                title="Log visitor exit?"
+                message="The visitor will be marked as checked out."
+                confirmLabel="Log Exit"
+                destructive={false}
+                onConfirm={handleTriggerExit}
+                onCancel={() => setPendingExit(null)}
+            />
 
-                    <div className="stat-card" style={{ flex: 0.5, borderStyle: 'dashed', background: '#f8fafc' }}>
-                        <h4 style={{ marginBottom: '15px', color: '#64748b' }}>Security Brief</h4>
-                        <ul style={{ fontSize: '0.85rem', color: '#64748b', paddingLeft: '20px', lineHeight: '1.8' }}>
-                            <li>Verify Physical ID for all new entries.</li>
-                            <li>Ensure guest is escorted or directed.</li>
-                            <li>Collect visitor badge on exit.</li>
-                            <li>Log exit immediately once guest leaves.</li>
-                        </ul>
-                    </div>
+            {loadError && (
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{loadError}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => activeTab === 'all_history' ? loadAllLogs() : loadActiveLogs()}>Retry</button>
                 </div>
             )}
-
-            {(activeTab === 'active_logs' || activeTab === 'all_history') && (
+            {loading ? (
+                <SkeletonCards count={4} />
+            ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                     {logs.length === 0 ? (
                         <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px', color: '#94a3b8' }}>
@@ -280,7 +317,7 @@ const VisitorPage = () => {
                                             <strong>{new Date(log.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
                                         </div>
                                         {isOnCampus ? (
-                                            <button className="btn btn-sm btn-danger" onClick={() => handleTriggerExit(log.id)}>Check-Out</button>
+                                            <button className="btn btn-sm btn-danger" onClick={() => setPendingExit(log.id)}>Check-Out</button>
                                         ) : (
                                             <div style={{ textAlign: 'right' }}>
                                                 <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>EXITED</div>

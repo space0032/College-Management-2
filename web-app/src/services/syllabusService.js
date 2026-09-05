@@ -1,7 +1,7 @@
 import api from './api';
 
-export const getSyllabiBycourse = (courseId) =>
-    api.get(`/syllabus?courseId=${courseId}`);
+export const getSyllabiBycourse = (courseId, signal) =>
+    api.get(`/syllabus?courseId=${courseId}`, signal ? { signal } : undefined);
 
 export const getAllSyllabi = () =>
     api.get('/syllabus');

@@ -7,9 +7,13 @@ import { getAllCourses } from '../services/courseService';
 import { searchStudents, getStudentCourses } from '../services/studentService';
 import SessionManager from '../utils/SessionManager';
 import AiAssistModal from '../components/AiAssistModal';
+import Modal from '../components/Modal';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonCards } from '../components/Skeleton';
 
 const AssignmentPage = () => {
-    const [activeTab, setActiveTab] = useState('browse'); // browse, create, grade, submit
+    const [, setActiveTab] = useState('browse'); // browse kept for legacy navigation state
     const [assignments, setAssignments] = useState([]);
     const [submissions, setSubmissions] = useState([]);
     const [selectedAssignment, setSelectedAssignment] = useState(null);
@@ -23,6 +27,12 @@ const AssignmentPage = () => {
     const [enrolledCourses, setEnrolledCourses] = useState([]);
     const [studentId, setStudentId] = useState(null);
     const [aiOpen, setAiOpen] = useState(false);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [submitOpen, setSubmitOpen] = useState(false);
+    const [gradeOpen, setGradeOpen] = useState(false);
+    const [listLoading, setListLoading] = useState(true);
+    const [listError, setListError] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const user = SessionManager.getUser() || { id: null, username: '', role: 'STUDENT' };
     const userId = user.id;
@@ -43,41 +53,50 @@ const AssignmentPage = () => {
         return null;
     }, [userRole, username, studentId]);
 
-    const loadAssignments = React.useCallback(async () => {
+    const loadAssignments = React.useCallback(async (signal) => {
+        setListLoading(true);
+        setListError('');
         try {
             if (userRole === 'STUDENT') {
                 const sid = await resolveStudentId();
-                const res = await getAssignments(userRole, userId, sid || undefined);
+                if (signal?.aborted) return;
+                const res = await getAssignments(userRole, userId, sid || undefined, signal);
                 setAssignments(res.data || []);
                 if (sid) {
                     try {
-                        const cRes = await getStudentCourses(sid);
-                        setEnrolledCourses(cRes.data || []);
+                        const cRes = await getStudentCourses(sid, signal);
+                        if (!signal?.aborted) setEnrolledCourses(cRes.data || []);
                     } catch { /* ignore */ }
                 }
             } else {
-                const res = await getAssignments(userRole, userId);
-                setAssignments(res.data || []);
+                const res = await getAssignments(userRole, userId, undefined, signal);
+                if (!signal?.aborted) setAssignments(res.data || []);
             }
         } catch (err) {
-            console.error(err);
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setListError(err?.response?.data?.error || 'Could not load assignments.');
+        } finally {
+            if (!signal?.aborted) setListLoading(false);
         }
     }, [userId, userRole, resolveStudentId]);
 
     useEffect(() => {
-        loadAssignments();
+        const controller = new AbortController();
+        loadAssignments(controller.signal);
         if (userRole === 'FACULTY' || userRole === 'ADMIN') {
-            getAllCourses(1, 500).then(res => setCourses(res.data || [])).catch(() => { });
+            getAllCourses(1, 500, controller.signal).then(res => setCourses(res.data || [])).catch(() => { });
         }
-    }, [activeTab, loadAssignments, userRole]);
+        return () => controller.abort();
+    }, [loadAssignments, userRole]);
 
-    const handleCreateAssignment = async (e) => {
-        e.preventDefault();
-        if (!assignmentForm.courseId) { alert('Please select a subject.'); return; }
+    const handleCreateAssignment = async () => {
+        if (!assignmentForm.courseId) { toast.error('Please select a subject.'); return; }
         const today = new Date().toISOString().split('T')[0];
-        if (assignmentForm.dueDate && assignmentForm.dueDate < today) { alert('Due date cannot be in the past.'); return; }
+        if (assignmentForm.dueDate && assignmentForm.dueDate < today) { toast.error('Due date cannot be in the past.'); return; }
         const selected = courses.find(c => String(c.id) === String(assignmentForm.courseId));
+        setSaving(true);
         try {
+            const refId = getSuccessRefId();
             await createAssignment({
                 ...assignmentForm,
                 courseId: parseInt(assignmentForm.courseId),
@@ -85,10 +104,13 @@ const AssignmentPage = () => {
                 createdBy: userId
             });
             setAssignmentForm({ title: '', description: '', dueDate: '', courseId: '', semester: 1 });
-            setActiveTab('browse');
+            setCreateOpen(false);
+            toast.success('Assignment published.', { refId });
+            loadAssignments();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to create assignment');
-        }
+            const { message, status, refId } = getErrorMessage(err, 'Could not publish this assignment.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setSaving(false); }
     };
 
     const handleOpenSubmit = async (a) => {
@@ -97,29 +119,33 @@ const AssignmentPage = () => {
             const res = await getStudentSubmission(a.id, username);
             if (res.data) {
                 setSubmissionText(res.data.submissionText);
-                setSelectedSubmission(res.data); // Already submitted
+                setSelectedSubmission(res.data);
             } else {
                 setSubmissionText('');
                 setSelectedSubmission(null);
             }
-            setActiveTab('submit');
+            setSubmitOpen(true);
         } catch (err) {
-            alert('Failed to load submission state');
+            const { message, refId } = getErrorMessage(err, 'Could not load submission state.');
+            toast.error(message, { refId });
         }
     };
 
-    const handleSubmitWork = async (e) => {
-        e.preventDefault();
+    const handleSubmitWork = async () => {
+        setSaving(true);
         try {
+            const refId = getSuccessRefId();
             await submitAssignment(selectedAssignment.id, {
                 enrollmentId: username,
                 submissionText: submissionText
             });
-            alert('Assignment submitted successfully');
+            toast.success('Assignment submitted successfully.', { refId });
+            setSubmitOpen(false);
             setActiveTab('browse');
         } catch (err) {
-            alert('Failed to submit assignment');
-        }
+            const { message, status, refId } = getErrorMessage(err, 'Could not submit this assignment.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setSaving(false); }
     };
 
     const handleOpenGrade = async (a) => {
@@ -127,20 +153,21 @@ const AssignmentPage = () => {
         try {
             const res = await getSubmissions(a.id);
             setSubmissions(res.data || []);
-            setActiveTab('grade');
+            setGradeOpen(true);
         } catch (err) {
-            alert('Failed to fetch submissions');
+            const { message, refId } = getErrorMessage(err, 'Could not load submissions.');
+            toast.error(message, { refId });
         }
     };
 
-    const submitGrade = async (e) => {
-        e.preventDefault();
+    const submitGrade = async () => {
         if (!selectedSubmission) return;
         const grade = Number(gradingForm.grade);
         if (!Number.isFinite(grade) || grade < 0 || grade > 100) {
-            alert('Grade must be between 0 and 100.');
+            toast.error('Grade must be between 0 and 100.');
             return;
         }
+        setSaving(true);
         try {
             await gradeSubmission(selectedSubmission.id, {
                 grade,
@@ -148,11 +175,13 @@ const AssignmentPage = () => {
             });
             setGradingForm({ grade: '', feedback: '' });
             setSelectedSubmission(null);
+            toast.success('Grade saved.', { refId: getSuccessRefId() });
             const res = await getSubmissions(selectedAssignment.id);
             setSubmissions(res.data || []);
         } catch (err) {
-            alert('Failed to save grade');
-        }
+            const { message, status, refId } = getErrorMessage(err, 'Could not save this grade.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setSaving(false); }
     };
 
     // F1: insert an AI-generated draft into the create form for human review.
@@ -188,11 +217,9 @@ const AssignmentPage = () => {
                     <p className="page-subtitle">Track, submit, and grade academic assignments across your enrolled subjects{userRole === 'STUDENT' && enrolledCourses.length > 0 ? ` (${enrolledCourses.length} enrolled)` : ''}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className={`btn ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>
-                        All Assignments
-                    </button>
+                    <span className="badge badge-primary">All records: {assignments.length}</span>
                     {(userRole === 'FACULTY' || userRole === 'ADMIN') && (
-                        <button className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('create')}>
+                        <button className="btn btn-primary" onClick={() => setCreateOpen(true)}>
                             + New Assignment
                         </button>
                     )}
@@ -226,7 +253,15 @@ const AssignmentPage = () => {
                 </div>
             </div>
 
-            {activeTab === 'browse' && (
+            {listError && (
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{listError}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => loadAssignments()}>Retry</button>
+                </div>
+            )}
+            {listLoading ? (
+                <SkeletonCards count={6} />
+            ) : (
                 <div className="card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
                     {assignments.length === 0 ? (
                         <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '50px', color: '#a0aec0' }}>
@@ -288,131 +323,96 @@ const AssignmentPage = () => {
                 </div>
             )}
 
-            {activeTab === 'create' && (userRole === 'FACULTY' || userRole === 'ADMIN') && (
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <div className="stat-card" style={{ padding: '30px' }}>
-                        <h3 style={{ borderBottom: '1px solid #edf2f7', paddingBottom: '15px', marginBottom: '25px' }}>🚀 Publish New Assignment</h3>
-                        <form className="form-grid" onSubmit={handleCreateAssignment}>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Assignment Title *</label>
-                                <input required type="text" className="form-control" value={assignmentForm.title} onChange={e => setAssignmentForm({ ...assignmentForm, title: e.target.value })} placeholder="e.g. Mid-term Project Phase 1" />
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Description & Learning Objectives *</label>
-                                <textarea required rows="6" className="form-control" value={assignmentForm.description} onChange={e => setAssignmentForm({ ...assignmentForm, description: e.target.value })} placeholder="Detail the requirements, constraints, and submission format..."></textarea>
-                            </div>
-                            <div className="form-group">
-                                <label>Submission Deadline *</label>
-                                <input required type="date" min={new Date().toISOString().split('T')[0]} className="form-control" value={assignmentForm.dueDate} onChange={e => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Target Subject *</label>
-                                <select required className="form-control" value={assignmentForm.courseId}
-                                    onChange={e => setAssignmentForm({ ...assignmentForm, courseId: e.target.value })}>
-                                    <option value="">-- Select Subject --</option>
-                                    {courses.map(c => (
-                                        <option key={c.id} value={c.id}>{c.code} — {c.name || c.courseName}{c.specialization ? ` [${c.specialization}]` : ''} (Sem {c.semester})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
-                                <button type="button" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 'bold' }} onClick={() => setAiOpen(true)}>✨ Generate Questions with AI</button>
-                                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontWeight: 'bold', fontSize: '1rem', marginTop: '10px' }}>Launch Assignment</button>
-                                <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: '10px' }} onClick={() => setActiveTab('browse')}>Cancel</button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={createOpen}
+                title="🚀 Publish New Assignment"
+                onClose={() => setCreateOpen(false)}
+                onSubmit={handleCreateAssignment}
+                submitLabel="Launch Assignment"
+                submitting={saving}
+                isDirty={Boolean(assignmentForm.title || assignmentForm.description || assignmentForm.courseId)}
+                size="large"
+            >
+                <form className="form-grid" onSubmit={(e) => { e.preventDefault(); handleCreateAssignment(); }}>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Assignment Title *</label>
+                        <input required type="text" className="form-control" value={assignmentForm.title} onChange={e => setAssignmentForm({ ...assignmentForm, title: e.target.value })} placeholder="e.g. Mid-term Project Phase 1" />
                     </div>
-                </div>
-            )}
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Description & Learning Objectives *</label>
+                        <textarea required rows="5" className="form-control" value={assignmentForm.description} onChange={e => setAssignmentForm({ ...assignmentForm, description: e.target.value })} placeholder="Detail the requirements, constraints, and submission format..."></textarea>
+                        <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: '8px' }} onClick={() => setAiOpen(true)}>✨ Generate Questions with AI</button>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Submission Deadline *</label>
+                        <input required type="date" min={new Date().toISOString().split('T')[0]} className="form-control" value={assignmentForm.dueDate} onChange={e => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Target Subject *</label>
+                        <select required className="form-control" value={assignmentForm.courseId}
+                            onChange={e => setAssignmentForm({ ...assignmentForm, courseId: e.target.value })}>
+                            <option value="">-- Select Subject --</option>
+                            {courses.map(c => (
+                                <option key={c.id} value={c.id}>{c.code} — {c.name || c.courseName}{c.specialization ? ` [${c.specialization}]` : ''} (Sem {c.semester})</option>
+                            ))}
+                        </select>
+                    </div>
+                </form>
+            </Modal>
 
-            {activeTab === 'submit' && selectedAssignment && (
-                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                    <div className="stat-card" style={{ padding: '30px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('browse')}>&larr; Back to List</button>
+            <Modal
+                isOpen={submitOpen}
+                title={selectedAssignment ? `Submit — ${selectedAssignment.title}` : 'Submit assignment'}
+                onClose={() => setSubmitOpen(false)}
+                onSubmit={selectedSubmission && !selectedSubmission.isGraded ? undefined : handleSubmitWork}
+                submitLabel="Turn In Assignment"
+                submitting={saving}
+                submitDisabled={Boolean(selectedSubmission) || !submissionText.trim()}
+                isDirty={!selectedSubmission && Boolean(submissionText.trim())}
+                size="large"
+            >
+                {selectedAssignment && (
+                    <>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                             <span className="badge badge-warning">Deadline: {new Date(selectedAssignment.dueDate).toLocaleString()}</span>
                         </div>
-
-                        <h2 style={{ fontSize: '1.8rem', color: '#2d3748', margin: '0 0 10px 0' }}>{selectedAssignment.title}</h2>
-
-                        <div style={{
-                            marginTop: '20px', padding: '20px', backgroundColor: '#f7fafc',
-                            borderRadius: '12px', border: '1px solid #edf2f7', lineHeight: '1.6', color: '#4a5568'
-                        }}>
-                            <h4 style={{ marginTop: 0, color: '#2d3748' }}>Instructions:</h4>
-                            {selectedAssignment.description}
+                        <div style={{ padding: '14px', backgroundColor: '#f7fafc', borderRadius: '10px', border: '1px solid #edf2f7', fontSize: '.85rem', color: '#4a5568', marginBottom: '14px' }}>
+                            <strong>Instructions:</strong><br />{selectedAssignment.description}
                         </div>
-
-                        <div style={{ margin: '30px 0', borderTop: '2px dashed #edf2f7' }} />
-
                         {selectedSubmission && selectedSubmission.isGraded ? (
-                            <div style={{ padding: '25px', backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', borderRadius: '12px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                    <h3 style={{ color: '#2f855a', margin: 0 }}>✓ Assignment Graded</h3>
-                                    <div style={{
-                                        fontSize: '2rem', fontWeight: 'bold', color: '#2f855a',
-                                        background: 'white', padding: '10px 20px', borderRadius: '12px', border: '2px solid #c6f6d5'
-                                    }}>
-                                        {selectedSubmission.grade}%
-                                    </div>
-                                </div>
-                                <div style={{ marginTop: '15px' }}>
-                                    <strong style={{ color: '#2d3748' }}>Feedback:</strong>
-                                    <p style={{ marginTop: '8px', fontStyle: 'italic' }}>"{selectedSubmission.feedback || 'Excellent work! No specific feedback provided.'}"</p>
-                                </div>
-                                <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.5)', borderRadius: '8px', fontSize: '0.9rem' }}>
-                                    <strong>Your Final Submission:</strong><br />
-                                    {selectedSubmission.submissionText}
-                                </div>
+                            <div style={{ padding: '16px', backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', borderRadius: '10px' }}>
+                                <strong>✓ Graded: {selectedSubmission.grade}%</strong>
+                                <p style={{ fontStyle: 'italic' }}>"{selectedSubmission.feedback || 'Excellent work!'}"</p>
                             </div>
+                        ) : selectedSubmission ? (
+                            <div className="alert" role="status">⏳ Submitted — awaiting faculty review & grading.</div>
                         ) : (
-                            <form onSubmit={handleSubmitWork}>
+                            <form onSubmit={(e) => { e.preventDefault(); handleSubmitWork(); }}>
                                 <div className="form-group">
-                                    <label style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                                        <span>Your Work Submission *</span>
-                                        {selectedSubmission && <span style={{ color: '#48bb78' }}>✓ Submitted on {new Date(selectedSubmission.submissionDate).toLocaleDateString()}</span>}
-                                    </label>
+                                    <label className="form-label">Your Work Submission *</label>
                                     <textarea
-                                        rows="10"
+                                        rows="7"
                                         required
                                         className="form-control"
-                                        readOnly={!!selectedSubmission}
                                         placeholder="Paste your link (GitHub/Dropbox) or enter your summary here..."
                                         value={submissionText}
                                         onChange={e => setSubmissionText(e.target.value)}
-                                        style={{ fontSize: '1rem', padding: '15px' }}
                                     ></textarea>
                                 </div>
-
-                                {!selectedSubmission ? (
-                                    <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '15px', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                                        🚀 Turn In Assignment
-                                    </button>
-                                ) : (
-                                    <div style={{
-                                        textAlign: 'center', padding: '20px', borderRadius: '12px',
-                                        background: '#ebf8ff', color: '#2b6cb0', border: '1px solid #bee3f8',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        ⏳ Awaiting Faculty Review & Grading
-                                    </div>
-                                )}
                             </form>
                         )}
-                    </div>
-                </div>
-            )}
+                    </>
+                )}
+            </Modal>
 
-            {activeTab === 'grade' && selectedAssignment && (
-                <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                        <div className="stat-card" style={{ marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('browse')}>&larr; Back to Dashboard</button>
-                                <div className="badge badge-primary">{submissions.length} Submissions</div>
-                            </div>
-                            <h3 style={{ marginTop: '15px', marginBottom: 0 }}>{selectedAssignment.title}</h3>
-                        </div>
+            <Modal
+                isOpen={gradeOpen}
+                title={selectedAssignment ? `Grade — ${selectedAssignment.title} (${submissions.length})` : 'Grade submissions'}
+                onClose={() => { setGradeOpen(false); setSelectedSubmission(null); }}
+                size="xl"
+            >
+                <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '280px' }}>
 
                         <div className="data-table-container">
                             <table className="data-table">
@@ -476,9 +476,9 @@ const AssignmentPage = () => {
                                 "{selectedSubmission.submissionText}"
                             </div>
 
-                            <form onSubmit={submitGrade} style={{ marginTop: '25px' }}>
+                            <form onSubmit={(e) => { e.preventDefault(); submitGrade(); }} style={{ marginTop: '16px' }}>
                                 <div className="form-group">
-                                    <label style={{ fontWeight: 'bold' }}>Assign Grade (0 - 100) *</label>
+                                    <label className="form-label">Assign Grade (0 - 100) *</label>
                                     <input
                                         required
                                         type="number"
@@ -491,23 +491,23 @@ const AssignmentPage = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label style={{ fontWeight: 'bold' }}>Faculty Feedback</label>
+                                    <label className="form-label">Faculty Feedback</label>
                                     <textarea
-                                        rows="4"
+                                        rows="3"
                                         className="form-control"
                                         value={gradingForm.feedback}
                                         onChange={e => setGradingForm({ ...gradingForm, feedback: e.target.value })}
                                         placeholder="What did the student do well? What can be improved?"
                                     ></textarea>
                                 </div>
-                                <button type="submit" className="btn btn-success" style={{ width: '100%', padding: '12px', fontWeight: 'bold' }}>
-                                    {selectedSubmission.isGraded ? 'Update Grade & Notify' : 'Release Grade'}
+                                <button type="submit" className="btn btn-success" disabled={saving} style={{ width: '100%', padding: '12px', fontWeight: 'bold' }}>
+                                    {saving ? 'Saving…' : selectedSubmission.isGraded ? 'Update Grade & Notify' : 'Release Grade'}
                                 </button>
                             </form>
                         </div>
                     )}
                 </div>
-            )}
+            </Modal>
             <AiAssistModal
                 isOpen={aiOpen}
                 onClose={() => setAiOpen(false)}

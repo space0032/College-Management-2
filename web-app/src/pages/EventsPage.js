@@ -12,11 +12,18 @@ import { getDepartments } from '../services/departmentService';
 import { getAllStudents } from '../services/studentService';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonCards } from '../components/Skeleton';
 import SessionManager from '../utils/SessionManager';
 import { safeParseFloat } from '../utils/validationUtils';
 
 const EventsPage = () => {
-    const [, setLoading] = useState(false);
+    const [listLoading, setListLoading] = useState(true);
+    const [listError, setListError] = useState('');
+    const [createOpen, setCreateOpen] = useState(false);
+    const [pendingUnregister, setPendingUnregister] = useState(null);
     const [activeTab, setActiveTab] = useState('browse');
     const [events, setEvents] = useState([]);
     const [myEvents, setMyEvents] = useState([]);
@@ -51,26 +58,33 @@ const EventsPage = () => {
     const userRole = SessionManager.getUserRole() || 'STUDENT';
     const isAdmin = userRole === 'ADMIN' || userRole === 'FACULTY';
 
-    const loadData = useCallback(async () => {
-        setLoading(true);
+    const loadData = useCallback(async (signal) => {
+        setListLoading(true);
+        setListError('');
         try {
             const [evRes, myRes] = await Promise.all([
-                getEvents(),
-                user.role === 'STUDENT' ? getStudentEvents(user.username) : Promise.resolve({ data: [] })
+                getEvents(signal),
+                user.role === 'STUDENT' ? getStudentEvents(user.username, signal) : Promise.resolve({ data: [] })
             ]);
+            if (signal?.aborted) return;
             setEvents(evRes.data || []);
             setMyEvents(myRes.data || []);
             if (!selectedEventId && evRes.data?.length > 0) {
                 setSelectedEventId(evRes.data[0].id.toString());
             }
         } catch (err) {
-            console.error(err);
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setListError(err?.response?.data?.error || 'Could not load events.');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) setListLoading(false);
         }
     }, [user.username, user.role, selectedEventId]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => {
+        const controller = new AbortController();
+        loadData(controller.signal);
+        return () => controller.abort();
+    }, [loadData]);
 
     useEffect(() => {
         getDepartments().then(res => setDepartmentOptions(res.data || [])).catch(() => {});
@@ -105,38 +119,51 @@ const EventsPage = () => {
 
     const handleRegister = async (eventId) => {
         try {
+            const refId = getSuccessRefId();
             await registerEvent(eventId, user.username);
-            alert('Registration successful!');
+            toast.success('Registration request submitted.', { refId });
             loadData();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to register.');
+            const { message, status, refId } = getErrorMessage(err, 'Could not register for this event.');
+            toast.error(message, { refId, details: { status } });
         }
     };
 
-    const handleUnregister = async (eventId) => {
-        if (!window.confirm('Cancel your registration?')) return;
+    const confirmUnregister = async () => {
+        if (!pendingUnregister) return;
         try {
-            await unregisterEvent(eventId, user.username);
+            await unregisterEvent(pendingUnregister, user.username);
+            setPendingUnregister(null);
+            toast.success('Registration cancelled.', { refId: getSuccessRefId() });
             loadData();
         } catch (err) {
-            alert('Failed to unregister.');
+            const { message, refId } = getErrorMessage(err, 'Could not cancel registration.');
+            toast.error(message, { refId });
         }
     };
 
-    const handleCreateEvent = async (e) => {
-        e.preventDefault();
+    const handleCreateEvent = async () => {
         setCreateSaving(true);
         try {
+            const refId = getSuccessRefId();
             await createEvent(createForm);
             setCreateForm(EMPTY_EVENT);
+            setCreateOpen(false);
+            toast.success('Event created.', { refId });
             loadData();
-            setActiveTab('browse');
         } catch (err) {
-            alert('Failed to create event.');
+            const { message, status, refId } = getErrorMessage(err, 'Could not create this event.');
+            toast.error(message, { refId, details: { status } });
         } finally {
             setCreateSaving(false);
         }
     };
+
+    const fail = (err, fallback) => {
+        const { message, status, refId } = getErrorMessage(err, fallback);
+        toast.error(message, { refId, details: { status } });
+    };
+    const ok = (msg) => toast.success(msg, { refId: getSuccessRefId() });
 
     const handleSaveBudget = async () => {
         try {
@@ -147,7 +174,8 @@ const EventsPage = () => {
             });
             loadEventDetails(selectedEventId);
             setItemModal({ open: false });
-        } catch (err) { alert('Failed to add budget item.'); }
+            ok('Budget item added.');
+        } catch (err) { fail(err, 'Could not add this budget item.'); }
     };
 
     const handleSavePoll = async () => {
@@ -155,7 +183,8 @@ const EventsPage = () => {
             await createEventPoll(selectedEventId, pollForm);
             loadEventDetails(selectedEventId);
             setItemModal({ open: false });
-        } catch (err) { alert('Failed to create poll.'); }
+            ok('Poll created.');
+        } catch (err) { fail(err, 'Could not create this poll.'); }
     };
 
     const handleVote = async (pollId, option) => {
@@ -163,7 +192,7 @@ const EventsPage = () => {
             await voteEventPoll(pollId, { enrollmentId: user.username, option });
             loadEventDetails(selectedEventId);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to record vote.');
+            fail(err, 'Could not record your vote.');
         }
     };
 
@@ -175,28 +204,29 @@ const EventsPage = () => {
             });
             loadEventDetails(selectedEventId);
         } catch (err) {
-            alert('Failed to update cost.');
+            fail(err, 'Could not update this cost.');
         }
     };
 
     const handleSaveCollaborator = async () => {
-        if (!collabForm.departmentId) { alert('Select a department.'); return; }
+        if (!collabForm.departmentId) { toast.error('Select a department.'); return; }
         try {
             await addEventCollaborator(selectedEventId, { departmentId: parseInt(collabForm.departmentId) });
             setItemModal({ open: false });
             loadEventDetails(selectedEventId);
-        } catch (err) { alert(err.response?.data?.error || 'Failed to add collaborator.'); }
+            ok('Collaborator added.');
+        } catch (err) { fail(err, 'Could not add this collaborator.'); }
     };
 
     const handleDeleteCollaborator = async (id) => {
         try {
             await deleteEventCollaborator(id);
             loadEventDetails(selectedEventId);
-        } catch (err) { alert('Failed to remove collaborator.'); }
+        } catch (err) { fail(err, 'Could not remove this collaborator.'); }
     };
 
     const handleSaveResource = async () => {
-        if (!resourceForm.resourceName.trim()) { alert('Enter a resource name.'); return; }
+        if (!resourceForm.resourceName.trim()) { toast.error('Enter a resource name.'); return; }
         try {
             await addEventResource(selectedEventId, {
                 resourceName: resourceForm.resourceName,
@@ -204,25 +234,26 @@ const EventsPage = () => {
             });
             setItemModal({ open: false });
             loadEventDetails(selectedEventId);
-        } catch (err) { alert(err.response?.data?.error || 'Failed to add resource.'); }
+            ok('Resource added.');
+        } catch (err) { fail(err, 'Could not add this resource.'); }
     };
 
     const handleUpdateResourceStatus = async (id, status, e) => {
         try {
             await updateEventResourceStatus(id, { status });
             loadEventDetails(selectedEventId);
-        } catch (err) { alert('Failed to update resource status.'); }
+        } catch (err) { fail(err, 'Could not update resource status.'); }
     };
 
     const handleDeleteResource = async (id) => {
         try {
             await deleteEventResource(id);
             loadEventDetails(selectedEventId);
-        } catch (err) { alert('Failed to remove resource.'); }
+        } catch (err) { fail(err, 'Could not remove this resource.'); }
     };
 
     const handleSaveVolunteer = async () => {
-        if (!volunteerForm.enrollmentId || !volunteerForm.task.trim()) { alert('Student enrollment and task are required.'); return; }
+        if (!volunteerForm.enrollmentId || !volunteerForm.task.trim()) { toast.error('Student enrollment and task are required.'); return; }
         try {
             await registerEventVolunteer(selectedEventId, {
                 enrollmentId: volunteerForm.enrollmentId,
@@ -230,14 +261,15 @@ const EventsPage = () => {
             });
             setItemModal({ open: false });
             loadEventDetails(selectedEventId);
-        } catch (err) { alert(err.response?.data?.error || 'Failed to register volunteer.'); }
+            ok('Volunteer registered.');
+        } catch (err) { fail(err, 'Could not register this volunteer.'); }
     };
 
     const handleUpdateVolunteer = async (id, task, status) => {
         try {
             await updateEventVolunteer(id, { task, status });
             loadEventDetails(selectedEventId);
-        } catch (err) { alert('Failed to update volunteer.'); }
+        } catch (err) { fail(err, 'Could not update this volunteer.'); }
     };
 
     const stats = [
@@ -258,7 +290,7 @@ const EventsPage = () => {
                     <button className={`btn ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>Browse</button>
                     <button className={`btn ${activeTab === 'my_events' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('my_events')}>My Events</button>
                     {isAdmin && <button className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('manage')}>Control Center</button>}
-                    {isAdmin && <button className={`btn ${activeTab === 'create' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('create')}>+ New Event</button>}
+                    {isAdmin && <button className="btn btn-primary" onClick={() => setCreateOpen(true)}>+ New Event</button>}
                 </div>
             </div>
 
@@ -273,7 +305,15 @@ const EventsPage = () => {
                 ))}
             </div>
 
-            {activeTab === 'browse' && (
+            {listError && (
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{listError}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => loadData()}>Retry</button>
+                </div>
+            )}
+            {listLoading && activeTab === 'browse' ? (
+                <SkeletonCards count={6} />
+            ) : activeTab === 'browse' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '25px' }}>
                     {events.map(ev => (
                         <div key={ev.id} className="stat-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -313,7 +353,7 @@ const EventsPage = () => {
                             { label: 'Type', key: 'eventType' },
                             { label: 'Starts', key: 'startTime', render: (v) => new Date(v).toLocaleString() },
                             { label: 'Status', key: 'status', render: (v) => <span className="badge badge-primary">{v}</span> },
-                            { label: 'Actions', key: 'id', render: (_, row) => <button className="btn btn-sm btn-danger" onClick={() => handleUnregister(row.id)}>Leave</button> }
+                            { label: 'Actions', key: 'id', render: (_, row) => <button className="btn btn-sm btn-danger" onClick={() => setPendingUnregister(row.id)}>Leave</button> }
                         ]}
                         data={myEvents}
                     />
@@ -544,48 +584,58 @@ const EventsPage = () => {
                 </div>
             )}
 
-            {activeTab === 'create' && (
-                <div style={{ maxWidth: '800px', margin: '0 auto' }} className="stat-card">
-                    <h2 style={{ marginTop: 0 }}>🎪 Create Event</h2>
-                    <form onSubmit={handleCreateEvent} className="form-grid">
-                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label>Event Title</label>
-                            <input type="text" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required placeholder="e.g. Science Fair 2026" />
-                        </div>
-                        <div className="form-group">
-                            <label>Event Type</label>
-                            <select value={createForm.eventType} onChange={e => setCreateForm({ ...createForm, eventType: e.target.value })}>
-                                {['Workshop', 'Seminar', 'Hackathon', 'Cultural', 'Sports', 'Academic', 'Other'].map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label>Location</label>
-                            <input type="text" value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })} placeholder="Main Auditorium" />
-                        </div>
-                        <div className="form-group">
-                            <label>Start Time</label>
-                            <input type="datetime-local" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} required />
-                        </div>
-                        <div className="form-group">
-                            <label>End Time</label>
-                            <input type="datetime-local" min={createForm.startTime || undefined} value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} required />
-                        </div>
-                        <div className="form-group">
-                            <label>Max Capacity</label>
-                            <input type="number" min="1" value={createForm.maxParticipants} onChange={e => setCreateForm({ ...createForm, maxParticipants: e.target.value })} placeholder="Unlimited" />
-                        </div>
-                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label>Brief Description</label>
-                            <textarea rows="3" value={createForm.description} onChange={e => setCreateForm({ ...createForm, description: e.target.value })} placeholder="What's this event about?" />
-                        </div>
-                        <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
-                            <button type="submit" className="btn btn-primary" disabled={createSaving} style={{ width: '200px' }}>
-                                {createSaving ? 'Launching...' : 'Create Event'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+            <Modal
+                isOpen={createOpen}
+                title="🎪 Create Event"
+                onClose={() => setCreateOpen(false)}
+                onSubmit={handleCreateEvent}
+                submitLabel="Create Event"
+                submitting={createSaving}
+                isDirty={Boolean(createForm.name || createForm.location || createForm.description)}
+                size="large"
+            >
+                <form onSubmit={(e) => { e.preventDefault(); handleCreateEvent(); }} className="form-grid">
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Event Title *</label>
+                        <input type="text" className="form-control" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required placeholder="e.g. Science Fair 2026" />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Event Type</label>
+                        <select className="form-control" value={createForm.eventType} onChange={e => setCreateForm({ ...createForm, eventType: e.target.value })}>
+                            {['Workshop', 'Seminar', 'Hackathon', 'Cultural', 'Sports', 'Academic', 'Other'].map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Location</label>
+                        <input type="text" className="form-control" value={createForm.location} onChange={e => setCreateForm({ ...createForm, location: e.target.value })} placeholder="Main Auditorium" />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Start Time *</label>
+                        <input type="datetime-local" className="form-control" value={createForm.startTime} onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">End Time *</label>
+                        <input type="datetime-local" className="form-control" min={createForm.startTime || undefined} value={createForm.endTime} onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })} required />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Max Capacity</label>
+                        <input type="number" className="form-control" min="1" value={createForm.maxParticipants} onChange={e => setCreateForm({ ...createForm, maxParticipants: e.target.value })} placeholder="Unlimited" />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Brief Description</label>
+                        <textarea rows="3" className="form-control" value={createForm.description} onChange={e => setCreateForm({ ...createForm, description: e.target.value })} placeholder="What's this event about?" />
+                    </div>
+                </form>
+            </Modal>
+            <ConfirmDialog
+                isOpen={Boolean(pendingUnregister)}
+                title="Cancel registration?"
+                message="You will be removed from this event."
+                confirmLabel="Leave Event"
+                destructive={false}
+                onConfirm={confirmUnregister}
+                onCancel={() => setPendingUnregister(null)}
+            />
 
             {/* Support Modals */}
             <Modal

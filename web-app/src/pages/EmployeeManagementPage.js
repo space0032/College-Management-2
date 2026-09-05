@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getEmployees, addEmployee, updateEmployee } from '../services/employeeService';
 import { exportToCSV } from '../utils/exportUtils';
+import Modal from '../components/Modal';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonCards } from '../components/Skeleton';
 
 const EmployeeManagementPage = () => {
     const [employees, setEmployees] = useState([]);
@@ -17,16 +21,19 @@ const EmployeeManagementPage = () => {
         id: 0, employeeId: '', firstName: '', lastName: '', email: '',
         phone: '', designation: '', joinDate: '', salary: 0, status: 'ACTIVE'
     });
+    const [saving, setSaving] = useState(false);
 
-    const fetchEmployees = React.useCallback(async () => {
+    const fetchEmployees = React.useCallback(async (signal) => {
         try {
             setLoading(true);
-            const res = await getEmployees();
+            const res = await getEmployees(signal);
+            if (signal?.aborted) return;
             setEmployees(res.data || []);
             setError(null);
         } catch (err) {
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
             setError('System error retrieving staff records.');
-        } finally { setLoading(false); }
+        } finally { if (!signal?.aborted) setLoading(false); }
     }, []);
 
     const filterData = React.useCallback(() => {
@@ -43,25 +50,38 @@ const EmployeeManagementPage = () => {
         setFilteredEmployees(result);
     }, [employees, statusFilter, searchQuery]);
 
-    useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchEmployees(controller.signal);
+        return () => controller.abort();
+    }, [fetchEmployees]);
     useEffect(() => { filterData(); }, [filterData]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         if (formData.phone && !/^\+?[0-9\s-]{7,15}$/.test(formData.phone.trim())) {
-            alert('Enter a valid phone number using 7 to 15 digits.');
+            toast.error('Enter a valid phone number using 7 to 15 digits.');
             return;
         }
         if (!Number.isFinite(Number(formData.salary)) || Number(formData.salary) < 0) {
-            alert('Annual salary cannot be negative.');
+            toast.error('Annual salary cannot be negative.');
             return;
         }
+        setSaving(true);
         try {
-            if (isEditing) await updateEmployee(formData.id, formData);
-            else await addEmployee(formData);
+            const refId = getSuccessRefId();
+            if (isEditing) {
+                await updateEmployee(formData.id, formData);
+                toast.success('Personnel profile updated.', { refId });
+            } else {
+                await addEmployee(formData);
+                toast.success('Staff profile initialized.', { refId });
+            }
             setShowModal(false);
             fetchEmployees();
-        } catch (err) { alert('Operation failed'); }
+        } catch (err) {
+            const { message, status, refId } = getErrorMessage(err, 'Could not save this staff profile.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setSaving(false); }
     };
 
     const handleEdit = (emp) => {
@@ -155,9 +175,13 @@ const EmployeeManagementPage = () => {
             </div>
 
             {error ? (
-                <div className="stat-card" style={{ color: '#ef4444', textAlign: 'center' }}>{error}</div>
-            ) : loading ? (
-                <div style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>📊 Synchronizing records...</div>
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{error}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => fetchEmployees()}>Retry</button>
+                </div>
+            ) : null}
+            {loading ? (
+                <SkeletonCards count={6} />
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '25px' }}>
                     {filteredEmployees.map(emp => (
@@ -192,58 +216,73 @@ const EmployeeManagementPage = () => {
                 </div>
             )}
 
-            {showModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '800px', padding: '40px' }}>
-                        <h2 style={{ marginBottom: '25px' }}>{isEditing ? 'Modify Personnel Profile' : 'Staff Onboarding'}</h2>
-                        <form onSubmit={handleSubmit} className="form-grid">
+            <Modal
+                isOpen={showModal}
+                title={isEditing ? 'Modify Personnel Profile' : 'Staff Onboarding'}
+                onClose={() => setShowModal(false)}
+                onSubmit={handleSubmit}
+                submitLabel={isEditing ? 'Commit Changes' : 'Initialize Profile'}
+                submitting={saving}
+                isDirty={Boolean(formData.firstName || formData.lastName || formData.employeeId)}
+                size="drawer"
+            >
+                <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="form-grid">
+                    <div className="form-section" style={{ gridColumn: '1 / -1' }}>
+                        <h4 className="form-section-title">Personal</h4>
+                        <div className="form-grid">
                             <div className="form-group">
-                                <label>First Name *</label>
+                                <label className="form-label">First Name *</label>
                                 <input required className="form-control" type="text" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Last Name *</label>
+                                <label className="form-label">Last Name *</label>
                                 <input required className="form-control" type="text" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} />
                             </div>
+                        </div>
+                    </div>
+                    <div className="form-section" style={{ gridColumn: '1 / -1' }}>
+                        <h4 className="form-section-title">Employment</h4>
+                        <div className="form-grid">
                             <div className="form-group">
-                                <label>Official ID *</label>
+                                <label className="form-label">Official ID *</label>
                                 <input required className="form-control" type="text" value={formData.employeeId} onChange={e => setFormData({ ...formData, employeeId: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Designation / Unit *</label>
+                                <label className="form-label">Designation / Unit *</label>
                                 <input required className="form-control" type="text" value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Work Email *</label>
-                                <input required className="form-control" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Phone Contact</label>
-                                <input className="form-control" type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Join Date</label>
+                                <label className="form-label">Join Date</label>
                                 <input className="form-control" type="date" value={formData.joinDate} onChange={e => setFormData({ ...formData, joinDate: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>Annual Salary (₹)</label>
-                                <input className="form-control" type="number" min="0" step="0.01" value={formData.salary} onChange={e => setFormData({ ...formData, salary: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Employment Status</label>
+                                <label className="form-label">Employment Status</label>
                                 <select className="form-control" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
                                     <option value="ACTIVE">Active</option>
                                     <option value="INACTIVE">Inactive / Former</option>
                                 </select>
                             </div>
-                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '15px', marginTop: '20px' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '12px' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '12px', fontWeight: 'bold' }}>{isEditing ? 'Commit Changes' : 'Initialize Profile'}</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                    <div className="form-section" style={{ gridColumn: '1 / -1' }}>
+                        <h4 className="form-section-title">Contact & Pay</h4>
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label className="form-label">Work Email *</label>
+                                <input required className="form-control" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Phone Contact</label>
+                                <input className="form-control" type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                            </div>
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label">Annual Salary (₹)</label>
+                                <input className="form-control" type="number" min="0" step="0.01" value={formData.salary} onChange={e => setFormData({ ...formData, salary: e.target.value })} />
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

@@ -3,6 +3,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getSyllabiBycourse, addSyllabus, deleteSyllabus, downloadSyllabus } from '../services/syllabusService';
 import { getAllCourses } from '../services/courseService';
 import { searchStudents, getStudentCourses } from '../services/studentService';
+import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonCards } from '../components/Skeleton';
 
 const getFileIcon = (path) => {
     if (!path) return '📄';
@@ -26,6 +31,10 @@ const SyllabusManagementPage = () => {
     const [loading, setLoading] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [error, setError] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [pendingDelete, setPendingDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // File upload state
     const [form, setForm] = useState({ title: '', version: '1.0', description: '', filePath: '' });
@@ -65,17 +74,24 @@ const SyllabusManagementPage = () => {
         }
     }, [canManage]);
 
-    const fetchSyllabi = useCallback(() => {
-        if (!selectedCourse) return;
+    const fetchSyllabi = useCallback((signal) => {
+        if (!selectedCourse) return Promise.resolve();
         setLoading(true);
         setError('');
-        getSyllabiBycourse(selectedCourse)
+        return getSyllabiBycourse(selectedCourse, signal)
             .then(res => setSyllabi(Array.isArray(res.data) ? res.data : []))
-            .catch(err => setError(err.response?.data?.error || 'Syllabus records could not be loaded.'))
-            .finally(() => setLoading(false));
+            .catch(err => {
+                if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+                setError(err.response?.data?.error || 'Syllabus records could not be loaded.');
+            })
+            .finally(() => { if (!signal?.aborted) setLoading(false); });
     }, [selectedCourse]);
 
-    useEffect(() => { fetchSyllabi(); }, [fetchSyllabi]);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchSyllabi(controller.signal);
+        return () => controller.abort();
+    }, [fetchSyllabi]);
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -87,23 +103,35 @@ const SyllabusManagementPage = () => {
         }
     };
 
-    const handleAdd = async (e) => {
-        e.preventDefault();
-
+    const handleAdd = async () => {
+        if (selectedFile && selectedFile.size > 10 * 1024 * 1024) {
+            toast.error('File is too large. Maximum size is 10 MB.');
+            return;
+        }
+        setUploading(true);
+        setUploadProgress(10);
         let fileData = null;
         let fileName = '';
 
         if (selectedFile) {
             fileName = selectedFile.name;
-            fileData = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(selectedFile);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
+            try {
+                fileData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(selectedFile);
+                    reader.onload = () => { setUploadProgress(60); resolve(reader.result); };
+                    reader.onerror = error => reject(error);
+                });
+            } catch {
+                setUploading(false);
+                toast.error('Could not read the selected file.');
+                return;
+            }
         }
 
         try {
+            setUploadProgress(80);
+            const refId = getSuccessRefId();
             await addSyllabus({
                 ...form,
                 courseId: parseInt(selectedCourse),
@@ -111,19 +139,30 @@ const SyllabusManagementPage = () => {
                 fileName,
                 fileData
             });
+            setUploadProgress(100);
             setShowAdd(false);
             setForm({ title: '', version: '1.0', description: '', filePath: '' });
             setSelectedFile(null);
+            toast.success('Syllabus published.', { refId });
             fetchSyllabi();
-        } catch (err) { alert('Upload failed. Check if file is too large.'); }
+        } catch (err) {
+            const { message, status, refId } = getErrorMessage(err, 'Upload failed. Check if the file is too large.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setUploading(false); setUploadProgress(0); }
     };
 
-    const handleDelete = async (s) => {
-        if (!window.confirm(`Expunge syllabus "${s.title}" from institutional records?`)) return;
+    const confirmDelete = async () => {
+        if (!pendingDelete) return;
+        setDeleting(true);
         try {
-            await deleteSyllabus(s.id);
+            await deleteSyllabus(pendingDelete.id);
+            setPendingDelete(null);
+            toast.success('Syllabus deleted.', { refId: getSuccessRefId() });
             fetchSyllabi();
-        } catch { alert('Deletion failed'); }
+        } catch (err) {
+            const { message, refId } = getErrorMessage(err, 'Could not delete this syllabus.');
+            toast.error(message, { refId });
+        } finally { setDeleting(false); }
     };
 
     const handleDownload = async (s) => {
@@ -141,8 +180,10 @@ const SyllabusManagementPage = () => {
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
+            toast.success('Download started.', { refId: getSuccessRefId() });
         } catch (err) {
-            alert('Failed to download file.');
+            const { message, refId } = getErrorMessage(err, 'Could not download this file.');
+            toast.error(message, { refId });
         }
     };
 
@@ -185,7 +226,12 @@ const SyllabusManagementPage = () => {
                     </div>
 
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>📂 Retriving curriculum files...</div>
+                        <SkeletonCards count={4} />
+                    ) : error ? (
+                        <div className="retry-bar" role="alert">
+                            <span>{error}</span>
+                            <button className="btn btn-secondary btn-sm" onClick={() => fetchSyllabi()}>Retry</button>
+                        </div>
                     ) : (
                         <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
                             {syllabi.map(s => (
@@ -200,7 +246,7 @@ const SyllabusManagementPage = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Uploaded: {s.uploadedAt?.split('T')[0]}</span>
                                             <div style={{ display: 'flex', gap: '10px' }}>
-                                                {canDelete && <button onClick={() => handleDelete(s)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>}
+                                                {canDelete && <button onClick={() => setPendingDelete(s)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>}
                                                 <button onClick={() => handleDownload(s)} style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', cursor: 'pointer' }}>Download ⬇</button>
                                             </div>
                                         </div>
@@ -248,36 +294,53 @@ const SyllabusManagementPage = () => {
                 </div>
             </div>
 
-            {showAdd && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '450px', borderRadius: '20px', padding: '30px' }}>
-                        <h2 style={{ marginBottom: '5px' }}>Publish Syllabus</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '25px' }}>Unit: <strong>{selCourseObj?.name}</strong></p>
-                        <form onSubmit={handleAdd} className="form-grid">
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Framework Title *</label>
-                                <input required className="form-control" type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Data Structures 2025 Revised" />
-                            </div>
-                            <div className="form-group">
-                                <label>Iteration / Version</label>
-                                <input className="form-control" type="text" value={form.version} onChange={e => setForm({ ...form, version: e.target.value })} placeholder="e.g. 1.1" />
-                            </div>
-                            <div className="form-group">
-                                <label>Framework File (PDF/DOC) *</label>
-                                <input required className="form-control" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Abstract / Scope</label>
-                                <textarea className="form-control" rows="4" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Outline the modules and expected outcomes..."></textarea>
-                            </div>
-                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '10px' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAdd(false)}>Discard</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '12px', fontWeight: 'bold' }}>Authorize Publication</button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={showAdd}
+                title="Publish Syllabus"
+                onClose={() => setShowAdd(false)}
+                onSubmit={handleAdd}
+                submitLabel={uploading ? `Uploading… ${uploadProgress}%` : 'Authorize Publication'}
+                submitting={uploading}
+                isDirty={Boolean(form.title || form.description || selectedFile)}
+                size="large"
+            >
+                <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '14px' }}>Unit: <strong>{selCourseObj?.name}</strong></p>
+                <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }} className="form-grid">
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Framework Title *</label>
+                        <input required className="form-control" type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Data Structures 2025 Revised" />
                     </div>
-                </div>
-            )}
+                    <div className="form-group">
+                        <label className="form-label">Iteration / Version</label>
+                        <input className="form-control" type="text" value={form.version} onChange={e => setForm({ ...form, version: e.target.value })} placeholder="e.g. 1.1" />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Framework File (PDF/DOC, max 10 MB) *</label>
+                        <input required className="form-control" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+                        {selectedFile && <span className="field-hint">{selectedFile.name} — {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>}
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Abstract / Scope</label>
+                        <textarea className="form-control" rows="4" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Outline the modules and expected outcomes..."></textarea>
+                    </div>
+                    {uploading && (
+                        <div style={{ gridColumn: '1 / -1' }} role="status" aria-label={`Upload progress ${uploadProgress} percent`}>
+                            <div style={{ height: '8px', background: '#edf0f5', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--primary)' }} />
+                            </div>
+                        </div>
+                    )}
+                </form>
+            </Modal>
+            <ConfirmDialog
+                isOpen={Boolean(pendingDelete)}
+                title={`Delete "${pendingDelete?.title}"?`}
+                message="This syllabus version will be removed from institutional records. This cannot be undone."
+                confirmLabel="Delete"
+                loading={deleting}
+                onConfirm={confirmDelete}
+                onCancel={() => { if (!deleting) setPendingDelete(null); }}
+            />
         </div>
     );
 };

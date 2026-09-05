@@ -1,6 +1,6 @@
 import api from './api';
 
-export const getEmployees = () => api.get('/employees');
+export const getEmployees = (signal) => api.get('/employees', signal ? { signal } : undefined);
 
 export const addEmployee = (employeeData) => api.post('/employees', employeeData);
 

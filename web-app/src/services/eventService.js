@@ -1,6 +1,6 @@
 import api from './api';
 
-export const getEvents = () => api.get('/events');
+export const getEvents = (signal) => api.get('/events', signal ? { signal } : undefined);
 export const getEvent = (id) => api.get(`/events/${id}`);
 export const createEvent = (data) => api.post('/events', data);
 export const updateEvent = (id, data) => api.put(`/events/${id}`, data);
@@ -12,7 +12,7 @@ export const unregisterEvent = (eventId, enrollmentId) => api.post(`/events/${ev
 export const getEventRegistrations = (eventId) => api.get(`/events/${eventId}/registrations`);
 export const markAttendance = (registrationId, status) => api.put(`/events/registrations/${registrationId}/attendance`, { status });
 
-export const getStudentEvents = (studentId) => api.get(`/events/student/${studentId}`);
+export const getStudentEvents = (studentId, signal) => api.get(`/events/student/${studentId}`, signal ? { signal } : undefined);
 
 // Budgeting
 export const getEventBudgets = (eventId) => api.get(`/events/${eventId}/budget`);

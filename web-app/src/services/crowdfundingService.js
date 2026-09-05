@@ -1,6 +1,6 @@
 import api from './api';
 
-export const getCampaigns = () => api.get('/campaigns');
+export const getCampaigns = (signal) => api.get('/campaigns', signal ? { signal } : undefined);
 
 export const createCampaign = (data) => api.post('/campaigns', data);
 

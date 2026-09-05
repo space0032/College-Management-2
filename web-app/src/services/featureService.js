@@ -7,8 +7,8 @@ export const createComplaint = (payload) => API.post('/complaints', payload);
 export const updateComplaintStatus = (id, payload) => API.put(`/complaints/${id}/status`, payload);
 
 // Hostel Attendance
-export const markHostelAttendance = (payload) => API.post('/hostel/attendance/mark', payload);
-export const getHostelAttendanceByDate = (date) => API.get(`/hostel/attendance/date/${date}`);
+export const markHostelAttendance = (payload, signal) => API.post('/hostel/attendance/mark', payload, signal ? { signal } : undefined);
+export const getHostelAttendanceByDate = (date, signal) => API.get(`/hostel/attendance/date/${date}`, signal ? { signal } : undefined);
 export const getHostelAttendanceByStudent = (studentId) => API.get(`/hostel/attendance/student/${studentId}`);
 
 // Wardens

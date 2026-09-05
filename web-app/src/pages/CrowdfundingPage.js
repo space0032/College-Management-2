@@ -1,11 +1,18 @@
 import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect } from 'react';
 import { getCampaigns, createCampaign, donateToCampaign } from '../services/crowdfundingService';
+import Modal from '../components/Modal';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonCards } from '../components/Skeleton';
 
 const CrowdfundingPage = () => {
-    const [activeTab, setActiveTab] = useState('browse');
     const [campaigns, setCampaigns] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [donateOpen, setDonateOpen] = useState(false);
 
     // Create Form
     const [campaignForm, setCampaignForm] = useState({ title: '', description: '', goalAmount: '' });
@@ -18,19 +25,38 @@ const CrowdfundingPage = () => {
     const userId = SessionManager.getUserId();
 
     useEffect(() => {
-        loadCampaigns();
-    }, [activeTab]);
+        let cancelled = false;
+        const controller = new AbortController();
+        (async () => {
+            setLoading(true);
+            setLoadError('');
+            try {
+                const res = await getCampaigns(controller.signal);
+                if (!cancelled) setCampaigns(res.data || []);
+            } catch (err) {
+                if (controller.signal.aborted || cancelled) return;
+                setLoadError(err?.response?.data?.error || 'Could not load campaigns.');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; controller.abort(); };
+    }, []);
 
     const loadCampaigns = async () => {
+        setLoading(true);
+        setLoadError('');
         try {
             const res = await getCampaigns();
             setCampaigns(res.data || []);
-        } catch (err) { console.error(err); }
+        } catch (err) { setLoadError(err?.response?.data?.error || 'Could not load campaigns.'); }
+        finally { setLoading(false); }
     };
 
-    const handleCreate = async (e) => {
-        e.preventDefault();
+    const handleCreate = async () => {
+        setIsProcessing(true);
         try {
+            const refId = getSuccessRefId();
             await createCampaign({
                 title: campaignForm.title,
                 description: campaignForm.description,
@@ -38,25 +64,38 @@ const CrowdfundingPage = () => {
                 createdBy: userId,
                 status: 'ACTIVE'
             });
-            alert('Campaign launched! The community has been notified.');
+            toast.success('Campaign launched. The community has been notified.', { refId });
             setCampaignForm({ title: '', description: '', goalAmount: '' });
-            setActiveTab('browse');
-        } catch (err) { alert('Launch failed'); }
+            setCreateOpen(false);
+            loadCampaigns();
+        } catch (err) {
+            const { message, status, refId } = getErrorMessage(err, 'Could not launch this campaign.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setIsProcessing(false); }
     };
 
-    const handleDonateSubmit = async (e) => {
-        e.preventDefault();
+    const openDonate = (c) => {
+        setSelectedCampaign(c);
+        setDonationAmount('');
+        setDonateOpen(true);
+    };
+
+    const handleDonateSubmit = async () => {
         const amount = parseFloat(donationAmount);
-        if (!amount || amount < 1) { alert('Minimum donation amount is ₹1.'); return; }
+        if (!amount || amount < 1) { toast.error('Minimum donation amount is ₹1.'); return; }
         setIsProcessing(true);
         try {
+            const refId = getSuccessRefId();
             await donateToCampaign(selectedCampaign.id, amount);
-            alert('Contribution confirmed! You are now a donor.');
+            toast.success('Contribution confirmed! You are now a donor.', { refId });
             setDonationAmount('');
             setSelectedCampaign(null);
-            setActiveTab('browse');
-        } catch (err) { alert('Donation failed'); }
-        finally { setIsProcessing(false); }
+            setDonateOpen(false);
+            loadCampaigns();
+        } catch (err) {
+            const { message, status, refId } = getErrorMessage(err, 'Could not process this donation.');
+            toast.error(message, { refId, details: { status } });
+        } finally { setIsProcessing(false); }
     };
 
     const calculateProgress = (raised, goal) => {
@@ -76,15 +115,23 @@ const CrowdfundingPage = () => {
                         <p className="page-subtitle">Crowdfunded initiatives for laboratory equipment, sports gear, and student projects</p>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        <button className={`btn btn-sm ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>Live Campaigns</button>
+                        <span className="badge badge-success">Live Campaigns: {campaigns.filter(c => c.status === 'ACTIVE').length} (All records)</span>
                         {(userRole === 'ADMIN' || userRole === 'FACULTY') && (
-                            <button className={`btn btn-sm ${activeTab === 'create' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('create')}>+ Launch Project</button>
+                            <button className="btn btn-sm btn-primary" onClick={() => setCreateOpen(true)}>+ Launch Project</button>
                         )}
                     </div>
                 </div>
             </div>
 
-            {activeTab === 'browse' && (
+            {loadError && (
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{loadError}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={loadCampaigns}>Retry</button>
+                </div>
+            )}
+            {loading ? (
+                <SkeletonCards count={4} />
+            ) : (
                 <>
                     {/* Philanthropy Stats */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '35px' }}>
@@ -137,7 +184,7 @@ const CrowdfundingPage = () => {
                                         </div>
                                         <div style={{ padding: '20px', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
                                             {c.status === 'ACTIVE' ? (
-                                                <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={() => { setSelectedCampaign(c); setActiveTab('donate'); }}>Contribute Funds</button>
+                                                <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={() => openDonate(c)}>Contribute Funds</button>
                                             ) : (
                                                 <button className="btn btn-secondary" disabled style={{ width: '100%' }}>Funding Finalized</button>
                                             )}
@@ -179,73 +226,67 @@ const CrowdfundingPage = () => {
                 </>
             )}
 
-            {activeTab === 'donate' && selectedCampaign && (
-                <div style={{ maxWidth: '600px', margin: '40px auto' }}>
-                    <div className="stat-card" style={{ padding: '40px' }}>
-                        <button className="btn btn-sm btn-secondary" onClick={() => setActiveTab('browse')} style={{ marginBottom: '25px' }}>&larr; Back</button>
-                        <h2 style={{ marginBottom: '10px' }}>Finalize Contribution</h2>
-                        <p style={{ color: '#64748b', marginBottom: '30px' }}>Project: <strong>{selectedCampaign.title}</strong></p>
-
-                        <div style={{ background: '#f0f9ff', padding: '25px', borderRadius: '15px', marginBottom: '30px', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.8rem', color: '#0369a1', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Project Velocity</div>
-                            <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#0369a1' }}>
+            <Modal
+                isOpen={donateOpen}
+                title={selectedCampaign ? `Contribute — ${selectedCampaign.title}` : 'Contribute'}
+                onClose={() => setDonateOpen(false)}
+                onSubmit={handleDonateSubmit}
+                submitLabel={donationAmount ? `Confirm ₹${donationAmount} Contribution` : 'Confirm Contribution'}
+                submitting={isProcessing}
+                submitDisabled={!donationAmount || Number(donationAmount) < 1}
+                size="medium"
+            >
+                {selectedCampaign && (
+                    <form onSubmit={(e) => { e.preventDefault(); handleDonateSubmit(); }}>
+                        <div style={{ background: '#f0f9ff', padding: '18px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#0369a1', textTransform: 'uppercase', letterSpacing: '1px' }}>Project Velocity</div>
+                            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#0369a1' }}>
                                 {calculateProgress(selectedCampaign.raisedAmount, selectedCampaign.goalAmount)}%
                             </div>
-                            <div style={{ width: '100%', height: '8px', background: '#bae6fd', borderRadius: '4px', marginTop: '15px', overflow: 'hidden' }}>
-                                <div style={{ width: `${calculateProgress(selectedCampaign.raisedAmount, selectedCampaign.goalAmount)}%`, height: '100%', background: '#0ea5e9' }} />
-                            </div>
                         </div>
+                        <div className="form-group">
+                            <label className="form-label">Contribution Amount (₹) *</label>
+                            <input
+                                required
+                                type="number"
+                                min="1"
+                                className="form-control"
+                                value={donationAmount}
+                                onChange={e => setDonationAmount(e.target.value)}
+                                placeholder="e.g. 500"
+                            />
+                            <span className="field-hint">Minimum ₹1. Tracked by institutional finance.</span>
+                        </div>
+                    </form>
+                )}
+            </Modal>
 
-                        <form onSubmit={handleDonateSubmit}>
-                            <div className="form-group">
-                                <label style={{ fontWeight: 'bold' }}>Contribution Amount (₹) *</label>
-                                <input
-                                    required
-                                    type="number"
-                                    min="100"
-                                    className="form-control"
-                                    value={donationAmount}
-                                    onChange={e => setDonationAmount(e.target.value)}
-                                    placeholder="e.g. 500"
-                                    style={{ fontSize: '1.4rem', padding: '15px', textAlign: 'center' }}
-                                />
-                            </div>
-                            <button className="btn btn-primary" disabled={isProcessing} style={{ width: '100%', padding: '18px', fontSize: '1.2rem', fontWeight: 'bold', marginTop: '20px' }}>
-                                {isProcessing ? 'Processing Transaction...' : `Confirm ₹${donationAmount || '0'} Contribution`}
-                            </button>
-                            <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', marginTop: '15px' }}>
-                                All donations are secure and tracked by institutional finance.
-                            </p>
-                        </form>
+            <Modal
+                isOpen={createOpen}
+                title="Launch Project"
+                onClose={() => setCreateOpen(false)}
+                onSubmit={handleCreate}
+                submitLabel="Authorize & Launch"
+                submitting={isProcessing}
+                isDirty={Boolean(campaignForm.title || campaignForm.goalAmount || campaignForm.description)}
+                size="large"
+            >
+                <p style={{ color: '#64748b', marginBottom: '16px', fontSize: '.85rem' }}>Draft a social funding goal for campus improvements or student welfare.</p>
+                <form className="form-grid" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Campaign Name *</label>
+                        <input required className="form-control" type="text" value={campaignForm.title} onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })} placeholder="e.g. Solar Panels for Library Roof" />
                     </div>
-                </div>
-            )}
-
-            {activeTab === 'create' && (userRole === 'ADMIN' || userRole === 'FACULTY') && (
-                <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-                    <div className="stat-card" style={{ padding: '40px' }}>
-                        <h2 style={{ marginBottom: '10px' }}>Project Parameters</h2>
-                        <p style={{ color: '#64748b', marginBottom: '30px' }}>Draft a social funding goal for campus improvements or student welfare.</p>
-                        <form className="form-grid" onSubmit={handleCreate}>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Campaign Name *</label>
-                                <input required className="form-control" type="text" value={campaignForm.title} onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })} placeholder="e.g. Solar Panels for Library Roof" />
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Funding Target (₹) *</label>
-                                <input required className="form-control" type="number" min="1000" value={campaignForm.goalAmount} onChange={e => setCampaignForm({ ...campaignForm, goalAmount: e.target.value })} />
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label>Campaign Narrative & Impact *</label>
-                                <textarea required className="form-control" rows="6" value={campaignForm.description} onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })} placeholder="Describe the project and how the funds will be utilized..."></textarea>
-                            </div>
-                            <div style={{ gridColumn: '1 / -1', marginTop: '15px' }}>
-                                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '15px', fontWeight: 'bold' }}>Authorize & Launch</button>
-                            </div>
-                        </form>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Funding Target (₹) *</label>
+                        <input required className="form-control" type="number" min="1000" value={campaignForm.goalAmount} onChange={e => setCampaignForm({ ...campaignForm, goalAmount: e.target.value })} />
                     </div>
-                </div>
-            )}
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Campaign Narrative & Impact *</label>
+                        <textarea required className="form-control" rows="6" value={campaignForm.description} onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })} placeholder="Describe the project and how the funds will be utilized..."></textarea>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };
