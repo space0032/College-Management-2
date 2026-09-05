@@ -153,12 +153,13 @@ const InstituteManagementPage = () => {
     };
 
     const handleSavePermissions = async () => {
-        if (!permRole) return;
+        if (!permRole?.id) return;
         try {
             await setRolePermissions(permRole.id, Array.from(rolePermissions));
             setPermSaved(true);
         } catch (err) {
-            alert('Failed to save permissions to backend');
+            console.error('Failed to save permissions:', err.response?.data || err.message);
+            alert(err.response?.data?.error || 'Failed to save permissions to backend');
         }
     };
 

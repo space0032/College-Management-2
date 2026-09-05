@@ -132,7 +132,6 @@ public class RoleController extends BaseController implements HttpHandler {
         sendResponse(t, 200, JsonHelper.toJson(r.getPermissions()));
     }
 
-    @SuppressWarnings("unchecked")
     private void handleSetRolePermissions(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "UPDATE_ROLE"))
             return;
@@ -141,21 +140,42 @@ public class RoleController extends BaseController implements HttpHandler {
         int requesterId = tokenInfo.userId;
 
         String[] parts = path.split("/");
-        int roleId = Integer.parseInt(parts[parts.length - 2]);
-        String body = readBody(t);
-        List<Double> doubleIds = new com.google.gson.Gson().fromJson(body, java.util.List.class);
-        if (doubleIds == null) {
-            sendResponse(t, 400, errorJson("Invalid JSON"));
+        int roleId;
+        try {
+            roleId = Integer.parseInt(parts[parts.length - 2]);
+        } catch (NumberFormatException e) {
+            sendResponse(t, 400, errorJson("Invalid role id in path"));
             return;
         }
-        List<Integer> permIds = new ArrayList<>();
-        for (Double d : doubleIds)
-            permIds.add(d.intValue());
+        if (roleDAO.getRoleById(roleId) == null) {
+            sendResponse(t, 404, errorJson("Role not found"));
+            return;
+        }
+        String body = readBody(t);
+        List<Integer> permIds;
+        try {
+            permIds = parsePermissionIds(body);
+        } catch (IllegalArgumentException e) {
+            sendResponse(t, 400, errorJson(e.getMessage()));
+            return;
+        }
 
         // RBAC VALIDATION: Prevent Privilege Escalation
-        // Ensure user is not assigning permissions they don't have
+        // Ensure user is not assigning permissions they don't have.
+        // (ADMIN passes every check via the PermissionService superuser bypass.)
         PermissionDAO permDAO = new PermissionDAO();
         List<Permission> requestedPerms = permDAO.getPermissionsByIds(permIds);
+        if (requestedPerms.size() != permIds.size()) {
+            java.util.Set<Integer> found = new java.util.HashSet<>();
+            for (Permission p : requestedPerms)
+                found.add(p.getId());
+            List<Integer> unknown = new ArrayList<>();
+            for (Integer id : permIds)
+                if (!found.contains(id))
+                    unknown.add(id);
+            sendResponse(t, 400, errorJson("Unknown permission IDs: " + unknown));
+            return;
+        }
         com.college.utils.PermissionService permService = com.college.utils.PermissionService.getInstance();
 
         for (Permission p : requestedPerms) {
@@ -171,5 +191,62 @@ public class RoleController extends BaseController implements HttpHandler {
             sendResponse(t, 200, "{\"status\":\"Permissions updated\"}");
         else
             sendResponse(t, 400, errorJson("Failed to update permissions"));
+    }
+
+    /**
+     * Parse the PUT body into a deduplicated list of permission IDs.
+     * Accepts a raw JSON array ({@code [1,2,3]}, the format sent by the web
+     * client) as well as an object-wrapped array ({@code {"permissionIds": [...]}}).
+     * Elements may be numbers or numeric strings. Throws IllegalArgumentException
+     * with a human-readable message for any malformed input.
+     */
+    private List<Integer> parsePermissionIds(String body) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Invalid JSON: empty request body");
+        }
+        com.google.gson.JsonElement root;
+        try {
+            root = com.google.gson.JsonParser.parseString(body);
+        } catch (com.google.gson.JsonSyntaxException e) {
+            throw new IllegalArgumentException("Invalid JSON: malformed request body");
+        }
+        com.google.gson.JsonArray arr;
+        if (root.isJsonArray()) {
+            arr = root.getAsJsonArray();
+        } else if (root.isJsonObject()) {
+            com.google.gson.JsonObject obj = root.getAsJsonObject();
+            if (obj.has("permissionIds") && obj.get("permissionIds").isJsonArray()) {
+                arr = obj.getAsJsonArray("permissionIds");
+            } else if (obj.has("ids") && obj.get("ids").isJsonArray()) {
+                arr = obj.getAsJsonArray("ids");
+            } else {
+                throw new IllegalArgumentException("Invalid JSON: expected an array of permission IDs");
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid JSON: expected an array of permission IDs");
+        }
+        java.util.LinkedHashSet<Integer> ids = new java.util.LinkedHashSet<>();
+        for (com.google.gson.JsonElement el : arr) {
+            if (el.isJsonNull()) {
+                continue;
+            }
+            try {
+                if (el.isJsonPrimitive()) {
+                    com.google.gson.JsonPrimitive prim = el.getAsJsonPrimitive();
+                    if (prim.isNumber()) {
+                        ids.add(prim.getAsInt());
+                    } else if (prim.isString()) {
+                        ids.add(Integer.parseInt(prim.getAsString().trim()));
+                    } else if (prim.isBoolean()) {
+                        throw new IllegalArgumentException("Invalid JSON: permission IDs must be numbers");
+                    }
+                } else {
+                    throw new IllegalArgumentException("Invalid JSON: permission IDs must be numbers");
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid JSON: permission IDs must be numbers");
+            }
+        }
+        return new ArrayList<>(ids);
     }
 }

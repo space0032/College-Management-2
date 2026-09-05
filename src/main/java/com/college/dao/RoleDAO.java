@@ -214,6 +214,11 @@ public class RoleDAO {
         String deleteSql = "DELETE FROM role_permissions WHERE role_id = ?";
         String insertSql = "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)";
 
+        // Deduplicate defensively so a repeated id can never violate the
+        // (role_id, permission_id) unique constraint. Null means "clear all".
+        List<Integer> ids = permissionIds == null ? new ArrayList<>()
+                : new ArrayList<>(new java.util.LinkedHashSet<>(permissionIds));
+
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
@@ -224,13 +229,18 @@ public class RoleDAO {
                 deleteStmt.executeUpdate();
             }
 
-            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
-                for (Integer permId : permissionIds) {
-                    insertStmt.setInt(1, roleId);
-                    insertStmt.setInt(2, permId);
-                    insertStmt.addBatch();
+            // Clearing all permissions is valid: DELETE-then-commit with no
+            // inserts. Skipping executeBatch() on an empty batch avoids
+            // driver-specific edge cases.
+            if (!ids.isEmpty()) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    for (Integer permId : ids) {
+                        insertStmt.setInt(1, roleId);
+                        insertStmt.setInt(2, permId);
+                        insertStmt.addBatch();
+                    }
+                    insertStmt.executeBatch();
                 }
-                insertStmt.executeBatch();
             }
 
             conn.commit();
