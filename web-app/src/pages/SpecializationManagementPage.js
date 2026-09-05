@@ -11,15 +11,18 @@ const COLUMNS = [
   { key: 'code', label: 'Code' },
   { key: 'departmentName', label: 'Department' },
   {
-    key: 'isActive', label: 'Status', render: (v) => (
-      <span className={`badge ${v === false ? 'badge-secondary' : 'badge-success'}`}>
-        {v === false ? 'Inactive' : 'Active'}
-      </span>
-    )
+    key: 'active', label: 'Status', render: (v, row) => {
+      const isActive = row.active ?? row.isActive;
+      return (
+        <span className={`badge ${isActive === false ? 'badge-secondary' : 'badge-success'}`}>
+          {isActive === false ? 'Inactive' : 'Active'}
+        </span>
+      );
+    }
   },
 ];
 
-const EMPTY_FORM = { departmentId: '', name: '', code: '', description: '', isActive: true };
+const EMPTY_FORM = { departmentId: '', name: '', code: '', description: '', active: true };
 
 const SpecializationManagementPage = () => {
   const [tracks, setTracks] = useState([]);
@@ -58,12 +61,13 @@ const SpecializationManagementPage = () => {
   };
 
   const openEdit = (row) => {
+    const isActive = row.active ?? row.isActive;
     setForm({
       departmentId: row.departmentId ? String(row.departmentId) : '',
       name: row.name || '',
       code: row.code || '',
       description: row.description || '',
-      isActive: row.isActive !== false,
+      active: isActive !== false,
     });
     setEditId(row.id);
     setFormError('');
@@ -80,7 +84,7 @@ const SpecializationManagementPage = () => {
         name: form.name.trim(),
         code: (form.code || '').trim(),
         description: (form.description || '').trim(),
-        active: !!form.isActive,
+        active: !!form.active,
       };
       if (editId) await updateSpecialization(editId, payload);
       else await addSpecialization(payload);
@@ -161,7 +165,7 @@ const SpecializationManagementPage = () => {
         </div>
         <div className="form-group">
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input type="checkbox" checked={!!form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} /> Active (inactive tracks hide from student/subject dropdowns)
+            <input type="checkbox" checked={!!form.active} onChange={e => setForm({ ...form, active: e.target.checked })} /> Active (inactive tracks hide from student/subject dropdowns)
           </label>
         </div>
       </Modal>
