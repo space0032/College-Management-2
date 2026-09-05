@@ -1,5 +1,5 @@
 -- Track-inside-department foundation (Option A).
--- Subjects remain rows in courses; track stored as specialization (free text, e.g. 'Cyber Security').
+-- Subjects remain rows in courses. Track is stored as specialization (free text, e.g. 'Cyber Security').
 -- Students carry their track in students.specialization.
 -- Timetable becomes track-aware via specialization + optional course_id link.
 

@@ -138,8 +138,14 @@ public class MigrationRunner {
                 sqlContent = adaptForH2(sqlContent);
             }
 
-            // Execute SQL (Simple split by semicolon for multiple statements)
-            String[] statements = sqlContent.split(";");
+            // Execute SQL (Simple split by semicolon for multiple statements).
+            // Strip full-line "--" comments first: a semicolon inside a comment
+            // would otherwise split the file and produce a bogus statement
+            // (this previously crashed deploys with `syntax error at or near ...`).
+            String uncommented = sqlContent.lines()
+                    .filter(line -> !line.trim().startsWith("--"))
+                    .collect(Collectors.joining("\n"));
+            String[] statements = uncommented.split(";");
             conn.setAutoCommit(false);
 
             try (Statement stmt = conn.createStatement()) {
