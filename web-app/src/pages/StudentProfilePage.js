@@ -467,7 +467,7 @@ return (
                     <dl style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px 20px' }}>
                         {[
                             { label: 'Full Name', value: student?.name || user.name },
-                            { label: 'Username', value: user.username },
+                            { label: 'Username', value: student?.username || user.username },
                             { label: 'Email', value: student?.email || user.email },
                             { label: 'Phone', value: student?.phone },
                             { label: 'Enrollment No.', value: student?.enrollmentId || student?.username || student?.enrollmentNumber || student?.enrollment_number },
@@ -490,7 +490,7 @@ return (
                             { label: '12th Percentage', value: student?.twelfthPercentage },
                             { label: 'Extracurricular Activities', value: student?.extracurricularActivities },
                             { label: 'Hostel Status', value: student?.isHostelite || student?.hostelite ? 'Hostelite' : 'Dayscholar' },
-                            { label: 'Role', value: user.role },
+                            { label: 'Role', value: student?.role || user.role },
                         ].filter(f => f.value).map(f => (
                             <React.Fragment key={f.label}>
                                 <dt style={{ color: '#718096', fontSize: '0.85rem', fontWeight: '500' }}>{f.label}</dt>
