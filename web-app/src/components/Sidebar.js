@@ -68,7 +68,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       { to: '/dashboard/learning', label: 'Learning Portal', icon: '🎓', perm: 'VIEW_COURSE' },
     ],
     Staff: [
-      { to: '/dashboard/staff-leave', label: 'My Leave', icon: '🏖️' },
+      { to: '/dashboard/staff-leave', label: 'My Leave', icon: '🏖️', perm: 'VIEW_LEAVE' },
     ],
   };
 
