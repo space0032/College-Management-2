@@ -15,8 +15,9 @@ const getFileIcon = (path) => {
 };
 
 const SyllabusManagementPage = () => {
-    const userRole = SessionManager.getUserRole() || 'STUDENT';
-    const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
+    const canUpload = SessionManager.hasPermission('CREATE_SYLLABUS');
+    const canDelete = SessionManager.hasPermission('DELETE_SYLLABUS');
+    const canManage = canUpload || canDelete;
     const userId = SessionManager.getUserId();
 
     const [courses, setCourses] = useState([]);
@@ -155,7 +156,7 @@ const SyllabusManagementPage = () => {
                         <h1 className="page-title">📋 Curriculum & Syllabus</h1>
                         <p className="page-subtitle">Centralized repository for academic frameworks, course maps, and learning objectives</p>
                     </div>
-                    {canManage && (
+                    {canUpload && (
                         <button className="btn btn-primary" onClick={() => setShowAdd(true)} disabled={!selectedCourse}>
                             + Upload Framework
                         </button>
@@ -199,7 +200,7 @@ const SyllabusManagementPage = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Uploaded: {s.uploadedAt?.split('T')[0]}</span>
                                             <div style={{ display: 'flex', gap: '10px' }}>
-                                                {canManage && <button onClick={() => handleDelete(s)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>}
+                                                {canDelete && <button onClick={() => handleDelete(s)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>}
                                                 <button onClick={() => handleDownload(s)} style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', cursor: 'pointer' }}>Download ⬇</button>
                                             </div>
                                         </div>

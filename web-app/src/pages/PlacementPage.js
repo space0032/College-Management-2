@@ -38,7 +38,10 @@ const EMPTY_DRIVE = { companyId: '', jobRole: '', driveDate: '', deadline: '', p
 
 const PlacementPage = () => {
   const user = SessionManager.getUser() || {};
-  const canManage = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
+  const canCreate = SessionManager.hasPermission('CREATE_PLACEMENT');
+  const canDelete = SessionManager.hasPermission('DELETE_PLACEMENT');
+  const canUpdateStatus = SessionManager.hasPermission('UPDATE_PLACEMENT') || SessionManager.hasPermission('MANAGE_PLACEMENT');
+  const canManage = canCreate || canDelete;
 
   const [tab, setTab] = useState('companies');
   const [companies, setCompanies] = useState([]);
@@ -245,6 +248,7 @@ const PlacementPage = () => {
               ...APPLICATION_COLS,
               {
                 key: 'update', label: 'Update Status', render: (_, app) => (
+                  canUpdateStatus ? (
                   <select
                     className="form-control"
                     style={{ width: '120px', padding: '4px' }}
@@ -255,6 +259,9 @@ const PlacementPage = () => {
                     <option value="OFFERED">Offered</option>
                     <option value="REJECTED">Rejected</option>
                   </select>
+                  ) : (
+                    <span>{app.status}</span>
+                  )
                 )
               }
             ]}

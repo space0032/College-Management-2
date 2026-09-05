@@ -72,8 +72,9 @@ const CourseManagementPage = () => {
   const [specOptions, setSpecOptions] = useState([]);
   const { courses, loading, error, search, page, hasMore, pageSize, modalOpen, form, editId, formError, saving, filterDept, filterSem } = state;
 
-  const userRole = SessionManager.getUserRole() || 'STUDENT';
-  const canManage = userRole === 'ADMIN' || userRole === 'FACULTY';
+  const canCreate = SessionManager.hasPermission('CREATE_COURSE');
+  const canUpdate = SessionManager.hasPermission('UPDATE_COURSE');
+  const canDelete = SessionManager.hasPermission('DELETE_COURSE');
   const fetchCourses = useCallback(async (pageNum = 1, append = false) => {
     dispatch({ type: 'FETCH_START' });
     try {
@@ -204,7 +205,7 @@ const CourseManagementPage = () => {
               'courses_export'
             )}>⬇ Export CSV</button>
           )}
-          {canManage && <button className="btn btn-primary" onClick={() => dispatch({ type: 'OPEN_MODAL' })}>+ Add Course</button>}
+          {canCreate && <button className="btn btn-primary" onClick={() => dispatch({ type: 'OPEN_MODAL' })}>+ Add Course</button>}
         </div>
       </div>
 
@@ -229,8 +230,8 @@ const CourseManagementPage = () => {
         columns={COLUMNS}
         data={filtered}
         loading={loading}
-        onEdit={canManage ? (row) => dispatch({ type: 'OPEN_MODAL', form: row, editId: row.id }) : undefined}
-        onDelete={canManage ? handleDelete : undefined}
+        onEdit={canUpdate ? (row) => dispatch({ type: 'OPEN_MODAL', form: row, editId: row.id }) : undefined}
+        onDelete={canDelete ? handleDelete : undefined}
         emptyMessage="No courses found."
       />
 

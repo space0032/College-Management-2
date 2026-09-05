@@ -132,6 +132,44 @@ class SessionManager {
 
     return user.permissions.some(p => p.code === permissionCode);
   }
+
+  /**
+   * Overwrite the cached permission set (e.g. after a fresh GET /auth/session).
+   * Used to pick up permission-tree changes without forcing a re-login.
+   * @param {Array} permissions - Fresh permission list from the backend
+   */
+  static updatePermissions(permissions) {
+    if (!Array.isArray(permissions)) return;
+    const user = this.getUser();
+    if (!user) return;
+    user.permissions = permissions;
+    this.cachedUser = user;
+    try {
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    } catch (e) {
+      console.error('Failed to persist refreshed permissions:', e);
+    }
+  }
+
+  /**
+   * Refresh permissions from the backend session endpoint.
+   * Resolves to the fresh permission list, or null if refresh failed.
+   * Uses lazy import to avoid a static cycle with the api service layer.
+   */
+  static async refreshPermissions() {
+    try {
+      const { getSession } = await import('../services/authService');
+      const res = await getSession();
+      const permissions = res?.data?.permissions;
+      if (Array.isArray(permissions)) {
+        this.updatePermissions(permissions);
+        return permissions;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }
 
 export default SessionManager;

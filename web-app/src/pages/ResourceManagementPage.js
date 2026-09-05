@@ -143,7 +143,9 @@ const ResourceManagementPage = () => {
     if (loading) return <div className="page-container">Loading resources...</div>;
     if (error) return <div className="page-container" style={{ color: 'red' }}>{error}</div>;
 
-    const canManage = currentUser.role === 'ADMIN' || currentUser.role === 'FACULTY';
+    const canUpload = SessionManager.hasPermission('CREATE_RESOURCE');
+    const canDelete = SessionManager.hasPermission('DELETE_RESOURCE') || SessionManager.hasPermission('MANAGE_RESOURCE');
+    const canManage = canUpload || canDelete;
 
     return (
         <div className="page-container">
@@ -152,7 +154,7 @@ const ResourceManagementPage = () => {
                     <h2>📚 Learning Resources</h2>
                     <p className="text-muted">Digital library, lecture notes, and course materials.</p>
                 </div>
-                {canManage && (
+                {canUpload && (
                     <button className="btn btn-primary" onClick={() => setShowModal(true)}>
                         + Upload Resource
                     </button>
@@ -197,7 +199,7 @@ const ResourceManagementPage = () => {
                                             <button className="btn btn-primary" onClick={() => handleDownload(res)} style={{ padding: '5px 10px' }}>
                                                 ⬇️ Download
                                             </button>
-                                            {canManage && (currentUser.id === res.uploadedBy || currentUser.role === 'ADMIN') && (
+                                            {canDelete && (currentUser.id === res.uploadedBy || currentUser.role === 'ADMIN') && (
                                                 <button className="btn btn-danger" onClick={() => handleDelete(res.id)} style={{ padding: '5px 10px' }}>
                                                     Delete
                                                 </button>

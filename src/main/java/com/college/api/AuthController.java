@@ -108,6 +108,20 @@ public class AuthController extends BaseController implements HttpHandler {
         session.put("username", info.username);
         session.put("role", info.role);
         session.put("expiresAt", info.expiresAt);
+        // Include fresh role + permissions so the web client can refresh its
+        // cached permission set without forcing a re-login after the
+        // permission tree changes (see RoleController.handleSetRolePermissions).
+        try {
+            User user = userDAO.getUserById(info.userId);
+            if (user != null) {
+                session.put("roleId", user.getRoleId());
+                Role role = new RoleDAO().getRoleById(user.getRoleId());
+                session.put("permissions", role != null && role.getPermissions() != null
+                        ? role.getPermissions() : java.util.List.of());
+            }
+        } catch (Exception e) {
+            com.college.utils.Logger.error("Failed to load session permissions", e);
+        }
         sendResponse(t, 200, JSON.toJson(session));
     }
 

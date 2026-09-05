@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -80,6 +80,17 @@ const DashboardPage = () => {
   const isAdmin = userRole === 'ADMIN';
   const isFaculty = userRole === 'FACULTY';
   const can = (perm) => SessionManager.hasPermission(perm);
+
+  // Pull fresh permissions on every dashboard mount so permission-tree
+  // changes apply without forcing the user to log out and back in.
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    SessionManager.refreshPermissions().then((perms) => {
+      if (!cancelled && perms) forceUpdate((n) => n + 1);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="app-layout">
