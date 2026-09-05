@@ -1,0 +1,183 @@
+/* RoomAvailabilityPage — scoped styles built on the CampusOne design system (main.css). */
+
+.room-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 14px;
+  align-items: end;
+}
+
+.room-filter-grid .form-group {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.room-filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.room-filter-actions .btn {
+  min-height: 42px;
+}
+
+.room-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.room-section-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.room-section-head.available h3 { color: var(--success); }
+.room-section-head.occupied h3 { color: var(--danger); }
+
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.room-grid:last-child { margin-bottom: 0; }
+
+.room-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  border-left: 5px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.room-card.available { border-left-color: var(--success); }
+.room-card.occupied { border-left-color: var(--danger); }
+
+.room-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.room-card-name {
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.room-card-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.room-occupant {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.room-occupant strong {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.room-occupant span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.slot-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.slot-chip {
+  background: #ecfdf3;
+  color: #027a48;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #a6f4c5;
+}
+
+.grid-scroll-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.data-table th.sticky-col,
+.data-table td.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+  min-width: 150px;
+}
+
+.data-table th.sticky-col { background: #fafbfc; }
+
+.cell-free, .cell-busy {
+  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cell-free { color: var(--success); }
+.cell-busy { color: var(--danger); }
+
+.cell-busy small {
+  display: block;
+  font-weight: 500;
+  color: var(--text-secondary);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 2px auto 0;
+}
+
+.manage-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 14px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
+.manage-form-grid .form-group { margin-bottom: 0; }
+
+@media (max-width: 640px) {
+  .room-filter-actions .btn { width: 100%; justify-content: center; }
+  .data-table th.sticky-col,
+  .data-table td.sticky-col { min-width: 120px; }
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './RoomAvailabilityPage.css';
 import { getRooms, checkAvailability, getFreeSlots, getDayGrid, createRoom, deleteRoom } from '../services/roomService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -55,7 +56,7 @@ const RoomAvailabilityPage = () => {
         getRooms().then(res => {
             const list = Array.isArray(res.data) ? res.data : [];
             setAllRooms(list);
-            if (!freeRoom && list.length > 0) setFreeRoom(list[0].roomNumber);
+            setFreeRoom(prev => prev || (list.length > 0 ? list[0].roomNumber : ''));
         }).catch(err => setError(err.response?.data?.error || 'Room inventory could not be loaded.'));
     };
 
@@ -88,6 +89,7 @@ const RoomAvailabilityPage = () => {
             const res = await checkAvailability(day, timeSlot, filters);
             setAvailability(Array.isArray(res.data) ? res.data : []);
             setHasQueried(true);
+            setView('check');
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to query room availability.');
         } finally {
@@ -177,283 +179,352 @@ const RoomAvailabilityPage = () => {
     const totalRooms = availability.length || allRooms.length;
 
     const RoomCard = ({ room, available: av }) => (
-        <div style={{
-            background: 'white',
-            border: `1px solid ${av ? '#9ae6b4' : '#feb2b2'}`,
-            borderLeft: `5px solid ${av ? '#38a169' : '#e53e3e'}`,
-            borderRadius: '10px', padding: '16px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#2d3748' }}>
-                    {room.roomNumber || room.name}
-                </div>
-                <span style={{
-                    background: av ? '#f0fff4' : '#fff5f5',
-                    color: av ? '#276749' : '#c53030',
-                    padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600'
-                }}>
+        <div className={`room-card ${av ? 'available' : 'occupied'}`}>
+            <div className="room-card-top">
+                <div className="room-card-name">{room.roomNumber || room.name}</div>
+                <span className={`badge ${av ? 'badge-success' : 'badge-danger'}`}>
                     {av ? '✓ Available' : '✗ Occupied'}
                 </span>
             </div>
-            <div style={{ display: 'flex', gap: '12px', fontSize: '0.82rem', color: '#718096', flexWrap: 'wrap' }}>
-                {room.type && (
-                    <span style={{ background: '#ebf8ff', color: '#2b6cb0', padding: '2px 8px', borderRadius: '10px' }}>
-                        {room.type}
-                    </span>
-                )}
+            <div className="room-card-meta">
+                {room.type && <span className="badge badge-primary">{room.type}</span>}
                 {room.capacity != null && <span>👥 {room.capacity}</span>}
                 {room.building && <span>🏢 {room.building}</span>}
             </div>
             {!av && (room.occupiedBy || room.course) && (
-                <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#4a5568', background: '#fff5f5', padding: '8px', borderRadius: '6px' }}>
-                    📚 {room.occupiedBy
-                        ? `${room.occupiedBy.subject} — ${room.occupiedBy.facultyName || 'TBA'} (${room.occupiedBy.department || ''}${room.occupiedBy.semester ? ` Sem ${room.occupiedBy.semester}` : ''})`
-                        : room.course}
+                <div className="room-occupant">
+                    {room.occupiedBy ? (
+                        <>
+                            <strong>📚 {room.occupiedBy.subject}</strong>
+                            <span>
+                                {room.occupiedBy.facultyName || 'TBA'}
+                                {room.occupiedBy.department ? ` · ${room.occupiedBy.department}` : ''}
+                                {room.occupiedBy.semester ? ` · Sem ${room.occupiedBy.semester}` : ''}
+                            </span>
+                        </>
+                    ) : (
+                        <>📚 {room.course}</>
+                    )}
                 </div>
             )}
         </div>
     );
 
+    const TABS = [
+        ['check', '🔍 Check'],
+        ['grid', '🗓️ Day Grid'],
+        ['free', '🕒 Free Slots'],
+        ['manage', '⚙️ Manage Rooms']
+    ];
+
+    const handleTab = (key) => {
+        if (key === 'grid') {
+            handleGrid();
+        } else {
+            setView(key);
+        }
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h2>🚪 Room Availability</h2>
+                    <h1 className="page-title">🚪 Room Availability</h1>
                     <p className="text-muted">Check real-time classroom and lab availability by day and time slot.</p>
                 </div>
-                <button className="btn btn-secondary" onClick={handleTodayClick} title="Jump to today's schedule">
-                    📅 Today's Schedule
-                </button>
+                <div className="page-actions">
+                    <button className="btn btn-secondary" onClick={handleTodayClick} title="Jump to today's schedule">
+                        📅 Today's Schedule
+                    </button>
+                </div>
             </div>
 
             {/* View tabs */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                {[
-                    ['check', '🔍 Check'],
-                    ['grid', '🗓️ Day Grid'],
-                    ['free', '🕒 Free Slots'],
-                    ['manage', '⚙️ Manage Rooms']
-                ].map(([key, label]) => (
-                    <button key={key} className={`btn ${view === key ? 'btn-primary' : 'btn-secondary'}`}
-                        onClick={() => { setView(key); if (key === 'grid') handleGrid(); }}>
+            <div className="tab-buttons" role="tablist" aria-label="Room availability views">
+                {TABS.map(([key, label]) => (
+                    <button key={key} role="tab" aria-selected={view === key}
+                        className={`btn btn-tab ${view === key ? 'active' : ''}`}
+                        onClick={() => handleTab(key)}>
                         {label}
                     </button>
                 ))}
             </div>
 
             {/* Search Form */}
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '24px' }}>
-                <form onSubmit={handleCheck} style={{ display: 'flex', gap: '14px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '160px' }}>
-                        <label>Day</label>
-                        <select value={searchParams.day} onChange={e => setSearchParams(p => ({ ...p, day: e.target.value }))}>
-                            {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '200px' }}>
-                        <label>Time Slot</label>
-                        <select value={searchParams.timeSlot} onChange={e => setSearchParams(p => ({ ...p, timeSlot: e.target.value }))}>
-                            {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '140px' }}>
-                        <label>Room Type</label>
-                        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-                            {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group" style={{ margin: 0, width: '120px' }}>
-                        <label>Min Cap.</label>
-                        <input type="number" min="0" placeholder="Any" value={minCapacity}
-                            onChange={e => setMinCapacity(e.target.value)} />
-                    </div>
-                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '140px' }}>
-                        <label>Building</label>
-                        <input type="text" placeholder="Any building" value={buildingFilter}
-                            onChange={e => setBuildingFilter(e.target.value)} />
-                    </div>
-                    <button type="submit" className="btn btn-primary" style={{ height: '42px', minWidth: '140px' }}>
-                        {loading ? 'Checking…' : 'Check Availability'}
-                    </button>
-                </form>
+            <div className="card" style={{ marginBottom: '24px' }}>
+                <div className="card-body">
+                    <form onSubmit={handleCheck} className="room-filter-grid">
+                        <div className="form-group">
+                            <label className="form-label" htmlFor="room-day">Day</label>
+                            <select id="room-day" className="form-control" value={searchParams.day} onChange={e => setSearchParams(p => ({ ...p, day: e.target.value }))}>
+                                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label" htmlFor="room-slot">Time Slot</label>
+                            <select id="room-slot" className="form-control" value={searchParams.timeSlot} onChange={e => setSearchParams(p => ({ ...p, timeSlot: e.target.value }))}>
+                                {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label" htmlFor="room-type">Room Type</label>
+                            <select id="room-type" className="form-control" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                                {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label" htmlFor="room-cap">Min Capacity</label>
+                            <input id="room-cap" className="form-control" type="number" min="0" placeholder="Any" value={minCapacity}
+                                onChange={e => setMinCapacity(e.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label" htmlFor="room-building">Building</label>
+                            <input id="room-building" className="form-control" type="text" placeholder="Any building" value={buildingFilter}
+                                onChange={e => setBuildingFilter(e.target.value)} />
+                        </div>
+                        <div className="room-filter-actions">
+                            <button type="submit" className="btn btn-primary" disabled={loading}>
+                                {loading ? 'Checking…' : 'Check Availability'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            {error && <div style={{ color: '#e53e3e', marginBottom: '16px', padding: '12px', background: '#fff5f5', borderRadius: '8px' }}>{error}</div>}
+            {error && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{error}</div>}
 
             {view === 'check' && (
                 <>
                     {/* Stats Row */}
                     {hasQueried && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
-                            <div style={{ padding: '16px', background: '#ebf8ff', borderRadius: '10px', border: '1px solid #bee3f8', textAlign: 'center' }}>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#2b6cb0' }}>{totalRooms}</div>
-                                <div style={{ fontSize: '0.82rem', color: '#4a5568' }}>Total Rooms</div>
+                        <div className="stats-grid">
+                            <div className="stat-card">
+                                <div className="stat-card-icon">🚪</div>
+                                <div className="stat-card-value">{totalRooms}</div>
+                                <div className="stat-card-label">Total Rooms</div>
                             </div>
-                            <div style={{ padding: '16px', background: '#f0fff4', borderRadius: '10px', border: '1px solid #9ae6b4', textAlign: 'center' }}>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#276749' }}>{totalAvailable}</div>
-                                <div style={{ fontSize: '0.82rem', color: '#4a5568' }}>Available</div>
+                            <div className="stat-card">
+                                <div className="stat-card-icon">✅</div>
+                                <div className="stat-card-value">{totalAvailable}</div>
+                                <div className="stat-card-label">Available</div>
                             </div>
-                            <div style={{ padding: '16px', background: '#fff5f5', borderRadius: '10px', border: '1px solid #feb2b2', textAlign: 'center' }}>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#c53030' }}>{totalOccupied}</div>
-                                <div style={{ fontSize: '0.82rem', color: '#4a5568' }}>Occupied</div>
+                            <div className="stat-card">
+                                <div className="stat-card-icon">⛔</div>
+                                <div className="stat-card-value">{totalOccupied}</div>
+                                <div className="stat-card-label">Occupied</div>
                             </div>
                         </div>
                     )}
 
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Checking availability...</div>
+                        <div className="loading-container">
+                            <div className="spinner" />
+                            <div>Checking availability...</div>
+                        </div>
                     ) : hasQueried ? (
                         <>
                             {available.length > 0 && (
                                 <>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                                        <h3 style={{ margin: 0, color: '#276749' }}>✓ Available Rooms</h3>
-                                        <span style={{ background: '#f0fff4', color: '#276749', padding: '3px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600' }}>{available.length}</span>
+                                    <div className="room-section-head available">
+                                        <h3>✓ Available Rooms</h3>
+                                        <span className="badge badge-success">{available.length}</span>
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px', marginBottom: '28px' }}>
+                                    <div className="room-grid">
                                         {available.map(r => <RoomCard key={r.roomNumber || r.id} room={r} available={true} />)}
                                     </div>
                                 </>
                             )}
                             {occupied.length > 0 && (
                                 <>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                                        <h3 style={{ margin: 0, color: '#c53030' }}>✗ Occupied Rooms</h3>
-                                        <span style={{ background: '#fff5f5', color: '#c53030', padding: '3px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600' }}>{occupied.length}</span>
+                                    <div className="room-section-head occupied">
+                                        <h3>✗ Occupied Rooms</h3>
+                                        <span className="badge badge-danger">{occupied.length}</span>
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
+                                    <div className="room-grid">
                                         {occupied.map(r => <RoomCard key={r.roomNumber || r.id} room={r} available={false} />)}
                                     </div>
                                 </>
                             )}
                             {filtered.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
-                                    No rooms match the selected filter.
+                                <div className="table-empty">
+                                    <div className="table-empty-icon">🔍</div>
+                                    <div>No rooms match the selected filter.</div>
                                 </div>
                             )}
                         </>
                     ) : (
-                        <div style={{ textAlign: 'center', padding: '50px', color: '#a0aec0' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🚪</div>
-                            Select a day and time slot to view room availability.
+                        <div className="table-empty">
+                            <div className="table-empty-icon">🚪</div>
+                            <div>Select a day and time slot to view room availability.</div>
                         </div>
                     )}
                 </>
             )}
 
-            {view === 'grid' && grid && (
-                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', overflowX: 'auto' }}>
-                    <h3 style={{ marginTop: 0 }}>🗓️ {grid.day} — Rooms × Slots</h3>
-                    <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.8rem' }}>
-                        <thead>
-                            <tr>
-                                <th style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc' }}>Room</th>
-                                {grid.slots.map(s => <th key={s} style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc', whiteSpace: 'nowrap' }}>{s}</th>)}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {grid.rooms.map(r => (
-                                <tr key={r.roomNumber}>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: '8px', fontWeight: '600' }}>
-                                        {r.roomNumber}<br />
-                                        <span style={{ fontWeight: '400', color: '#718096' }}>{r.type}{r.capacity ? ` · ${r.capacity}` : ''}</span>
-                                    </td>
-                                    {grid.slots.map(s => {
-                                        const cell = r.slots[s];
-                                        return (
-                                            <td key={s} style={{
-                                                border: '1px solid #e2e8f0', padding: '8px',
-                                                background: cell ? '#fff5f5' : '#f0fff4',
-                                                color: cell ? '#c53030' : '#276749'
-                                            }} title={cell ? `${cell.subject} — ${cell.facultyName || ''}` : 'Free'}>
-                                                {cell ? `✗ ${cell.subject}` : '✓'}
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {grid.rooms.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: '#888' }}>No rooms in inventory.</div>}
+            {view === 'grid' && (
+                <div className="card">
+                    <div className="card-header">
+                        <h3>🗓️ {grid ? `${grid.day} — Rooms × Slots` : 'Day Grid'}</h3>
+                        <button className="btn btn-secondary btn-sm" onClick={handleGrid} disabled={loading}>
+                            {loading ? 'Refreshing…' : '↻ Refresh'}
+                        </button>
+                    </div>
+                    <div className="card-body">
+                        {loading && !grid ? (
+                            <div className="loading-container">
+                                <div className="spinner" />
+                                <div>Loading day grid...</div>
+                            </div>
+                        ) : grid ? (
+                            <>
+                                <p className="grid-scroll-hint">← Scroll horizontally to see all time slots →</p>
+                                <div className="table-wrapper">
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th className="sticky-col">Room</th>
+                                                {grid.slots.map(s => <th key={s}>{s}</th>)}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {grid.rooms.map(r => (
+                                                <tr key={r.roomNumber}>
+                                                    <td className="sticky-col">
+                                                        <strong>{r.roomNumber}</strong>
+                                                        <br />
+                                                        <span className="text-muted">{r.type}{r.capacity ? ` · 👥 ${r.capacity}` : ''}</span>
+                                                    </td>
+                                                    {grid.slots.map(s => {
+                                                        const cell = r.slots[s];
+                                                        return (
+                                                            <td key={s} className={cell ? 'cell-busy' : 'cell-free'}
+                                                                title={cell ? `${cell.subject} — ${cell.facultyName || ''}` : 'Free'}>
+                                                                {cell ? (
+                                                                    <>✗<small>{cell.subject}</small></>
+                                                                ) : '✓'}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {grid.rooms.length === 0 && (
+                                    <div className="table-empty">
+                                        <div className="table-empty-icon">🚪</div>
+                                        <div>No rooms in inventory.</div>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="table-empty">
+                                <div className="table-empty-icon">🗓️</div>
+                                <div>Pick a day and open this tab to load the grid.</div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
             {view === 'free' && (
-                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px' }}>
-                    <h3 style={{ marginTop: 0 }}>🕒 Find free slots</h3>
-                    <form onSubmit={handleFree} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '16px' }}>
-                        <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
-                            <label>Room</label>
-                            <select value={freeRoom} onChange={e => setFreeRoom(e.target.value)}>
-                                {allRooms.map(r => <option key={r.id || r.roomNumber} value={r.roomNumber}>{r.roomNumber}</option>)}
-                            </select>
-                        </div>
-                        <button type="submit" className="btn btn-primary">{loading ? 'Loading…' : 'Find'}</button>
-                    </form>
-                    {freeResult && (
-                        <div>
-                            <p className="text-muted">{freeResult.roomNumber} on {freeResult.day}: {freeResult.freeSlots.length} free slot(s)</p>
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                {freeResult.freeSlots.map(s => (
-                                    <span key={s} style={{ background: '#f0fff4', color: '#276749', padding: '6px 12px', borderRadius: '20px', fontSize: '0.85rem', border: '1px solid #9ae6b4' }}>✓ {s}</span>
-                                ))}
-                                {freeResult.freeSlots.length === 0 && <span style={{ color: '#888' }}>Fully booked that day.</span>}
+                <div className="card">
+                    <div className="card-header">
+                        <h3>🕒 Find free slots</h3>
+                    </div>
+                    <div className="card-body">
+                        <form onSubmit={handleFree} className="filter-bar">
+                            <div className="form-group" style={{ margin: 0 }}>
+                                <label className="form-label" htmlFor="free-room">Room</label>
+                                <select id="free-room" className="form-control" value={freeRoom} onChange={e => setFreeRoom(e.target.value)}>
+                                    {allRooms.map(r => <option key={r.id || r.roomNumber} value={r.roomNumber}>{r.roomNumber}</option>)}
+                                </select>
                             </div>
-                        </div>
-                    )}
+                            <button type="submit" className="btn btn-primary" disabled={loading}>
+                                {loading ? 'Loading…' : 'Find'}
+                            </button>
+                        </form>
+                        {freeResult && (
+                            <div>
+                                <p className="text-muted">
+                                    {freeResult.roomNumber} on {freeResult.day}: {freeResult.freeSlots.length} free slot(s)
+                                </p>
+                                <div className="slot-chips">
+                                    {freeResult.freeSlots.map(s => (
+                                        <span key={s} className="slot-chip">✓ {s}</span>
+                                    ))}
+                                    {freeResult.freeSlots.length === 0 && <span className="text-muted">Fully booked that day.</span>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
             {view === 'manage' && (
-                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px' }}>
-                    <h3 style={{ marginTop: 0 }}>⚙️ Manage rooms</h3>
-                    <form onSubmit={handleCreate} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '20px' }}>
-                        <div className="form-group" style={{ margin: 0 }}>
-                            <label>Room No *</label>
-                            <input type="text" value={newRoom.roomNumber} onChange={e => setNewRoom({ ...newRoom, roomNumber: e.target.value })} placeholder="e.g. A-101" />
+                <div className="card">
+                    <div className="card-header">
+                        <h3>⚙️ Manage rooms</h3>
+                    </div>
+                    <div className="card-body">
+                        <form onSubmit={handleCreate} className="manage-form-grid">
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="new-room-no">Room No *</label>
+                                <input id="new-room-no" className="form-control" type="text" value={newRoom.roomNumber} onChange={e => setNewRoom({ ...newRoom, roomNumber: e.target.value })} placeholder="e.g. A-101" />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="new-room-bldg">Building</label>
+                                <input id="new-room-bldg" className="form-control" type="text" value={newRoom.building} onChange={e => setNewRoom({ ...newRoom, building: e.target.value })} placeholder="Main Block" />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="new-room-cap">Capacity</label>
+                                <input id="new-room-cap" className="form-control" type="number" min="1" value={newRoom.capacity} onChange={e => setNewRoom({ ...newRoom, capacity: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="new-room-type">Type</label>
+                                <select id="new-room-type" className="form-control" value={newRoom.type} onChange={e => setNewRoom({ ...newRoom, type: e.target.value })}>
+                                    {ROOM_TYPES.filter(t => t !== 'All').map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <button type="submit" className="btn btn-primary" disabled={loading}>Add Room</button>
+                            </div>
+                        </form>
+                        <div className="table-wrapper">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Room</th>
+                                        <th>Building</th>
+                                        <th>Capacity</th>
+                                        <th>Type</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {allRooms.map(r => (
+                                        <tr key={r.id || r.roomNumber}>
+                                            <td><strong>{r.roomNumber}</strong></td>
+                                            <td>{r.building || '—'}</td>
+                                            <td>{r.capacity || '—'}</td>
+                                            <td><span className="badge badge-primary">{r.type || '—'}</span></td>
+                                            <td>
+                                                <div className="table-actions">
+                                                    {r.id && <button className="btn btn-danger btn-sm" onClick={() => handleDelete(r.id)}>Delete</button>}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="form-group" style={{ margin: 0 }}>
-                            <label>Building</label>
-                            <input type="text" value={newRoom.building} onChange={e => setNewRoom({ ...newRoom, building: e.target.value })} placeholder="Main Block" />
-                        </div>
-                        <div className="form-group" style={{ margin: 0, width: '110px' }}>
-                            <label>Capacity</label>
-                            <input type="number" min="1" value={newRoom.capacity} onChange={e => setNewRoom({ ...newRoom, capacity: e.target.value })} />
-                        </div>
-                        <div className="form-group" style={{ margin: 0 }}>
-                            <label>Type</label>
-                            <select value={newRoom.type} onChange={e => setNewRoom({ ...newRoom, type: e.target.value })}>
-                                {ROOM_TYPES.filter(t => t !== 'All').map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
-                        <button type="submit" className="btn btn-primary">Add Room</button>
-                    </form>
-                    <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                        <thead>
-                            <tr>
-                                <th style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc' }}>Room</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc' }}>Building</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc' }}>Capacity</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc' }}>Type</th>
-                                <th style={{ border: '1px solid #e2e8f0', padding: '8px', background: '#f7fafc' }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {allRooms.map(r => (
-                                <tr key={r.id || r.roomNumber}>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: '8px', fontWeight: '600' }}>{r.roomNumber}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: '8px' }}>{r.building || '—'}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: '8px' }}>{r.capacity || '—'}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: '8px' }}>{r.type || '—'}</td>
-                                    <td style={{ border: '1px solid #e2e8f0', padding: '8px' }}>
-                                        {r.id && <button className="btn btn-secondary" onClick={() => handleDelete(r.id)}>Delete</button>}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {allRooms.length === 0 && <div style={{ padding: '24px', textAlign: 'center', color: '#888' }}>No rooms yet — add the first one above.</div>}
+                        {allRooms.length === 0 && (
+                            <div className="table-empty">
+                                <div className="table-empty-icon">🚪</div>
+                                <div>No rooms yet — add the first one above.</div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
