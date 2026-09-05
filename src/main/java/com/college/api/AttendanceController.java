@@ -82,21 +82,22 @@ public class AttendanceController extends BaseController implements HttpHandler 
     private void handleGetByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
         int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
+        if (studentId <= 0) {
+            sendResponse(t, 400, errorJson("Invalid or unknown student"));
+            return;
+        }
         List<Attendance> list = attendanceDAO.getAttendanceByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }
 
     private void handleGetStats(HttpExchange t) throws IOException {
         if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
-        String query = t.getRequestURI().getQuery();
-        int courseId = 0;
-        if (query != null) {
-            for (String param : query.split("&")) {
-                String[] kv = param.split("=", 2);
-                if (kv.length == 2 && "courseId".equals(kv[0])) {
-                    courseId = Integer.parseInt(kv[1]);
-                }
-            }
+        java.util.Map<String, String> params = getQueryMap(t);
+        int courseId = getIntParam(params, "courseId", 0);
+        double threshold = 75.0;
+        try {
+            if (params.containsKey("threshold")) threshold = Double.parseDouble(params.get("threshold"));
+        } catch (NumberFormatException ignored) {
         }
 
         if (courseId <= 0) {
@@ -105,13 +106,32 @@ public class AttendanceController extends BaseController implements HttpHandler 
         }
 
         java.util.Map<Integer, Double> stats = attendanceDAO.getCourseAttendanceStats(courseId);
-        List<Integer> lowAttendanceList = attendanceDAO.getLowAttendanceStudents(courseId, 75.0); // 75% threshold
+        List<Integer> lowAttendanceList = attendanceDAO.getLowAttendanceStudents(courseId, threshold); // configurable threshold
 
         com.college.dao.StudentDAO studentDAO = new com.college.dao.StudentDAO();
         List<com.college.models.Student> allStudents = studentDAO.getAllStudents();
         java.util.Map<Integer, String> nameMap = new java.util.HashMap<>();
+        java.util.Map<Integer, String> enrollMap = new java.util.HashMap<>();
+        java.util.Map<Integer, int[]> countMap = new java.util.HashMap<>();
         for (com.college.models.Student s : allStudents) {
             nameMap.put(s.getId(), s.getName());
+            enrollMap.put(s.getId(), s.getEnrollmentId() != null ? s.getEnrollmentId() : s.getUsername());
+        }
+        // present/total counts per student for richer cards (LATE stays non-present)
+        try {
+            java.util.List<Attendance> all = new java.util.ArrayList<>();
+            for (com.college.models.Student s : allStudents) {
+                java.util.List<Attendance> recs = attendanceDAO.getAttendanceByStudent(s.getId());
+                int total = 0, present = 0;
+                for (Attendance a : recs) {
+                    if (a.getCourseId() == courseId) {
+                        total++;
+                        if ("PRESENT".equalsIgnoreCase(a.getStatus())) present++;
+                    }
+                }
+                if (total > 0) countMap.put(s.getId(), new int[]{present, total});
+            }
+        } catch (Exception ignored) {
         }
 
         java.util.List<java.util.Map<String, Object>> statsList = new java.util.ArrayList<>();
@@ -120,19 +140,25 @@ public class AttendanceController extends BaseController implements HttpHandler 
             int sId = entry.getKey();
             statObj.put("studentId", sId);
             statObj.put("studentName", nameMap.getOrDefault(sId, "Unknown"));
+            statObj.put("enrollmentId", enrollMap.getOrDefault(sId, null));
             statObj.put("percentage", entry.getValue());
             statObj.put("isLow", lowAttendanceList.contains(sId));
+            int[] counts = countMap.get(sId);
+            if (counts != null) {
+                statObj.put("present", counts[0]);
+                statObj.put("total", counts[1]);
+            }
             statsList.add(statObj);
         }
 
         String jsonStats = gson.toJson(statsList);
-        String response = String.format("{\"stats\": %s}", jsonStats);
+        String response = String.format("{\"stats\": %s, \"threshold\": %s}", jsonStats, threshold);
 
         sendResponse(t, 200, response);
     }
 
     private void handlePost(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "CREATE_ATTENDANCE")) return;
+        if (!requireAnyPermission(t, "CREATE_ATTENDANCE", "MANAGE_ATTENDANCE")) return;
         String body = readBody(t);
         Attendance attendance = gson.fromJson(body, Attendance.class);
         if (attendance == null) {
@@ -146,7 +172,13 @@ public class AttendanceController extends BaseController implements HttpHandler 
             return;
         }
         attendance.setStudentId(studentId);
-        boolean ok = attendanceDAO.markAttendance(attendance);
+        String validationError = validateRecord(attendance);
+        if (validationError != null) {
+            sendResponse(t, 400, errorJson(validationError));
+            return;
+        }
+        int markedBy = currentUserId(t);
+        boolean ok = attendanceDAO.markAttendance(attendance, markedBy);
         if (ok)
             sendResponse(t, 201, "{\"status\":\"Attendance marked\"}");
         else
@@ -154,30 +186,71 @@ public class AttendanceController extends BaseController implements HttpHandler 
     }
 
     private void handleBulk(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "MANAGE_ATTENDANCE")) return;
+        if (!requireAnyPermission(t, "CREATE_ATTENDANCE", "MANAGE_ATTENDANCE")) return;
         String body = readBody(t);
         Type listType = new TypeToken<List<Attendance>>() {
         }.getType();
         List<Attendance> list = gson.fromJson(body, listType);
-        if (list == null) {
-            sendResponse(t, 400, errorJson("Invalid JSON"));
+        if (list == null || list.isEmpty()) {
+            sendResponse(t, 400, errorJson("Request body must be a non-empty array"));
             return;
         }
         List<java.util.Map<String, Object>> rawList = gson.fromJson(body,
                 new TypeToken<List<java.util.Map<String, Object>>>() {
                 }.getType());
+        List<Attendance> valid = new java.util.ArrayList<>();
+        List<java.util.Map<String, Object>> failed = new java.util.ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             Attendance a = list.get(i);
             java.util.Map<String, Object> raw = rawList != null && i < rawList.size() ? rawList.get(i) : null;
-            int studentId = resolveStudentId(raw, a.getStudentId());
-            if (studentId <= 0) {
-                sendResponse(t, 400, errorJson("Invalid or unknown student / enrollmentId"));
-                return;
+            int studentId = resolveStudentId(raw, a != null ? a.getStudentId() : 0);
+            if (a == null || studentId <= 0) {
+                failed.add(java.util.Map.of("index", i, "reason", "Invalid or unknown student / enrollmentId"));
+                continue;
             }
             a.setStudentId(studentId);
+            String err = validateRecord(a);
+            if (err != null) {
+                failed.add(java.util.Map.of("index", i, "reason", err));
+                continue;
+            }
+            valid.add(a);
         }
-        int count = attendanceDAO.markBulkAttendance(list);
-        sendResponse(t, 200, "{\"marked\":" + count + "}");
+        if (valid.isEmpty()) {
+            sendResponse(t, 400, errorJson("No valid records. " + failed.size() + " failed validation"));
+            return;
+        }
+        int markedBy = currentUserId(t);
+        int count = attendanceDAO.markBulkAttendance(valid, markedBy);
+        java.util.Map<String, Object> resp = new java.util.HashMap<>();
+        resp.put("marked", count);
+        resp.put("failed", failed);
+        sendResponse(t, 200, gson.toJson(resp));
+    }
+
+    private int currentUserId(HttpExchange t) {
+        try {
+            TokenStore.TokenInfo info = getTokenInfo(t);
+            if (info != null && info.userId > 0) return info.userId;
+        } catch (Exception ignored) {
+        }
+        return 0;
+    }
+
+    /** Returns null when valid, otherwise a human-readable error. */
+    private String validateRecord(Attendance a) {
+        if (a.getCourseId() <= 0) return "Valid courseId is required";
+        if (a.getDate() == null) return "Valid date (yyyy-MM-dd) is required";
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        java.util.Date today = cal.getTime();
+        if (a.getDate().after(today)) return "Attendance cannot be marked for a future date";
+        if (com.college.dao.AttendanceDAO.normalizeStatus(a.getStatus()) == null)
+            return "Status must be PRESENT, ABSENT or LATE";
+        return null;
     }
 
     private int extractId(String path) {

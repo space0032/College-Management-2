@@ -23,6 +23,27 @@ public class AttendanceDAO {
      * @return true if successful, false otherwise
      */
     public boolean markAttendance(Attendance attendance) {
+        return markAttendance(attendance, 1);
+    }
+
+    /**
+     * Mark attendance for a student, attributing to the acting user.
+     */
+    public boolean markAttendance(Attendance attendance, int markedBy) {
+        if (attendance == null || attendance.getDate() == null) {
+            Logger.error("Cannot mark attendance: record or date is null");
+            return false;
+        }
+        if (attendance.getStudentId() <= 0 || attendance.getCourseId() <= 0) {
+            Logger.error("Cannot mark attendance: invalid student/course id");
+            return false;
+        }
+        String status = normalizeStatus(attendance.getStatus());
+        if (status == null) {
+            Logger.error("Cannot mark attendance: invalid status " + attendance.getStatus());
+            return false;
+        }
+        attendance.setStatus(status);
         String sql = "INSERT INTO attendance (student_id, course_id, date, status, remarks, marked_by) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT (student_id, course_id, date) DO UPDATE SET " +
@@ -40,7 +61,7 @@ public class AttendanceDAO {
             pstmt.setDate(3, new java.sql.Date(attendance.getDate().getTime()));
             pstmt.setString(4, attendance.getStatus());
             pstmt.setString(5, attendance.getRemarks());
-            pstmt.setInt(6, 1); // marked_by user_id
+            if (markedBy > 0) pstmt.setInt(6, markedBy); else pstmt.setNull(6, java.sql.Types.INTEGER);
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -58,6 +79,15 @@ public class AttendanceDAO {
      * @return number of records marked successfully
      */
     public int markBulkAttendance(List<Attendance> attendanceList) {
+        return markBulkAttendance(attendanceList, 1);
+    }
+
+    /**
+     * Bulk mark with acting-user attribution. Skips invalid rows so one bad
+     * record does not fail the whole batch.
+     */
+    public int markBulkAttendance(List<Attendance> attendanceList, int markedBy) {
+        if (attendanceList == null || attendanceList.isEmpty()) return 0;
         String sql = "INSERT INTO attendance (student_id, course_id, date, status, remarks, marked_by) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT (student_id, course_id, date) DO UPDATE SET " +
@@ -74,16 +104,22 @@ public class AttendanceDAO {
             int count = 0;
 
             for (Attendance attendance : attendanceList) {
+                if (attendance == null || attendance.getDate() == null
+                        || attendance.getStudentId() <= 0 || attendance.getCourseId() <= 0)
+                    continue;
+                String status = normalizeStatus(attendance.getStatus());
+                if (status == null) continue;
                 pstmt.setInt(1, attendance.getStudentId());
                 pstmt.setInt(2, attendance.getCourseId());
                 pstmt.setDate(3, new java.sql.Date(attendance.getDate().getTime()));
-                pstmt.setString(4, attendance.getStatus());
+                pstmt.setString(4, status);
                 pstmt.setString(5, attendance.getRemarks());
-                pstmt.setInt(6, 1);
+                if (markedBy > 0) pstmt.setInt(6, markedBy); else pstmt.setNull(6, java.sql.Types.INTEGER);
 
                 pstmt.addBatch();
                 count++;
             }
+            if (count == 0) return 0;
 
             pstmt.executeBatch();
             conn.commit();
@@ -266,6 +302,17 @@ public class AttendanceDAO {
         }
 
         return studentIds;
+    }
+
+    /**
+     * Normalize status to PRESENT / ABSENT / LATE. Returns null if invalid.
+     * LATE intentionally does NOT count as present in percentage queries.
+     */
+    public static String normalizeStatus(String status) {
+        if (status == null) return null;
+        String s = status.trim().toUpperCase();
+        if ("PRESENT".equals(s) || "ABSENT".equals(s) || "LATE".equals(s)) return s;
+        return null;
     }
 
     /**
