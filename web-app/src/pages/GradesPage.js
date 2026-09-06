@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     getAllGrades, getStudentGrades, getStudentCGPA, saveGrade, bulkSaveGrade
 } from '../services/gradeService';
@@ -10,6 +10,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import SessionManager from '../utils/SessionManager';
+import Modal from '../components/Modal';
+import { toast } from '../components/Toast';
+import { getErrorMessage, getSuccessRefId } from '../utils/error';
+import { SkeletonTable } from '../components/Skeleton';
 
 const GRADES = ['A', 'B', 'C', 'D', 'E', 'F'];
 const EXAM_TYPES = ['MID TERM', 'END TERM', 'ASSIGNMENT', 'PRACTICAL'];
@@ -39,75 +43,162 @@ const GradesPage = () => {
     const [bulkEntries, setBulkEntries] = useState([]); // [{studentId, studentName, marks, grade}]
     const [bulkSaving, setBulkSaving] = useState(false);
     const [bulkResult, setBulkResult] = useState(null);
+    const [bulkDirty, setBulkDirty] = useState(false);
+
+    // List + form loading / dialog state
+    const [listLoading, setListLoading] = useState(true);
+    const [listError, setListError] = useState('');
+    const [formLoading, setFormLoading] = useState(false);
+    const [formError, setFormError] = useState('');
+    const [singleOpen, setSingleOpen] = useState(false);
+    const [singleSaving, setSingleSaving] = useState(false);
+    const [editingGrade, setEditingGrade] = useState(null);
+    const [marksError, setMarksError] = useState('');
+    const marksRefs = useRef({});
 
     const user = SessionManager.getUser() || {};
+    const canEdit = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
+    const singleDirty = Boolean(formData.studentId || formData.courseId || formData.marksObtained);
 
     useEffect(() => {
+        const controller = new AbortController();
         if (activeTab === 'view') {
             if (user.role === 'STUDENT') {
-                loadStudentGrades(user.username);
+                loadStudentGrades(user.username, controller.signal);
             } else {
-                loadAllGrades();
+                loadAllGrades(controller.signal);
             }
         } else if (activeTab === 'manage' || activeTab === 'bulk') {
-            loadFormData();
+            loadFormData(controller.signal);
         }
+        return () => controller.abort();
     }, [activeTab, user.username, user.role]);
 
-    const loadStudentGrades = async (studentId) => {
+    const loadStudentGrades = async (studentId, signal) => {
+        setListLoading(true);
+        setListError('');
         try {
-            const res = await getStudentGrades(studentId);
+            const res = await getStudentGrades(studentId, signal);
+            if (signal?.aborted) return;
             setGrades(res.data || []);
-            const cgpaRes = await getStudentCGPA(studentId);
-            setCgpa(cgpaRes.data?.cgpa);
+            const cgpaRes = await getStudentCGPA(studentId, signal);
+            if (!signal?.aborted) setCgpa(cgpaRes.data?.cgpa);
         } catch (err) {
-            console.error(err);
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setListError(err?.response?.data?.error || 'Could not load grades.');
+        } finally {
+            if (!signal?.aborted) setListLoading(false);
         }
     };
 
-    const loadAllGrades = async () => {
+    const loadAllGrades = async (signal) => {
+        setListLoading(true);
+        setListError('');
         try {
-            const res = await getAllGrades();
+            const res = await getAllGrades(signal);
+            if (signal?.aborted) return;
             setGrades(res.data || []);
         } catch (err) {
-            console.error(err);
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setListError(err?.response?.data?.error || 'Could not load grades.');
+        } finally {
+            if (!signal?.aborted) setListLoading(false);
         }
     };
 
-    const loadFormData = async () => {
+    const loadFormData = async (signal) => {
+        setFormLoading(true);
+        setFormError('');
         try {
-            const pStudents = getAllStudents();
-            const pCourses = getAllCourses();
-            const [rStud, rCour] = await Promise.all([pStudents, pCourses]);
+            const [rStud, rCour] = await Promise.all([getAllStudents(), getAllCourses(1, 500)]);
+            if (signal?.aborted) return;
             setStudents(rStud.data || []);
             setCourses(rCour.data || []);
         } catch (err) {
-            console.error('Failed to load form data', err);
+            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
+            setFormError(err?.response?.data?.error || 'Could not load students and subjects.');
+        } finally {
+            if (!signal?.aborted) setFormLoading(false);
         }
     };
 
-    const handleSaveGrade = async (e) => {
-        e.preventDefault();
+    const suggestedGrade = (marks) => {
+        const m = parseFloat(marks);
+        if (!Number.isFinite(m)) return '';
+        if (m >= 90) return 'A';
+        if (m >= 75) return 'B';
+        if (m >= 60) return 'C';
+        if (m >= 50) return 'D';
+        if (m >= 40) return 'E';
+        return 'F';
+    };
+
+    const openCreateGrade = () => {
+        setEditingGrade(null);
+        setFormData({ studentId: '', courseId: '', examType: 'MID TERM', marksObtained: '', grade: 'A' });
+        setMarksError('');
+        setSingleOpen(true);
+    };
+
+    const openEditGrade = (g) => {
+        setEditingGrade(g);
+        setFormData({
+            studentId: String(g.studentId || ''),
+            courseId: String(g.courseId || ''),
+            examType: g.examType || 'MID TERM',
+            marksObtained: g.marksObtained !== undefined && g.marksObtained !== null ? String(g.marksObtained) : '',
+            grade: g.grade || 'A'
+        });
+        setMarksError('');
+        setSingleOpen(true);
+    };
+
+    const refreshView = () => {
+        if (user.role === 'STUDENT') loadStudentGrades(user.username);
+        else loadAllGrades();
+    };
+
+    const handleSaveGrade = async () => {
+        const marks = parseFloat(formData.marksObtained);
+        if (!Number.isFinite(marks) || marks < 0 || marks > 100) {
+            setMarksError('Marks must be between 0 and 100.');
+            return;
+        }
+        setMarksError('');
+        setSingleSaving(true);
         try {
             const payload = {
+                ...(editingGrade?.id ? { id: editingGrade.id } : {}),
                 studentId: parseInt(formData.studentId),
                 courseId: parseInt(formData.courseId),
                 examType: formData.examType,
-                marksObtained: parseFloat(formData.marksObtained),
+                marksObtained: marks,
                 grade: formData.grade
             };
+            const refId = getSuccessRefId();
             await saveGrade(payload);
-            alert('Grade saved successfully!');
-            setFormData({ ...formData, marksObtained: '', grade: 'A' });
+            toast.success(editingGrade ? 'Grade updated.' : 'Grade saved successfully.', { refId });
+            setSingleOpen(false);
+            setEditingGrade(null);
+            setFormData({ studentId: '', courseId: '', examType: 'MID TERM', marksObtained: '', grade: 'A' });
+            refreshView();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to save grade');
+            const { message, status, refId } = getErrorMessage(err, 'Could not save this grade.');
+            toast.error(message, { refId, details: { status } });
+        } finally {
+            setSingleSaving(false);
         }
     };
 
     // Auto-load students into bulk table when course is chosen
     const handleBulkCourseSelect = (courseId) => {
+        if (bulkDirty && bulkEntries.some(e => e.marks !== '')) {
+            // eslint-disable-next-line no-alert
+            if (!window.confirm('Switch course? Unsaved bulk marks will be lost.')) return;
+        }
         setBulkCourseId(courseId);
         setBulkResult(null);
+        setBulkDirty(false);
         if (!courseId) { setBulkEntries([]); return; }
         setBulkEntries(
             students.map(s => ({
@@ -121,6 +212,7 @@ const GradesPage = () => {
     };
 
     const handleBulkEntryChange = (studentId, field, value) => {
+        setBulkDirty(true);
         setBulkEntries(prev => prev.map(e =>
             e.studentId === studentId ? { ...e, [field]: value } : e
         ));
@@ -138,17 +230,50 @@ const GradesPage = () => {
         return 'F';
     };
 
+    const isValidMarks = (marks) => {
+        if (marks === '' || marks === null || marks === undefined) return true;
+        const m = parseFloat(marks);
+        return Number.isFinite(m) && m >= 0 && m <= 100;
+    };
+
     const handleBulkMarksChange = (studentId, marks) => {
+        setBulkDirty(true);
         setBulkEntries(prev => prev.map(e =>
             e.studentId === studentId
-                ? { ...e, marks, grade: autoGrade(marks) }
+                ? { ...e, marks, grade: marks === '' ? e.grade : autoGrade(marks) }
                 : e
         ));
     };
 
+    // Keyboard-friendly: Enter / ArrowDown moves to next row, ArrowUp to previous.
+    const focusMarks = (studentId) => {
+        marksRefs.current[studentId]?.focus?.();
+        marksRefs.current[studentId]?.select?.();
+    };
+
+    const handleBulkKeyDown = (e, index) => {
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = bulkEntries[index + 1];
+            if (next) focusMarks(next.studentId);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = bulkEntries[index - 1];
+            if (prev) focusMarks(prev.studentId);
+        }
+    };
+
     const handleBulkSubmit = async () => {
+        const invalid = bulkEntries.filter(e => e.marks !== '' && !isValidMarks(e.marks));
+        if (invalid.length > 0) {
+            toast.error(`${invalid.length} row(s) have marks outside 0–100. Fix the highlighted rows.`);
+            const first = invalid[0];
+            focusMarks(first.studentId);
+            return;
+        }
         const filled = bulkEntries.filter(e => e.marks !== '' && !isNaN(parseFloat(e.marks)));
-        if (filled.length === 0) { alert('Please enter marks for at least one student.'); return; }
+        if (filled.length === 0) { toast.error('Please enter marks for at least one student.'); return; }
+        if (!bulkCourseId) { toast.error('Select a course before saving.'); return; }
 
         setBulkSaving(true);
         setBulkResult(null);
@@ -163,13 +288,16 @@ const GradesPage = () => {
             }));
 
             const res = await bulkSaveGrade(payload);
-            setBulkResult({
-                saved: res.data.saved,
-                failed: filled.length - res.data.saved,
-                total: filled.length
-            });
+            const saved = res.data?.saved ?? filled.length;
+            setBulkResult({ saved, failed: filled.length - saved, total: filled.length });
+            setBulkDirty(false);
+            const refId = getSuccessRefId();
+            if (filled.length - saved === 0) toast.success(`Saved ${saved} of ${filled.length} grades.`, { refId });
+            else toast.info(`Saved ${saved} of ${filled.length} grades. Some rows failed (may be duplicates).`, { refId });
+            refreshView();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to bulk save grades');
+            const { message, status, refId } = getErrorMessage(err, 'Could not bulk save grades.');
+            toast.error(message, { refId, details: { status } });
         } finally {
             setBulkSaving(false);
         }
@@ -183,7 +311,7 @@ const GradesPage = () => {
         ) : grades;
 
         if (!dataToExport.length) {
-            alert("No grade data found to generate transcript.");
+            toast.error('No grade data found to generate transcript.');
             return;
         }
 
@@ -234,7 +362,7 @@ const GradesPage = () => {
                     >
                         {user.role === 'STUDENT' ? 'My Grades' : 'All Grades'}
                     </button>
-                    {(SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
+                    {canEdit && (
                         <button
                             className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setActiveTab('manage')}
@@ -242,13 +370,22 @@ const GradesPage = () => {
                             Enter/Edit Grades
                         </button>
                     )}
-                    {(SessionManager.hasRole('ADMIN') || user.role === 'FACULTY') && (
+                    {canEdit && (
                         <button
                             className={`btn ${activeTab === 'bulk' ? 'btn-primary' : 'btn-secondary'}`}
-                            onClick={() => setActiveTab('bulk')}
+                            onClick={() => {
+                                if (bulkDirty && bulkEntries.some(e => e.marks !== '')) {
+                                    // eslint-disable-next-line no-alert
+                                    if (!window.confirm('Leave bulk entry? Unsaved marks will be lost.')) return;
+                                }
+                                setActiveTab('bulk');
+                            }}
                         >
                             📋 Bulk Entry
                         </button>
+                    )}
+                    {canEdit && activeTab === 'manage' && (
+                        <button className="btn btn-primary" onClick={openCreateGrade}>+ Enter Grade</button>
                     )}
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -284,8 +421,19 @@ const GradesPage = () => {
                 </div>
             </div>
 
-            {activeTab === 'view' && (
+            {activeTab === 'view' && listError && (
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{listError} (Showing loaded records only.)</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => refreshView()}>Retry</button>
+                </div>
+            )}
+            {activeTab === 'view' && listLoading ? (
+                <SkeletonTable rows={6} cols={5} />
+            ) : activeTab === 'view' && (
                 <>
+                    <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="badge badge-primary">All records: {grades.length}</span>
+                    </div>
                     <div style={{ marginBottom: '20px' }}>
                         <input
                             type="text"
@@ -335,6 +483,7 @@ const GradesPage = () => {
                                     <th>Exam Type</th>
                                     <th>Marks (%)</th>
                                     <th>Letter Grade</th>
+                                    {canEdit && <th style={{ textAlign: 'right' }}>Actions</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -346,7 +495,7 @@ const GradesPage = () => {
                                     );
                                     if (filtered.length === 0) return (
                                         <tr>
-                                            <td colSpan={user.role !== 'STUDENT' ? 7 : 5} style={{ textAlign: 'center' }}>No grades found matching your filter.</td>
+                                            <td colSpan={canEdit ? 8 : (user.role !== 'STUDENT' ? 7 : 5)} style={{ textAlign: 'center' }}>No grades found matching your filter.</td>
                                         </tr>
                                     );
                                     return filtered.map(g => (
@@ -362,6 +511,11 @@ const GradesPage = () => {
                                                     {g.grade}
                                                 </span>
                                             </td>
+                                            {canEdit && (
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <button className="btn btn-sm btn-secondary" onClick={() => openEditGrade(g)}>Edit</button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 })()}
@@ -373,85 +527,134 @@ const GradesPage = () => {
 
             {activeTab === 'manage' && (
                 <div className="stat-card">
-                    <h3>Record Student Grade</h3>
-                    <form className="form-grid" onSubmit={handleSaveGrade} style={{ marginTop: '20px' }}>
-                        <div className="form-group">
-                            <label>Student *</label>
-                            <select
-                                required
-                                value={formData.studentId}
-                                onChange={e => setFormData({ ...formData, studentId: e.target.value })}
-                            >
-                                <option value="">-- Select Student --</option>
-                                {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.username || s.enrollmentId || s.enrollmentNumber || 'N/A'})</option>)}
-                            </select>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <div>
+                            <h3 style={{ margin: 0 }}>Record Student Grade</h3>
+                            <p style={{ color: '#64748b', fontSize: '.85rem', margin: '6px 0 0' }}>Single entry opens in a dialog with range checks and auto grade suggestion. Use Bulk Entry for a whole class.</p>
                         </div>
-
-                        <div className="form-group">
-                            <label>Subject *</label>
-                            <select
-                                required
-                                value={formData.courseId}
-                                onChange={e => setFormData({ ...formData, courseId: e.target.value })}
-                            >
-                                <option value="">-- Select Subject --</option>
-                                {courses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
-                            </select>
+                        <button className="btn btn-primary" onClick={openCreateGrade}>+ Enter Grade</button>
+                    </div>
+                    {formLoading ? (
+                        <div style={{ marginTop: '16px' }}><SkeletonTable rows={3} cols={3} /></div>
+                    ) : formError ? (
+                        <div className="retry-bar" role="alert" style={{ marginTop: '16px' }}>
+                            <span>{formError}</span>
+                            <button className="btn btn-secondary btn-sm" onClick={() => loadFormData()}>Retry</button>
                         </div>
-
-                        <div className="form-group">
-                            <label>Exam Type *</label>
-                            <select
-                                required
-                                value={formData.examType}
-                                onChange={e => setFormData({ ...formData, examType: e.target.value })}
-                            >
-                                <option value="MID TERM">Mid Term</option>
-                                <option value="END TERM">End Term</option>
-                                <option value="ASSIGNMENT">Assignment</option>
-                                <option value="PRACTICAL">Practical</option>
-                            </select>
+                    ) : (
+                        <div style={{ marginTop: '16px', fontSize: '.85rem', color: '#475569' }}>
+                            {students.length} students · {courses.length} subjects loaded. Last saved grades appear under All Grades.
                         </div>
-
-                        <div className="form-group">
-                            <label>Marks Obtained (%) *</label>
-                            <input
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                max="100"
-                                required
-                                value={formData.marksObtained}
-                                onChange={e => setFormData({ ...formData, marksObtained: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label>Letter Grade *</label>
-                            <select
-                                required
-                                value={formData.grade}
-                                onChange={e => setFormData({ ...formData, grade: e.target.value })}
-                            >
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                                <option value="E">E</option>
-                                <option value="F">F</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Grade</button>
-                        </div>
-                    </form>
+                    )}
                 </div>
             )}
 
+            <Modal
+                isOpen={singleOpen}
+                title={editingGrade ? `Edit Grade — ${editingGrade.studentName || 'Student'}` : 'Enter Grade'}
+                onClose={() => { if (!singleSaving) { setSingleOpen(false); setEditingGrade(null); } }}
+                onSubmit={handleSaveGrade}
+                submitLabel={editingGrade ? 'Update Grade' : 'Save Grade'}
+                submitting={singleSaving}
+                submitDisabled={!formData.studentId || !formData.courseId || formData.marksObtained === ''}
+                isDirty={singleDirty}
+                size="medium"
+            >
+                <form onSubmit={(e) => { e.preventDefault(); handleSaveGrade(); }} className="form-grid">
+                    <div className="form-group">
+                        <label className="form-label">Student *</label>
+                        <select
+                            required
+                            className="form-control"
+                            value={formData.studentId}
+                            disabled={Boolean(editingGrade)}
+                            onChange={e => setFormData({ ...formData, studentId: e.target.value })}
+                        >
+                            <option value="">-- Select Student --</option>
+                            {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.username || s.enrollmentId || s.enrollmentNumber || 'N/A'})</option>)}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Subject *</label>
+                        <select
+                            required
+                            className="form-control"
+                            value={formData.courseId}
+                            disabled={Boolean(editingGrade)}
+                            onChange={e => setFormData({ ...formData, courseId: e.target.value })}
+                        >
+                            <option value="">-- Select Subject --</option>
+                            {courses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Exam Type *</label>
+                        <select
+                            required
+                            className="form-control"
+                            value={formData.examType}
+                            onChange={e => setFormData({ ...formData, examType: e.target.value })}
+                        >
+                            <option value="MID TERM">Mid Term</option>
+                            <option value="END TERM">End Term</option>
+                            <option value="ASSIGNMENT">Assignment</option>
+                            <option value="PRACTICAL">Practical</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Marks Obtained (0–100) *</label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                            required
+                            className={`form-control${marksError ? ' is-invalid' : ''}`}
+                            value={formData.marksObtained}
+                            onChange={e => {
+                                const v = e.target.value;
+                                setFormData(prev => {
+                                    const sg = suggestedGrade(v);
+                                    return { ...prev, marksObtained: v, grade: v === '' ? prev.grade : (sg || prev.grade) };
+                                });
+                                const m = parseFloat(v);
+                                if (v !== '' && (!Number.isFinite(m) || m < 0 || m > 100)) setMarksError('Marks must be between 0 and 100.');
+                                else setMarksError('');
+                            }}
+                            aria-invalid={Boolean(marksError)}
+                        />
+                        {marksError
+                            ? <span className="field-error" role="alert">{marksError}</span>
+                            : <span className="field-hint">Allowed range 0–100. Grade auto-suggests: {suggestedGrade(formData.marksObtained) || '—'} (A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 50, E ≥ 40).</span>}
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Letter Grade *</label>
+                        <select
+                            required
+                            className="form-control"
+                            value={formData.grade}
+                            onChange={e => setFormData({ ...formData, grade: e.target.value })}
+                        >
+                            {GRADES.map(g => <option key={g} value={g}>{g}{suggestedGrade(formData.marksObtained) === g ? ' (suggested)' : ''}</option>)}
+                        </select>
+                    </div>
+                </form>
+            </Modal>
+
             {/* ===== BULK GRADE ENTRY TAB ===== */}
+            {activeTab === 'bulk' && formError && (
+                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
+                    <span>{formError}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => loadFormData()}>Retry</button>
+                </div>
+            )}
             {activeTab === 'bulk' && (
                 <div>
+                    <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span className="badge badge-primary">Keyboard: Enter/↓ next row, ↑ previous</span>
+                        {bulkDirty && <span className="badge badge-warning">Unsaved changes</span>}
+                        {bulkSaving && <span className="badge badge-primary">Saving…</span>}
+                    </div>
                     {/* Config row */}
                     <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                         <div className="form-group" style={{ margin: 0, flex: '2 1 200px' }}>
@@ -513,23 +716,30 @@ const GradesPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {bulkEntries.map(entry => (
-                                            <tr key={entry.studentId} style={{ background: entry.marks !== '' ? '#f7fffe' : 'white' }}>
+                                        {bulkEntries.map((entry, idx) => {
+                                            const invalid = entry.marks !== '' && !isValidMarks(entry.marks);
+                                            return (
+                                            <tr key={entry.studentId} style={{ background: invalid ? '#fff5f5' : entry.marks !== '' ? '#f7fffe' : 'white' }}>
                                                 <td style={{ fontWeight: '500' }}>{entry.studentName}</td>
                                                 <td style={{ color: '#718096', fontSize: '0.85rem' }}>{entry.enrollmentNumber || '—'}</td>
                                                 <td>
                                                     <input
+                                                        ref={(el) => { marksRefs.current[entry.studentId] = el; }}
                                                         type="number"
                                                         min="0" max="100" step="0.5"
                                                         placeholder="—"
                                                         value={entry.marks}
+                                                        aria-label={`Marks for ${entry.studentName} (0 to 100)`}
+                                                        aria-invalid={invalid}
                                                         onChange={e => handleBulkMarksChange(entry.studentId, e.target.value)}
+                                                        onKeyDown={e => handleBulkKeyDown(e, idx)}
                                                         style={{
-                                                            width: '100%', padding: '5px 8px', border: '1px solid #e2e8f0',
+                                                            width: '100%', padding: '5px 8px', border: `1px solid ${invalid ? '#f04438' : '#e2e8f0'}`,
                                                             borderRadius: '6px', outline: 'none', fontSize: '0.9rem',
-                                                            background: entry.marks !== '' ? '#ebf8ff' : 'white'
+                                                            background: invalid ? '#fff5f5' : entry.marks !== '' ? '#ebf8ff' : 'white'
                                                         }}
                                                     />
+                                                    {invalid && <div style={{ color: '#b42318', fontSize: '.72rem', marginTop: '2px' }}>0–100 only</div>}
                                                 </td>
                                                 <td>
                                                     <select
@@ -546,16 +756,20 @@ const GradesPage = () => {
                                                     </select>
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
 
-                            <div style={{ marginTop: '16px', textAlign: 'right' }}>
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', position: 'sticky', bottom: 0, background: '#fff', padding: '12px 0', borderTop: '1px solid var(--border)' }}>
+                                <div style={{ fontSize: '.8rem', color: bulkDirty ? '#b54708' : '#667085' }} role="status">
+                                    {bulkSaving ? 'Saving grades…' : bulkDirty ? '● Unsaved changes — review highlighted rows, then save.' : 'All changes saved.'}
+                                </div>
                                 <button
                                     className="btn btn-primary"
                                     onClick={handleBulkSubmit}
-                                    disabled={bulkSaving}
+                                    disabled={bulkSaving || !bulkCourseId}
                                     style={{ minWidth: '180px' }}
                                 >
                                     {bulkSaving ? 'Saving…' : `💾 Save All Grades`}
