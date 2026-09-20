@@ -349,7 +349,8 @@ public class StudentDAO {
      */
     public List<Student> searchStudents(String keyword) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE s.name ILIKE ? OR s.email ILIKE ? OR u.username ILIKE ? ORDER BY s.name";
+        String sql = "SELECT s.*, u.username FROM students s LEFT JOIN users u ON s.user_id = u.id " +
+                "WHERE s.name ILIKE ? OR s.email ILIKE ? OR s.enrollment_id ILIKE ? OR u.username ILIKE ? ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -358,6 +359,7 @@ public class StudentDAO {
             pstmt.setString(1, searchPattern);
             pstmt.setString(2, searchPattern);
             pstmt.setString(3, searchPattern);
+            pstmt.setString(4, searchPattern);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -495,10 +497,12 @@ public class StudentDAO {
         if (enrollmentId == null || enrollmentId.trim().isEmpty()) {
             return -1;
         }
-        String sql = "SELECT id FROM students WHERE enrollment_id = ?";
+        String sql = "SELECT s.id FROM students s LEFT JOIN users u ON s.user_id = u.id " +
+                "WHERE s.enrollment_id = ? OR u.username = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, enrollmentId.trim());
+            pstmt.setString(2, enrollmentId.trim());
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("id");

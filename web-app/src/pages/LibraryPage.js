@@ -101,15 +101,27 @@ const LibraryPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!studentSearch) {
+    const query = studentSearch.trim();
+    if (!query) {
       setFilteredStudents(students);
-    } else {
-      setStudentSearchLoading(true);
-      searchStudents(studentSearch)
-        .then(res => setFilteredStudents(res.data || []))
-        .catch(() => setFilteredStudents([]))
-        .finally(() => setStudentSearchLoading(false));
+      setStudentSearchLoading(false);
+      return undefined;
     }
+
+    setStudentSearchLoading(true);
+    let active = true;
+    const timeoutId = setTimeout(() => {
+      searchStudents(query)
+        .then(res => { if (active) setFilteredStudents(res.data || []); })
+        .catch(() => { if (active) setFilteredStudents([]); })
+        .finally(() => { if (active) setStudentSearchLoading(false); });
+
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
   }, [studentSearch, students]);
 
   useEffect(() => {
@@ -120,7 +132,7 @@ const LibraryPage = () => {
   }, [view, fetchBooks, fetchIssues, fetchMyIssues, fetchRequests]);
 
   useEffect(() => {
-    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+    getAllStudents().then(res => setStudents(res.data || [])).catch(() => {});
   }, []);
 
 const handleFormChange = (e) => {
@@ -522,11 +534,12 @@ const handleFormChange = (e) => {
           <input type="text" className="form-control" placeholder="Search by name or enrollment…" value={studentSearch} onChange={(e) => { setStudentSearch(e.target.value); setFormError(''); }} />
           {studentSearchLoading && <div style={{ fontSize: '0.75rem', color: '#718096' }}>Searching…</div>}
           {filteredStudents.length > 0 && (
-            <select className="form-control" style={{ marginTop: '8px' }} value={issueForm.enrollmentId} onChange={(e) => { setIssueForm(p => ({ ...p, enrollmentId: e.target.value })); setStudentSearch(''); }}>
+            <select className="form-control" style={{ marginTop: '8px' }} value={issueForm.enrollmentId} onChange={(e) => { setIssueForm(p => ({ ...p, enrollmentId: e.target.value })); setFormError(''); }}>
               <option value="">-- Select Student --</option>
-              {filteredStudents.map(s => (
-                <option key={s.id} value={s.username}>{s.name} ({s.username})</option>
-              ))}
+              {filteredStudents.map(s => {
+                const enrollmentId = s.enrollmentId || s.username;
+                return enrollmentId ? <option key={s.id} value={enrollmentId}>{s.name} ({enrollmentId})</option> : null;
+              })}
             </select>
           )}
         </div>
