@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { exportToCSV } from '../utils/exportUtils';
-import { getAllBooks, addBook, getAllIssues, issueBook, returnBook, getIssuesByStudent, requestBook, getBookRequests, approveBookRequest, rejectBookRequest } from '../services/libraryService';
-import { getAllStudents } from '../services/studentService';
+import { getAllBooks, addBook, updateBook, deleteBook, getAllIssues, issueBook, returnBook, getIssuesByStudent, requestBook, getBookRequests, approveBookRequest, rejectBookRequest, sendReminders } from '../services/libraryService';
+import { getAllStudents, searchStudents } from '../services/studentService';
 import SessionManager from '../utils/SessionManager';
 
 const COLUMNS = [
@@ -50,14 +50,20 @@ const LibraryPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [issueForm, setIssueForm] = useState({ enrollmentId: '', bookId: null });
   const [requestForm, setRequestForm] = useState({ bookId: '', reason: '', returnDate: '' });
-  const [requests, setRequests] = useState([]); // in-memory pending requests for UI
+  const [rejectForm, setRejectForm] = useState({ requestId: null, remarks: '' });
+  const [students, setStudents] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [filteredStudents, setFilteredStudents] = useState([]);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentSearchLoading, setStudentSearchLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [students, setStudents] = useState([]);
+  const [editingBookId, setEditingBookId] = useState(null);
 
   const user = SessionManager.getUser() || {};
   const isAdmin = SessionManager.hasRole('ADMIN');
@@ -91,8 +97,20 @@ const LibraryPage = () => {
   const fetchRequests = React.useCallback(() => {
     getBookRequests()
       .then(res => setRequests(res.data || []))
-      .catch(() => { }); // graceful fallback if endpoint not yet on backend
+      .catch(() => setError('Failed to load requests.'));
   }, []);
+
+  useEffect(() => {
+    if (!studentSearch) {
+      setFilteredStudents(students);
+    } else {
+      setStudentSearchLoading(true);
+      searchStudents(studentSearch)
+        .then(res => setFilteredStudents(res.data || []))
+        .catch(() => setFilteredStudents([]))
+        .finally(() => setStudentSearchLoading(false));
+    }
+  }, [studentSearch, students]);
 
   useEffect(() => {
     if (view === 'books') fetchBooks();
@@ -105,32 +123,10 @@ const LibraryPage = () => {
     getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
   }, []);
 
-  const handleFormChange = (e) => {
+const handleFormChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm((prev) => ({ ...prev, [e.target.name]: value }));
     setFormError('');
-  };
-
-  const handleAdd = async () => {
-    if (!form.title || !form.author) { setFormError('Title and author are required.'); return; }
-    if (form.isbn) {
-      const isbn = form.isbn.replace(/[-\s]/g, '');
-      if (!/^(?:\d{9}[\dXx]|\d{13})$/.test(isbn)) {
-        setFormError('ISBN must contain 10 or 13 valid characters.');
-        return;
-      }
-    }
-    setSaving(true);
-    try {
-      await addBook({ ...form, quantity: form.available ? 1 : 0, available: form.available ? 1 : 0 });
-      setModalOpen(false);
-      setForm(EMPTY_FORM);
-      fetchBooks();
-    } catch (err) {
-      setFormError(err.response?.data?.error || 'Failed to add book.');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleIssue = async () => {
@@ -139,7 +135,9 @@ const LibraryPage = () => {
     try {
       await issueBook({ enrollmentId: issueForm.enrollmentId, bookId: issueForm.bookId, issuedBy: user.id || 1 });
       setIssueModalOpen(false);
+      setIssueForm({ enrollmentId: '', bookId: null });
       fetchBooks();
+      if (view === 'issues') fetchIssues();
     } catch (err) {
       setFormError(err.response?.data?.error || 'Failed to issue book.');
     } finally {
@@ -160,17 +158,58 @@ const LibraryPage = () => {
   };
 
   const handleSendReminders = () => {
-    const overdueCount = issues.filter(i => i.fineAmount > 0).length;
-    if (overdueCount === 0) {
-      alert('No students currently have overdue books or fines.');
-      return;
+    setSaving(true);
+    sendReminders()
+      .then(() => {
+        alert('✅ Reminders sent successfully to students with overdue books.');
+      })
+      .catch(err => {
+        alert(err.response?.data?.error || 'Failed to send reminders.');
+      })
+      .finally(() => setSaving(false));
+  };
+
+  const handleEditBook = (book) => {
+    setEditingBookId(book.id);
+    setForm({ title: book.title, author: book.author, isbn: book.isbn, available: book.available > 0 });
+    setModalOpen(true);
+  };
+
+  const handleDeleteBook = async (bookId) => {
+    if (window.confirm('Delete this book permanently?')) {
+      try {
+        await deleteBook(bookId);
+        fetchBooks();
+      } catch (err) {
+        alert(err.response?.data?.error || 'Failed to delete book.');
+      }
     }
-    if (window.confirm(`Send automated email/SMS reminders to ${overdueCount} students with overdue books?`)) {
-      setSaving(true);
-      setTimeout(() => {
-        setSaving(false);
-        alert(`✅ System successfully dispatched payment and return reminders to ${overdueCount} students.`);
-      }, 1000);
+  };
+
+  const handleFormSubmit = async () => {
+    if (!form.title || !form.author) { setFormError('Title and author are required.'); return; }
+    if (form.isbn) {
+      const isbn = form.isbn.replace(/[-\s]/g, '');
+      if (!/^(?:\d{9}[\dXx]|\d{13})$/.test(isbn)) {
+        setFormError('ISBN must contain 10 or 13 valid characters.');
+        return;
+      }
+    }
+    setSaving(true);
+    try {
+      if (editingBookId) {
+        await updateBook(editingBookId, { ...form, quantity: form.available ? 1 : 0, available: form.available ? 1 : 0 });
+      } else {
+        await addBook({ ...form, quantity: form.available ? 1 : 0, available: form.available ? 1 : 0 });
+      }
+      setModalOpen(false);
+      setForm(EMPTY_FORM);
+      setEditingBookId(null);
+      fetchBooks();
+    } catch (err) {
+      setFormError(err.response?.data?.error || 'Failed to save book.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -182,20 +221,14 @@ const LibraryPage = () => {
         enrollmentId: user.username,
         bookId: requestForm.bookId,
         reason: requestForm.reason,
-        preferredReturn: requestForm.returnDate,
+        loanPeriodDays: 14,
       });
       setRequestModalOpen(false);
       setRequestForm({ bookId: '', reason: '', returnDate: '' });
       fetchRequests();
       alert('Book request submitted! The librarian will review your request.');
-    } catch {
-      // Fallback: save in-memory if backend endpoint isn't ready
-      const book = books.find(b => String(b.id) === String(requestForm.bookId));
-      const newRequest = { id: Date.now(), studentName: user.name || user.username || 'You', studentId: user.id, bookTitle: book?.title || 'Unknown', bookId: requestForm.bookId, reason: requestForm.reason, preferredReturn: requestForm.returnDate, status: 'PENDING', requestedAt: new Date().toISOString() };
-      setRequests(prev => [newRequest, ...prev]);
-      setRequestModalOpen(false);
-      setRequestForm({ bookId: '', reason: '', returnDate: '' });
-      alert('Book request submitted (pending API).');
+    } catch (err) {
+      setFormError(err.response?.data?.error || 'Failed to submit request.');
     } finally { setSaving(false); }
   };
 
@@ -203,23 +236,27 @@ const LibraryPage = () => {
     try {
       await approveBookRequest(reqId);
       fetchRequests();
-    } catch {
-      // Fallback: in-memory approve
-      const req = requests.find(r => r.id === reqId);
-      if (req) {
-        setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'APPROVED' } : r));
-        issueBook({ studentId: req.studentId, bookId: req.bookId, issuedBy: user.id || 1 }).then(() => fetchBooks()).catch(() => { });
-      }
+      fetchBooks();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to approve request.');
     }
   };
 
-  const handleRejectRequest = async (reqId) => {
+  const openRejectModal = (requestId) => {
+    setRejectForm({ requestId, remarks: '' });
+    setRejectModalOpen(true);
+  };
+
+  const handleRejectRequest = async () => {
+    if (!rejectForm.requestId) return;
+    setSaving(true);
     try {
-      await rejectBookRequest(reqId);
+      await rejectBookRequest(rejectForm.requestId, rejectForm.remarks);
+      setRejectModalOpen(false);
       fetchRequests();
-    } catch {
-      setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'REJECTED' } : r));
-    }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to reject request.');
+    } finally { setSaving(false); }
   };
 
   const filteredBooks = searchQuery
@@ -234,7 +271,7 @@ const LibraryPage = () => {
     ...COLUMNS,
     {
       key: 'actions', label: 'Actions', render: (_, book) => (
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {book.available > 0 && isAdmin && (
             <button className="btn btn-secondary btn-sm" onClick={() => { setIssueForm({ enrollmentId: '', bookId: book.id }); setFormError(''); setIssueModalOpen(true); }}>
               Issue
@@ -247,6 +284,12 @@ const LibraryPage = () => {
           )}
           {book.available === 0 && (
             <span style={{ fontSize: '0.78rem', color: '#a0aec0' }}>Unavailable</span>
+          )}
+          {isAdmin && (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={() => handleEditBook(book)}>✏ Edit</button>
+              <button className="btn btn-danger btn-sm" onClick={() => handleDeleteBook(book.id)}>🗑 Delete</button>
+            </>
           )}
         </div>
       )
@@ -425,7 +468,7 @@ const LibraryPage = () => {
                   {req.status === 'PENDING' && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button className="btn btn-primary btn-sm" onClick={() => handleApproveRequest(req.id)}>✓ Approve & Issue</button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => handleRejectRequest(req.id)}>✗ Reject</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openRejectModal(req.id)}>✗ Reject</button>
                     </div>
                   )}
                 </div>
@@ -455,8 +498,8 @@ const LibraryPage = () => {
         </div>
       )}
 
-      {/* Modals */}
-      <Modal isOpen={modalOpen} title="Add Book" onClose={() => setModalOpen(false)} onSubmit={handleAdd} submitLabel={saving ? 'Saving…' : 'Save'}>
+{/* Modals */}
+      <Modal isOpen={modalOpen} title={editingBookId ? 'Edit Book' : 'Add Book'} onClose={() => { setModalOpen(false); setEditingBookId(null); setForm(EMPTY_FORM); }} onSubmit={handleFormSubmit} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         {[{ name: 'title', label: 'Title' }, { name: 'author', label: 'Author' }, { name: 'isbn', label: 'ISBN' }].map(({ name, label }) => (
           <div className="form-group" key={name}>
@@ -472,21 +515,29 @@ const LibraryPage = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => setIssueModalOpen(false)} onSubmit={handleIssue} submitLabel={saving ? 'Issuing…' : 'Issue'}>
+      <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => { setIssueModalOpen(false); setIssueForm({ enrollmentId: '', bookId: null }); setStudentSearch(''); }} onSubmit={handleIssue} submitLabel={saving ? 'Issuing…' : 'Issue'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
-          <label className="form-label">Student Enrollment</label>
-          <select className="form-control" value={issueForm.enrollmentId} onChange={(e) => { setIssueForm(p => ({ ...p, enrollmentId: e.target.value })); setFormError(''); }}>
-            <option value="">Select student / enrollment…</option>
-            {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
-          </select>
+          <label className="form-label">Search Student</label>
+          <input type="text" className="form-control" placeholder="Search by name or enrollment…" value={studentSearch} onChange={(e) => { setStudentSearch(e.target.value); setFormError(''); }} />
+          {studentSearchLoading && <div style={{ fontSize: '0.75rem', color: '#718096' }}>Searching…</div>}
+          {filteredStudents.length > 0 && (
+            <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px', marginTop: '4px' }}>
+              {filteredStudents.map(s => (
+                <div key={s.id} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }} onClick={() => { setIssueForm(p => ({ ...p, enrollmentId: s.username })); setStudentSearch(''); }}>
+                  <div style={{ fontWeight: '500' }}>{s.name}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#718096', fontFamily: 'monospace' }}>{s.username}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ fontSize: '0.82rem', color: '#718096', marginTop: '8px' }}>
           Book ID: <strong>{issueForm.bookId}</strong> — {books.find(b => b.id === issueForm.bookId)?.title}
         </div>
       </Modal>
 
-      <Modal isOpen={requestModalOpen} title="Request a Book" onClose={() => setRequestModalOpen(false)} onSubmit={handleBookRequest} submitLabel="Submit Request">
+      <Modal isOpen={requestModalOpen} title="Request a Book" onClose={() => { setRequestModalOpen(false); setRequestForm({ bookId: '', reason: '', returnDate: '' }); }} onSubmit={handleBookRequest} submitLabel="Submit Request">
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
           <label className="form-label">Book *</label>
@@ -504,6 +555,13 @@ const LibraryPage = () => {
         <div className="form-group">
           <label className="form-label">Planned Return Date</label>
           <input type="date" className="form-control" value={requestForm.returnDate} onChange={e => setRequestForm(p => ({ ...p, returnDate: e.target.value }))} min={new Date().toISOString().split('T')[0]} />
+        </div>
+      </Modal>
+
+      <Modal isOpen={rejectModalOpen} title="Reject Book Request" onClose={() => { setRejectModalOpen(false); setRejectForm({ requestId: null, remarks: '' }); }} onSubmit={handleRejectRequest} submitLabel={saving ? 'Rejecting…' : 'Reject'}>
+        <div className="form-group">
+          <label className="form-label">Reason for Rejection (optional)</label>
+          <textarea className="form-control" rows="3" value={rejectForm.remarks} onChange={e => setRejectForm(p => ({ ...p, remarks: e.target.value }))} placeholder="Enter reason for rejecting this request…" />
         </div>
       </Modal>
     </div>

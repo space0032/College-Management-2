@@ -58,6 +58,16 @@ public class LibraryController extends BaseController implements HttpHandler {
                     handleGetFines(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/library/send-reminders")) {
+                if ("POST".equals(method))
+                    handleSendReminders(t);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/library/books/\\d+")) {
+                if ("DELETE".equals(method))
+                    handleDeleteBook(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
             } else {
                 sendResponse(t, 404, errorJson("Not found"));
             }
@@ -184,5 +194,40 @@ public class LibraryController extends BaseController implements HttpHandler {
     private int extractId(String path) {
         String[] parts = path.split("/");
         return Integer.parseInt(parts[parts.length - 1]);
+    }
+
+    private void handleSendReminders(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "MANAGE_LIBRARY")) return;
+        com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
+        List<com.college.models.BookIssue> overdueIssues = issueDAO.getAllIssuedBooks().stream()
+                .filter(issue -> issue.getDueDate() != null && issue.getDueDate().before(new java.util.Date()))
+                .toList();
+
+        int sentCount = 0;
+        com.college.dao.NotificationDAO notificationDAO = new com.college.dao.NotificationDAO();
+        for (com.college.models.BookIssue issue : overdueIssues) {
+            com.college.models.Notification notification = new com.college.models.Notification();
+            notification.setRecipientUserId(issue.getStudentId());
+            notification.setSubject("Overdue Book Reminder");
+            notification.setMessage(String.format("Your book '%s' was due on %s. Please return it to avoid additional fines.", issue.getBookTitle(), issue.getDueDate()));
+            notification.setType(com.college.models.Notification.Type.SYSTEM);
+            notification.setStatus(com.college.models.Notification.Status.PENDING);
+            notification.setCreatedAt(java.time.LocalDateTime.now());
+            if (notificationDAO.createNotification(notification)) {
+                sentCount++;
+            }
+        }
+        sendResponse(t, 200, String.format("{\"sent\":%d,\"message\":\"Reminders sent to %d students with overdue books\"}", sentCount, sentCount));
+    }
+
+    private void handleDeleteBook(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "DELETE_LIBRARY")) return;
+        int id = extractId(path);
+        com.college.dao.LibraryDAO libraryDAO = new com.college.dao.LibraryDAO();
+        boolean ok = libraryDAO.deleteBook(id);
+        if (ok)
+            sendResponse(t, 200, "{\"message\":\"Book deleted successfully\"}");
+        else
+            sendResponse(t, 400, errorJson("Failed to delete book"));
     }
 }

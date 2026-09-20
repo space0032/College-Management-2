@@ -79,4 +79,18 @@ public class LibraryDAO {
         book.setAvailable(rs.getInt("available"));
         return book;
     }
+
+    public boolean deleteBook(int id) {
+        String sql = "DELETE FROM books WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return false;
+        }
+    }
 }

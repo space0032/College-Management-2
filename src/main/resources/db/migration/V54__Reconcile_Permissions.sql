@@ -80,6 +80,7 @@ INSERT INTO permissions (code, name, category) VALUES
 ('VIEW_LIBRARY', 'View Library', 'Library'),
 ('CREATE_LIBRARY', 'Create Library Entries', 'Library'),
 ('UPDATE_LIBRARY', 'Update Library Entries', 'Library'),
+('DELETE_LIBRARY', 'Delete Library Entries', 'Library'),
 ('MANAGE_LIBRARY', 'Manage Library', 'Library'),
 
 -- Hostel
