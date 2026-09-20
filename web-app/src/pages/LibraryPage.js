@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { toast, useToast } from '../components/Toast';
+import { useToast } from '../components/Toast';
 import { exportToCSV } from '../utils/exportUtils';
 import { getAllBooks, addBook, updateBook, deleteBook, getAllIssues, issueBook, returnBook, getIssuesByStudent, requestBook, getBookRequests, approveBookRequest, rejectBookRequest, sendReminders } from '../services/libraryService';
 import { getAllStudents, searchStudents } from '../services/studentService';
@@ -76,7 +76,7 @@ const LibraryPage = () => {
   const PAGE_SIZE = 20;
 
   // Toast
-  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   // ConfirmDialog state
   const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
