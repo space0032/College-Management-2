@@ -374,7 +374,8 @@ public class EnhancedFeeDAO {
      */
     public List<StudentFee> getStudentFees(int studentId) {
         List<StudentFee> fees = new ArrayList<>();
-        String sql = "SELECT sf.*, s.name as student_name, u.username as student_username, fc.category_name " +
+        String sql = "SELECT sf.*, s.name as student_name, u.username as student_username, fc.category_name, " +
+                "(SELECT MAX(fp.payment_date) FROM fee_payments fp WHERE fp.student_fee_id = sf.id) as last_payment_date " +
                 "FROM student_fees sf " +
                 "JOIN students s ON sf.student_id = s.id " +
                 "LEFT JOIN users u ON s.user_id = u.id " +
@@ -568,6 +569,11 @@ public class EnhancedFeeDAO {
         fee.setPaidAmount(rs.getDouble("paid_amount"));
         fee.setStatus(rs.getString("status"));
         fee.setDueDate(rs.getDate("due_date"));
+        try {
+            fee.setLastPaymentDate(rs.getDate("last_payment_date"));
+        } catch (SQLException e) {
+            // Field is only selected by the per-student query.
+        }
         fee.setStudentName(rs.getString("student_name"));
         fee.setCategoryName(rs.getString("category_name"));
 

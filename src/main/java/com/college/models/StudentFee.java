@@ -14,6 +14,7 @@ public class StudentFee {
     private double paidAmount;
     private String status; // PENDING, PARTIAL, PAID
     private Date dueDate;
+    private Date lastPaymentDate;
 
     // Display fields
     private String studentName;
@@ -99,6 +100,14 @@ public class StudentFee {
 
     public void setDueDate(Date dueDate) {
         this.dueDate = dueDate;
+    }
+
+    public Date getLastPaymentDate() {
+        return lastPaymentDate;
+    }
+
+    public void setLastPaymentDate(Date lastPaymentDate) {
+        this.lastPaymentDate = lastPaymentDate;
     }
 
     public String getStudentName() {

@@ -16,6 +16,8 @@ const StudentProfilePage = () => {
     const [grades, setGrades] = useState([]);
     const [enrolledCourses, setEnrolledCourses] = useState([]);
     const [fees, setFees] = useState([]);
+    const [feesLoading, setFeesLoading] = useState(false);
+    const [feesError, setFeesError] = useState('');
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({});
@@ -30,6 +32,22 @@ const StudentProfilePage = () => {
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [viewedStudentId, setViewedStudentId] = useState(null);
     const searchRef = useRef(null);
+
+    const fetchStudentFees = useCallback(async (studentId) => {
+        if (!studentId) return;
+        setFeesLoading(true);
+        setFeesError('');
+        try {
+            const response = await getStudentFees(studentId);
+            const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+            setFees(data);
+        } catch (err) {
+            setFees([]);
+            setFeesError(err.response?.data?.error || 'Could not load fee information.');
+        } finally {
+            setFeesLoading(false);
+        }
+    }, []);
 
     // Fetch student profile data
     const fetchStudentData = useCallback(async (studentId) => {
@@ -56,11 +74,7 @@ const StudentProfilePage = () => {
                 } catch { setCgpa(null); }
 
                 // Fetch fees for this student using dedicated endpoint
-                try {
-                    const fRes = await getStudentFees(studentId);
-                    const fList = Array.isArray(fRes.data) ? fRes.data : (fRes.data?.data || []);
-                    setFees(fList);
-                } catch { setFees([]); }
+                await fetchStudentFees(studentId);
 
                 // Fetch attendance records using correct endpoint
                 try {
@@ -83,7 +97,7 @@ const StudentProfilePage = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchStudentFees]);
 
     // Load own profile on mount
     useEffect(() => {
@@ -160,9 +174,12 @@ const StudentProfilePage = () => {
     }, [attendanceRecords]);
 
     // Fee calculations
-    const totalFees = useMemo(() => fees.reduce((s, f) => s + (parseFloat(f.totalAmount) || 0), 0), [fees]);
-    const paidFees = useMemo(() => fees.reduce((s, f) => s + (parseFloat(f.paidAmount) || 0), 0), [fees]);
-    const pendingFees = useMemo(() => totalFees - paidFees, [totalFees, paidFees]);
+    const totalFees = useMemo(() => fees.reduce((s, f) => s + (Number(f.totalAmount ?? f.amount) || 0), 0), [fees]);
+    const paidFees = useMemo(() => fees.reduce((s, f) => s + (Number(f.paidAmount) || 0), 0), [fees]);
+    const pendingFees = useMemo(() => Math.max(0, totalFees - paidFees), [totalFees, paidFees]);
+    const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', {
+        style: 'currency', currency: 'INR', maximumFractionDigits: 2
+    }).format(Number(amount) || 0);
 
     const initials = (student?.name || user.name || user.username || 'S')
         .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -425,17 +442,32 @@ return (
             {/* Fees Tab */}
             {activeTab === 'fees' && (
                 <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div>
+                            <div style={{ fontWeight: 700, color: '#2d3748' }}>Fee account</div>
+                            <div style={{ fontSize: '0.8rem', color: '#718096' }}>
+                                {fees.length} {fees.length === 1 ? 'charge' : 'charges'} assigned
+                            </div>
+                        </div>
+                        <button type="button" className="btn btn-sm btn-secondary"
+                            onClick={() => fetchStudentFees(student?.id)} disabled={feesLoading || !student?.id}>
+                            {feesLoading ? 'Refreshing...' : 'Refresh fees'}
+                        </button>
+                    </div>
+                    {feesError && <div className="alert alert-error" style={{ marginBottom: '14px' }}>
+                        {feesError} The amounts below may be unavailable or out of date.
+                    </div>}
                     <div style={{ display: 'flex', gap: '14px', marginBottom: '20px' }}>
                         <div style={{ flex: 1, padding: '14px', background: '#f0fff4', borderRadius: '8px', textAlign: 'center' }}>
-                            <div style={{ fontWeight: 'bold', color: '#276749' }}>₹{paidFees.toLocaleString()}</div>
+                            <div style={{ fontWeight: 'bold', color: '#276749' }}>{formatCurrency(paidFees)}</div>
                             <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Paid</div>
                         </div>
                         <div style={{ flex: 1, padding: '14px', background: '#fff5f5', borderRadius: '8px', textAlign: 'center' }}>
-                            <div style={{ fontWeight: 'bold', color: '#c53030' }}>₹{pendingFees.toLocaleString()}</div>
+                            <div style={{ fontWeight: 'bold', color: '#c53030' }}>{formatCurrency(pendingFees)}</div>
                             <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Pending</div>
                         </div>
                         <div style={{ flex: 1, padding: '14px', background: '#ebf8ff', borderRadius: '8px', textAlign: 'center' }}>
-                            <div style={{ fontWeight: 'bold', color: '#2b6cb0' }}>₹{totalFees.toLocaleString()}</div>
+                            <div style={{ fontWeight: 'bold', color: '#2b6cb0' }}>{formatCurrency(totalFees)}</div>
                             <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Total</div>
                         </div>
                     </div>
@@ -443,16 +475,22 @@ return (
                         <table className="data-table">
                             <thead><tr><th>Fee Type</th><th>Amount</th><th>Due Date</th><th>Paid Date</th><th>Status</th></tr></thead>
                             <tbody>
-                                {fees.length === 0 ? (
-                                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>No fee records found.</td></tr>
+                                {feesLoading && fees.length === 0 ? (
+                                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#718096' }}>Loading fee information...</td></tr>
+                                ) : fees.length === 0 ? (
+                                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>{feesError ? 'Fee information is unavailable.' : 'No fee records have been assigned.'}</td></tr>
                                 ) : (
                                     fees.map((f, i) => (
                                         <tr key={f.id || i}>
                                             <td>{f.categoryName || f.feeType || f.fee_type || f.type || '—'}</td>
-                                            <td style={{ fontWeight: 500 }}>₹{parseFloat(f.totalAmount || 0).toLocaleString()}</td>
+                                            <td style={{ fontWeight: 500 }}>
+                                                <div>{formatCurrency(f.totalAmount ?? f.amount)}</div>
+                                                {(Number(f.paidAmount) || 0) > 0 && (Number(f.paidAmount) || 0) < (Number(f.totalAmount ?? f.amount) || 0) &&
+                                                    <small style={{ color: '#718096' }}>{formatCurrency(f.paidAmount)} paid</small>}
+                                            </td>
                                             <td>{f.dueDate || f.due_date || '—'}</td>
-                                            <td>{f.paidDate || f.paid_date || '—'}</td>
-                                            <td><span className={`status-badge ${f.status === 'PAID' ? 'status-active' : 'status-pending'}`}>{f.status || 'PENDING'}</span></td>
+                                            <td>{f.lastPaymentDate || f.paidDate || f.paid_date || '—'}</td>
+                                            <td><span className={`status-badge ${f.status === 'PAID' ? 'status-active' : 'status-pending'}`}>{f.status || ((Number(f.paidAmount) || 0) > 0 ? 'PARTIAL' : 'PENDING')}</span></td>
                                         </tr>
                                     ))
                                 )}
