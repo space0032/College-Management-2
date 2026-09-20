@@ -87,17 +87,24 @@ public class BookIssueDAO {
      * Get all issued books (not returned)
      */
     public List<BookIssue> getAllIssuedBooks() {
+        return getAllIssuedBooks(0, Integer.MAX_VALUE);
+    }
+
+    public List<BookIssue> getAllIssuedBooks(int page, int size) {
         List<BookIssue> issues = new ArrayList<>();
         String sql = "SELECT bi.*, s.name as student_name, b.title as book_title, u.username AS enrollment_id " +
                 "FROM book_issues bi " +
                 "JOIN students s ON bi.student_id = s.id " +
                 "JOIN books b ON bi.book_id = b.id " +
                 "LEFT JOIN users u ON s.user_id = u.id " +
-                "WHERE bi.status = 'ISSUED' ORDER BY bi.due_date";
+                "WHERE bi.status = 'ISSUED' ORDER BY bi.due_date LIMIT ? OFFSET ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, size);
+            pstmt.setInt(2, page * size);
+            ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
                 issues.add(extractIssueFromResultSet(rs));
@@ -109,21 +116,39 @@ public class BookIssueDAO {
         return issues;
     }
 
+    public int getTotalIssuedBookCount() {
+        String sql = "SELECT COUNT(*) FROM book_issues WHERE status = 'ISSUED'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
+    }
+
     /**
      * Get books issued to a specific student
      */
     public List<BookIssue> getIssuedBooksByStudent(int studentId) {
+        return getIssuedBooksByStudent(studentId, 0, Integer.MAX_VALUE);
+    }
+
+    public List<BookIssue> getIssuedBooksByStudent(int studentId, int page, int size) {
         List<BookIssue> issues = new ArrayList<>();
         String sql = "SELECT bi.*, b.title as book_title " +
                 "FROM book_issues bi " +
                 "JOIN books b ON bi.book_id = b.id " +
                 "WHERE bi.student_id = ? AND bi.status = 'ISSUED' " +
-                "ORDER BY bi.due_date";
+                "ORDER BY bi.due_date LIMIT ? OFFSET ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentId);
+            pstmt.setInt(2, size);
+            pstmt.setInt(3, page * size);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -134,6 +159,19 @@ public class BookIssueDAO {
             Logger.error("Database operation failed", e);
         }
         return issues;
+    }
+
+    public int getIssuedBookCountByStudent(int studentId) {
+        String sql = "SELECT COUNT(*) FROM book_issues WHERE student_id = ? AND status = 'ISSUED'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
     }
 
     /**

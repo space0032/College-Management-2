@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { toast, useToast } from '../components/Toast';
 import { exportToCSV } from '../utils/exportUtils';
 import { getAllBooks, addBook, updateBook, deleteBook, getAllIssues, issueBook, returnBook, getIssuesByStudent, requestBook, getBookRequests, approveBookRequest, rejectBookRequest, sendReminders } from '../services/libraryService';
 import { getAllStudents, searchStudents } from '../services/studentService';
@@ -64,6 +66,19 @@ const LibraryPage = () => {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingBookId, setEditingBookId] = useState(null);
+  // Pagination state
+  const [bookPage, setBookPage] = useState(0);
+  const [bookTotalPages, setBookTotalPages] = useState(0);
+  const [issuePage, setIssuePage] = useState(0);
+  const [issueTotalPages, setIssueTotalPages] = useState(0);
+  const [myIssuePage, setMyIssuePage] = useState(0);
+  const [myIssueTotalPages, setMyIssueTotalPages] = useState(0);
+  const PAGE_SIZE = 20;
+
+  // Toast
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  // ConfirmDialog state
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const user = SessionManager.getUser() || {};
   const isAdmin = SessionManager.hasRole('ADMIN');
@@ -71,28 +86,37 @@ const LibraryPage = () => {
 
   const fetchBooks = React.useCallback(() => {
     setLoading(true);
-    getAllBooks()
-      .then((res) => setBooks(res.data || []))
+    getAllBooks(bookPage, PAGE_SIZE)
+      .then((res) => {
+        setBooks(res.data?.content || res.data || []);
+        setBookTotalPages(res.data?.totalPages || 0);
+      })
       .catch(() => setError('Failed to load books.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [bookPage]);
 
   const fetchIssues = React.useCallback(() => {
     setLoading(true);
-    getAllIssues()
-      .then((res) => setIssues(res.data || []))
+    getAllIssues(issuePage, PAGE_SIZE)
+      .then((res) => {
+        setIssues(res.data?.content || res.data || []);
+        setIssueTotalPages(res.data?.totalPages || 0);
+      })
       .catch(() => setError('Failed to load issued books.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [issuePage]);
 
   const fetchMyIssues = React.useCallback(() => {
     if (!user.username) return;
     setLoading(true);
-    getIssuesByStudent(user.username)
-      .then(res => setMyIssues(res.data || []))
+    getIssuesByStudent(user.username, myIssuePage, PAGE_SIZE)
+      .then(res => {
+        setMyIssues(res.data?.content || res.data || []);
+        setMyIssueTotalPages(res.data?.totalPages || 0);
+      })
       .catch(() => setError('Failed to load your issues.'))
       .finally(() => setLoading(false));
-  }, [user.username]);
+  }, [user.username, myIssuePage]);
 
   const fetchRequests = React.useCallback(() => {
     getBookRequests()
@@ -100,10 +124,10 @@ const LibraryPage = () => {
       .catch(() => setError('Failed to load requests.'));
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     const query = studentSearch.trim();
     if (!query) {
-      setFilteredStudents(students);
+      setFilteredStudents([]);
       setStudentSearchLoading(false);
       return undefined;
     }
@@ -125,15 +149,24 @@ const LibraryPage = () => {
   }, [studentSearch, students]);
 
   useEffect(() => {
-    if (view === 'books') fetchBooks();
-    else if (view === 'issues') fetchIssues();
-    else if (view === 'my') fetchMyIssues();
+    if (view === 'books') { setBookPage(0); fetchBooks(); }
+    else if (view === 'issues') { setIssuePage(0); fetchIssues(); }
+    else if (view === 'my') { setMyIssuePage(0); fetchMyIssues(); }
     else if (view === 'requests') { fetchBooks(); fetchRequests(); }
   }, [view, fetchBooks, fetchIssues, fetchMyIssues, fetchRequests]);
 
-  useEffect(() => {
+useEffect(() => {
     getAllStudents().then(res => setStudents(res.data || [])).catch(() => {});
   }, []);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setBookPage(0);
+}, [searchQuery]);
+
+  const showConfirm = (title, message, onConfirm) => {
+    setConfirmDialog({ open: true, title, message, onConfirm });
+  };
 
 const handleFormChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -157,26 +190,27 @@ const handleFormChange = (e) => {
     }
   };
 
-  const handleReturn = async (issueId) => {
-    if (window.confirm('Mark this book as returned?')) {
+  const handleReturn = (issueId) => {
+    showConfirm('Return Book', 'Mark this book as returned?', async () => {
       try {
         await returnBook(issueId, { returnedTo: user.id || 1 });
+        toastSuccess('Book returned successfully');
         if (view === 'issues') fetchIssues();
         else fetchMyIssues();
       } catch (err) {
-        alert(err.response?.data?.error || 'Failed to return book.');
+        toastError(err.response?.data?.error || 'Failed to return book.');
       }
-    }
+    });
   };
 
   const handleSendReminders = () => {
     setSaving(true);
     sendReminders()
       .then(() => {
-        alert('✅ Reminders sent successfully to students with overdue books.');
+        toastSuccess('Reminders sent successfully to students with overdue books.');
       })
       .catch(err => {
-        alert(err.response?.data?.error || 'Failed to send reminders.');
+        toastError(err.response?.data?.error || 'Failed to send reminders.');
       })
       .finally(() => setSaving(false));
   };
@@ -187,15 +221,16 @@ const handleFormChange = (e) => {
     setModalOpen(true);
   };
 
-  const handleDeleteBook = async (bookId) => {
-    if (window.confirm('Delete this book permanently?')) {
+  const handleDeleteBook = (bookId) => {
+    showConfirm('Delete Book', 'Delete this book permanently? This cannot be undone.', async () => {
       try {
         await deleteBook(bookId);
+        toastSuccess('Book deleted successfully');
         fetchBooks();
       } catch (err) {
-        alert(err.response?.data?.error || 'Failed to delete book.');
+        toastError(err.response?.data?.error || 'Failed to delete book.');
       }
-    }
+    });
   };
 
   const handleFormSubmit = async () => {
@@ -241,7 +276,7 @@ const handleFormChange = (e) => {
       setRequestModalOpen(false);
       setRequestForm({ bookId: '', reason: '', returnDate: '' });
       fetchRequests();
-      alert('Book request submitted! The librarian will review your request.');
+      toastSuccess('Book request submitted! The librarian will review your request.');
     } catch (err) {
       setFormError(err.response?.data?.error || 'Failed to submit request.');
     } finally { setSaving(false); }
@@ -252,8 +287,9 @@ const handleFormChange = (e) => {
       await approveBookRequest(reqId);
       fetchRequests();
       fetchBooks();
+      toastSuccess('Request approved and book issued');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to approve request.');
+      toastError(err.response?.data?.error || 'Failed to approve request.');
     }
   };
 
@@ -269,8 +305,9 @@ const handleFormChange = (e) => {
       await rejectBookRequest(rejectForm.requestId, rejectForm.remarks);
       setRejectModalOpen(false);
       fetchRequests();
+      toastSuccess('Request rejected');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to reject request.');
+      toastError(err.response?.data?.error || 'Failed to reject request.');
     } finally { setSaving(false); }
   };
 
@@ -297,7 +334,12 @@ const handleFormChange = (e) => {
               🙋 Request
             </button>
           )}
-          {book.available === 0 && (
+          {book.available === 0 && isStudent && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setRequestForm({ bookId: book.id, reason: 'Reserved - will wait for availability', returnDate: '' }); setFormError(''); setRequestModalOpen(true); }}>
+              ⏳ Reserve
+            </button>
+          )}
+          {book.available === 0 && !isStudent && (
             <span style={{ fontSize: '0.78rem', color: '#a0aec0' }}>Unavailable</span>
           )}
           {isAdmin && (
@@ -359,7 +401,7 @@ const handleFormChange = (e) => {
         <div className="page-actions">
           <button className="btn btn-secondary" onClick={() => {
             if (view === 'books' || view === 'requests') {
-              exportToCSV(['ID', 'Title', 'Author', 'ISBN', 'Available'], books.map(b => [b.id, b.title, b.author, b.isbn, b.available]), 'library_catalog_export');
+              exportToCSV(['ID', 'Title', 'Author', 'ISBN', 'Available'], filteredBooks.map(b => [b.id, b.title, b.author, b.isbn, b.available]), 'library_catalog_export');
             } else {
               exportToCSV(['ID', 'Book', 'Student', 'Issue Date', 'Due Date', 'Fine'], issues.map(i => [i.id, i.bookTitle, i.studentName, i.issueDate, i.dueDate, i.fineAmount]), 'library_issues_export');
             }
@@ -403,7 +445,7 @@ const handleFormChange = (e) => {
         </div>
       )}
 
-      {loading ? (
+{loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading…</span></div>
       ) : view === 'books' ? (
         <>
@@ -423,9 +465,25 @@ const handleFormChange = (e) => {
             </div>
           )}
           <DataTable columns={extendedBooksColumns} data={filteredBooks} emptyMessage="No books in library." />
+          {bookTotalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setBookPage(p => Math.max(0, p - 1))} disabled={bookPage === 0}>‹ Prev</button>
+              <span>Page {bookPage + 1} of {bookTotalPages}</span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setBookPage(p => Math.min(bookTotalPages - 1, p + 1))} disabled={bookPage >= bookTotalPages - 1}>Next ›</button>
+            </div>
+          )}
         </>
       ) : view === 'issues' ? (
-        <DataTable columns={extendedIssuesColumns} data={issues} emptyMessage="No issued books." />
+        <>
+          <DataTable columns={extendedIssuesColumns} data={issues} emptyMessage="No issued books." />
+          {issueTotalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setIssuePage(p => Math.max(0, p - 1))} disabled={issuePage === 0}>‹ Prev</button>
+              <span>Page {issuePage + 1} of {issueTotalPages}</span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setIssuePage(p => Math.min(issueTotalPages - 1, p + 1))} disabled={issuePage >= issueTotalPages - 1}>Next ›</button>
+            </div>
+          )}
+        </>
       ) : view === 'my' ? (
         <>
           {/* Overdue alert banner */}
@@ -450,6 +508,13 @@ const handleFormChange = (e) => {
             ) : null;
           })()}
           <DataTable columns={myIssuesColumns} data={myIssues} emptyMessage="You have no borrowed books." />
+          {myIssueTotalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setMyIssuePage(p => Math.max(0, p - 1))} disabled={myIssuePage === 0}>‹ Prev</button>
+              <span>Page {myIssuePage + 1} of {myIssueTotalPages}</span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setMyIssuePage(p => Math.min(myIssueTotalPages - 1, p + 1))} disabled={myIssuePage >= myIssueTotalPages - 1}>Next ›</button>
+            </div>
+          )}
         </>
       ) : view === 'requests' ? (
         /* Book Requests Management (admin view) */
@@ -532,7 +597,7 @@ const handleFormChange = (e) => {
         </div>
       </Modal>
 
-      <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => { setIssueModalOpen(false); setIssueForm({ enrollmentId: '', bookId: null }); setStudentSearch(''); }} onSubmit={handleIssue} submitLabel={saving ? 'Issuing…' : 'Issue'}>
+      <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => { setIssueModalOpen(false); setIssueForm({ enrollmentId: '', bookId: null }); setStudentSearch(''); setFilteredStudents([]); }} onSubmit={handleIssue} submitLabel={saving ? 'Issuing…' : 'Issue'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
           <label className="form-label">Search Student</label>
@@ -580,6 +645,16 @@ const handleFormChange = (e) => {
           <textarea className="form-control" rows="3" value={rejectForm.remarks} onChange={e => setRejectForm(p => ({ ...p, remarks: e.target.value }))} placeholder="Enter reason for rejecting this request…" />
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel="Confirm"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+        destructive
+      />
     </div>
   );
 };

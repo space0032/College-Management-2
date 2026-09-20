@@ -22,7 +22,9 @@ public class LibraryController extends BaseController implements HttpHandler {
 
         try {
             if (path.matches(".*/library/books/\\d+")) {
-                if ("PUT".equals(method))
+                if ("DELETE".equals(method))
+                    handleDeleteBook(t, path);
+                else if ("PUT".equals(method))
                     handleUpdate(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
@@ -63,11 +65,6 @@ public class LibraryController extends BaseController implements HttpHandler {
                     handleSendReminders(t);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/library/books/\\d+")) {
-                if ("DELETE".equals(method))
-                    handleDeleteBook(t, path);
-                else
-                    sendResponse(t, 405, errorJson("Method not allowed"));
             } else {
                 sendResponse(t, 404, errorJson("Not found"));
             }
@@ -76,10 +73,28 @@ public class LibraryController extends BaseController implements HttpHandler {
         }
     }
 
-    private void handleGetAll(HttpExchange t) throws IOException {
+private void handleGetAll(HttpExchange t) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
-        List<Book> books = libraryDAO.getAllBooks();
-        sendResponse(t, 200, JsonHelper.toJson(books));
+        String query = t.getRequestURI().getQuery();
+        int page = 0, size = 20;
+        if (query != null) {
+            java.util.Map<String, String> params = parseQuery(query);
+            if (params.containsKey("page")) page = Integer.parseInt(params.get("page"));
+            if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
+        }
+        List<Book> books = libraryDAO.getAllBooks(page, size);
+        int total = libraryDAO.getTotalBookCount();
+        sendResponse(t, 200, String.format("{\"content\":%s,\"totalElements\":%d,\"totalPages\":%d,\"number\":%d,\"size\":%d}",
+                JsonHelper.toJson(books), total, (int) Math.ceil((double) total / size), page, size));
+    }
+
+    private java.util.Map<String, String> parseQuery(String query) {
+        java.util.Map<String, String> params = new java.util.HashMap<>();
+        for (String pair : query.split("&")) {
+            String[] kv = pair.split("=", 2);
+            if (kv.length == 2) params.put(kv[0], kv[1]);
+        }
+        return params;
     }
 
     private void handleAdd(HttpExchange t) throws IOException {
@@ -114,17 +129,37 @@ public class LibraryController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Failed to update book"));
     }
 
-    private void handleGetAllIssues(HttpExchange t) throws IOException {
+private void handleGetAllIssues(HttpExchange t) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
+        String query = t.getRequestURI().getQuery();
+        int page = 0, size = 20;
+        if (query != null) {
+            java.util.Map<String, String> params = parseQuery(query);
+            if (params.containsKey("page")) page = Integer.parseInt(params.get("page"));
+            if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
+        }
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
-        sendResponse(t, 200, JsonHelper.toJson(issueDAO.getAllIssuedBooks()));
+        List<com.college.models.BookIssue> issues = issueDAO.getAllIssuedBooks(page, size);
+        int total = issueDAO.getTotalIssuedBookCount();
+        sendResponse(t, 200, String.format("{\"content\":%s,\"totalElements\":%d,\"totalPages\":%d,\"number\":%d,\"size\":%d}",
+                JsonHelper.toJson(issues), total, (int) Math.ceil((double) total / size), page, size));
     }
 
     private void handleGetIssuesByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
+        String query = t.getRequestURI().getQuery();
+        int page = 0, size = 20;
+        if (query != null) {
+            java.util.Map<String, String> params = parseQuery(query);
+            if (params.containsKey("page")) page = Integer.parseInt(params.get("page"));
+            if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
+        }
         int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
-        sendResponse(t, 200, JsonHelper.toJson(issueDAO.getIssuedBooksByStudent(studentId)));
+        List<com.college.models.BookIssue> issues = issueDAO.getIssuedBooksByStudent(studentId, page, size);
+        int total = issueDAO.getIssuedBookCountByStudent(studentId);
+        sendResponse(t, 200, String.format("{\"content\":%s,\"totalElements\":%d,\"totalPages\":%d,\"number\":%d,\"size\":%d}",
+                JsonHelper.toJson(issues), total, (int) Math.ceil((double) total / size), page, size));
     }
 
     private void handleIssueBook(HttpExchange t) throws IOException {

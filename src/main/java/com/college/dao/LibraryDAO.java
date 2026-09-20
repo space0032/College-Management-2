@@ -53,12 +53,19 @@ public class LibraryDAO {
     }
 
     public List<Book> getAllBooks() {
+        return getAllBooks(0, Integer.MAX_VALUE);
+    }
+
+    public List<Book> getAllBooks(int page, int size) {
         List<Book> books = new ArrayList<>();
-        String sql = "SELECT * FROM books ORDER BY title";
+        String sql = "SELECT * FROM books ORDER BY title LIMIT ? OFFSET ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, size);
+            pstmt.setInt(2, page * size);
+            ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
                 books.add(extractBookFromResultSet(rs));
@@ -67,6 +74,18 @@ public class LibraryDAO {
             Logger.error("Database operation failed", e);
         }
         return books;
+    }
+
+    public int getTotalBookCount() {
+        String sql = "SELECT COUNT(*) FROM books";
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return 0;
     }
 
     private Book extractBookFromResultSet(ResultSet rs) throws SQLException {

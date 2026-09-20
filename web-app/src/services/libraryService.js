@@ -1,11 +1,11 @@
 import API from './api';
 
-export const getAllBooks = () => API.get('/library/books');
+export const getAllBooks = (page = 0, size = 20) => API.get(`/library/books?page=${page}&size=${size}`);
 export const addBook = (bookData) => API.post('/library/books', bookData);
 export const updateBook = (id, book) => API.put(`/library/books/${id}`, book);
 export const deleteBook = (id) => API.delete(`/library/books/${id}`);
-export const getAllIssues = () => API.get('/library/issues');
-export const getIssuesByStudent = (studentId) => API.get(`/library/issues/student/${studentId}`);
+export const getAllIssues = (page = 0, size = 20) => API.get(`/library/issues?page=${page}&size=${size}`);
+export const getIssuesByStudent = (studentId, page = 0, size = 20) => API.get(`/library/issues/student/${studentId}?page=${page}&size=${size}`);
 export const issueBook = (data) => API.post('/library/issue', data);
 export const returnBook = (issueId, data) => API.post(`/library/return/${issueId}`, data);
 export const getFines = (studentId) => API.get(`/library/fines/${studentId}`);
