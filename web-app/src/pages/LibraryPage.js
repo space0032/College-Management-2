@@ -197,6 +197,7 @@ const handleFormChange = (e) => {
         toastSuccess('Book returned successfully');
         if (view === 'issues') fetchIssues();
         else fetchMyIssues();
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
       } catch (err) {
         toastError(err.response?.data?.error || 'Failed to return book.');
       }
