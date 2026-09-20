@@ -11,8 +11,16 @@ const formatReceiptDate = (value) => {
     return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
+const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const ReceiptModal = ({ fee, onClose }) => {
     const [pdfError, setPdfError] = useState('');
+    const [printError, setPrintError] = useState('');
     const collegeName = localStorage.getItem('collegeName') || 'College Management System';
     // Stable reference: prefer the real backend receipt number. For aggregate
     // StudentFee rows (no single receipt) show a fee reference instead of a
@@ -23,8 +31,8 @@ const ReceiptModal = ({ fee, onClose }) => {
         return 'REF-NEW';
     }, [fee.receiptNumber, fee.id]);
     const today = useMemo(
-        () => formatReceiptDate(fee.paidDate || fee.paymentDate || fee.payment_date),
-        [fee.paidDate, fee.paymentDate, fee.payment_date]
+        () => formatReceiptDate(fee.paidDate || fee.paymentDate || fee.payment_date || fee.date),
+        [fee.paidDate, fee.paymentDate, fee.payment_date, fee.date]
     );
 
     const downloadReceiptPDF = () => {
@@ -77,20 +85,59 @@ const ReceiptModal = ({ fee, onClose }) => {
         }
     };
 
+    const buildPrintDocument = () => {
+        const amount = Number(fee.amount ?? fee.totalAmount ?? 0).toLocaleString('en-IN');
+        const total = Number(fee.paidAmount ?? fee.amount ?? fee.totalAmount ?? 0).toLocaleString('en-IN');
+        const enrollment = fee.studentUsername || fee.studentEnrollmentId || fee.enrollmentNumber
+            || fee.enrollmentId || fee.studentId || fee.id || 'N/A';
+        const feeType = fee.feeType || fee.categoryName || 'Tuition Fee';
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fee Receipt ${escapeHtml(receiptId)}</title>` +
+            `<style>body{font-family:Georgia,serif;margin:0;padding:24px;color:#1a202c;}` +
+            `.receipt{max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;}` +
+            `.header{background:#1a365d;color:#fff;padding:24px;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}` +
+            `.header h1{font-size:1.2rem;margin:8px 0 4px;}.header p{font-size:.85rem;opacity:.85;margin:0;}` +
+            `.body{padding:20px 24px;}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:16px;font-size:.88rem;}` +
+            `.label{color:#718096;font-size:.75rem;}table{width:100%;border-collapse:collapse;font-size:.88rem;}` +
+            `th,td{padding:8px 10px;border:1px solid #e2e8f0;}thead tr{background:#f7fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact;}` +
+            `.right{text-align:right;}.center{text-align:center;}tfoot tr{background:#ebf8ff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}` +
+            `.total{font-weight:bold;color:#2b6cb0;font-size:1rem;}.ref{margin-top:16px;padding:10px;background:#f7fafc;border:1px dashed #cbd5e0;border-radius:6px;text-align:center;font-family:monospace;font-weight:bold;letter-spacing:1px;}` +
+            `.note{font-size:.75rem;color:#a0aec0;text-align:center;margin-top:12px;}` +
+            `@media print{body{padding:0;}.receipt{border:none;max-width:100%;}}</style></head><body>` +
+            `<div class="receipt"><div class="header"><div style="font-size:2rem;">&#127979;</div>` +
+            `<h1>${escapeHtml(collegeName)}</h1><p>Official Fee Payment Receipt</p></div>` +
+            `<div class="body"><div class="grid">` +
+            `<div><div class="label">Receipt No.</div><strong>${escapeHtml(receiptId)}</strong></div>` +
+            `<div><div class="label">Date</div><strong>${escapeHtml(today)}</strong></div>` +
+            `<div><div class="label">Student Name</div><strong>${escapeHtml(fee.studentName || 'N/A')}</strong></div>` +
+            `<div><div class="label">Enrollment No.</div><strong>${escapeHtml(enrollment)}</strong></div>` +
+            `</div><table><thead><tr><th>Fee Type</th><th class="right">Amount</th><th class="center">Status</th></tr></thead>` +
+            `<tbody><tr><td>${escapeHtml(feeType)}</td><td class="right"><strong>&#8377;${escapeHtml(amount)}</strong></td><td class="center">&#10003; PAID</td></tr></tbody>` +
+            `<tfoot><tr><td><strong>Total Paid</strong></td><td colspan="2" class="right total">&#8377;${escapeHtml(total)}</td></tr></tfoot></table>` +
+            `<div class="ref">${escapeHtml(receiptId)}</div>` +
+            `<p class="note">This is a computer-generated receipt and is valid without a signature.</p>` +
+            `</div></div>` +
+            // eslint-disable-next-line no-useless-escape
+            `<script>window.onload=function(){window.focus();window.print();};window.onafterprint=function(){window.close();};<\/script>` +
+            `</body></html>`;
+    };
+
     const handlePrint = () => {
-        document.body.classList.add('printing-receipt');
-        const cleanup = () => {
-            document.body.classList.remove('printing-receipt');
-            window.removeEventListener('afterprint', cleanup);
-        };
-        window.addEventListener('afterprint', cleanup);
-        window.print();
-        window.setTimeout(cleanup, 1000);
+        setPrintError('');
+        try {
+            const printWindow = window.open('', '_blank', 'width=700,height=800');
+            if (!printWindow) {
+                setPrintError('Popup blocked. Please allow popups for this site, then try Print again.');
+                return;
+            }
+            printWindow.document.write(buildPrintDocument());
+            printWindow.document.close();
+        } catch (e) {
+            setPrintError('Failed to open print preview. Please try again.');
+        }
     };
 
     return (
         <div className="modal-overlay" id="receipt-modal-overlay">
-            <style>{`@media print { body.printing-receipt > *:not(#receipt-modal-overlay) { display: none !important; } body.printing-receipt #receipt-modal-overlay { position: static; background: none; } body.printing-receipt #receipt-content { box-shadow: none; max-width: 100%; } body.printing-receipt #receipt-actions { display: none !important; } }`}</style>
             <div
                 className="modal-content"
                 style={{ maxWidth: '500px', fontFamily: 'Georgia, serif' }}
@@ -171,6 +218,7 @@ const ReceiptModal = ({ fee, onClose }) => {
 
                 {/* Actions */}
                 {pdfError && <div className="alert alert-error" style={{ margin: '0 24px 12px' }}>{pdfError}</div>}
+                {printError && <div className="alert alert-error" style={{ margin: '0 24px 12px' }}>{printError}</div>}
                 <div id="receipt-actions" style={{ display: 'flex', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
                     <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
                     <button className="btn btn-primary" style={{ flex: 2 }} onClick={downloadReceiptPDF}>📥 Download PDF</button>

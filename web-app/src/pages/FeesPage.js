@@ -112,6 +112,40 @@ const FeesPage = () => {
     setPayModal(true);
   };
 
+  const handleReceiptClick = async (fee, payment) => {
+    // A StudentFee row carries no payment date/receipt of its own. Resolve the
+    // real payment (latest first — backend orders history by payment_date DESC)
+    // so the receipt shows the actual paid date and receipt number.
+    if (payment?.receiptNumber || payment?.paymentDate) {
+      setReceiptFee({
+        ...fee,
+        amount: payment.amount ?? fee.amount ?? fee.totalAmount,
+        paidAmount: payment.amount ?? fee.paidAmount,
+        receiptNumber: payment.receiptNumber || fee.receiptNumber,
+        paidDate: payment.paymentDate || payment.payment_date || fee.paidDate
+      });
+      return;
+    }
+    try {
+      const res = await getPaymentHistory(fee.id);
+      const list = res.data || [];
+      const latest = list[0];
+      if (latest) {
+        setReceiptFee({
+          ...fee,
+          amount: latest.amount ?? fee.amount ?? fee.totalAmount,
+          paidAmount: latest.amount ?? fee.paidAmount,
+          receiptNumber: latest.receiptNumber || fee.receiptNumber,
+          paidDate: latest.paymentDate || latest.payment_date
+        });
+      } else {
+        setReceiptFee(fee);
+      }
+    } catch {
+      setReceiptFee(fee);
+    }
+  };
+
   const handleHistoryClick = async (fee) => {
     setSelectedFee(fee);
     setHistoryModal(true);
@@ -223,7 +257,7 @@ const FeesPage = () => {
             <button className="btn-icon" onClick={() => handlePayClick(fee)} title="Record payment" aria-label={`Record payment for ${fee.studentName || fee.id}`}>💳</button>
           )}
           {fee.status === 'PAID' && (
-            <button className="btn-icon" onClick={() => setReceiptFee(fee)} title="View receipt" aria-label={`View receipt for ${fee.studentName || fee.id}`}>🧾</button>
+            <button className="btn-icon" onClick={() => handleReceiptClick(fee)} title="View receipt" aria-label={`View receipt for ${fee.studentName || fee.id}`}>🧾</button>
           )}
           <button className="btn-icon" onClick={() => handleHistoryClick(fee)} title="View payment history" aria-label={`View payment history for ${fee.studentName || fee.id}`}>📜</button>
         </div>
@@ -310,7 +344,7 @@ const FeesPage = () => {
                 { key: 'paymentMode', label: 'Mode' },
                 {
                   key: 'actions', label: 'Receipt', render: (_, p) => (
-                    <button className="btn-icon" onClick={() => setReceiptFee({ ...selectedFee, amount: p.amount, id: p.id, receiptNumber: p.receiptNumber, paidDate: p.paymentDate })} title="Print Receipt">🧾</button>
+                    <button className="btn-icon" onClick={() => handleReceiptClick(selectedFee, p)} title="View Receipt" aria-label={`View receipt ${p.receiptNumber || ''}`}>🧾</button>
                   )
                 }
               ]}
