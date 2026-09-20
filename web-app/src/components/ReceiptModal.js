@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import Modal from './Modal';
 
 const formatReceiptDate = (value) => {
     if (!value) {
@@ -137,12 +138,14 @@ const ReceiptModal = ({ fee, onClose }) => {
     };
 
     return (
-        <div className="modal-overlay" id="receipt-modal-overlay">
-            <div
-                className="modal-content"
-                style={{ maxWidth: '500px', fontFamily: 'Georgia, serif' }}
-                id="receipt-content"
-            >
+        <Modal
+            isOpen
+            title="Fee Payment Receipt"
+            onClose={onClose}
+            hideFooter
+            size="medium"
+        >
+            <div style={{ fontFamily: 'Georgia, serif' }} id="receipt-content">
                 {/* Header */}
                 <div style={{
                     background: 'linear-gradient(135deg, #1a365d, #3182ce)',
@@ -225,7 +228,7 @@ const ReceiptModal = ({ fee, onClose }) => {
                     <button className="btn btn-secondary" style={{ flex: 1.5 }} onClick={handlePrint}>🖨 Print</button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 

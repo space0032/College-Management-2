@@ -113,6 +113,9 @@ const FeesPage = () => {
   };
 
   const handleReceiptClick = async (fee, payment) => {
+    // Replace the history dialog with the receipt instead of stacking both.
+    if (payment) setHistoryModal(false);
+
     // A StudentFee row carries no payment date/receipt of its own. Resolve the
     // real payment (latest first — backend orders history by payment_date DESC)
     // so the receipt shows the actual paid date and receipt number.
