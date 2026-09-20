@@ -522,14 +522,12 @@ const handleFormChange = (e) => {
           <input type="text" className="form-control" placeholder="Search by name or enrollment…" value={studentSearch} onChange={(e) => { setStudentSearch(e.target.value); setFormError(''); }} />
           {studentSearchLoading && <div style={{ fontSize: '0.75rem', color: '#718096' }}>Searching…</div>}
           {filteredStudents.length > 0 && (
-            <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px', marginTop: '4px' }}>
+            <select className="form-control" style={{ marginTop: '8px' }} value={issueForm.enrollmentId} onChange={(e) => { setIssueForm(p => ({ ...p, enrollmentId: e.target.value })); setStudentSearch(''); }}>
+              <option value="">-- Select Student --</option>
               {filteredStudents.map(s => (
-                <div key={s.id} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }} onClick={() => { setIssueForm(p => ({ ...p, enrollmentId: s.username })); setStudentSearch(''); }}>
-                  <div style={{ fontWeight: '500' }}>{s.name}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#718096', fontFamily: 'monospace' }}>{s.username}</div>
-                </div>
+                <option key={s.id} value={s.username}>{s.name} ({s.username})</option>
               ))}
-            </div>
+            </select>
           )}
         </div>
         <div style={{ fontSize: '0.82rem', color: '#718096', marginTop: '8px' }}>
