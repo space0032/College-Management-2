@@ -3,12 +3,17 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.EnhancedFeeDAO;
+import com.college.dao.FeeOperationsDAO;
+import com.college.dao.StudentDAO;
+import com.college.models.Student;
+import com.college.utils.PermissionService;
 import com.college.utils.JsonHelper;
 import java.io.IOException;
 
 public class FeeController extends BaseController implements HttpHandler {
 
     private final EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
+    private final FeeOperationsDAO operationsDAO = new FeeOperationsDAO();
 
     @Override
     public void handle(HttpExchange t) throws IOException {
@@ -22,10 +27,26 @@ public class FeeController extends BaseController implements HttpHandler {
             if (!requireAuth(t))
                 return;
             if ("GET".equals(method)) {
-                if (path.matches(".*/fees/student/\\d+")) {
+                if (path.endsWith("/summary")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_FEES_REPORT")) return;
+                    sendResponse(t, 200, JSON.toJson(operationsDAO.getSummary()));
+                } else if (path.endsWith("/search")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES")) return;
+                    sendResponse(t, 200, JSON.toJson(operationsDAO.searchFees(getQueryMap(t))));
+                } else if (path.endsWith("/requests")) {
+                    handleGetRequests(t);
+                } else if (path.endsWith("/reminders")) {
+                    handleGetReminders(t);
+                } else if (path.matches(".*/fees/ledger/student/\\d+")) {
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES")) return;
+                    int studentId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+                    if (!canViewStudent(t, studentId)) return;
+                    sendResponse(t, 200, JSON.toJson(operationsDAO.getTransactions(studentId, null)));
+                } else if (path.matches(".*/fees/student/\\d+")) {
                     if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES"))
                         return;
                     int studentId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+                    if (!canViewStudent(t, studentId)) return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getStudentFees(studentId)));
                 } else if (path.endsWith("/pending")) {
                     if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES"))
@@ -47,6 +68,9 @@ public class FeeController extends BaseController implements HttpHandler {
                     if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES"))
                         return;
                     int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+                    Integer owner = operationsDAO.getFeeStudentId(id);
+                    if (owner == null) { sendResponse(t, 404, errorJson("Fee entry not found")); return; }
+                    if (!canViewStudent(t, owner)) return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPaymentHistory(id)));
                 } else {
                     sendResponse(t, 404, errorJson("Endpoint not found"));
@@ -103,6 +127,18 @@ public class FeeController extends BaseController implements HttpHandler {
                     } else {
                         sendResponse(t, 400, errorJson("Failed to create fee entry"));
                     }
+                } else if (path.endsWith("/requests")) {
+                    handleCreateRequest(t);
+                } else if (path.matches(".*/fees/requests/\\d+/review")) {
+                    handleReviewRequest(t, path);
+                } else if (path.matches(".*/fees/\\d+/adjustments")) {
+                    handleAdjustment(t, path);
+                } else if (path.endsWith("/bulk/preview")) {
+                    handleBulk(t, true);
+                } else if (path.endsWith("/bulk")) {
+                    handleBulk(t, false);
+                } else if (path.endsWith("/reminders/generate")) {
+                    handleGenerateReminders(t);
                 } else if (path.endsWith("/pay")) {
                     if (!requireAnyPermission(t, "PAY_FEES", "MANAGE_FEES"))
                         return;
@@ -177,6 +213,97 @@ public class FeeController extends BaseController implements HttpHandler {
             } catch (IOException ignored) {
             }
         }
+    }
+
+    private boolean canViewStudent(HttpExchange t, int studentId) throws IOException {
+        TokenStore.TokenInfo info = getTokenInfo(t);
+        if (info == null) return false;
+        PermissionService permissions = PermissionService.getInstance();
+        if (permissions.hasAnyPermission(info.userId, "VIEW_FEES", "VIEW_ALL_FEES", "MANAGE_FEES")) return true;
+        Student own = new StudentDAO().getStudentByUserId(info.userId);
+        if (own != null && own.getId() == studentId) return true;
+        sendResponse(t, 403, errorJson("You can only view your own fee account"));
+        return false;
+    }
+
+    private void handleGetRequests(HttpExchange t) throws IOException {
+        TokenStore.TokenInfo info = getTokenInfo(t);
+        if (info == null) { sendResponse(t, 401, errorJson("Unauthorized")); return; }
+        PermissionService permissions = PermissionService.getInstance();
+        boolean staff = permissions.hasAnyPermission(info.userId, "REVIEW_FEE_REQUESTS", "MANAGE_FEES", "VIEW_ALL_FEES");
+        Integer studentId = null;
+        if (!staff) {
+            if (!permissions.hasAnyPermission(info.userId, "VIEW_OWN_FEES", "PAY_FEES")) { sendResponse(t, 403, errorJson("Forbidden")); return; }
+            Student own = new StudentDAO().getStudentByUserId(info.userId);
+            if (own == null) { sendResponse(t, 404, errorJson("Student profile not found")); return; }
+            studentId = own.getId();
+        }
+        sendResponse(t, 200, JSON.toJson(operationsDAO.getPaymentRequests(studentId, getQueryMap(t).get("status"))));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleCreateRequest(HttpExchange t) throws IOException {
+        if (!requireAnyPermission(t, "VIEW_OWN_FEES", "PAY_FEES")) return;
+        java.util.Map<String,Object> body = JSON.fromJson(readBody(t), java.util.Map.class);
+        Integer feeId = body == null ? null : toInt(body.get("studentFeeId"));
+        Double amount = body == null ? null : toDouble(body.get("amount"));
+        String mode = body == null || body.get("paymentMode") == null ? "UPI" : String.valueOf(body.get("paymentMode")).toUpperCase();
+        String reference = body == null || body.get("referenceNumber") == null ? "" : String.valueOf(body.get("referenceNumber")).trim();
+        if (feeId == null || amount == null || amount <= 0 || reference.isEmpty() || !mode.matches("UPI|CARD|ONLINE|CHEQUE|BANK_TRANSFER")) {
+            sendResponse(t, 400, errorJson("studentFeeId, positive amount, valid payment mode and referenceNumber are required")); return;
+        }
+        java.sql.Date date;
+        try { date = java.sql.Date.valueOf(String.valueOf(body.getOrDefault("paymentDate", java.time.LocalDate.now().toString()))); }
+        catch (Exception e) { sendResponse(t, 400, errorJson("paymentDate must be yyyy-MM-dd")); return; }
+        java.util.Map<String,Object> result = operationsDAO.createPaymentRequest(getTokenInfo(t).userId, feeId, amount, mode, reference, date,
+                body.get("note") == null ? null : String.valueOf(body.get("note")));
+        if (result.containsKey("error")) sendResponse(t, 400, JSON.toJson(result)); else sendResponse(t, 201, JSON.toJson(result));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleReviewRequest(HttpExchange t, String path) throws IOException {
+        if (!requireAnyPermission(t, "REVIEW_FEE_REQUESTS", "MANAGE_FEES")) return;
+        String[] parts = path.split("/"); int id = Integer.parseInt(parts[parts.length-2]);
+        java.util.Map<String,Object> body = JSON.fromJson(readBody(t), java.util.Map.class);
+        String status = body == null ? "" : String.valueOf(body.get("status"));
+        String note = body == null || body.get("note") == null ? null : String.valueOf(body.get("note"));
+        boolean ok = operationsDAO.reviewPaymentRequest(id, status, note, getTokenInfo(t).userId, feeDAO);
+        if (ok) sendResponse(t, 200, "{\"status\":\"Payment request reviewed\"}");
+        else sendResponse(t, 409, errorJson("Request is no longer pending or payment could not be posted"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleAdjustment(HttpExchange t, String path) throws IOException {
+        if (!requireAnyPermission(t, "ADJUST_FEES", "REFUND_FEES", "MANAGE_FEES")) return;
+        String[] parts=path.split("/"); int feeId=Integer.parseInt(parts[parts.length-2]);
+        java.util.Map<String,Object> body=JSON.fromJson(readBody(t),java.util.Map.class);
+        String type=body==null?"":String.valueOf(body.get("type")); Double amount=body==null?null:toDouble(body.get("amount"));
+        String reason=body==null||body.get("reason")==null?null:String.valueOf(body.get("reason")); Integer parent=body==null?null:toInt(body.get("parentTransactionId"));
+        java.util.Map<String,Object> result=operationsDAO.postAdjustment(feeId,type,amount==null?0:amount,reason,getTokenInfo(t).userId,parent);
+        if(result.containsKey("error"))sendResponse(t,400,JSON.toJson(result));else sendResponse(t,201,JSON.toJson(result));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleBulk(HttpExchange t, boolean preview) throws IOException {
+        if (!requireAnyPermission(t, "BULK_ASSIGN_FEES", "MANAGE_FEES")) return;
+        java.util.Map<String,Object> body=JSON.fromJson(readBody(t),java.util.Map.class);
+        java.util.Map<String,Object> result=operationsDAO.bulkAssign(body==null?new java.util.HashMap<>():body,getTokenInfo(t).userId,preview);
+        if(result.containsKey("error"))sendResponse(t,400,JSON.toJson(result));else sendResponse(t,preview?200:201,JSON.toJson(result));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleGenerateReminders(HttpExchange t) throws IOException {
+        if (!requireAnyPermission(t, "MANAGE_FEE_REMINDERS", "MANAGE_FEES")) return;
+        java.util.Map<String,Object> body=JSON.fromJson(readBody(t),java.util.Map.class);Integer days=body==null?null:toInt(body.get("daysAhead"));
+        int count=operationsDAO.createReminders(getTokenInfo(t).userId,days==null?7:days);
+        if(count<0)sendResponse(t,500,errorJson("Failed to generate reminders"));else sendResponse(t,201,JSON.toJson(java.util.Map.of("created",count)));
+    }
+
+    private void handleGetReminders(HttpExchange t) throws IOException {
+        TokenStore.TokenInfo info=getTokenInfo(t);if(info==null){sendResponse(t,401,errorJson("Unauthorized"));return;}
+        boolean all=PermissionService.getInstance().hasAnyPermission(info.userId,"MANAGE_FEE_REMINDERS","MANAGE_FEES");
+        if(!all&&!PermissionService.getInstance().hasPermission(info.userId,"VIEW_OWN_FEES")){sendResponse(t,403,errorJson("Forbidden"));return;}
+        sendResponse(t,200,JSON.toJson(operationsDAO.getReminders(info.userId,all)));
     }
 
     private static Integer toInt(Object v) {

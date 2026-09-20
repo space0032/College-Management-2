@@ -1,396 +1,127 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getPendingFees, getAllFees, recordPayment, getPaymentHistory, getFeeCategories, createFeeEntry } from '../services/feesService';
-import { getAllStudents } from '../services/studentService';
-import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import ReceiptModal from '../components/ReceiptModal';
+import SessionManager from '../utils/SessionManager';
+import { exportToCSV, exportToExcel } from '../utils/exportUtils';
+import { getAllStudents } from '../services/studentService';
+import {
+  assignBulkFees, createFeeEntry, generateFeeReminders, getFeeCategories,
+  getFeeReminders, getFeeSummary, getPaymentHistory, getPaymentRequests,
+  getFeeLedger, postFeeAdjustment, previewBulkFees, recordPayment, reviewPaymentRequest, searchFees
+} from '../services/feesService';
 
-const formatDueDate = (v) => {
-  if (!v) return '—';
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  const overdue = d < new Date(new Date().toDateString());
-  const text = d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
-  return overdue ? `${text} (overdue)` : text;
-};
-
-const balanceOf = (fee) => Number(fee?.totalAmount ?? fee?.amount ?? 0) - Number(fee?.paidAmount ?? 0);
-
-const COLUMNS = [
-  { key: 'id', label: 'ID' },
-  { key: 'studentUsername', label: 'Enrollment No.', render: (v) => (
-    <span style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#2d3748' }}>{v || 'N/A'}</span>
-  )},
-  { key: 'studentName', label: 'Student Name' },
-  { key: 'totalAmount', label: 'Amount', render: (v, f) => `₹${Number(v ?? f?.amount ?? 0).toLocaleString('en-IN')}` },
-  { key: 'dueDate', label: 'Due Date', render: (v) => formatDueDate(v) },
-  { key: 'categoryName', label: 'Fee Type', render: (v, f) => v || f?.feeType || f?.fee_type || '—' },
-  {
-    key: 'status', label: 'Status', render: (v) => {
-      const s = v || 'PENDING';
-      const cls = s === 'PAID' ? 'success' : s === 'PARTIAL' ? 'warning' : 'danger';
-      return <span className={`badge badge-${cls}`}>{s}</span>;
-    }
-  },
-];
+const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value) || 0);
+const today = () => new Date().toISOString().slice(0, 10);
+const balanceOf = (fee) => Math.max(0, fee?.balanceAmount == null ? Number(fee?.totalAmount ?? fee?.amount ?? 0) - Number(fee?.paidAmount ?? 0) : Number(fee.balanceAmount));
+const dateText = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const badge = (status) => <span className={`badge badge-${status === 'PAID' || status === 'APPROVED' ? 'success' : status === 'PARTIAL' || status === 'PENDING' || status === 'PROCESSING' ? 'warning' : 'danger'}`}>{status || 'PENDING'}</span>;
+const emptyFilters = { search: '', status: '', categoryId: '', academicYear: '', department: '', semester: '', hostelite: '', dueFrom: '', dueTo: '', overdue: false };
 
 const FeesPage = () => {
-  const [fees, setFees] = useState([]);
-  const [allFees, setAllFees] = useState(false);
-  const [payModal, setPayModal] = useState(false);
-  const [historyModal, setHistoryModal] = useState(false);
-  const [selectedFee, setSelectedFee] = useState(null);
-  const [history, setHistory] = useState([]);
+  const canManage = SessionManager.hasPermission('MANAGE_FEES');
+  const canPay = SessionManager.hasPermission('PAY_FEES') || canManage;
+  const canCreate = SessionManager.hasPermission('CREATE_FEES') || canManage;
+  const canAdjust = SessionManager.hasPermission('ADJUST_FEES') || SessionManager.hasPermission('REFUND_FEES') || canManage;
+  const canBulk = SessionManager.hasPermission('BULK_ASSIGN_FEES') || canManage;
+  const canReview = SessionManager.hasPermission('REVIEW_FEE_REQUESTS') || canManage;
+  const canRemind = SessionManager.hasPermission('MANAGE_FEE_REMINDERS') || canManage;
+  const [activeTab, setActiveTab] = useState('accounts');
+  const [fees, setFees] = useState([]), [summary, setSummary] = useState({});
+  const [filters, setFilters] = useState(emptyFilters), [appliedFilters, setAppliedFilters] = useState(emptyFilters);
+  const [page, setPage] = useState(1), [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1 });
+  const [loading, setLoading] = useState(true), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const [categories, setCategories] = useState([]), [students, setStudents] = useState([]);
+  const [requests, setRequests] = useState([]), [reminders, setReminders] = useState([]);
+  const [selectedFee, setSelectedFee] = useState(null), [history, setHistory] = useState([]);
+  const [historyModal, setHistoryModal] = useState(false), [receiptFee, setReceiptFee] = useState(null);
+  const [modal, setModal] = useState(''), [saving, setSaving] = useState(false), [formError, setFormError] = useState('');
   const [payForm, setPayForm] = useState({ amount: '', paymentMode: 'CASH', remarks: '' });
-  const [formError, setFormError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [receiptFee, setReceiptFee] = useState(null);
-
-  const [entryModal, setEntryModal] = useState(false);
   const [entryForm, setEntryForm] = useState({ enrollmentId: '', categoryId: '', amount: '', dueDate: '' });
-  const [categories, setCategories] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [entryError, setEntryError] = useState('');
-  const [bootstrapError, setBootstrapError] = useState('');
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState('');
+  const [adjustForm, setAdjustForm] = useState({ type: 'WAIVER', amount: '', reason: '' });
+  const [bulkForm, setBulkForm] = useState({ sourceType: 'COHORT', department: '', specialization: '', batch: '', semester: '', hostelite: '', categoryId: '', academicYear: String(new Date().getFullYear()), amount: '', dueDate: '', studentIds: [] });
+  const [bulkPreview, setBulkPreview] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      getFeeCategories().then(res => res.data || []),
-      getAllStudents().then(res => (res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))
-    ]).then(([cats, studs]) => {
-      if (cancelled) return;
-      setCategories(cats);
-      setStudents(studs);
-      setBootstrapError('');
-    }).catch((err) => {
-      if (cancelled) return;
-      const status = err?.response?.status;
-      setBootstrapError(status === 403
-        ? 'You lack permission to load fee categories/students. The entry form may be incomplete.'
-        : 'Failed to load fee categories/students. The entry form may be incomplete.');
-    });
-    return () => { cancelled = true; };
-  }, []);
-
-  const fetchFees = React.useCallback(async () => {
-    setLoading(true);
-    setError('');
-    const apiCall = allFees ? getAllFees : getPendingFees;
+  const loadSummary = useCallback(async () => { try { setSummary((await getFeeSummary()).data || {}); } catch { setSummary({}); } }, []);
+  const loadFees = useCallback(async () => {
+    setLoading(true); setError('');
     try {
-      const res = await apiCall();
-      setFees(res.data || []);
-    } catch (err) {
-      const status = err?.response?.status;
-      setFees([]);
-      if (status === 403) {
-        setError('Access denied loading fees (missing VIEW_FEES permission).');
-      } else if (!err?.response) {
-        setError('Cannot reach the server. Check your connection and retry.');
-      } else {
-        setError(err.response?.data?.error || 'Failed to load fees.');
+      const res = await searchFees({ ...appliedFilters, overdue: appliedFilters.overdue || undefined, page, size: 25 });
+      setFees(res.data?.data || []); setPageInfo({ total: Number(res.data?.total || 0), totalPages: Math.max(1, Number(res.data?.totalPages || 1)) });
+    } catch (err) { setFees([]); setError(err?.response?.data?.error || (!err?.response ? 'Cannot reach the server.' : 'Failed to load fee accounts.')); }
+    finally { setLoading(false); }
+  }, [appliedFilters, page]);
+  const loadRequests = useCallback(async () => { try { setRequests((await getPaymentRequests()).data || []); } catch (err) { setError(err?.response?.data?.error || 'Failed to load payment requests.'); } }, []);
+  const loadReminders = useCallback(async () => { try { setReminders((await getFeeReminders()).data || []); } catch (err) { setError(err?.response?.data?.error || 'Failed to load reminders.'); } }, []);
+  useEffect(() => { loadFees(); loadSummary(); }, [loadFees, loadSummary]);
+  useEffect(() => { Promise.all([getFeeCategories(), getAllStudents()]).then(([c, s]) => { setCategories(c.data || []); setStudents((s.data || []).map(x => ({ ...x, enrollment: x.enrollmentId || x.username }))); }).catch(() => {}); }, []);
+  useEffect(() => { if (activeTab === 'requests') loadRequests(); if (activeTab === 'reminders') loadReminders(); }, [activeTab, loadRequests, loadReminders]);
+  const departments = useMemo(() => [...new Set(students.map(s => s.department).filter(Boolean))].sort(), [students]);
+  const exportHeaders = ['Student', 'Enrollment No.', 'Fee Type', 'Academic Year', 'Billed', 'Paid', 'Balance', 'Due Date', 'Status'];
+  const exportAll = async (format) => {
+    setNotice('Preparing the complete filtered export…');
+    try {
+      const first = (await searchFees({ ...appliedFilters, overdue: appliedFilters.overdue || undefined, page: 1, size: 100 })).data;
+      let rows = first?.data || [];
+      for (let next = 2; next <= Number(first?.totalPages || 1); next += 1) {
+        rows = rows.concat((await searchFees({ ...appliedFilters, overdue: appliedFilters.overdue || undefined, page: next, size: 100 })).data?.data || []);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [allFees]);
-
-  useEffect(() => {
-    fetchFees();
-  }, [fetchFees]);
-
-  const handlePayClick = (fee) => {
-    setSelectedFee(fee);
-    const remaining = balanceOf(fee);
-    setPayForm({ amount: Number.isFinite(remaining) && remaining > 0 ? remaining.toFixed(2) : '', paymentMode: 'CASH', remarks: '' });
-    setFormError('');
-    setPayModal(true);
+      const data = rows.map(f => [f.studentName, f.studentUsername, f.categoryName, f.academicYear, f.totalAmount, f.paidAmount, balanceOf(f), f.dueDate || '', f.status]);
+      if (format === 'csv') exportToCSV(exportHeaders, data, `fees_${today()}`); else exportToExcel(exportHeaders, data, `fees_${today()}`);
+      setNotice(`${rows.length} filtered fee records exported.`);
+    } catch (err) { setError(err?.response?.data?.error || 'Could not export fee records.'); }
   };
-
-  const handleReceiptClick = async (fee, payment) => {
-    // Replace the history dialog with the receipt instead of stacking both.
-    if (payment) setHistoryModal(false);
-
-    // A StudentFee row carries no payment date/receipt of its own. Resolve the
-    // real payment (latest first — backend orders history by payment_date DESC)
-    // so the receipt shows the actual paid date and receipt number.
-    if (payment?.receiptNumber || payment?.paymentDate) {
-      setReceiptFee({
-        ...fee,
-        amount: payment.amount ?? fee.amount ?? fee.totalAmount,
-        paidAmount: payment.amount ?? fee.paidAmount,
-        receiptNumber: payment.receiptNumber || fee.receiptNumber,
-        paidDate: payment.paymentDate || payment.payment_date || fee.paidDate
-      });
-      return;
-    }
-    try {
-      const res = await getPaymentHistory(fee.id);
-      const list = res.data || [];
-      const latest = list[0];
-      if (latest) {
-        setReceiptFee({
-          ...fee,
-          amount: latest.amount ?? fee.amount ?? fee.totalAmount,
-          paidAmount: latest.amount ?? fee.paidAmount,
-          receiptNumber: latest.receiptNumber || fee.receiptNumber,
-          paidDate: latest.paymentDate || latest.payment_date
-        });
-      } else {
-        setReceiptFee(fee);
-      }
-    } catch {
-      setReceiptFee(fee);
-    }
+  const closeModal = () => { if (!saving) { setModal(''); setSelectedFee(null); setFormError(''); } };
+  const refreshAll = async (message) => { await Promise.all([loadFees(), loadSummary()]); if (message) setNotice(message); };
+  const openPayment = (fee) => { setSelectedFee(fee); setPayForm({ amount: balanceOf(fee).toFixed(2), paymentMode: 'CASH', remarks: '' }); setModal('pay'); };
+  const submitPayment = async () => {
+    const amount = Number(payForm.amount); if (!(amount > 0) || amount > balanceOf(selectedFee)) { setFormError(`Enter an amount up to ${money(balanceOf(selectedFee))}.`); return; }
+    setSaving(true); try { const res = await recordPayment({ studentFeeId: selectedFee.id, amount, paymentMode: payForm.paymentMode, remarks: payForm.remarks }); setReceiptFee({ ...selectedFee, amount: res.data?.recordedAmount ?? amount, paidAmount: res.data?.recordedAmount ?? amount, receiptNumber: res.data?.receiptNumber, paidDate: today() }); setModal(''); setSelectedFee(null); await refreshAll('Payment recorded successfully.'); }
+    catch (err) { setFormError(err?.response?.data?.error || 'Failed to record payment.'); } finally { setSaving(false); }
   };
-
-  const handleHistoryClick = async (fee) => {
-    setSelectedFee(fee);
-    setHistoryModal(true);
-    setHistory([]);
-    setHistoryError('');
-    setHistoryLoading(true);
-    try {
-      const res = await getPaymentHistory(fee.id);
-      setHistory(res.data || []);
-    } catch (err) {
-      setHistory([]);
-      setHistoryError(err?.response?.data?.error || 'Failed to load payment history.');
-    } finally {
-      setHistoryLoading(false);
-    }
+  const submitEntry = async () => {
+    if (!entryForm.enrollmentId || !entryForm.categoryId || !(Number(entryForm.amount) > 0)) { setFormError('Student, category, and a positive amount are required.'); return; }
+    setSaving(true); try { await createFeeEntry({ ...entryForm, categoryId: Number(entryForm.categoryId), amount: Number(entryForm.amount), dueDate: entryForm.dueDate || null }); setModal(''); await refreshAll('Fee charge created.'); }
+    catch (err) { setFormError(err?.response?.data?.error || 'Failed to create fee charge.'); } finally { setSaving(false); }
   };
-
-  const handlePaymentSubmit = async () => {
-    if (saving) return;
-    const amount = Number(payForm.amount);
-    if (!payForm.amount || Number.isNaN(amount) || amount <= 0) {
-      setFormError('Please enter a valid amount.');
-      return;
-    }
-    const remaining = selectedFee ? balanceOf(selectedFee) : NaN;
-    if (Number.isFinite(remaining) && amount > remaining) {
-      setFormError(`Amount exceeds the remaining balance of ₹${remaining.toLocaleString('en-IN')}.`);
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await recordPayment({
-        studentFeeId: selectedFee.id,
-        amount,
-        paymentMode: payForm.paymentMode,
-        remarks: payForm.remarks
-      });
-      const capped = res?.data?.capped;
-      setPayModal(false);
-      setSelectedFee(null);
-      await fetchFees();
-      if (capped) {
-        setError(`Payment was capped to the remaining balance (recorded ₹${Number(res.data.recordedAmount ?? amount).toLocaleString('en-IN')}).`);
-      }
-    } catch (err) {
-      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to record payment.');
-    } finally {
-      setSaving(false);
-    }
+  const submitAdjustment = async () => {
+    if (!(Number(adjustForm.amount) > 0) || !adjustForm.reason.trim()) { setFormError('A positive amount and audit reason are required.'); return; }
+    setSaving(true); try { await postFeeAdjustment(selectedFee.id, { ...adjustForm, amount: Number(adjustForm.amount) }); setModal(''); setSelectedFee(null); await refreshAll(`${adjustForm.type.replaceAll('_', ' ')} posted.`); }
+    catch (err) { setFormError(err?.response?.data?.error || 'Failed to post adjustment.'); } finally { setSaving(false); }
   };
+  const runBulkPreview = async () => { setSaving(true); setFormError(''); try { setBulkPreview((await previewBulkFees({ ...bulkForm, categoryId: Number(bulkForm.categoryId), amount: Number(bulkForm.amount) })).data); } catch (err) { setFormError(err?.response?.data?.error || 'Could not preview assignment.'); } finally { setSaving(false); } };
+  const commitBulk = async () => { if (!bulkPreview) return; setSaving(true); try { const result = (await assignBulkFees({ ...bulkForm, categoryId: Number(bulkForm.categoryId), amount: Number(bulkForm.amount) })).data; setModal(''); setBulkPreview(null); await refreshAll(`Batch ${result.batchReference}: ${result.assigned} created, ${result.skipped} skipped.`); } catch (err) { setFormError(err?.response?.data?.error || 'Bulk assignment failed.'); } finally { setSaving(false); } };
+  const importCsv = (file) => { if (!file) return; const reader = new FileReader(); reader.onload = () => { const values = String(reader.result).split(/\r?\n/).slice(1).map(line => line.split(',')[0]?.trim()).filter(Boolean); const ids = students.filter(s => values.includes(s.enrollment)).map(s => s.id); setBulkForm(p => ({ ...p, sourceType: 'CSV', studentIds: ids })); setBulkPreview(null); setNotice(`${ids.length} of ${values.length} CSV enrollment numbers matched.`); }; reader.readAsText(file); };
+  const showHistory = async (fee) => { setSelectedFee(fee); setHistory([]); setHistoryModal(true); try { const [payments, ledger] = await Promise.all([getPaymentHistory(fee.id), getFeeLedger(fee.studentId)]); const paymentRows = (payments.data || []).map(p => ({ ...p, type: 'PAYMENT', transactionDate: p.paymentDate })); const adjustmentRows = (ledger.data || []).filter(x => x.studentFeeId === fee.id && x.type !== 'PAYMENT'); setHistory([...paymentRows, ...adjustmentRows].sort((a, b) => String(b.transactionDate || '').localeCompare(String(a.transactionDate || '')))); } catch { setHistory([]); } };
+  const review = async (request, status) => { const note = status === 'REJECTED' ? window.prompt('Reason for rejection:') : ''; if (status === 'REJECTED' && !note) return; try { await reviewPaymentRequest(request.id, { status, note }); await Promise.all([loadRequests(), refreshAll(status === 'APPROVED' ? 'Payment approved and posted.' : 'Request rejected.')]); } catch (err) { setError(err?.response?.data?.error || 'Could not review request.'); } };
+  const createReminders = async () => { try { const res = await generateFeeReminders(7); await loadReminders(); setNotice(`${res.data?.created || 0} new reminders generated.`); } catch (err) { setError(err?.response?.data?.error || 'Failed to generate reminders.'); } };
 
-  const openEntryModal = () => {
-    setEntryForm({ enrollmentId: '', categoryId: '', amount: '', dueDate: '' });
-    setEntryError('');
-    setEntryModal(true);
-  };
-
-  const handleAddFeeSubmit = async () => {
-    if (saving) return;
-    if (!entryForm.enrollmentId || !entryForm.categoryId || !entryForm.amount || Number(entryForm.amount) <= 0) {
-      setEntryError('Student, fee category and a positive amount are required.');
-      return;
-    }
-    if (entryForm.dueDate) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      if (entryForm.dueDate < todayStr) {
-        setEntryError('Due date cannot be in the past.');
-        return;
-      }
-    }
-    setSaving(true);
-    try {
-      await createFeeEntry({
-        enrollmentId: entryForm.enrollmentId,
-        categoryId: Number(entryForm.categoryId),
-        amount: Number(entryForm.amount),
-        dueDate: entryForm.dueDate || null
-      });
-      setEntryModal(false);
-      await fetchFees();
-    } catch (err) {
-      setEntryError(err.response?.data?.error || err.response?.data?.message || 'Failed to create fee entry.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const exportRows = () => fees.map(f => [
-    f.studentName,
-    f.studentUsername || '',
-    f.categoryName || f.feeType || '',
-    f.totalAmount ?? f.amount ?? '',
-    f.paidAmount ?? '',
-    balanceOf(f),
-    f.dueDate || '',
-    f.status || 'PENDING'
-  ]);
-  const exportHeaders = ['Student', 'Enrollment No.', 'Fee Type', 'Total Amount', 'Paid', 'Balance', 'Due Date', 'Status'];
-  const exportName = `fees_${allFees ? 'all' : 'pending'}_${new Date().toISOString().split('T')[0]}`;
-
-  const extendedColumns = [
-    ...COLUMNS,
-    { key: 'paidAmount', label: 'Paid', render: (v) => `₹${Number(v ?? 0).toLocaleString('en-IN')}` },
-    { key: 'balance', label: 'Balance', render: (_, f) => `₹${balanceOf(f).toLocaleString('en-IN')}` },
-    {
-      key: 'actions', label: 'Actions', render: (_, fee) => (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {fee.status !== 'PAID' && (
-            <button className="btn-icon" onClick={() => handlePayClick(fee)} title="Record payment" aria-label={`Record payment for ${fee.studentName || fee.id}`}>💳</button>
-          )}
-          {fee.status === 'PAID' && (
-            <button className="btn-icon" onClick={() => handleReceiptClick(fee)} title="View receipt" aria-label={`View receipt for ${fee.studentName || fee.id}`}>🧾</button>
-          )}
-          <button className="btn-icon" onClick={() => handleHistoryClick(fee)} title="View payment history" aria-label={`View payment history for ${fee.studentName || fee.id}`}>📜</button>
-        </div>
-      )
-    }
+  const columns = [
+    { key: 'studentUsername', label: 'Enrollment', render: v => <strong style={{ fontFamily: 'monospace' }}>{v || '—'}</strong> }, { key: 'studentName', label: 'Student' }, { key: 'categoryName', label: 'Fee Type' },
+    { key: 'totalAmount', label: 'Billed', render: money }, { key: 'paidAmount', label: 'Paid', render: money }, { key: 'balanceAmount', label: 'Balance', render: (_, f) => <strong>{money(balanceOf(f))}</strong> },
+    { key: 'dueDate', label: 'Due Date', render: (v, f) => <span style={{ color: f.overdue ? '#c53030' : undefined }}>{dateText(v)}{f.overdue ? ' · Overdue' : ''}</span> }, { key: 'status', label: 'Status', render: badge },
+    { key: 'actions', label: 'Actions', render: (_, fee) => <div className="table-actions">{canPay && fee.status !== 'PAID' && <button className="btn btn-sm btn-primary" onClick={() => openPayment(fee)}>Collect</button>}<button className="btn btn-sm btn-secondary" onClick={() => showHistory(fee)}>History</button>{canAdjust && <button className="btn btn-sm btn-secondary" onClick={() => { setSelectedFee(fee); setAdjustForm({ type: 'WAIVER', amount: '', reason: '' }); setModal('adjust'); }}>Adjust</button>}</div> }
   ];
 
-  return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">💰 Fee Management</h1>
-        <div className="page-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={() => exportToCSV(exportHeaders, exportRows(), exportName)}>
-            ⬇ Export CSV
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => exportToExcel(exportHeaders, exportRows(), exportName)}>
-            ⬇ Export Excel
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={openEntryModal}>
-            ＋ Add Fee Entry
-          </button>
-          <button
-            className={allFees ? "btn btn-secondary" : "btn btn-primary"}
-            onClick={() => setAllFees(false)}>
-            Pending Fees
-          </button>
-          <button
-            className={allFees ? "btn btn-primary" : "btn btn-secondary"}
-            onClick={() => setAllFees(true)}>
-            All Fees
-          </button>
-        </div>
-      </div>
+  return <div className="page-container">
+    <div className="page-header"><div><h1 className="page-title">💰 Fee Management</h1><p className="text-muted">Charges, collections, requests, and audited corrections</p></div><div className="page-actions"><button className="btn btn-secondary" onClick={() => exportAll('csv')}>CSV</button><button className="btn btn-secondary" onClick={() => exportAll('excel')}>Excel</button>{canBulk && <button className="btn btn-secondary" onClick={() => { setBulkPreview(null); setModal('bulk'); }}>Bulk assign</button>}{canCreate && <button className="btn btn-primary" onClick={() => { setEntryForm({ enrollmentId: '', categoryId: '', amount: '', dueDate: '' }); setModal('entry'); }}>＋ Add charge</button>}</div></div>
+    {notice && <div className="alert alert-success" style={{ marginBottom: 14 }}>{notice}<button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={() => setNotice('')}>Dismiss</button></div>}
+    {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>{error}<button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={() => { setError(''); loadFees(); }}>Retry</button></div>}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 20 }}>{[['Total billed', summary.totalBilled, '#ebf8ff'], ['Collected', summary.collected, '#f0fff4'], ['Outstanding', summary.outstanding, '#fffaf0'], ['Overdue', summary.overdue, '#fff5f5'], ['Waived', summary.waived, '#faf5ff'], ['Refunded', summary.refunded, '#f7fafc']].map(([label, value, bg]) => <div key={label} style={{ padding: 16, background: bg, border: '1px solid #e2e8f0', borderRadius: 10 }}><div style={{ fontSize: '.78rem', color: '#64748b' }}>{label}</div><div style={{ fontSize: '1.18rem', fontWeight: 700 }}>{money(value)}</div>{label === 'Collected' && <small>{Number(summary.collectionRate || 0).toFixed(1)}% collection rate</small>}</div>)}</div>
+    <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e2e8f0', marginBottom: 16 }}>{[['accounts', 'Fee accounts'], ['requests', 'Payment requests'], ['reminders', 'Reminders']].map(([id, label]) => <button key={id} className={`btn ${activeTab === id ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveTab(id); setError(''); }}>{label}</button>)}</div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error} <button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={fetchFees}>Retry</button></div>}
+    {activeTab === 'accounts' && <><form onSubmit={e => { e.preventDefault(); setPage(1); setAppliedFilters(filters); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 10, marginBottom: 14 }}><input className="form-control" placeholder="Student or enrollment…" value={filters.search} onChange={e => setFilters(p => ({ ...p, search: e.target.value }))} /><select className="form-control" value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))}><option value="">All statuses</option><option>PENDING</option><option>PARTIAL</option><option>PAID</option></select><select className="form-control" value={filters.categoryId} onChange={e => setFilters(p => ({ ...p, categoryId: e.target.value }))}><option value="">All categories</option>{categories.map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}</select><select className="form-control" value={filters.department} onChange={e => setFilters(p => ({ ...p, department: e.target.value }))}><option value="">All departments</option>{departments.map(d => <option key={d}>{d}</option>)}</select><input className="form-control" placeholder="Academic year" value={filters.academicYear} onChange={e => setFilters(p => ({ ...p, academicYear: e.target.value }))} /><input className="form-control" type="number" min="1" max="12" placeholder="Semester" value={filters.semester} onChange={e => setFilters(p => ({ ...p, semester: e.target.value }))} /><select className="form-control" value={filters.hostelite} onChange={e => setFilters(p => ({ ...p, hostelite: e.target.value }))}><option value="">Hostel: all</option><option value="true">Hostelite</option><option value="false">Day scholar</option></select><input className="form-control" type="date" title="Due from" value={filters.dueFrom} onChange={e => setFilters(p => ({ ...p, dueFrom: e.target.value }))} /><input className="form-control" type="date" title="Due to" value={filters.dueTo} onChange={e => setFilters(p => ({ ...p, dueTo: e.target.value }))} /><label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" checked={filters.overdue} onChange={e => setFilters(p => ({ ...p, overdue: e.target.checked }))} /> Overdue</label><button className="btn btn-primary" type="submit">Apply filters</button><button className="btn btn-secondary" type="button" onClick={() => { setFilters(emptyFilters); setAppliedFilters(emptyFilters); setPage(1); }}>Clear</button></form><DataTable columns={columns} data={fees} loading={loading} error={error} onRetry={loadFees} emptyMessage="No fee accounts match these filters." />{!loading && pageInfo.total > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}><span>{pageInfo.total} records · Page {page} of {pageInfo.totalPages}</span><div><button className="btn btn-sm btn-secondary" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button><button className="btn btn-sm btn-secondary" disabled={page >= pageInfo.totalPages} onClick={() => setPage(p => p + 1)} style={{ marginLeft: 8 }}>Next</button></div></div>}</>}
+    {activeTab === 'requests' && <DataTable data={requests} emptyMessage="No payment requests." columns={[{ key: 'studentUsername', label: 'Enrollment' }, { key: 'studentName', label: 'Student' }, { key: 'categoryName', label: 'Fee' }, { key: 'amount', label: 'Amount', render: money }, { key: 'referenceNumber', label: 'Reference' }, { key: 'paymentDate', label: 'Paid on', render: dateText }, { key: 'status', label: 'Status', render: badge }, { key: 'actions', label: 'Actions', render: (_, r) => canReview && r.status === 'PENDING' ? <div className="table-actions"><button className="btn btn-sm btn-primary" onClick={() => review(r, 'APPROVED')}>Approve</button><button className="btn btn-sm btn-danger" onClick={() => review(r, 'REJECTED')}>Reject</button></div> : '—' }]} />}
+    {activeTab === 'reminders' && <><div style={{ marginBottom: 12 }}>{canRemind && <button className="btn btn-primary" onClick={createReminders}>Generate due/overdue reminders</button>}</div><DataTable data={reminders} emptyMessage="No fee reminders." columns={[{ key: 'studentName', label: 'Student' }, { key: 'categoryName', label: 'Fee' }, { key: 'type', label: 'Type', render: badge }, { key: 'dueDate', label: 'Due', render: dateText }, { key: 'message', label: 'Message' }, { key: 'createdAt', label: 'Created', render: dateText }]} /></>}
 
-      {loading ? (
-        <div className="loading-container"><div className="spinner" /><span>Loading fees…</span></div>
-      ) : (
-        <DataTable columns={extendedColumns} data={fees} emptyMessage={error ? 'Could not load fees.' : 'No fees found.'} error="" onRetry={error ? fetchFees : undefined} />
-      )}
-
-      {payModal && selectedFee && (
-        <Modal isOpen={payModal} title={`Record Payment: ${selectedFee.studentName}`} onClose={() => { if (!saving) { setPayModal(false); setSelectedFee(null); } }} onSubmit={handlePaymentSubmit} submitLabel="Pay" submitting={saving} submitDisabled={saving}>
-          {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
-          <div style={{ marginBottom: 16 }}>
-            <p><strong>Fee Type:</strong> {selectedFee.categoryName}</p>
-            <p><strong>Remaining balance:</strong> ₹{balanceOf(selectedFee).toLocaleString('en-IN')}</p>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Payment Amount</label>
-            <input type="number" className="form-control" min="0.01" step="0.01" max={Number.isFinite(balanceOf(selectedFee)) ? balanceOf(selectedFee) : undefined} value={payForm.amount} onChange={(e) => setPayForm((p) => ({ ...p, amount: e.target.value }))} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Payment Mode</label>
-            <select className="form-control" value={payForm.paymentMode} onChange={(e) => setPayForm((p) => ({ ...p, paymentMode: e.target.value }))}>
-              <option value="CASH">Cash</option>
-              <option value="ONLINE">Online/Card</option>
-              <option value="CHEQUE">Cheque</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Remarks</label>
-            <input type="text" className="form-control" value={payForm.remarks} onChange={(e) => setPayForm((p) => ({ ...p, remarks: e.target.value }))} />
-          </div>
-        </Modal>
-      )}
-
-      {historyModal && selectedFee && (
-        <Modal isOpen={historyModal} title={`Payment History: ${selectedFee.studentName}`} onClose={() => setHistoryModal(false)} hideFooter>
-          {historyError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{historyError} <button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={() => handleHistoryClick(selectedFee)}>Retry</button></div>}
-          {historyLoading ? <div className="loading-container"><div className="spinner" /><span>Loading history…</span></div> : history.length === 0 && !historyError ? <p>No payment history found.</p> : history.length > 0 && (
-            <DataTable
-              columns={[
-                { key: 'receiptNumber', label: 'Receipt' },
-                { key: 'paymentDate', label: 'Date' },
-                { key: 'amount', label: 'Amount' },
-                { key: 'paymentMode', label: 'Mode' },
-                {
-                  key: 'actions', label: 'Receipt', render: (_, p) => (
-                    <button className="btn-icon" onClick={() => handleReceiptClick(selectedFee, p)} title="View Receipt" aria-label={`View receipt ${p.receiptNumber || ''}`}>🧾</button>
-                  )
-                }
-              ]}
-              data={history}
-            />
-          )}
-        </Modal>
-      )}
-
-      {entryModal && (
-        <Modal isOpen={entryModal} title="Add Fee Entry" onClose={() => { if (!saving) setEntryModal(false); }} onSubmit={handleAddFeeSubmit} submitLabel="Create Fee Entry" submitting={saving} submitDisabled={saving}>
-          {bootstrapError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{bootstrapError}</div>}
-          {entryError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{entryError}</div>}
-          <div className="form-group">
-            <label className="form-label">Student</label>
-            <select className="form-control" value={entryForm.enrollmentId} onChange={(e) => setEntryForm((p) => ({ ...p, enrollmentId: e.target.value }))}>
-              <option value="">Select student / enrollment…</option>
-              {students.map(s => <option key={s.id} value={s.username}>{s.name} ({s.username})</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Fee Category</label>
-            <select className="form-control" value={entryForm.categoryId} onChange={(e) => setEntryForm((p) => ({ ...p, categoryId: e.target.value }))}>
-              <option value="">Select fee category…</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Amount</label>
-            <input type="number" className="form-control" min="0.01" step="0.01" value={entryForm.amount} onChange={(e) => setEntryForm((p) => ({ ...p, amount: e.target.value }))} placeholder="0.00" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Due Date</label>
-            <input type="date" className="form-control" min={new Date().toISOString().split('T')[0]} value={entryForm.dueDate} onChange={(e) => setEntryForm((p) => ({ ...p, dueDate: e.target.value }))} />
-          </div>
-        </Modal>
-      )}
-
-      {receiptFee && (
-        <ReceiptModal fee={receiptFee} onClose={() => setReceiptFee(null)} />
-      )}
-    </div>
-  );
+    <Modal isOpen={modal === 'pay'} title={`Collect payment · ${selectedFee?.studentName || ''}`} onClose={closeModal} onSubmit={submitPayment} submitLabel="Record payment" submitting={saving}>{formError && <div className="alert alert-error">{formError}</div>}<p>Remaining: <strong>{money(balanceOf(selectedFee))}</strong></p><Field label="Amount"><input className="form-control" type="number" min="0.01" step="0.01" max={balanceOf(selectedFee)} value={payForm.amount} onChange={e => setPayForm(p => ({ ...p, amount: e.target.value }))} /></Field><Field label="Mode"><select className="form-control" value={payForm.paymentMode} onChange={e => setPayForm(p => ({ ...p, paymentMode: e.target.value }))}>{['CASH','UPI','CARD','CHEQUE','BANK_TRANSFER','ONLINE'].map(x => <option key={x}>{x}</option>)}</select></Field><Field label="Remarks"><input className="form-control" maxLength="500" value={payForm.remarks} onChange={e => setPayForm(p => ({ ...p, remarks: e.target.value }))} /></Field></Modal>
+    <Modal isOpen={modal === 'entry'} title="Add fee charge" onClose={closeModal} onSubmit={submitEntry} submitLabel="Create charge" submitting={saving}>{formError && <div className="alert alert-error">{formError}</div>}<Field label="Student"><select className="form-control" value={entryForm.enrollmentId} onChange={e => setEntryForm(p => ({ ...p, enrollmentId: e.target.value }))}><option value="">Select…</option>{students.map(s => <option key={s.id} value={s.enrollment}>{s.name} ({s.enrollment})</option>)}</select></Field><Field label="Category"><select className="form-control" value={entryForm.categoryId} onChange={e => setEntryForm(p => ({ ...p, categoryId: e.target.value }))}><option value="">Select…</option>{categories.map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}</select></Field><Field label="Amount"><input className="form-control" type="number" min="0.01" step="0.01" value={entryForm.amount} onChange={e => setEntryForm(p => ({ ...p, amount: e.target.value }))} /></Field><Field label="Due date"><input className="form-control" type="date" value={entryForm.dueDate} onChange={e => setEntryForm(p => ({ ...p, dueDate: e.target.value }))} /></Field></Modal>
+    <Modal isOpen={modal === 'adjust'} title={`Audited adjustment · ${selectedFee?.studentName || ''}`} onClose={closeModal} onSubmit={submitAdjustment} submitLabel="Post adjustment" submitting={saving}>{formError && <div className="alert alert-error">{formError}</div>}<p className="text-muted">Posted adjustments cannot be edited or deleted.</p><Field label="Type"><select className="form-control" value={adjustForm.type} onChange={e => setAdjustForm(p => ({ ...p, type: e.target.value }))}><option value="WAIVER">Waiver</option><option value="CREDIT_ADJUSTMENT">Credit adjustment</option><option value="DEBIT_ADJUSTMENT">Debit adjustment</option><option value="REFUND">Refund</option></select></Field><Field label="Amount"><input className="form-control" type="number" min="0.01" step="0.01" value={adjustForm.amount} onChange={e => setAdjustForm(p => ({ ...p, amount: e.target.value }))} /></Field><Field label="Audit reason"><textarea className="form-control" maxLength="500" value={adjustForm.reason} onChange={e => setAdjustForm(p => ({ ...p, reason: e.target.value }))} /></Field></Modal>
+    <Modal isOpen={modal === 'bulk'} title="Bulk fee assignment" onClose={closeModal} onSubmit={commitBulk} submitLabel="Confirm assignment" submitting={saving} submitDisabled={!bulkPreview || bulkPreview.eligible === 0}>{formError && <div className="alert alert-error">{formError}</div>}<Field label="Source"><select className="form-control" value={bulkForm.sourceType} onChange={e => { setBulkForm(p => ({ ...p, sourceType: e.target.value, studentIds: [] })); setBulkPreview(null); }}><option value="COHORT">Cohort filters</option><option value="CSV">CSV enrollment list</option></select></Field>{bulkForm.sourceType === 'CSV' ? <Field label="CSV file (first column: enrollmentId)"><input className="form-control" type="file" accept=".csv,text/csv" onChange={e => importCsv(e.target.files?.[0])} /><small>{bulkForm.studentIds.length} matched students</small></Field> : <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><Field label="Department"><select className="form-control" value={bulkForm.department} onChange={e => setBulkForm(p => ({ ...p, department: e.target.value }))}><option value="">All</option>{departments.map(d => <option key={d}>{d}</option>)}</select></Field><Field label="Track / specialization"><input className="form-control" value={bulkForm.specialization} onChange={e => setBulkForm(p => ({ ...p, specialization: e.target.value }))} /></Field><Field label="Batch"><input className="form-control" value={bulkForm.batch} onChange={e => setBulkForm(p => ({ ...p, batch: e.target.value }))} /></Field><Field label="Semester"><input className="form-control" type="number" min="1" max="12" value={bulkForm.semester} onChange={e => setBulkForm(p => ({ ...p, semester: e.target.value }))} /></Field><Field label="Hostel status"><select className="form-control" value={bulkForm.hostelite} onChange={e => setBulkForm(p => ({ ...p, hostelite: e.target.value }))}><option value="">All</option><option value="true">Hostelite</option><option value="false">Day scholar</option></select></Field></div>}<Field label="Category"><select className="form-control" value={bulkForm.categoryId} onChange={e => setBulkForm(p => ({ ...p, categoryId: e.target.value }))}><option value="">Select…</option>{categories.map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}</select></Field><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><Field label="Academic year"><input className="form-control" value={bulkForm.academicYear} onChange={e => setBulkForm(p => ({ ...p, academicYear: e.target.value }))} /></Field><Field label="Amount"><input className="form-control" type="number" min="0.01" step="0.01" value={bulkForm.amount} onChange={e => setBulkForm(p => ({ ...p, amount: e.target.value }))} /></Field></div><Field label="Due date"><input className="form-control" type="date" value={bulkForm.dueDate} onChange={e => setBulkForm(p => ({ ...p, dueDate: e.target.value }))} /></Field><button type="button" className="btn btn-secondary" onClick={runBulkPreview} disabled={saving}>Preview assignment</button>{bulkPreview && <div className="alert alert-info" style={{ marginTop: 12 }}>{bulkPreview.matched} matched · {bulkPreview.eligible} will be assigned · {bulkPreview.duplicates} duplicates skipped</div>}</Modal>
+    {historyModal && <Modal isOpen title={`Financial history · ${selectedFee?.studentName || ''}`} onClose={() => setHistoryModal(false)} hideFooter><DataTable data={history} emptyMessage="No financial activity recorded." columns={[{ key: 'transactionId', label: 'Reference', render: (v, r) => v || r.receiptNumber || '—' }, { key: 'transactionDate', label: 'Date', render: dateText }, { key: 'type', label: 'Type', render: badge }, { key: 'amount', label: 'Amount', render: money }, { key: 'paymentMode', label: 'Mode' }, { key: 'description', label: 'Details', render: (v, r) => v || r.remarks || '—' }, { key: 'actions', label: 'Receipt', render: (_, p) => p.type === 'PAYMENT' ? <button className="btn btn-sm btn-secondary" onClick={() => { setHistoryModal(false); setReceiptFee({ ...selectedFee, amount: p.amount, paidAmount: p.amount, receiptNumber: p.receiptNumber, paidDate: p.paymentDate }); }}>View</button> : '—' }]} /></Modal>}
+    {receiptFee && <ReceiptModal fee={receiptFee} onClose={() => setReceiptFee(null)} />}
+  </div>;
 };
 
+const Field = ({ label, children }) => <div className="form-group"><label className="form-label">{label}</label>{children}</div>;
 export default FeesPage;

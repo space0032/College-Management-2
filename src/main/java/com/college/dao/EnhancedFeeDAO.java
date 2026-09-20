@@ -503,11 +503,12 @@ public class EnhancedFeeDAO {
 
     private void updateStudentFeeStatus(Connection conn, int studentFeeId) throws SQLException {
         String sql = "UPDATE student_fees SET " +
-                "paid_amount = (SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?), " +
+                "paid_amount = GREATEST((SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) - " +
+                "(SELECT COALESCE(SUM(amount), 0) FROM fee_transactions WHERE student_fee_id = ? AND type = 'REFUND'), 0), " +
                 "status = CASE " +
-                "    WHEN (SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) >= total_amount THEN 'PAID' "
+                "    WHEN ((SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) - (SELECT COALESCE(SUM(amount), 0) FROM fee_transactions WHERE student_fee_id = ? AND type = 'REFUND')) >= total_amount THEN 'PAID' "
                 +
-                "    WHEN (SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) > 0 THEN 'PARTIAL' "
+                "    WHEN ((SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) - (SELECT COALESCE(SUM(amount), 0) FROM fee_transactions WHERE student_fee_id = ? AND type = 'REFUND')) > 0 THEN 'PARTIAL' "
                 +
                 "    ELSE 'PENDING' " +
                 "END " +
@@ -518,6 +519,9 @@ public class EnhancedFeeDAO {
             pstmt.setInt(2, studentFeeId);
             pstmt.setInt(3, studentFeeId);
             pstmt.setInt(4, studentFeeId);
+            pstmt.setInt(5, studentFeeId);
+            pstmt.setInt(6, studentFeeId);
+            pstmt.setInt(7, studentFeeId);
             pstmt.executeUpdate();
         }
     }

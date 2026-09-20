@@ -1,7 +1,7 @@
 import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import api from '../services/api';
-import { getStudentFees } from '../services/feesService';
+import { createPaymentRequest, getPaymentRequests, getStudentFees } from '../services/feesService';
 import { searchStudents } from '../services/studentService';
 import Modal from '../components/Modal';
 
@@ -18,6 +18,10 @@ const StudentProfilePage = () => {
     const [fees, setFees] = useState([]);
     const [feesLoading, setFeesLoading] = useState(false);
     const [feesError, setFeesError] = useState('');
+    const [paymentRequests, setPaymentRequests] = useState([]);
+    const [requestFee, setRequestFee] = useState(null);
+    const [requestForm, setRequestForm] = useState({ amount: '', paymentMode: 'UPI', referenceNumber: '', paymentDate: new Date().toISOString().slice(0, 10), note: '' });
+    const [requestError, setRequestError] = useState('');
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({});
@@ -41,6 +45,7 @@ const StudentProfilePage = () => {
             const response = await getStudentFees(studentId);
             const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
             setFees(data);
+            try { setPaymentRequests((await getPaymentRequests()).data || []); } catch { setPaymentRequests([]); }
         } catch (err) {
             setFees([]);
             setFeesError(err.response?.data?.error || 'Could not load fee information.');
@@ -180,6 +185,32 @@ const StudentProfilePage = () => {
     const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', {
         style: 'currency', currency: 'INR', maximumFractionDigits: 2
     }).format(Number(amount) || 0);
+
+    const openPaymentRequest = (fee) => {
+        const balance = Math.max(0, Number(fee.totalAmount || 0) - Number(fee.paidAmount || 0));
+        setRequestFee(fee);
+        setRequestError('');
+        setRequestForm({ amount: balance.toFixed(2), paymentMode: 'UPI', referenceNumber: '', paymentDate: new Date().toISOString().slice(0, 10), note: '' });
+    };
+
+    const submitPaymentRequest = async () => {
+        const amount = Number(requestForm.amount);
+        const balance = Math.max(0, Number(requestFee?.totalAmount || 0) - Number(requestFee?.paidAmount || 0));
+        if (!(amount > 0) || amount > balance || !requestForm.referenceNumber.trim()) {
+            setRequestError(`Enter an amount up to ${formatCurrency(balance)} and a payment reference.`);
+            return;
+        }
+        setSaving(true);
+        try {
+            await createPaymentRequest({ ...requestForm, studentFeeId: requestFee.id, amount });
+            setRequestFee(null);
+            await fetchStudentFees(student?.id);
+        } catch (err) {
+            setRequestError(err?.response?.data?.error || 'Could not submit the payment request.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const initials = (student?.name || user.name || user.username || 'S')
         .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -473,12 +504,12 @@ return (
                     </div>
                     <div className="data-table-container">
                         <table className="data-table">
-                            <thead><tr><th>Fee Type</th><th>Amount</th><th>Due Date</th><th>Paid Date</th><th>Status</th></tr></thead>
+                            <thead><tr><th>Fee Type</th><th>Amount</th><th>Due Date</th><th>Paid Date</th><th>Status</th><th>Payment</th></tr></thead>
                             <tbody>
                                 {feesLoading && fees.length === 0 ? (
-                                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#718096' }}>Loading fee information...</td></tr>
+                                    <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#718096' }}>Loading fee information...</td></tr>
                                 ) : fees.length === 0 ? (
-                                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>{feesError ? 'Fee information is unavailable.' : 'No fee records have been assigned.'}</td></tr>
+                                    <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>{feesError ? 'Fee information is unavailable.' : 'No fee records have been assigned.'}</td></tr>
                                 ) : (
                                     fees.map((f, i) => (
                                         <tr key={f.id || i}>
@@ -491,6 +522,12 @@ return (
                                             <td>{f.dueDate || f.due_date || '—'}</td>
                                             <td>{f.lastPaymentDate || f.paidDate || f.paid_date || '—'}</td>
                                             <td><span className={`status-badge ${f.status === 'PAID' ? 'status-active' : 'status-pending'}`}>{f.status || ((Number(f.paidAmount) || 0) > 0 ? 'PARTIAL' : 'PENDING')}</span></td>
+                                            <td>{userRole === 'STUDENT' && f.status !== 'PAID' ? (() => {
+                                                const pendingRequest = paymentRequests.find(r => r.studentFeeId === f.id && (r.status === 'PENDING' || r.status === 'PROCESSING'));
+                                                return pendingRequest
+                                                    ? <span className="badge badge-warning">Request {pendingRequest.status.toLowerCase()}</span>
+                                                    : <button className="btn btn-sm btn-primary" onClick={() => openPaymentRequest(f)}>Submit payment</button>;
+                                            })() : '—'}</td>
                                         </tr>
                                     ))
                                 )}
@@ -538,6 +575,18 @@ return (
                         ))}
                     </dl>
                 </div>
+            )}
+
+            {requestFee && (
+                <Modal isOpen title={`Submit payment · ${requestFee.categoryName || 'Fee'}`} onClose={() => { if (!saving) setRequestFee(null); }} onSubmit={submitPaymentRequest} submitLabel="Submit for verification" submitting={saving}>
+                    {requestError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{requestError}</div>}
+                    <p className="text-muted">Enter the reference from your UPI, bank, card, or cheque payment. Finance staff will verify it before your balance changes.</p>
+                    <div className="form-group"><label className="form-label">Amount</label><input className="form-control" type="number" min="0.01" step="0.01" value={requestForm.amount} onChange={e => setRequestForm(p => ({ ...p, amount: e.target.value }))} /></div>
+                    <div className="form-group"><label className="form-label">Payment mode</label><select className="form-control" value={requestForm.paymentMode} onChange={e => setRequestForm(p => ({ ...p, paymentMode: e.target.value }))}><option>UPI</option><option>CARD</option><option>ONLINE</option><option>BANK_TRANSFER</option><option>CHEQUE</option></select></div>
+                    <div className="form-group"><label className="form-label">Transaction / reference number</label><input className="form-control" maxLength="120" value={requestForm.referenceNumber} onChange={e => setRequestForm(p => ({ ...p, referenceNumber: e.target.value }))} /></div>
+                    <div className="form-group"><label className="form-label">Payment date</label><input className="form-control" type="date" max={new Date().toISOString().slice(0, 10)} value={requestForm.paymentDate} onChange={e => setRequestForm(p => ({ ...p, paymentDate: e.target.value }))} /></div>
+                    <div className="form-group"><label className="form-label">Note (optional)</label><textarea className="form-control" maxLength="500" value={requestForm.note} onChange={e => setRequestForm(p => ({ ...p, note: e.target.value }))} /></div>
+                </Modal>
             )}
             {/* Edit Modal */}
             {showEditModal && (

@@ -48,7 +48,8 @@ public class ChangeTracker {
         "community_posts", "community_comments", "community_likes",
         "event_budgets", "event_polls", "event_poll_votes",
         "wardens", "course_registrations", "enrollment_ids",
-        "fee_payments", "scholarships", "scholarship_applications",
+        "fee_payments", "fee_transactions", "fee_payment_requests",
+        "fee_assignment_batches", "fee_reminders", "scholarships", "scholarship_applications",
         "calendar_events"
     };
 

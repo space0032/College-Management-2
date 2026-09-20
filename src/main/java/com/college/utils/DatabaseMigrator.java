@@ -56,7 +56,8 @@ public class DatabaseMigrator {
             "V53__Complete_Faculty_And_Content_Schema.sql",
             "V62__Add_Track_Specialization.sql",
             "V63__Add_Track_To_Program_Fees.sql",
-            "V64__Add_Specializations_Master.sql"
+            "V64__Add_Specializations_Master.sql",
+            "V69__Complete_Fee_Management.sql"
         };
 
         try (Connection conn = DatabaseConnection.getConnection();
