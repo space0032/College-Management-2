@@ -23,6 +23,7 @@ const ReportsPage = () => {
     const [subjectOptions, setSubjectOptions] = useState([]);
     const [feesSummary, setFeesSummary] = useState({ totalRevenue: 0, collected: 0, pending: 0, feeByType: [] });
     const [feesLoading, setFeesLoading] = useState(false);
+    const [feesError, setFeesError] = useState('');
     const [gradeData, setGradeData] = useState([]);
     const [gradesLoading, setGradesLoading] = useState(false);
 
@@ -50,19 +51,24 @@ const ReportsPage = () => {
 
     const loadFeesSummary = async () => {
         setFeesLoading(true);
+        setFeesError('');
         try {
             const res = await getAllFees();
             const fees = res.data || [];
-            const totalRevenue = fees.reduce((s, f) => s + (f.totalAmount || 0), 0);
-            const collected = fees.filter(f => f.status === 'PAID').reduce((s, f) => s + (f.paidAmount || f.totalAmount || 0), 0);
-            const pending = totalRevenue - collected;
+            const totalRevenue = fees.reduce((s, f) => s + Number(f.totalAmount ?? f.amount ?? 0), 0);
+            // Include PARTIAL payments: sum actual paid amounts across all fees.
+            const collected = fees.reduce((s, f) => s + Number(f.paidAmount ?? 0), 0);
+            const pending = Math.max(totalRevenue - collected, 0);
             const byType = fees.reduce((acc, f) => {
                 const t = f.feeType || f.categoryName || 'Other';
-                acc[t] = (acc[t] || 0) + (f.totalAmount || 0);
+                acc[t] = (acc[t] || 0) + Number(f.totalAmount ?? f.amount ?? 0);
                 return acc;
             }, {});
             setFeesSummary({ totalRevenue, collected, pending, feeByType: Object.entries(byType).map(([name, value]) => ({ name, value })) });
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            setFeesError(err?.response?.data?.error || 'Failed to load fee summary.');
+            setFeesSummary({ totalRevenue: 0, collected: 0, pending: 0, feeByType: [] });
+        }
         finally { setFeesLoading(false); }
     };
 
@@ -186,9 +192,10 @@ const ReportsPage = () => {
             {/* FEES */}
             {activeTab === 'fees' && (
                 <div>
+                    {feesError && <div className="alert alert-error" style={{ marginBottom: 16 }}>{feesError} <button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={loadFeesSummary}>Retry</button></div>}
                     {feesLoading ? (
                         <div className="loading-container"><div className="spinner" /><span>Loading fee data...</span></div>
-                    ) : (
+                    ) : feesError && feesSummary.totalRevenue === 0 ? null : (
                         <>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, marginBottom: 20 }}>
                                 {[

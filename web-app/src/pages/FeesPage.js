@@ -6,6 +6,17 @@ import { getAllStudents } from '../services/studentService';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import ReceiptModal from '../components/ReceiptModal';
 
+const formatDueDate = (v) => {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  const overdue = d < new Date(new Date().toDateString());
+  const text = d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+  return overdue ? `${text} (overdue)` : text;
+};
+
+const balanceOf = (fee) => Number(fee?.totalAmount ?? fee?.amount ?? 0) - Number(fee?.paidAmount ?? 0);
+
 const COLUMNS = [
   { key: 'id', label: 'ID' },
   { key: 'studentUsername', label: 'Enrollment No.', render: (v) => (
@@ -13,12 +24,14 @@ const COLUMNS = [
   )},
   { key: 'studentName', label: 'Student Name' },
   { key: 'totalAmount', label: 'Amount', render: (v, f) => `₹${Number(v ?? f?.amount ?? 0).toLocaleString('en-IN')}` },
-  { key: 'dueDate', label: 'Due Date' },
+  { key: 'dueDate', label: 'Due Date', render: (v) => formatDueDate(v) },
   { key: 'categoryName', label: 'Fee Type', render: (v, f) => v || f?.feeType || f?.fee_type || '—' },
   {
-    key: 'status', label: 'Status', render: (v) => (
-      <span className={`badge badge-${v === 'PAID' ? 'success' : 'danger'}`}>{v || 'PENDING'}</span>
-    )
+    key: 'status', label: 'Status', render: (v) => {
+      const s = v || 'PENDING';
+      const cls = s === 'PAID' ? 'success' : s === 'PARTIAL' ? 'warning' : 'danger';
+      return <span className={`badge badge-${cls}`}>{s}</span>;
+    }
   },
 ];
 
@@ -41,20 +54,47 @@ const FeesPage = () => {
   const [categories, setCategories] = useState([]);
   const [students, setStudents] = useState([]);
   const [entryError, setEntryError] = useState('');
+  const [bootstrapError, setBootstrapError] = useState('');
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
 
   useEffect(() => {
-    getFeeCategories().then(res => setCategories(res.data || [])).catch(() => {});
-    getAllStudents().then(res => setStudents((res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))).catch(() => {});
+    let cancelled = false;
+    Promise.all([
+      getFeeCategories().then(res => res.data || []),
+      getAllStudents().then(res => (res.data || []).map(s => ({ id: s.id, name: s.name, username: s.username })))
+    ]).then(([cats, studs]) => {
+      if (cancelled) return;
+      setCategories(cats);
+      setStudents(studs);
+      setBootstrapError('');
+    }).catch((err) => {
+      if (cancelled) return;
+      const status = err?.response?.status;
+      setBootstrapError(status === 403
+        ? 'You lack permission to load fee categories/students. The entry form may be incomplete.'
+        : 'Failed to load fee categories/students. The entry form may be incomplete.');
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const fetchFees = React.useCallback(async () => {
     setLoading(true);
+    setError('');
     const apiCall = allFees ? getAllFees : getPendingFees;
     try {
       const res = await apiCall();
       setFees(res.data || []);
-    } catch {
-      setError('Failed to load fees.');
+    } catch (err) {
+      const status = err?.response?.status;
+      setFees([]);
+      if (status === 403) {
+        setError('Access denied loading fees (missing VIEW_FEES permission).');
+      } else if (!err?.response) {
+        setError('Cannot reach the server. Check your connection and retry.');
+      } else {
+        setError(err.response?.data?.error || 'Failed to load fees.');
+      }
     } finally {
       setLoading(false);
     }
@@ -66,7 +106,8 @@ const FeesPage = () => {
 
   const handlePayClick = (fee) => {
     setSelectedFee(fee);
-    setPayForm({ amount: (fee.totalAmount - fee.paidAmount).toString(), paymentMode: 'ONLINE', remarks: '' });
+    const remaining = balanceOf(fee);
+    setPayForm({ amount: Number.isFinite(remaining) && remaining > 0 ? remaining.toFixed(2) : '', paymentMode: 'CASH', remarks: '' });
     setFormError('');
     setPayModal(true);
   };
@@ -74,31 +115,49 @@ const FeesPage = () => {
   const handleHistoryClick = async (fee) => {
     setSelectedFee(fee);
     setHistoryModal(true);
+    setHistory([]);
+    setHistoryError('');
+    setHistoryLoading(true);
     try {
       const res = await getPaymentHistory(fee.id);
       setHistory(res.data || []);
-    } catch {
+    } catch (err) {
       setHistory([]);
+      setHistoryError(err?.response?.data?.error || 'Failed to load payment history.');
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
   const handlePaymentSubmit = async () => {
-    if (!payForm.amount || isNaN(payForm.amount) || Number(payForm.amount) <= 0) {
+    if (saving) return;
+    const amount = Number(payForm.amount);
+    if (!payForm.amount || Number.isNaN(amount) || amount <= 0) {
       setFormError('Please enter a valid amount.');
+      return;
+    }
+    const remaining = selectedFee ? balanceOf(selectedFee) : NaN;
+    if (Number.isFinite(remaining) && amount > remaining) {
+      setFormError(`Amount exceeds the remaining balance of ₹${remaining.toLocaleString('en-IN')}.`);
       return;
     }
     setSaving(true);
     try {
-      await recordPayment({
+      const res = await recordPayment({
         studentFeeId: selectedFee.id,
-        amount: Number(payForm.amount),
+        amount,
         paymentMode: payForm.paymentMode,
         remarks: payForm.remarks
       });
+      const capped = res?.data?.capped;
       setPayModal(false);
-      fetchFees();
+      setSelectedFee(null);
+      await fetchFees();
+      if (capped) {
+        setError(`Payment was capped to the remaining balance (recorded ₹${Number(res.data.recordedAmount ?? amount).toLocaleString('en-IN')}).`);
+      }
     } catch (err) {
-      setFormError(err.response?.data?.error || 'Failed to record payment.');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to record payment.');
     } finally {
       setSaving(false);
     }
@@ -111,9 +170,17 @@ const FeesPage = () => {
   };
 
   const handleAddFeeSubmit = async () => {
+    if (saving) return;
     if (!entryForm.enrollmentId || !entryForm.categoryId || !entryForm.amount || Number(entryForm.amount) <= 0) {
       setEntryError('Student, fee category and a positive amount are required.');
       return;
+    }
+    if (entryForm.dueDate) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (entryForm.dueDate < todayStr) {
+        setEntryError('Due date cannot be in the past.');
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -124,28 +191,41 @@ const FeesPage = () => {
         dueDate: entryForm.dueDate || null
       });
       setEntryModal(false);
-      fetchFees();
+      await fetchFees();
     } catch (err) {
-      setEntryError(err.response?.data?.error || 'Failed to create fee entry.');
+      setEntryError(err.response?.data?.error || err.response?.data?.message || 'Failed to create fee entry.');
     } finally {
       setSaving(false);
     }
   };
 
+  const exportRows = () => fees.map(f => [
+    f.studentName,
+    f.studentUsername || '',
+    f.categoryName || f.feeType || '',
+    f.totalAmount ?? f.amount ?? '',
+    f.paidAmount ?? '',
+    balanceOf(f),
+    f.dueDate || '',
+    f.status || 'PENDING'
+  ]);
+  const exportHeaders = ['Student', 'Enrollment No.', 'Fee Type', 'Total Amount', 'Paid', 'Balance', 'Due Date', 'Status'];
+  const exportName = `fees_${allFees ? 'all' : 'pending'}_${new Date().toISOString().split('T')[0]}`;
+
   const extendedColumns = [
     ...COLUMNS,
-    { key: 'totalAmount', label: 'Total Amount' },
-    { key: 'paidAmount', label: 'Paid' },
+    { key: 'paidAmount', label: 'Paid', render: (v) => `₹${Number(v ?? 0).toLocaleString('en-IN')}` },
+    { key: 'balance', label: 'Balance', render: (_, f) => `₹${balanceOf(f).toLocaleString('en-IN')}` },
     {
       key: 'actions', label: 'Actions', render: (_, fee) => (
         <div style={{ display: 'flex', gap: '8px' }}>
           {fee.status !== 'PAID' && (
-            <button className="btn-icon" onClick={() => handlePayClick(fee)} title="Pay Now">💳</button>
+            <button className="btn-icon" onClick={() => handlePayClick(fee)} title="Record payment" aria-label={`Record payment for ${fee.studentName || fee.id}`}>💳</button>
           )}
           {fee.status === 'PAID' && (
-            <button className="btn-icon" onClick={() => setReceiptFee(fee)} title="View Receipt">🧾</button>
+            <button className="btn-icon" onClick={() => setReceiptFee(fee)} title="View receipt" aria-label={`View receipt for ${fee.studentName || fee.id}`}>🧾</button>
           )}
-          <button className="btn-icon" onClick={() => handleHistoryClick(fee)} title="View History">📜</button>
+          <button className="btn-icon" onClick={() => handleHistoryClick(fee)} title="View payment history" aria-label={`View payment history for ${fee.studentName || fee.id}`}>📜</button>
         </div>
       )
     }
@@ -158,20 +238,12 @@ const FeesPage = () => {
         <div className="page-actions">
           <button
             className="btn btn-secondary"
-            onClick={() => exportToCSV(
-              ['Student', 'Fee Type', 'Amount', 'Due Date', 'Status', 'Total', 'Paid'],
-              fees.map(f => [f.studentName, f.categoryName || f.feeType, f.totalAmount ?? f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
-              'fees_export'
-            )}>
+            onClick={() => exportToCSV(exportHeaders, exportRows(), exportName)}>
             ⬇ Export CSV
           </button>
           <button
             className="btn btn-secondary"
-            onClick={() => exportToExcel(
-              ['Student', 'Fee Type', 'Amount', 'Due Date', 'Status', 'Total', 'Paid'],
-              fees.map(f => [f.studentName, f.categoryName || f.feeType, f.totalAmount ?? f.amount, f.dueDate, f.status, f.totalAmount, f.paidAmount]),
-              'fees_export'
-            )}>
+            onClick={() => exportToExcel(exportHeaders, exportRows(), exportName)}>
             ⬇ Export Excel
           </button>
           <button
@@ -192,24 +264,24 @@ const FeesPage = () => {
         </div>
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error} <button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={fetchFees}>Retry</button></div>}
 
       {loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading fees…</span></div>
       ) : (
-        <DataTable columns={extendedColumns} data={fees} emptyMessage="No fees found." />
+        <DataTable columns={extendedColumns} data={fees} emptyMessage={error ? 'Could not load fees.' : 'No fees found.'} error="" onRetry={error ? fetchFees : undefined} />
       )}
 
       {payModal && selectedFee && (
-        <Modal isOpen={payModal} title={`Record Payment: ${selectedFee.studentName}`} onClose={() => setPayModal(false)} onSubmit={handlePaymentSubmit} submitLabel={saving ? 'Processing...' : 'Pay'}>
+        <Modal isOpen={payModal} title={`Record Payment: ${selectedFee.studentName}`} onClose={() => { if (!saving) { setPayModal(false); setSelectedFee(null); } }} onSubmit={handlePaymentSubmit} submitLabel="Pay" submitting={saving} submitDisabled={saving}>
           {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
           <div style={{ marginBottom: 16 }}>
             <p><strong>Fee Type:</strong> {selectedFee.categoryName}</p>
-            <p><strong>Total Due:</strong> ${(selectedFee.totalAmount - selectedFee.paidAmount).toFixed(2)}</p>
+            <p><strong>Remaining balance:</strong> ₹{balanceOf(selectedFee).toLocaleString('en-IN')}</p>
           </div>
           <div className="form-group">
             <label className="form-label">Payment Amount</label>
-            <input type="number" className="form-control" value={payForm.amount} onChange={(e) => setPayForm((p) => ({ ...p, amount: e.target.value }))} />
+            <input type="number" className="form-control" min="0.01" step="0.01" max={Number.isFinite(balanceOf(selectedFee)) ? balanceOf(selectedFee) : undefined} value={payForm.amount} onChange={(e) => setPayForm((p) => ({ ...p, amount: e.target.value }))} />
           </div>
           <div className="form-group">
             <label className="form-label">Payment Mode</label>
@@ -227,8 +299,9 @@ const FeesPage = () => {
       )}
 
       {historyModal && selectedFee && (
-        <Modal isOpen={historyModal} title={`Payment History: ${selectedFee.studentName}`} onClose={() => setHistoryModal(false)}>
-          {history.length === 0 ? <p>No payment history found.</p> : (
+        <Modal isOpen={historyModal} title={`Payment History: ${selectedFee.studentName}`} onClose={() => setHistoryModal(false)} hideFooter>
+          {historyError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{historyError} <button className="btn btn-sm btn-secondary" style={{ marginLeft: 12 }} onClick={() => handleHistoryClick(selectedFee)}>Retry</button></div>}
+          {historyLoading ? <div className="loading-container"><div className="spinner" /><span>Loading history…</span></div> : history.length === 0 && !historyError ? <p>No payment history found.</p> : history.length > 0 && (
             <DataTable
               columns={[
                 { key: 'receiptNumber', label: 'Receipt' },
@@ -248,7 +321,8 @@ const FeesPage = () => {
       )}
 
       {entryModal && (
-        <Modal isOpen={entryModal} title="Add Fee Entry" onClose={() => setEntryModal(false)} onSubmit={handleAddFeeSubmit} submitLabel={saving ? 'Saving...' : 'Create Fee Entry'}>
+        <Modal isOpen={entryModal} title="Add Fee Entry" onClose={() => { if (!saving) setEntryModal(false); }} onSubmit={handleAddFeeSubmit} submitLabel="Create Fee Entry" submitting={saving} submitDisabled={saving}>
+          {bootstrapError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{bootstrapError}</div>}
           {entryError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{entryError}</div>}
           <div className="form-group">
             <label className="form-label">Student</label>
@@ -266,11 +340,11 @@ const FeesPage = () => {
           </div>
           <div className="form-group">
             <label className="form-label">Amount</label>
-            <input type="number" className="form-control" value={entryForm.amount} onChange={(e) => setEntryForm((p) => ({ ...p, amount: e.target.value }))} placeholder="0.00" />
+            <input type="number" className="form-control" min="0.01" step="0.01" value={entryForm.amount} onChange={(e) => setEntryForm((p) => ({ ...p, amount: e.target.value }))} placeholder="0.00" />
           </div>
           <div className="form-group">
             <label className="form-label">Due Date</label>
-            <input type="date" className="form-control" value={entryForm.dueDate} onChange={(e) => setEntryForm((p) => ({ ...p, dueDate: e.target.value }))} />
+            <input type="date" className="form-control" min={new Date().toISOString().split('T')[0]} value={entryForm.dueDate} onChange={(e) => setEntryForm((p) => ({ ...p, dueDate: e.target.value }))} />
           </div>
         </Modal>
       )}

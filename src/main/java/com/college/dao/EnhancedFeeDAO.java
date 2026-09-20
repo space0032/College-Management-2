@@ -120,75 +120,253 @@ public class EnhancedFeeDAO {
     }
 
     /**
-     * Record payment with validation
+     * Check whether a fee category exists (and is active).
      */
-    public boolean recordPayment(FeePayment payment) {
-        // Validate payment amount
-        if (payment.getAmount() <= 0) {
-            Logger.error("Invalid payment amount: " + payment.getAmount());
+    public boolean categoryExists(int categoryId) {
+        String sql = "SELECT 1 FROM fee_categories WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, categoryId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
             return false;
         }
+    }
 
-        // Check if payment would exceed total fee
-        String checkSql = "SELECT total_amount, paid_amount FROM student_fees WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+    /**
+     * Result of a payment attempt, including whether the amount was capped to
+     * the remaining balance and the generated receipt number.
+     */
+    public static class PaymentResult {
+        public boolean ok;
+        public boolean capped;
+        public double recordedAmount;
+        public String receiptNumber;
+        public String error;
 
-            checkStmt.setInt(1, payment.getStudentFeeId());
-            ResultSet rs = checkStmt.executeQuery();
+        public static PaymentResult failure(String error) {
+            PaymentResult r = new PaymentResult();
+            r.ok = false;
+            r.error = error;
+            return r;
+        }
+    }
 
-            if (rs.next()) {
-                double totalAmount = rs.getDouble("total_amount");
-                double paidAmount = rs.getDouble("paid_amount");
-                double remaining = totalAmount - paidAmount;
+    /**
+     * Record payment with validation (legacy boolean wrapper).
+     */
+    public boolean recordPayment(FeePayment payment) {
+        return recordPaymentDetailed(payment).ok;
+    }
 
-                if (payment.getAmount() > remaining) {
+    /**
+     * Record payment atomically: lock the fee row, cap to the remaining
+     * balance, generate the receipt and update totals in one transaction.
+     */
+    public PaymentResult recordPaymentDetailed(FeePayment payment) {
+        if (payment == null) {
+            return PaymentResult.failure("Invalid payment data");
+        }
+        if (!(payment.getAmount() > 0) || !Double.isFinite(payment.getAmount())) {
+            return PaymentResult.failure("Amount must be greater than zero");
+        }
+        if (payment.getStudentFeeId() <= 0) {
+            return PaymentResult.failure("studentFeeId is required");
+        }
+        if (payment.getPaymentDate() == null) {
+            payment.setPaymentDate(new java.util.Date());
+        }
+
+        String checkSql = "SELECT total_amount, paid_amount FROM student_fees WHERE id = ? FOR UPDATE";
+        String insertSql = "INSERT INTO fee_payments (student_fee_id, payment_date, amount, payment_mode, "
+                + "transaction_id, receipt_number, received_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            boolean ownTransaction = conn.getAutoCommit();
+            try {
+                if (ownTransaction) {
+                    conn.setAutoCommit(false);
+                }
+                double remaining;
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                    checkStmt.setInt(1, payment.getStudentFeeId());
+                    try (ResultSet rs = checkStmt.executeQuery()) {
+                        if (!rs.next()) {
+                            if (ownTransaction) {
+                                conn.rollback();
+                            }
+                            return PaymentResult.failure("Unknown fee entry");
+                        }
+                        remaining = rs.getDouble("total_amount") - rs.getDouble("paid_amount");
+                    }
+                }
+                if (!(remaining > 0)) {
+                    if (ownTransaction) {
+                        conn.rollback();
+                    }
+                    return PaymentResult.failure("Fee is already fully paid");
+                }
+                boolean capped = false;
+                double recorded = payment.getAmount();
+                if (recorded > remaining) {
                     Logger.warn(String.format("Payment amount %.2f exceeds remaining fee %.2f",
-                            payment.getAmount(), remaining));
-                    // Optionally allow overpayment or reject it
-                    // For now, we'll cap it at remaining amount
-                    payment.setAmount(remaining);
+                            recorded, remaining));
+                    recorded = remaining;
+                    capped = true;
+                }
+
+                String receiptNumber = generateReceiptNumber(conn);
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                    pstmt.setInt(1, payment.getStudentFeeId());
+                    pstmt.setDate(2, new java.sql.Date(payment.getPaymentDate().getTime()));
+                    pstmt.setDouble(3, recorded);
+                    pstmt.setString(4, payment.getPaymentMode());
+                    pstmt.setString(5, payment.getTransactionId());
+                    pstmt.setString(6, receiptNumber);
+                    if (payment.getReceivedBy() != null) {
+                        pstmt.setInt(7, payment.getReceivedBy());
+                    } else {
+                        pstmt.setNull(7, Types.INTEGER);
+                    }
+                    pstmt.setString(8, payment.getRemarks());
+                    if (pstmt.executeUpdate() <= 0) {
+                        if (ownTransaction) {
+                            conn.rollback();
+                        }
+                        return PaymentResult.failure("Failed to record payment");
+                    }
+                }
+                updateStudentFeeStatus(conn, payment.getStudentFeeId());
+                if (ownTransaction) {
+                    conn.commit();
+                }
+                payment.setAmount(recorded);
+                payment.setReceiptNumber(receiptNumber);
+                PaymentResult result = new PaymentResult();
+                result.ok = true;
+                result.capped = capped;
+                result.recordedAmount = recorded;
+                result.receiptNumber = receiptNumber;
+                return result;
+            } catch (SQLException e) {
+                if (ownTransaction) {
+                    try {
+                        conn.rollback();
+                    } catch (SQLException rollbackEx) {
+                        Logger.error("Rollback failed", rollbackEx);
+                    }
+                }
+                // H2 does not support FOR UPDATE on all plans; retry without the lock.
+                if (e.getMessage() != null && e.getMessage().toLowerCase().contains("for update")) {
+                    return recordPaymentDetailedFallback(payment);
+                }
+                Logger.error("Database operation failed", e);
+                return PaymentResult.failure("Failed to record payment");
+            } finally {
+                if (ownTransaction) {
+                    try {
+                        conn.setAutoCommit(true);
+                    } catch (SQLException e) {
+                        Logger.error("Failed to reset auto-commit", e);
+                    }
                 }
             }
         } catch (SQLException e) {
-            Logger.error("Failed to validate payment", e);
-            return false;
+            Logger.error("Database operation failed", e);
+            return PaymentResult.failure("Failed to record payment");
         }
+    }
 
-        // Generate receipt number
-        String receiptNumber = generateReceiptNumber();
-        payment.setReceiptNumber(receiptNumber);
-
-        String sql = "INSERT INTO fee_payments (student_fee_id, payment_date, amount, payment_mode, " +
-                "transaction_id, receipt_number, received_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, payment.getStudentFeeId());
-            pstmt.setDate(2, new java.sql.Date(payment.getPaymentDate().getTime()));
-            pstmt.setDouble(3, payment.getAmount());
-            pstmt.setString(4, payment.getPaymentMode());
-            pstmt.setString(5, payment.getTransactionId());
-            pstmt.setString(6, receiptNumber);
-            if (payment.getReceivedBy() != null) {
-                pstmt.setInt(7, payment.getReceivedBy());
-            } else {
-                pstmt.setNull(7, Types.INTEGER);
+    private PaymentResult recordPaymentDetailedFallback(FeePayment payment) {
+        String checkSql = "SELECT total_amount, paid_amount FROM student_fees WHERE id = ?";
+        String insertSql = "INSERT INTO fee_payments (student_fee_id, payment_date, amount, payment_mode, "
+                + "transaction_id, receipt_number, received_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            boolean ownTransaction = conn.getAutoCommit();
+            try {
+                if (ownTransaction) {
+                    conn.setAutoCommit(false);
+                }
+                double remaining;
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                    checkStmt.setInt(1, payment.getStudentFeeId());
+                    try (ResultSet rs = checkStmt.executeQuery()) {
+                        if (!rs.next()) {
+                            if (ownTransaction) {
+                                conn.rollback();
+                            }
+                            return PaymentResult.failure("Unknown fee entry");
+                        }
+                        remaining = rs.getDouble("total_amount") - rs.getDouble("paid_amount");
+                    }
+                }
+                if (!(remaining > 0)) {
+                    if (ownTransaction) {
+                        conn.rollback();
+                    }
+                    return PaymentResult.failure("Fee is already fully paid");
+                }
+                boolean capped = payment.getAmount() > remaining;
+                double recorded = capped ? remaining : payment.getAmount();
+                String receiptNumber = generateReceiptNumber(conn);
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                    pstmt.setInt(1, payment.getStudentFeeId());
+                    pstmt.setDate(2, new java.sql.Date(payment.getPaymentDate().getTime()));
+                    pstmt.setDouble(3, recorded);
+                    pstmt.setString(4, payment.getPaymentMode());
+                    pstmt.setString(5, payment.getTransactionId());
+                    pstmt.setString(6, receiptNumber);
+                    if (payment.getReceivedBy() != null) {
+                        pstmt.setInt(7, payment.getReceivedBy());
+                    } else {
+                        pstmt.setNull(7, Types.INTEGER);
+                    }
+                    pstmt.setString(8, payment.getRemarks());
+                    if (pstmt.executeUpdate() <= 0) {
+                        if (ownTransaction) {
+                            conn.rollback();
+                        }
+                        return PaymentResult.failure("Failed to record payment");
+                    }
+                }
+                updateStudentFeeStatus(conn, payment.getStudentFeeId());
+                if (ownTransaction) {
+                    conn.commit();
+                }
+                payment.setAmount(recorded);
+                payment.setReceiptNumber(receiptNumber);
+                PaymentResult result = new PaymentResult();
+                result.ok = true;
+                result.capped = capped;
+                result.recordedAmount = recorded;
+                result.receiptNumber = receiptNumber;
+                return result;
+            } catch (SQLException e) {
+                if (ownTransaction) {
+                    try {
+                        conn.rollback();
+                    } catch (SQLException rollbackEx) {
+                        Logger.error("Rollback failed", rollbackEx);
+                    }
+                }
+                Logger.error("Database operation failed", e);
+                return PaymentResult.failure("Failed to record payment");
+            } finally {
+                if (ownTransaction) {
+                    try {
+                        conn.setAutoCommit(true);
+                    } catch (SQLException e) {
+                        Logger.error("Failed to reset auto-commit", e);
+                    }
+                }
             }
-            pstmt.setString(8, payment.getRemarks());
-
-            if (pstmt.executeUpdate() > 0) {
-                // Update student_fees paid amount and status
-                updateStudentFeeStatus(payment.getStudentFeeId());
-                return true;
-            }
-
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
+            return PaymentResult.failure("Failed to record payment");
         }
-
-        return false;
     }
 
     /**
@@ -315,6 +493,14 @@ public class EnhancedFeeDAO {
      * Update student fee status based on payments
      */
     private void updateStudentFeeStatus(int studentFeeId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            updateStudentFeeStatus(conn, studentFeeId);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+    }
+
+    private void updateStudentFeeStatus(Connection conn, int studentFeeId) throws SQLException {
         String sql = "UPDATE student_fees SET " +
                 "paid_amount = (SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?), " +
                 "status = CASE " +
@@ -326,41 +512,47 @@ public class EnhancedFeeDAO {
                 "END " +
                 "WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, studentFeeId);
             pstmt.setInt(2, studentFeeId);
             pstmt.setInt(3, studentFeeId);
             pstmt.setInt(4, studentFeeId);
             pstmt.executeUpdate();
-
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
         }
     }
 
     /**
-     * Generate receipt number
+     * Generate receipt number (portable: parse max in Java so non-numeric
+     * receipt values cannot break the CAST on any database).
      */
     private String generateReceiptNumber() {
-        String sql = "SELECT MAX(CAST(SUBSTRING(receipt_number, 5) AS INTEGER)) as max_num " +
-                "FROM fee_payments WHERE receipt_number LIKE 'RCP%'";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
-
-            if (rs.next()) {
-                int maxNum = rs.getInt("max_num");
-                return String.format("RCP%06d", maxNum + 1);
-            }
-
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return generateReceiptNumber(conn);
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
+            return "RCP000001";
         }
+    }
 
-        return "RCP000001";
+    private String generateReceiptNumber(Connection conn) throws SQLException {
+        String sql = "SELECT receipt_number FROM fee_payments WHERE receipt_number LIKE 'RCP%'";
+        int maxNum = 0;
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String receipt = rs.getString(1);
+                if (receipt != null && receipt.matches("RCP\\d+")) {
+                    try {
+                        int n = Integer.parseInt(receipt.substring(3));
+                        if (n > maxNum) {
+                            maxNum = n;
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+        return String.format("RCP%06d", maxNum + 1);
     }
 
     /**

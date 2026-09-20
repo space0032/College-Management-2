@@ -28,11 +28,11 @@ public class FeeController extends BaseController implements HttpHandler {
                     int studentId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getStudentFees(studentId)));
                 } else if (path.endsWith("/pending")) {
-                    if (!requirePermission(t, "VIEW_FEES"))
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES"))
                         return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPendingFees()));
                 } else if (path.equals("/api/fees")) {
-                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES"))
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES"))
                         return;
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getAllFees()));
                 } else if (path.endsWith("/categories")) {
@@ -44,70 +44,115 @@ public class FeeController extends BaseController implements HttpHandler {
                         return;
                     handleGetStructure(t);
                 } else if (path.matches(".*/fees/history/\\d+")) {
-                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES"))
+                    if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "VIEW_OWN_FEES"))
                         return;
                     int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
                     sendResponse(t, 200, JsonHelper.toJson(feeDAO.getPaymentHistory(id)));
                 } else {
-                    sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
+                    sendResponse(t, 404, errorJson("Endpoint not found"));
                 }
             } else if ("POST".equals(method)) {
                 if (path.endsWith("/entry")) {
                     if (!requireAnyPermission(t, "MANAGE_FEES", "CREATE_FEES"))
                         return;
                     String body = readBody(t);
-                    java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
+                    java.util.Map<String, Object> map;
+                    try {
+                        map = JSON.fromJson(body, java.util.Map.class);
+                    } catch (Exception e) {
+                        sendResponse(t, 400, errorJson("Invalid JSON body"));
+                        return;
+                    }
                     if (map == null || (map.get("studentId") == null && map.get("enrollmentId") == null) || map.get("categoryId") == null || map.get("amount") == null) {
-                        sendResponse(t, 400, "{\"error\":\"studentId (or enrollmentId), categoryId and amount are required\"}");
+                        sendResponse(t, 400, errorJson("studentId (or enrollmentId), categoryId and amount are required"));
                         return;
                     }
-                    int studentId = resolveStudentId(map, map.get("studentId") != null ? ((Number) map.get("studentId")).intValue() : 0);
+                    Integer studentIdRaw = toInt(map.get("studentId"));
+                    int studentId = resolveStudentId(map, studentIdRaw == null ? 0 : studentIdRaw);
                     if (studentId <= 0) {
-                        sendResponse(t, 400, "{\"error\":\"Unknown student for the given enrollmentId\"}");
+                        sendResponse(t, 400, errorJson("Unknown student for the given enrollmentId"));
                         return;
                     }
-                    int categoryId = ((Number) map.get("categoryId")).intValue();
-                    double amount = ((Number) map.get("amount")).doubleValue();
-                    if (amount <= 0) {
-                        sendResponse(t, 400, "{\"error\":\"Amount must be greater than zero\"}");
+                    Integer categoryIdObj = toInt(map.get("categoryId"));
+                    Double amountObj = toDouble(map.get("amount"));
+                    if (categoryIdObj == null || categoryIdObj <= 0) {
+                        sendResponse(t, 400, errorJson("categoryId must be a positive number"));
+                        return;
+                    }
+                    if (amountObj == null || !(amountObj > 0) || !Double.isFinite(amountObj)) {
+                        sendResponse(t, 400, errorJson("Amount must be greater than zero"));
+                        return;
+                    }
+                    if (!feeDAO.categoryExists(categoryIdObj)) {
+                        sendResponse(t, 400, errorJson("Unknown fee category"));
                         return;
                     }
                     java.sql.Date dueDate = null;
-                    if (map.get("dueDate") != null && !((String) map.get("dueDate")).trim().isEmpty()) {
+                    if (map.get("dueDate") != null && !String.valueOf(map.get("dueDate")).trim().isEmpty()
+                            && !"null".equalsIgnoreCase(String.valueOf(map.get("dueDate")).trim())) {
                         try {
-                            dueDate = java.sql.Date.valueOf(((String) map.get("dueDate")).trim());
+                            dueDate = java.sql.Date.valueOf(String.valueOf(map.get("dueDate")).trim());
                         } catch (Exception e) {
-                            sendResponse(t, 400, "{\"error\":\"Invalid dueDate (expected yyyy-MM-dd)\"}");
+                            sendResponse(t, 400, errorJson("Invalid dueDate (expected yyyy-MM-dd)"));
                             return;
                         }
                     }
-                    boolean ok = feeDAO.addStudentFee(studentId, categoryId, amount, dueDate);
+                    boolean ok = feeDAO.addStudentFee(studentId, categoryIdObj, amountObj, dueDate);
                     if (ok) {
                         sendResponse(t, 201, "{\"status\":\"Fee entry created\"}");
                     } else {
-                        sendResponse(t, 400, "{\"error\":\"Failed to create fee entry\"}");
+                        sendResponse(t, 400, errorJson("Failed to create fee entry"));
                     }
                 } else if (path.endsWith("/pay")) {
                     if (!requireAnyPermission(t, "PAY_FEES", "MANAGE_FEES"))
                         return;
                     String body = readBody(t);
-                    com.college.models.FeePayment payment = new com.google.gson.Gson().fromJson(body,
-                            com.college.models.FeePayment.class);
-                    if (payment == null || payment.getAmount() <= 0) {
-                        sendResponse(t, 400, "{\"error\":\"Invalid payment data\"}");
+                    java.util.Map<String, Object> map;
+                    try {
+                        map = JSON.fromJson(body, java.util.Map.class);
+                    } catch (Exception e) {
+                        sendResponse(t, 400, errorJson("Invalid JSON body"));
                         return;
                     }
-                    if (payment.getPaymentDate() == null) {
-                        payment.setPaymentDate(new java.util.Date());
+                    Integer feeIdObj = map == null ? null : toInt(map.get("studentFeeId"));
+                    Double amountObj = map == null ? null : toDouble(map.get("amount"));
+                    if (feeIdObj == null || feeIdObj <= 0 || amountObj == null || !(amountObj > 0) || !Double.isFinite(amountObj)) {
+                        sendResponse(t, 400, errorJson("studentFeeId and a positive amount are required"));
+                        return;
                     }
-                    boolean ok = feeDAO.recordPayment(payment);
-                    if (ok) {
-                        sendResponse(t, 200, "{\"status\":\"Payment recorded successfully\"}");
+                    String mode = map.get("paymentMode") == null ? "CASH" : String.valueOf(map.get("paymentMode")).trim().toUpperCase();
+                    if (!mode.matches("CASH|ONLINE|CHEQUE|CARD|UPI|BANK_TRANSFER")) {
+                        sendResponse(t, 400, errorJson("Invalid paymentMode (expected CASH, ONLINE, CHEQUE, CARD, UPI or BANK_TRANSFER)"));
+                        return;
+                    }
+                    String remarks = map.get("remarks") == null ? null : String.valueOf(map.get("remarks"));
+                    if (remarks != null && remarks.length() > 500) {
+                        sendResponse(t, 400, errorJson("remarks must be at most 500 characters"));
+                        return;
+                    }
+                    com.college.models.FeePayment payment = new com.college.models.FeePayment();
+                    payment.setStudentFeeId(feeIdObj);
+                    payment.setAmount(amountObj);
+                    payment.setPaymentMode(mode);
+                    payment.setRemarks(remarks);
+                    payment.setPaymentDate(new java.util.Date());
+                    TokenStore.TokenInfo info = getTokenInfo(t);
+                    if (info != null) {
+                        payment.setReceivedBy(info.userId);
+                    }
+                    com.college.dao.EnhancedFeeDAO.PaymentResult result = feeDAO.recordPaymentDetailed(payment);
+                    if (result.ok) {
+                        java.util.Map<String, Object> resp = new java.util.LinkedHashMap<>();
+                        resp.put("status", "Payment recorded successfully");
+                        resp.put("recordedAmount", result.recordedAmount);
+                        resp.put("capped", result.capped);
+                        resp.put("receiptNumber", result.receiptNumber);
+                        sendResponse(t, 200, JSON.toJson(resp));
                     } else {
-                        sendResponse(t, 400, "{\"error\":\"Failed to record payment\"}");
+                        sendResponse(t, 400, errorJson(result.error == null ? "Failed to record payment" : result.error));
                     }
                 } else {
-                    sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
+                    sendResponse(t, 404, errorJson("Endpoint not found"));
                 }
             } else if ("PUT".equals(method)) {
                 if (path.contains("/structure")) {
@@ -115,13 +160,42 @@ public class FeeController extends BaseController implements HttpHandler {
                         return;
                     handleSaveStructure(t);
                 } else {
-                    sendResponse(t, 404, "{\"error\":\"Endpoint not found\"}");
+                    sendResponse(t, 404, errorJson("Endpoint not found"));
                 }
             } else {
-                sendResponse(t, 405, "Method Not Allowed");
+                sendResponse(t, 405, errorJson("Method not allowed"));
+            }
+        } catch (com.google.gson.JsonSyntaxException e) {
+            try {
+                sendResponse(t, 400, errorJson("Invalid JSON body"));
+            } catch (IOException ignored) {
             }
         } catch (Exception e) {
-            sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
+            com.college.utils.Logger.error("Fee API failed", e);
+            try {
+                sendResponse(t, 500, errorJson("Internal server error"));
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private static Integer toInt(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number) return ((Number) v).intValue();
+        try {
+            return Integer.parseInt(String.valueOf(v).trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Double toDouble(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number) return ((Number) v).doubleValue();
+        try {
+            return Double.parseDouble(String.valueOf(v).trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -176,17 +250,19 @@ public class FeeController extends BaseController implements HttpHandler {
             if (catObj == null || amtObj == null) {
                 continue;
             }
-            try {
-                int categoryId = ((Number) catObj).intValue();
-                double amount = ((Number) amtObj).doubleValue();
-                // Zero is treated as unset (not stored); blank/zero falls back to global defaults.
-                if (categoryId > 0 && amount > 0 && !busCategoryIds.contains(categoryId)) {
-                    fees.add(new com.college.models.ProgramFeeStructure(department, specialization, categoryId,
-                            academicYear, amount));
-                }
-            } catch (ClassCastException e) {
+            Integer categoryIdObj = toInt(catObj);
+            Double amountObj = toDouble(amtObj);
+            if (categoryIdObj == null || amountObj == null) {
                 sendResponse(t, 400, errorJson("categoryId and amount must be numbers"));
                 return;
+            }
+            int categoryId = categoryIdObj;
+            double amount = amountObj;
+            // Zero is treated as unset (not stored); blank/zero falls back to global defaults.
+            // Bus categories are managed separately and excluded here.
+            if (categoryId > 0 && amount > 0 && !busCategoryIds.contains(categoryId)) {
+                fees.add(new com.college.models.ProgramFeeStructure(department, specialization, categoryId,
+                        academicYear, amount));
             }
         }
         boolean ok = feeDAO.saveProgramFees(department, specialization, academicYear, fees);

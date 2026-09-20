@@ -1,65 +1,96 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
+const formatReceiptDate = (value) => {
+    if (!value) {
+        return new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+};
 
 const ReceiptModal = ({ fee, onClose }) => {
+    const [pdfError, setPdfError] = useState('');
     const collegeName = localStorage.getItem('collegeName') || 'College Management System';
-    const receiptId = fee.receiptNumber || `RCP-${fee.id}-${Date.now().toString(36).toUpperCase()}`;
-    const today = fee.paidDate || new Date().toLocaleDateString('en-IN', {
-        year: 'numeric', month: 'long', day: 'numeric'
-    });
+    // Stable reference: prefer the real backend receipt number. For aggregate
+    // StudentFee rows (no single receipt) show a fee reference instead of a
+    // fake timestamped receipt that changes on every render.
+    const receiptId = useMemo(() => {
+        if (fee.receiptNumber) return fee.receiptNumber;
+        if (fee.id != null) return `REF-FEE-${fee.id}`;
+        return 'REF-NEW';
+    }, [fee.receiptNumber, fee.id]);
+    const today = useMemo(
+        () => formatReceiptDate(fee.paidDate || fee.paymentDate || fee.payment_date),
+        [fee.paidDate, fee.paymentDate, fee.payment_date]
+    );
 
     const downloadReceiptPDF = () => {
-        const doc = new jsPDF();
+        setPdfError('');
+        try {
+            const doc = new jsPDF();
 
-        // Header
-        doc.setFillColor(26, 54, 93);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.text(collegeName, 105, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text("Official Fee Payment Receipt", 105, 30, { align: 'center' });
+            // Header
+            doc.setFillColor(26, 54, 93);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text(collegeName, 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('Official Fee Payment Receipt', 105, 30, { align: 'center' });
 
-        // Details
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(10);
-        doc.text(`Receipt No: ${receiptId}`, 14, 50);
-        doc.text(`Date: ${today}`, 140, 50);
-        doc.text(`Student Name: ${fee.studentName || 'N/A'}`, 14, 60);
-        doc.text(`Enrollment No.: ${fee.studentUsername || fee.studentEnrollmentId || fee.enrollmentNumber || fee.enrollmentId || fee.studentId || fee.id || 'N/A'}`, 140, 60);
+            // Details
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Receipt No: ${receiptId}`, 14, 50);
+            doc.text(`Date: ${today}`, 140, 50);
+            doc.text(`Student Name: ${fee.studentName || 'N/A'}`, 14, 60);
+            doc.text(`Enrollment No.: ${fee.studentUsername || fee.studentEnrollmentId || fee.enrollmentNumber || fee.enrollmentId || fee.studentId || fee.id || 'N/A'}`, 14, 66);
 
-        // Table
-        doc.autoTable({
-            startY: 70,
-            head: [['Fee Type', 'Amount', 'Status']],
-            body: [[
-                fee.feeType || fee.categoryName || 'Tuition Fee',
-                `INR ${parseFloat(fee.amount || fee.totalAmount || 0).toLocaleString('en-IN')}`,
-                'PAID'
-            ]],
-            theme: 'striped',
-            headStyles: { fillColor: [49, 130, 206] }
-        });
+            // Table (jspdf-autotable v5 functional API)
+            autoTable(doc, {
+                startY: 72,
+                head: [['Fee Type', 'Amount', 'Status']],
+                body: [[
+                    fee.feeType || fee.categoryName || 'Tuition Fee',
+                    `\u20B9${Number(fee.amount ?? fee.totalAmount ?? 0).toLocaleString('en-IN')}`,
+                    'PAID'
+                ]],
+                theme: 'striped',
+                headStyles: { fillColor: [49, 130, 206] }
+            });
 
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.setFontSize(12);
-        doc.setTextColor(43, 108, 176);
-        doc.text(`Total Paid: INR ${parseFloat(fee.paidAmount || fee.amount || fee.totalAmount || 0).toLocaleString('en-IN')}`, 196, finalY, { align: 'right' });
+            const finalY = (doc.lastAutoTable?.finalY ?? 90) + 10;
+            doc.setFontSize(12);
+            doc.setTextColor(43, 108, 176);
+            doc.text(`Total Paid: \u20B9${Number(fee.paidAmount ?? fee.amount ?? fee.totalAmount ?? 0).toLocaleString('en-IN')}`, 196, finalY, { align: 'right' });
 
-        doc.setFontSize(9);
-        doc.setTextColor(160, 174, 192);
-        doc.text("This is a computer-generated receipt and is valid without a signature.", 105, finalY + 20, { align: 'center' });
+            doc.setFontSize(9);
+            doc.setTextColor(160, 174, 192);
+            doc.text('This is a computer-generated receipt and is valid without a signature.', 105, finalY + 20, { align: 'center' });
 
-        doc.save(`${receiptId}.pdf`);
+            doc.save(`${receiptId}.pdf`);
+        } catch (e) {
+            setPdfError('Failed to generate PDF. Please try again.');
+        }
     };
 
     const handlePrint = () => {
+        document.body.classList.add('printing-receipt');
+        const cleanup = () => {
+            document.body.classList.remove('printing-receipt');
+            window.removeEventListener('afterprint', cleanup);
+        };
+        window.addEventListener('afterprint', cleanup);
         window.print();
+        window.setTimeout(cleanup, 1000);
     };
 
     return (
         <div className="modal-overlay" id="receipt-modal-overlay">
+            <style>{`@media print { body.printing-receipt > *:not(#receipt-modal-overlay) { display: none !important; } body.printing-receipt #receipt-modal-overlay { position: static; background: none; } body.printing-receipt #receipt-content { box-shadow: none; max-width: 100%; } body.printing-receipt #receipt-actions { display: none !important; } }`}</style>
             <div
                 className="modal-content"
                 style={{ maxWidth: '500px', fontFamily: 'Georgia, serif' }}
@@ -100,7 +131,7 @@ const ReceiptModal = ({ fee, onClose }) => {
                             <tr>
                                 <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0' }}>{fee.feeType || fee.categoryName || 'Tuition Fee'}</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
-                                    ₹{parseFloat(fee.amount || fee.totalAmount || 0).toLocaleString('en-IN')}
+                                    ₹{Number(fee.amount ?? fee.totalAmount ?? 0).toLocaleString('en-IN')}
                                 </td>
                                 <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
                                     <span style={{
@@ -114,7 +145,7 @@ const ReceiptModal = ({ fee, onClose }) => {
                             <tr style={{ background: '#ebf8ff' }}>
                                 <td style={{ padding: '10px', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>Total Paid</td>
                                 <td colSpan="2" style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold', fontSize: '1rem', color: '#2b6cb0', border: '1px solid #e2e8f0' }}>
-                                    ₹{parseFloat(fee.paidAmount || fee.amount || fee.totalAmount || 0).toLocaleString('en-IN')}
+                                    ₹{Number(fee.paidAmount ?? fee.amount ?? fee.totalAmount ?? 0).toLocaleString('en-IN')}
                                 </td>
                             </tr>
                         </tfoot>
@@ -139,7 +170,8 @@ const ReceiptModal = ({ fee, onClose }) => {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+                {pdfError && <div className="alert alert-error" style={{ margin: '0 24px 12px' }}>{pdfError}</div>}
+                <div id="receipt-actions" style={{ display: 'flex', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
                     <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
                     <button className="btn btn-primary" style={{ flex: 2 }} onClick={downloadReceiptPDF}>📥 Download PDF</button>
                     <button className="btn btn-secondary" style={{ flex: 1.5 }} onClick={handlePrint}>🖨 Print</button>
