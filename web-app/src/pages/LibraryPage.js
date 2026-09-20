@@ -38,7 +38,7 @@ const ISSUE_COLUMNS = [
   },
 ];
 
-const EMPTY_FORM = { title: '', author: '', isbn: '', available: true };
+const EMPTY_FORM = { title: '', author: '', isbn: '', quantity: 1, available: true };
 
 const LibraryPage = () => {
   const [books, setBooks] = useState([]);
@@ -183,7 +183,7 @@ const handleFormChange = (e) => {
 
   const handleEditBook = (book) => {
     setEditingBookId(book.id);
-    setForm({ title: book.title, author: book.author, isbn: book.isbn, available: book.available > 0 });
+    setForm({ title: book.title, author: book.author, isbn: book.isbn, quantity: book.quantity || 1, available: book.available || 0 });
     setModalOpen(true);
   };
 
@@ -207,12 +207,15 @@ const handleFormChange = (e) => {
         return;
       }
     }
+    const quantity = parseInt(form.quantity, 10) || 1;
+    const available = parseInt(form.available, 10) || 0;
+    if (available > quantity) { setFormError('Available copies cannot exceed total quantity.'); return; }
     setSaving(true);
     try {
       if (editingBookId) {
-        await updateBook(editingBookId, { ...form, quantity: form.available ? 1 : 0, available: form.available ? 1 : 0 });
+        await updateBook(editingBookId, { ...form, quantity, available });
       } else {
-        await addBook({ ...form, quantity: form.available ? 1 : 0, available: form.available ? 1 : 0 });
+        await addBook({ ...form, quantity, available });
       }
       setModalOpen(false);
       setForm(EMPTY_FORM);
@@ -520,10 +523,12 @@ const handleFormChange = (e) => {
           </div>
         ))}
         <div className="form-group">
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} />
-            <span className="form-label" style={{ margin: 0 }}>Available</span>
-          </label>
+          <label className="form-label">Quantity (Total Copies)</label>
+          <input name="quantity" type="number" min="1" className="form-control" value={form.quantity} onChange={handleFormChange} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Available Copies</label>
+          <input name="available" type="number" min="0" className="form-control" value={form.available} onChange={handleFormChange} />
         </div>
       </Modal>
 
