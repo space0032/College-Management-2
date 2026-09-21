@@ -113,25 +113,27 @@ public class PlacementDAO {
         }
     }
 
-    public void deleteDrive(int id) {
+    public boolean deleteDrive(int id) {
         String sql = "DELETE FROM placement_drives WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
-    public void deleteCompany(int id) {
+    public boolean deleteCompany(int id) {
         String sql = "DELETE FROM placement_companies WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -164,15 +166,16 @@ public class PlacementDAO {
         return false;
     }
 
-    public void applyForDrive(int driveId, int studentId) {
+    public boolean applyForDrive(int driveId, int studentId) {
         String sql = "INSERT INTO placement_applications (drive_id, student_id, status) VALUES (?, ?, 'APPLIED')";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, driveId);
             stmt.setInt(2, studentId);
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -220,15 +223,16 @@ public class PlacementDAO {
         return list;
     }
 
-    public void updateApplicationStatus(int applicationId, String status) {
+    public boolean updateApplicationStatus(int applicationId, String status) {
         String sql = "UPDATE placement_applications SET status = ? WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status);
             stmt.setInt(2, applicationId);
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 

@@ -1,0 +1,26 @@
+.opportunities-page { max-width: 1440px; margin: 0 auto; }
+.opportunities-page .page-header, .opportunities-page .page-header > div,
+.opportunities-page .tab-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.opportunities-page .page-header { align-items: center; justify-content: space-between; }
+.opportunities-page .page-header > div:first-child { flex: 1; }
+.opportunities-page .page-subtitle { width: 100%; margin: 6px 0 0; color: #64748b; }
+.opportunity-stats, .scholarship-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+.opportunity-stats > div { padding: 22px; background: var(--bg-card, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 14px; }
+.opportunity-stats span { display: block; color: #64748b; font-size: .85rem; }
+.opportunity-stats strong { display: block; margin-top: 8px; font-size: 1.9rem; color: #2563eb; }
+.opportunity-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0; }
+.opportunity-toolbar input { flex: 1; min-width: 180px; }
+.opportunity-toolbar select { width: auto; }
+.opportunity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; }
+.opportunity-grid > * { min-width: 0; overflow-wrap: anywhere; }
+.opportunity-empty { padding: 48px 20px; text-align: center; background: var(--bg-card, #fff); border: 1px dashed #cbd5e1; border-radius: 14px; color: #64748b; }
+.opportunities-page .tab-buttons { margin-bottom: 20px; }
+.opportunities-page .table-wrapper { overflow-x: auto; }
+.opportunities-page .data-table td { max-width: 360px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .opportunities-page .page-header > div { width: 100%; flex-wrap: wrap; }
+  .opportunities-page .page-header .btn { flex: 1; }
+  .opportunity-toolbar label { width: 100%; }
+  .opportunity-stats, .scholarship-stats { grid-template-columns: 1fr; }
+  .opportunity-grid .stat-card { padding: 20px !important; }
+}

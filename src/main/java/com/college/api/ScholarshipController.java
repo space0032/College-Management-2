@@ -12,7 +12,11 @@ import java.util.Map;
 
 public class ScholarshipController extends BaseController implements HttpHandler {
 
-    private final CommunityDAO communityDAO = new CommunityDAO();
+    private final CommunityDAO communityDAO;
+
+    public ScholarshipController() { this(new CommunityDAO()); }
+
+    ScholarshipController(CommunityDAO communityDAO) { this.communityDAO = communityDAO; }
 
     @Override
     public void handle(HttpExchange t) throws IOException {
@@ -64,6 +68,12 @@ public class ScholarshipController extends BaseController implements HttpHandler
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (scholarship.getTitle() == null || scholarship.getTitle().isBlank()
+                || scholarship.getDescription() == null || scholarship.getDescription().isBlank()
+                || !Double.isFinite(scholarship.getAmount()) || scholarship.getAmount() <= 0) {
+            sendResponse(t, 400, errorJson("Title, eligibility and a positive award amount are required"));
+            return;
+        }
         boolean ok = communityDAO.createScholarship(scholarship);
         if (ok) {
             sendResponse(t, 201, "{\"message\":\"Scholarship created successfully\"}");
@@ -83,6 +93,24 @@ public class ScholarshipController extends BaseController implements HttpHandler
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        Map<String, Object> payload = JSON.fromJson(body, Map.class);
+        app.setStudentId(resolveStudentId(payload, app.getStudentId()));
+        if (app.getStudentId() <= 0 || app.getStatement() == null || app.getStatement().isBlank()
+                || app.getStatement().trim().split("\\s+").length > 500) {
+            sendResponse(t, 400, errorJson("A valid student and a statement of 1 to 500 words are required"));
+            return;
+        }
+        Scholarship scholarship = communityDAO.getAllScholarships().stream()
+                .filter(item -> item.getId() == scholarshipId).findFirst().orElse(null);
+        if (scholarship == null || !"OPEN".equals(scholarship.getStatus())) {
+            sendResponse(t, 400, errorJson("This scholarship is not open for applications"));
+            return;
+        }
+        if (communityDAO.getApplications(scholarshipId).stream().anyMatch(item -> item.getStudentId() == app.getStudentId())) {
+            sendResponse(t, 409, errorJson("You have already applied for this scholarship"));
+            return;
+        }
+        app.setStatus("APPLIED");
         app.setScholarshipId(scholarshipId);
 
         boolean ok = communityDAO.applyForScholarship(app);
@@ -96,7 +124,7 @@ public class ScholarshipController extends BaseController implements HttpHandler
     private void handleGetApplications(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_SCHOLARSHIP")) return;
         String[] parts = path.split("/");
-        int scholarshipId = Integer.parseInt(parts[parts.length - 1]);
+        int scholarshipId = Integer.parseInt(parts[parts.length - 2]);
 
         List<ScholarshipApplication> list = communityDAO.getApplications(scholarshipId);
         sendResponse(t, 200, JsonHelper.toJson(list));
@@ -112,11 +140,16 @@ public class ScholarshipController extends BaseController implements HttpHandler
         Map<String, String> map = new com.google.gson.Gson().fromJson(body, Map.class);
         String status = map != null ? map.get("status") : null;
 
-        if (status == null || status.trim().isEmpty()) {
+        if (!java.util.Set.of("APPROVED", "REJECTED", "APPLIED").contains(status == null ? "" : status)) {
             sendResponse(t, 400, errorJson("Status is required"));
             return;
         }
 
+        int scholarshipId = Integer.parseInt(parts[parts.length - 4]);
+        if (communityDAO.getApplications(scholarshipId).stream().noneMatch(app -> app.getId() == applicationId)) {
+            sendResponse(t, 404, errorJson("Application not found for this scholarship"));
+            return;
+        }
         boolean ok = communityDAO.updateApplicationStatus(applicationId, status);
         if (ok) {
             sendResponse(t, 200, "{\"message\":\"Application status updated\"}");

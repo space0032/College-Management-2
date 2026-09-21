@@ -88,6 +88,13 @@ public class PlacementController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (drive.getCompanyId() <= 0 || drive.getJobRole() == null || drive.getJobRole().isBlank()
+                || drive.getDriveDate() == null || drive.getDeadline() == null
+                || drive.getDeadline().isAfter(drive.getDriveDate())
+                || !Double.isFinite(drive.getPackageLpa()) || drive.getPackageLpa() < 0) {
+            sendResponse(t, 400, errorJson("Company, role, valid dates and a non-negative package are required"));
+            return;
+        }
         boolean ok = placementDAO.addDrive(drive);
         sendResponse(t, ok ? 201 : 400, ok ? JsonHelper.toJson(drive) : errorJson("Failed to add placement drive"));
     }
@@ -95,7 +102,7 @@ public class PlacementController extends BaseController implements HttpHandler {
     private void handleDeleteDrive(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "DELETE_PLACEMENT")) return;
         int id = extractId(path);
-        placementDAO.deleteDrive(id);
+        if (!placementDAO.deleteDrive(id)) { sendResponse(t, 400, errorJson("Could not delete this drive")); return; }
         sendResponse(t, 200, "{\"status\":\"Deleted\"}");
     }
 
@@ -109,7 +116,7 @@ public class PlacementController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "CREATE_PLACEMENT")) return;
         String body = readBody(t);
         PlacementCompany company = JsonHelper.fromJson(body, PlacementCompany.class);
-        if (company == null) {
+        if (company == null || company.getName() == null || company.getName().isBlank()) {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
@@ -120,7 +127,7 @@ public class PlacementController extends BaseController implements HttpHandler {
     private void handleDeleteCompany(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "DELETE_PLACEMENT")) return;
         int id = extractId(path);
-        placementDAO.deleteCompany(id);
+        if (!placementDAO.deleteCompany(id)) { sendResponse(t, 400, errorJson("Could not delete this company. Check its associated drives.")); return; }
         sendResponse(t, 200, "{\"status\":\"Deleted\"}");
     }
 
@@ -152,12 +159,18 @@ public class PlacementController extends BaseController implements HttpHandler {
             return;
         }
 
+        PlacementDrive drive = placementDAO.getAllDrives().stream()
+                .filter(item -> item.getId() == driveId).findFirst().orElse(null);
+        if (drive == null || (drive.getDeadline() != null && drive.getDeadline().isBefore(java.time.LocalDate.now()))) {
+            sendResponse(t, 400, errorJson("This drive is not open for applications"));
+            return;
+        }
         if (placementDAO.hasApplied(driveId, studentId)) {
             sendResponse(t, 400, errorJson("Already applied for this drive"));
             return;
         }
 
-        placementDAO.applyForDrive(driveId, studentId);
+        if (!placementDAO.applyForDrive(driveId, studentId)) { sendResponse(t, 400, errorJson("Could not submit application")); return; }
         sendResponse(t, 201, "{\"message\":\"Applied successfully\"}");
     }
 
@@ -168,11 +181,11 @@ public class PlacementController extends BaseController implements HttpHandler {
         int applicationId = Integer.parseInt(parts[parts.length - 2]); // .../applications/{id}/status
         String body = readBody(t);
         java.util.Map<String, String> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("status") == null) {
+        if (map == null || !java.util.Set.of("APPLIED", "INTERVIEWING", "OFFERED", "REJECTED").contains((map.get("status") == null ? "" : map.get("status")))) {
             sendResponse(t, 400, errorJson("status is required"));
             return;
         }
-        placementDAO.updateApplicationStatus(applicationId, map.get("status"));
+        if (!placementDAO.updateApplicationStatus(applicationId, map.get("status"))) { sendResponse(t, 400, errorJson("Could not update application status")); return; }
         sendResponse(t, 200, "{\"message\":\"Status updated successfully\"}");
     }
 
