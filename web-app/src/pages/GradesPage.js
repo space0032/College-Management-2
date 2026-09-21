@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    getAllGrades, getStudentGrades, getFacultyGrades, getStudentCGPA, saveGrade, bulkSaveGrade
+    getAllGrades, getStudentGrades, getFacultyGrades, getStudentCGPA, saveGrade, bulkSaveGrade,
+    deleteGrade, getGradeAssignmentMatrix, getCourseExamTypes
 } from '../services/gradeService';
-import { getMyProfile } from '../services/facultyService';
+import { getMyProfile, getMyCourses } from '../services/facultyService';
 import { getEnrolledStudents } from '../services/featureService';
+import { getDepartments } from '../services/departmentService';
 import { safeParseFloat } from '../utils/validationUtils';
 import { getAllCourses } from '../services/courseService';
 import { getAllStudents } from '../services/studentService';
@@ -13,6 +15,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import SessionManager from '../utils/SessionManager';
 import Modal from '../components/Modal';
+import SearchableSelect from '../components/SearchableSelect';
 import { toast } from '../components/Toast';
 import { getErrorMessage, getSuccessRefId } from '../utils/error';
 import { SkeletonTable } from '../components/Skeleton';
@@ -32,21 +35,28 @@ const GradesPage = () => {
     // Manage State (Admin/Faculty)
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [deptFilter, setDeptFilter] = useState('');
     const [formData, setFormData] = useState({
         studentId: '',
         courseId: '',
         examType: 'MID TERM',
         marksObtained: '',
+        outOf: '100',
         grade: 'A'
     });
 
     // Bulk Grade Entry state
     const [bulkCourseId, setBulkCourseId] = useState('');
     const [bulkExamType, setBulkExamType] = useState('MID TERM');
-    const [bulkEntries, setBulkEntries] = useState([]); // [{studentId, studentName, marks, grade}]
+    const [courseExamTypes, setCourseExamTypes] = useState([]);
+    const [bulkOutOf, setBulkOutOf] = useState('100');
+    const [bulkEntries, setBulkEntries] = useState([]); // [{studentId, studentName, marks, grade, outOf, current?}]
+    const [bulkOverwrite, setBulkOverwrite] = useState(true);
     const [bulkSaving, setBulkSaving] = useState(false);
     const [bulkResult, setBulkResult] = useState(null);
     const [bulkDirty, setBulkDirty] = useState(false);
+    const [bulkLoading, setBulkLoading] = useState(false);
 
     // List + form loading / dialog state
     const [listLoading, setListLoading] = useState(true);
@@ -119,9 +129,16 @@ const GradesPage = () => {
         setFormLoading(true);
         setFormError('');
         try {
-            const [rStud, rCour] = await Promise.all([getAllStudents(), getAllCourses(1, 500)]);
+            const jobs = [getAllStudents(), getDepartments()];
+            if (user.role === 'FACULTY') {
+                jobs.push(getMyCourses());
+            } else {
+                jobs.push(getAllCourses(1, 500));
+            }
+            const [rStud, rDept, rCour] = await Promise.all(jobs);
             if (signal?.aborted) return;
             setStudents(rStud.data || []);
+            setDepartments(rDept.data || []);
             setCourses(rCour.data || []);
         } catch (err) {
             if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
@@ -131,23 +148,40 @@ const GradesPage = () => {
         }
     };
 
-    const suggestedGrade = (marks) => {
+    const pctOf = (marks, outOf) => {
+        const o = parseFloat(outOf);
         const m = parseFloat(marks);
-        if (!Number.isFinite(m)) return '';
-        if (m >= 90) return 'A';
-        if (m >= 75) return 'B';
-        if (m >= 60) return 'C';
-        if (m >= 50) return 'D';
-        if (m >= 40) return 'E';
+        if (o > 0 && Number.isFinite(o)) return (m / o) * 100;
+        return m;
+    };
+
+    const gradeFromPct = (p) => {
+        if (!Number.isFinite(p)) return '';
+        if (p >= 90) return 'A';
+        if (p >= 75) return 'B';
+        if (p >= 60) return 'C';
+        if (p >= 50) return 'D';
+        if (p >= 40) return 'E';
         return 'F';
     };
 
+    const suggestedGrade = (marks, outOf) => gradeFromPct(pctOf(marks, outOf ?? formData.outOf));
+
     const openCreateGrade = () => {
         setEditingGrade(null);
-        setFormData({ studentId: '', courseId: '', examType: 'MID TERM', marksObtained: '', grade: 'A' });
+        setFormData({
+            studentId: '',
+            courseId: formatCourseId(bulkCourseId),
+            examType: bulkExamType,
+            marksObtained: '',
+            outOf: '100',
+            grade: 'A'
+        });
         setMarksError('');
         setSingleOpen(true);
     };
+
+    const formatCourseId = (id) => id ? String(id) : '';
 
     const openEditGrade = (g) => {
         setEditingGrade(g);
@@ -156,6 +190,7 @@ const GradesPage = () => {
             courseId: String(g.courseId || ''),
             examType: g.examType || 'MID TERM',
             marksObtained: g.marksObtained !== undefined && g.marksObtained !== null ? String(g.marksObtained) : '',
+            outOf: g.maxMarks > 0 ? String(g.maxMarks) : '100',
             grade: g.grade || 'A'
         });
         setMarksError('');
@@ -167,9 +202,14 @@ const GradesPage = () => {
     };
 
     const handleSaveGrade = async () => {
+        const max = parseFloat(formData.outOf);
         const marks = parseFloat(formData.marksObtained);
-        if (!Number.isFinite(marks) || marks < 0 || marks > 100) {
-            setMarksError('Marks must be between 0 and 100.');
+        if (!Number.isFinite(max) || max <= 0) {
+            setMarksError('Out of must be a positive number.');
+            return;
+        }
+        if (!Number.isFinite(marks) || marks < 0 || marks > max) {
+            setMarksError(`Marks must be between 0 and ${max}.`);
             return;
         }
         setMarksError('');
@@ -181,6 +221,7 @@ const GradesPage = () => {
                 courseId: parseInt(formData.courseId),
                 examType: formData.examType,
                 marksObtained: marks,
+                maxMarks: max,
                 grade: formData.grade
             };
             const refId = getSuccessRefId();
@@ -188,7 +229,7 @@ const GradesPage = () => {
             toast.success(editingGrade ? 'Grade updated.' : 'Grade saved successfully.', { refId });
             setSingleOpen(false);
             setEditingGrade(null);
-            setFormData({ studentId: '', courseId: '', examType: 'MID TERM', marksObtained: '', grade: 'A' });
+            setFormData({ studentId: '', courseId: formatCourseId(bulkCourseId), examType: bulkExamType, marksObtained: '', outOf: '100', grade: 'A' });
             refreshView();
         } catch (err) {
             const { message, status, refId } = getErrorMessage(err, 'Could not save this grade.');
@@ -198,7 +239,55 @@ const GradesPage = () => {
         }
     };
 
-    // Auto-load students into bulk table when course is chosen
+    // Auto-load students (with current grades) into bulk table when course/exam chosen
+    const loadBulkRoster = async (courseId, examType) => {
+        if (!courseId || !examType) { setBulkEntries([]); return; }
+        setBulkLoading(true);
+        try {
+            let rows;
+            try {
+                const res = await getGradeAssignmentMatrix(courseId, examType);
+                rows = res.data || [];
+            } catch (err) {
+                rows = [];
+            }
+            if (rows.length === 0) {
+                const res = await getEnrolledStudents(courseId);
+                rows = (res.data || []).map(s => ({
+                    studentId: s.id, studentName: s.name,
+                    enrollmentNo: s.username || s.enrollmentId || s.enrollmentNumber,
+                    marksObtained: null, grade: null, maxMarks: null
+                }));
+            }
+            if (rows.length === 0) {
+                rows = students.map(s => ({
+                    studentId: s.id, studentName: s.name,
+                    enrollmentNo: s.username || s.enrollmentId || s.enrollmentNumber,
+                    marksObtained: null, grade: null, maxMarks: null
+                }));
+                toast.info('No enrollments found for this course yet — using the full student list.');
+            }
+            const defaultOut = parseFloat(bulkOutOf) || 100;
+            setBulkEntries(rows.map(r => ({
+                studentId: r.studentId,
+                studentName: r.studentName,
+                enrollmentNumber: r.enrollmentNo || r.enrollmentNumber,
+                marks: r.marksObtained != null ? String(r.marksObtained) : '',
+                hadGrade: r.marksObtained != null,
+                currentMarks: r.marksObtained != null ? r.marksObtained : null,
+                currentGrade: r.grade || null,
+                grade: r.grade || '',
+                gradeManual: false,
+                outOf: r.maxMarks > 0 ? String(r.maxMarks) : String(defaultOut),
+                over: false
+            })));
+        } catch (err) {
+            toast.error('Could not load the student roster.');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     const handleBulkCourseSelect = async (courseId) => {
         if (bulkDirty && bulkEntries.some(e => e.marks !== '')) {
             // eslint-disable-next-line no-alert
@@ -207,61 +296,76 @@ const GradesPage = () => {
         setBulkCourseId(courseId);
         setBulkResult(null);
         setBulkDirty(false);
-        if (!courseId) { setBulkEntries([]); return; }
-        let roster = [];
+        if (!courseId) { setBulkEntries([]); setCourseExamTypes([]); return; }
+        let types = [];
         try {
-            const res = await getEnrolledStudents(courseId);
-            roster = res.data || [];
+            const res = await getCourseExamTypes(courseId);
+            types = res.data || [];
         } catch (err) {
-            roster = [];
+            types = [];
         }
-        if (roster.length === 0) {
-            roster = students;
-            toast.info('No enrollments found for this course yet — using the full student list.');
+        setCourseExamTypes(types);
+        const exam = types.includes(bulkExamType) ? bulkExamType : (types[0] || bulkExamType);
+        if (exam !== bulkExamType) setBulkExamType(exam);
+        await loadBulkRoster(courseId, exam);
+    };
+
+    const handleBulkExamTypeChange = (examType) => {
+        if (bulkDirty && bulkEntries.some(e => e.marks !== '')) {
+            // eslint-disable-next-line no-alert
+            if (!window.confirm('Switch exam type? Unsaved bulk marks will be lost.')) return;
         }
-        setBulkEntries(
-            roster.map(s => ({
-                studentId: s.id,
-                studentName: s.name,
-                enrollmentNumber: s.username || s.enrollmentId || s.enrollmentNumber,
-                marks: '',
-                grade: 'A'
-            }))
-        );
+        setBulkExamType(examType);
+        setBulkResult(null);
+        setBulkDirty(false);
+        loadBulkRoster(bulkCourseId, examType);
+    };
+
+    const handleBulkOutOfChange = (v) => {
+        setBulkOutOf(v);
+        const o = parseFloat(v);
+        if (Number.isFinite(o) && o > 0) {
+            setBulkDirty(true);
+            setBulkEntries(prev => prev.map(e => {
+                const e2 = { ...e, outOf: v };
+                if (e2.marks !== '') e2.grade = e2.gradeManual ? e2.grade : autoGrade(e2.marks, o);
+                return e2;
+            }));
+        }
     };
 
     const handleBulkEntryChange = (studentId, field, value) => {
         setBulkDirty(true);
         setBulkEntries(prev => prev.map(e =>
-            e.studentId === studentId ? { ...e, [field]: value } : e
+            e.studentId === studentId
+                ? { ...e, [field]: value, gradeManual: field === 'grade' ? (value !== '' ? true : e.gradeManual) : e.gradeManual }
+                : e
         ));
     };
 
-    // Auto-derive grade from marks
-    const autoGrade = (marks) => {
-        const m = parseFloat(marks);
-        if (isNaN(m)) return 'A';
-        if (m >= 90) return 'A';
-        if (m >= 75) return 'B';
-        if (m >= 60) return 'C';
-        if (m >= 50) return 'D';
-        if (m >= 40) return 'E';
-        return 'F';
+    // Auto-derive grade from marks (percentage is marks/outOf*100)
+    const autoGrade = (marks, outOf) => {
+        const p = pctOf(marks, outOf);
+        return Number.isFinite(p) ? gradeFromPct(p) : '';
     };
 
-    const isValidMarks = (marks) => {
+    const isValidMarks = (marks, outOf) => {
         if (marks === '' || marks === null || marks === undefined) return true;
         const m = parseFloat(marks);
-        return Number.isFinite(m) && m >= 0 && m <= 100;
+        const o = parseFloat(outOf) || 100;
+        return Number.isFinite(m) && m >= 0 && m <= o;
     };
 
     const handleBulkMarksChange = (studentId, marks) => {
         setBulkDirty(true);
-        setBulkEntries(prev => prev.map(e =>
-            e.studentId === studentId
-                ? { ...e, marks, grade: marks === '' ? e.grade : autoGrade(marks) }
-                : e
-        ));
+        setBulkEntries(prev => prev.map(e => {
+            if (e.studentId !== studentId) return e;
+            const outOf = parseFloat(e.outOf) || 100;
+            const m = parseFloat(marks);
+            const over = marks !== '' && (Number.isNaN(m) || m < 0 || m > outOf);
+            const grade = (marks === '' || e.gradeManual) ? e.grade : autoGrade(marks, e.outOf);
+            return { ...e, marks, grade, over };
+        }));
     };
 
     // Keyboard-friendly: Enter / ArrowDown moves to next row, ArrowUp to previous.
@@ -283,37 +387,52 @@ const GradesPage = () => {
     };
 
     const handleBulkSubmit = async () => {
-        const invalid = bulkEntries.filter(e => e.marks !== '' && !isValidMarks(e.marks));
+        if (!bulkCourseId) { toast.error('Select a course before saving.'); return; }
+        const invalid = bulkEntries.filter(e => e.over || (e.marks !== '' && !isValidMarks(e.marks, e.outOf)));
         if (invalid.length > 0) {
-            toast.error(`${invalid.length} row(s) have marks outside 0–100. Fix the highlighted rows.`);
+            toast.error(`${invalid.length} row(s) have marks outside their allowed range. Fix the highlighted rows.`);
             const first = invalid[0];
             focusMarks(first.studentId);
             return;
         }
-        const filled = bulkEntries.filter(e => e.marks !== '' && !isNaN(parseFloat(e.marks)));
+        const filled = bulkEntries.filter(e => e.marks !== '' && !Number.isNaN(parseFloat(e.marks)));
         if (filled.length === 0) { toast.error('Please enter marks for at least one student.'); return; }
-        if (!bulkCourseId) { toast.error('Select a course before saving.'); return; }
+
+        const existing = filled.filter(e => e.hadGrade);
+        const overwrittenCount = existing.length;
+        let submitted = filled;
+        let skipped = 0;
+        if (!bulkOverwrite && existing.length > 0) {
+            submitted = filled.filter(e => !e.hadGrade);
+            skipped = existing.length;
+        } else if (existing.length > 0) {
+            // eslint-disable-next-line no-alert
+            if (!window.confirm(`Overwrite the existing ${existing.length} grade(s) for this subject exam?`)) return;
+        }
+        if (submitted.length === 0) { toast.info('No rows to save — existing grades are being kept.'); return; }
 
         setBulkSaving(true);
         setBulkResult(null);
-
         try {
-            const payload = filled.map(entry => ({
+            const payload = submitted.map(entry => ({
                 studentId: entry.studentId,
                 courseId: parseInt(bulkCourseId),
                 examType: bulkExamType,
                 marksObtained: safeParseFloat(entry.marks),
-                grade: entry.grade
+                maxMarks: parseFloat(entry.outOf) || 100,
+                grade: entry.grade || autoGrade(entry.marks, entry.outOf)
             }));
-
             const res = await bulkSaveGrade(payload);
-            const saved = res.data?.saved ?? filled.length;
-            setBulkResult({ saved, failed: filled.length - saved, total: filled.length });
+            const saved = res.data?.saved ?? submitted.length;
+            const failed = submitted.length - saved;
+            setBulkResult({ saved, failed, skipped, overwritten: overwrittenCount, total: filled.length });
             setBulkDirty(false);
+            try { localStorage.removeItem('cm_bulk_draft'); } catch (err) { /* ignore */ }
             const refId = getSuccessRefId();
-            if (filled.length - saved === 0) toast.success(`Saved ${saved} of ${filled.length} grades.`, { refId });
-            else toast.info(`Saved ${saved} of ${filled.length} grades. Some rows failed (may be duplicates).`, { refId });
+            if (failed === 0 && skipped === 0) toast.success(`Saved ${saved} of ${filled.length} grades.`, { refId });
+            else toast.info(`Saved ${saved}; ${overwrittenCount} overwritten, ${skipped} kept as-is.`, { refId });
             refreshView();
+            loadBulkRoster(bulkCourseId, bulkExamType);
         } catch (err) {
             const { message, status, refId } = getErrorMessage(err, 'Could not bulk save grades.');
             toast.error(message, { refId, details: { status } });
@@ -321,6 +440,47 @@ const GradesPage = () => {
             setBulkSaving(false);
         }
     };
+
+    const handleDeleteGrade = async (g) => {
+        // eslint-disable-next-line no-alert
+        if (!window.confirm(`Delete the ${g.examType} grade for ${g.studentName || 'this student'}?`)) return;
+        try {
+            await deleteGrade(g.id);
+            toast.success('Grade deleted.');
+            refreshView();
+        } catch (err) {
+            const { message, status, refId } = getErrorMessage(err, 'Could not delete this grade.');
+            toast.error(message, { refId, details: { status } });
+        }
+    };
+
+    // Persist in-progress bulk entries so a refresh doesn't lose work.
+    useEffect(() => {
+        if (bulkDirty && (bulkCourseId || bulkEntries.length > 0)) {
+            try {
+                localStorage.setItem('cm_bulk_draft', JSON.stringify({ bulkCourseId, bulkExamType, bulkOutOf, bulkEntries, savedAt: Date.now() }));
+            } catch (err) { /* ignore */ }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bulkEntries, bulkCourseId, bulkExamType, bulkOutOf, bulkDirty]);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('cm_bulk_draft');
+            if (raw) {
+                const draft = JSON.parse(raw);
+                if (draft.bulkCourseId && draft.bulkEntries && draft.bulkEntries.length > 0) {
+                    setBulkCourseId(draft.bulkCourseId);
+                    setBulkExamType(draft.bulkExamType || 'MID TERM');
+                    setBulkOutOf(draft.bulkOutOf || '100');
+                    setBulkEntries(draft.bulkEntries);
+                    setBulkDirty(true);
+                    toast.info('Restored unsaved bulk entry from your last session.');
+                }
+            }
+        } catch (err) { /* ignore */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const generateTranscript = () => {
         const dataToExport = viewFilter ? grades.filter(g =>
@@ -369,6 +529,14 @@ const GradesPage = () => {
 
         doc.save(`${studentName.replace(/\s+/g, '_')}_Transcript.pdf`);
     };
+
+    const filledCount = bulkEntries.filter(e => e.marks !== '').length;
+    const existingCount = bulkEntries.filter(e => e.hadGrade).length;
+    const passCount = bulkEntries.filter(e => e.marks !== '' && e.grade && e.grade !== 'F').length;
+    const pendingCount = bulkEntries.filter(e => e.marks === '').length;
+    const visibleCourses = deptFilter
+        ? courses.filter(c => String(c.departmentId) === String(deptFilter))
+        : courses;
 
     return (
         <div className="page-container">
@@ -541,8 +709,9 @@ const GradesPage = () => {
                                                 </span>
                                             </td>
                                             {canEdit && (
-                                                <td style={{ textAlign: 'right' }}>
-                                                    <button className="btn btn-sm btn-secondary" onClick={() => openEditGrade(g)}>Edit</button>
+                                                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                    <button className="btn btn-sm btn-secondary" onClick={() => openEditGrade(g)}>Edit</button>{' '}
+                                                    <button className="btn btn-sm btn-danger" onClick={() => handleDeleteGrade(g)}>Delete</button>
                                                 </td>
                                             )}
                                         </tr>
@@ -557,6 +726,30 @@ const GradesPage = () => {
 
             {activeTab === 'manage' && (
                 <div className="stat-card">
+                    {canEdit && (
+                        <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
+                                <label>Department (filter)</label>
+                                <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+                                    <option value="">All Departments</option>
+                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ margin: 0, flex: '2 1 220px' }}>
+                                <label>Subject (assignment target)</label>
+                                <select value={bulkCourseId} onChange={e => handleBulkCourseSelect(e.target.value)}>
+                                    <option value="">-- Select Subject --</option>
+                                    {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
+                                <label>Exam Type (assignment target)</label>
+                                <select value={bulkExamType} onChange={e => handleBulkExamTypeChange(e.target.value)}>
+                                    {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                         <div>
                             <h3 style={{ margin: 0 }}>Record Student Grade</h3>
@@ -593,29 +786,27 @@ const GradesPage = () => {
                 <form onSubmit={(e) => { e.preventDefault(); handleSaveGrade(); }} className="form-grid">
                     <div className="form-group">
                         <label className="form-label">Student *</label>
-                        <select
-                            required
-                            className="form-control"
-                            value={formData.studentId}
+                        <SearchableSelect
+                            options={students.map(s => ({ value: s.id, label: `${s.name} (${s.username || s.enrollmentId || s.enrollmentNumber || 'N/A'})` }))}
+                            value={formData.studentId ? Number(formData.studentId) : ''}
+                            onChange={v => setFormData({ ...formData, studentId: String(v) })}
+                            placeholder="Search student by name or enrollment…"
                             disabled={Boolean(editingGrade)}
-                            onChange={e => setFormData({ ...formData, studentId: e.target.value })}
-                        >
-                            <option value="">-- Select Student --</option>
-                            {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.username || s.enrollmentId || s.enrollmentNumber || 'N/A'})</option>)}
-                        </select>
+                        />
+                        {Boolean(editingGrade) &&
+                            <span className="field-hint">Student can't be changed on edit.</span>}
                     </div>
                     <div className="form-group">
                         <label className="form-label">Subject *</label>
-                        <select
-                            required
-                            className="form-control"
-                            value={formData.courseId}
+                        <SearchableSelect
+                            options={visibleCourses.map(c => ({ value: c.id, label: `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}` }))}
+                            value={formData.courseId ? Number(formData.courseId) : ''}
+                            onChange={v => setFormData({ ...formData, courseId: String(v) })}
+                            placeholder="Search subject by code or name…"
                             disabled={Boolean(editingGrade)}
-                            onChange={e => setFormData({ ...formData, courseId: e.target.value })}
-                        >
-                            <option value="">-- Select Subject --</option>
-                            {courses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
-                        </select>
+                        />
+                        {Boolean(editingGrade) &&
+                            <span className="field-hint">Subject can't be changed on edit.</span>}
                     </div>
                     <div className="form-group">
                         <label className="form-label">Exam Type *</label>
@@ -626,39 +817,50 @@ const GradesPage = () => {
                             disabled={Boolean(editingGrade)}
                             onChange={e => setFormData({ ...formData, examType: e.target.value })}
                         >
-                            <option value="MID TERM">Mid Term</option>
-                            <option value="END TERM">End Term</option>
-                            <option value="ASSIGNMENT">Assignment</option>
-                            <option value="PRACTICAL">Practical</option>
+                            {(courseExamTypes.length ? EXAM_TYPES.concat(courseExamTypes.filter(t => !EXAM_TYPES.includes(t))) : EXAM_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                         {Boolean(editingGrade) &&
                             <span className="field-hint">Exam type can't be changed on edit — it identifies the grade record.</span>}
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Marks Obtained (0–100) *</label>
+                        <label className="form-label">Out Of *</label>
+                        <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            required
+                            className="form-control"
+                            value={formData.outOf}
+                            disabled={Boolean(editingGrade)}
+                            onChange={e => setFormData({ ...formData, outOf: e.target.value })}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Marks Obtained *</label>
                         <input
                             type="number"
                             step="0.1"
                             min="0"
-                            max="100"
+                            max={formData.outOf || 100}
                             required
                             className={`form-control${marksError ? ' is-invalid' : ''}`}
                             value={formData.marksObtained}
                             onChange={e => {
                                 const v = e.target.value;
+                                const outOf = parseFloat(formData.outOf) || 100;
                                 setFormData(prev => {
-                                    const sg = suggestedGrade(v);
+                                    const sg = suggestedGrade(v, prev.outOf);
                                     return { ...prev, marksObtained: v, grade: v === '' ? prev.grade : (sg || prev.grade) };
                                 });
                                 const m = parseFloat(v);
-                                if (v !== '' && (!Number.isFinite(m) || m < 0 || m > 100)) setMarksError('Marks must be between 0 and 100.');
+                                if (v !== '' && (!Number.isFinite(m) || m < 0 || m > outOf)) setMarksError(`Marks must be between 0 and ${outOf}.`);
                                 else setMarksError('');
                             }}
                             aria-invalid={Boolean(marksError)}
                         />
                         {marksError
                             ? <span className="field-error" role="alert">{marksError}</span>
-                            : <span className="field-hint">Allowed range 0–100. Grade auto-suggests: {suggestedGrade(formData.marksObtained) || '—'} (A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 50, E ≥ 40).</span>}
+                            : <span className="field-hint">Allowed range 0–{formData.outOf || 100}. Grade auto-suggests: {suggestedGrade(formData.marksObtained, formData.outOf) || '—'} (A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 50, E ≥ 40 percentage).</span>}
                     </div>
                     <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="form-label">Letter Grade *</label>
@@ -668,7 +870,7 @@ const GradesPage = () => {
                             value={formData.grade}
                             onChange={e => setFormData({ ...formData, grade: e.target.value })}
                         >
-                            {GRADES.map(g => <option key={g} value={g}>{g}{suggestedGrade(formData.marksObtained) === g ? ' (suggested)' : ''}</option>)}
+                            {GRADES.map(g => <option key={g} value={g}>{g}{suggestedGrade(formData.marksObtained, formData.outOf) === g ? ' (suggested)' : ''}</option>)}
                         </select>
                     </div>
                 </form>
@@ -683,38 +885,80 @@ const GradesPage = () => {
             )}
             {activeTab === 'bulk' && (
                 <div>
-                    <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+<div style={{ marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span className="badge badge-primary">Keyboard: Enter/↓ next row, ↑ previous</span>
                         {bulkDirty && <span className="badge badge-warning">Unsaved changes</span>}
                         {bulkSaving && <span className="badge badge-primary">Saving…</span>}
+                        {bulkLoading && <span className="badge badge-primary">Loading roster…</span>}
                     </div>
                     {/* Config row */}
                     <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                        <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
+                            <label>Department (filter)</label>
+                            <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+                                <option value="">All Departments</option>
+                                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                        </div>
                         <div className="form-group" style={{ margin: 0, flex: '2 1 200px' }}>
                             <label>Course *</label>
                             <select required value={bulkCourseId} onChange={e => handleBulkCourseSelect(e.target.value)}>
                                 <option value="">-- Select Course --</option>
-                                {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
                             </select>
                         </div>
-                        <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
+                        <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
                             <label>Exam Type *</label>
-                            <select required value={bulkExamType} onChange={e => setBulkExamType(e.target.value)}>
-                                {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            <select required value={bulkExamType} onChange={e => handleBulkExamTypeChange(e.target.value)}>
+                                {(courseExamTypes.length ? EXAM_TYPES.concat(courseExamTypes.filter(t => !EXAM_TYPES.includes(t))) : EXAM_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
+                        <div className="form-group" style={{ margin: 0, flex: '1 1 130px' }}>
+                            <label>Out Of (default)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={bulkOutOf}
+                                onChange={e => handleBulkOutOfChange(e.target.value)}
+                                style={{ padding: '7px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.9rem', width: '100%' }}
+                            />
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', flex: '1 1 180px', fontSize: '0.85rem', gap: '6px', color: '#475569' }}>
+                            <input
+                                type="checkbox"
+                                checked={bulkOverwrite}
+                                onChange={e => setBulkOverwrite(e.target.checked)}
+                            />
+                            Overwrite existing grades
+                        </label>
                     </div>
+
+                    {/* Assignment summary */}
+                    {bulkCourseId && !bulkLoading && bulkEntries.length > 0 && (
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                            <span className="badge badge-primary">{filledCount}/{bulkEntries.length} graded · {pendingCount} pending</span>
+                            <span className="badge badge-success">Pass: {passCount}</span>
+                            <span className="badge badge-secondary">Existing: {existingCount}</span>
+                            {GRADES.map(g => {
+                                const c = bulkEntries.filter(e => e.grade === g).length;
+                                return c > 0 ? <span key={g} className="badge badge-warning">{g}: {c}</span> : null;
+                            })}
+                        </div>
+                    )}
 
                     {/* Result banner */}
                     {bulkResult && (
                         <div style={{
                             padding: '12px 16px', borderRadius: '8px', marginBottom: '16px',
-                            background: bulkResult.failed === 0 ? '#f0fff4' : '#fffaf0',
-                            border: `1px solid ${bulkResult.failed === 0 ? '#9ae6b4' : '#fbd38d'}`
+                            background: bulkResult.failed === 0 && bulkResult.skipped === 0 ? '#f0fff4' : '#fffaf0',
+                            border: `1px solid ${bulkResult.failed === 0 && bulkResult.skipped === 0 ? '#9ae6b4' : '#fbd38d'}`
                         }}>
-                            <strong>{bulkResult.failed === 0 ? '✅' : '⚠️'}</strong>&nbsp;
-                            Saved <strong>{bulkResult.saved}</strong> grades.
-                            {bulkResult.failed > 0 && <span style={{ color: '#c05621' }}> {bulkResult.failed} failed (may be duplicate entries).</span>}
+                            <strong>{bulkResult.failed === 0 && bulkResult.skipped === 0 ? '✅' : '⚠️'}</strong>&nbsp;
+                            Saved <strong>{bulkResult.saved}</strong> of <strong>{bulkResult.total}</strong> graded rows.
+                            {bulkResult.overwritten > 0 && <span style={{ color: '#b7791f' }}> {bulkResult.overwritten} overwritten.</span>}
+                            {bulkResult.skipped > 0 && <span style={{ color: '#c05621' }}> {bulkResult.skipped} skipped (kept existing grades).</span>}
+                            {bulkResult.failed > 0 && <span style={{ color: '#c05621' }}> {bulkResult.failed} failed.</span>}
                         </div>
                     )}
 
@@ -738,31 +982,40 @@ const GradesPage = () => {
                                 </button>
                             </div>
 
+{bulkLoading ? (
+                            <div style={{ marginTop: '8px' }}><SkeletonTable rows={6} cols={4} /></div>
+                        ) : (
                             <div className="data-table-container">
                                 <table className="data-table">
                                     <thead>
                                         <tr>
                                             <th>Student Name</th>
                                             <th>Enrollment No</th>
-                                            <th style={{ width: '140px' }}>Marks (0–100)</th>
+                                            <th style={{ width: '120px' }}>Marks</th>
+                                            <th style={{ width: '100px' }}>Out Of</th>
                                             <th style={{ width: '110px' }}>Grade</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {bulkEntries.map((entry, idx) => {
-                                            const invalid = entry.marks !== '' && !isValidMarks(entry.marks);
+                                            const invalid = entry.over || (entry.marks !== '' && !isValidMarks(entry.marks, entry.outOf));
+                                            const rowMax = parseFloat(entry.outOf) || 100;
                                             return (
                                             <tr key={entry.studentId} style={{ background: invalid ? '#fff5f5' : entry.marks !== '' ? '#f7fffe' : 'white' }}>
-                                                <td style={{ fontWeight: '500' }}>{entry.studentName}</td>
+                                                <td style={{ fontWeight: '500' }}>
+                                                    {entry.studentName}
+                                                    {entry.hadGrade && <span style={{ marginLeft: '6px', color: '#b7791f', fontSize: '.72rem', background: '#fef3c7', padding: '1px 6px', borderRadius: '4px' }}>existing</span>}
+                                                    {entry.gradeManual && entry.grade !== '' && <span style={{ marginLeft: '6px', color: '#6d28d9', fontSize: '.72rem', background: '#ede9fe', padding: '1px 6px', borderRadius: '4px' }}>manual</span>}
+                                                </td>
                                                 <td style={{ color: '#718096', fontSize: '0.85rem' }}>{entry.enrollmentNumber || '—'}</td>
                                                 <td>
                                                     <input
                                                         ref={(el) => { marksRefs.current[entry.studentId] = el; }}
                                                         type="number"
-                                                        min="0" max="100" step="0.5"
+                                                        min="0" max={rowMax} step="0.5"
                                                         placeholder="—"
                                                         value={entry.marks}
-                                                        aria-label={`Marks for ${entry.studentName} (0 to 100)`}
+                                                        aria-label={`Marks for ${entry.studentName} (0 to ${rowMax})`}
                                                         aria-invalid={invalid}
                                                         onChange={e => handleBulkMarksChange(entry.studentId, e.target.value)}
                                                         onKeyDown={e => handleBulkKeyDown(e, idx)}
@@ -772,7 +1025,20 @@ const GradesPage = () => {
                                                             background: invalid ? '#fff5f5' : entry.marks !== '' ? '#ebf8ff' : 'white'
                                                         }}
                                                     />
-                                                    {invalid && <div style={{ color: '#b42318', fontSize: '.72rem', marginTop: '2px' }}>0–100 only</div>}
+                                                    {invalid && <div style={{ color: '#b42318', fontSize: '.72rem', marginTop: '2px' }}>0–{rowMax} only</div>}
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="number"
+                                                        min="1" step="1"
+                                                        value={entry.outOf}
+                                                        aria-label={`Out of for ${entry.studentName}`}
+                                                        onChange={e => handleBulkEntryChange(entry.studentId, 'outOf', e.target.value)}
+                                                        style={{
+                                                            width: '100%', padding: '5px 8px', border: '1px solid #e2e8f0',
+                                                            borderRadius: '6px', outline: 'none', fontSize: '0.9rem'
+                                                        }}
+                                                    />
                                                 </td>
                                                 <td>
                                                     <select
@@ -785,15 +1051,24 @@ const GradesPage = () => {
                                                             fontWeight: '600'
                                                         }}
                                                     >
+                                                        <option value="">—</option>
                                                         {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
                                                     </select>
                                                 </td>
                                             </tr>
                                             );
                                         })}
+                                        {bulkEntries.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>
+                                                    No enrolled students found for this subject exam.
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
+                        )}
 
                             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', position: 'sticky', bottom: 0, background: '#fff', padding: '12px 0', borderTop: '1px solid var(--border)' }}>
                                 <div style={{ fontSize: '.8rem', color: bulkDirty ? '#b54708' : '#667085' }} role="status">

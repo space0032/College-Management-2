@@ -3,8 +3,11 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.GradeDAO;
+import com.college.dao.FacultyDAO;
 import com.college.models.Grade;
+import com.college.models.Role;
 import com.college.utils.JsonHelper;
+import com.college.utils.PermissionService;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.List;
@@ -46,6 +49,21 @@ public class GradeController extends BaseController implements HttpHandler {
             } else if (path.matches(".*/grades/course/\\d+")) {
                 if ("GET".equals(method))
                     handleGetCourseGrades(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/grades/matrix")) {
+                if ("GET".equals(method))
+                    handleGetAssignmentMatrix(t);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/grades/exam-types/\\d+")) {
+                if ("GET".equals(method))
+                    handleGetCourseExamTypes(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/grades/\\d+")) {
+                if ("DELETE".equals(method))
+                    handleDeleteGrade(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/grades/bulk.*")) {
@@ -129,6 +147,8 @@ public class GradeController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (!requireGradeEditAccess(t, grade.getCourseId()))
+            return;
         String validation = validateGrade(grade);
         if (validation != null) {
             sendResponse(t, 400, errorJson(validation));
@@ -158,11 +178,81 @@ public class GradeController extends BaseController implements HttpHandler {
             if (validateGrade(g) != null) {
                 continue; // skip invalid entries, report only valid saves
             }
+            if (!requireGradeEditAccess(t, g.getCourseId()))
+                return; // 403 already sent
             if (gradeDAO.saveGrade(g)) {
                 count++;
             }
         }
         sendResponse(t, 200, "{\"saved\":" + count + "}");
+    }
+
+    private void handleGetAssignmentMatrix(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
+        Map<String, String> params = getQueryMap(t);
+        int courseId = getIntParam(params, "courseId", 0);
+        String examType = params.get("examType");
+        if (courseId <= 0 || examType == null || examType.trim().isEmpty()) {
+            sendResponse(t, 400, errorJson("courseId and examType are required"));
+            return;
+        }
+        List<GradeDAO.AssignmentRow> rows = gradeDAO.getAssignmentMatrix(courseId, examType.trim());
+        sendResponse(t, 200, JsonHelper.toJson(rows));
+    }
+
+    private void handleGetCourseExamTypes(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_GRADES"))
+            return;
+        String[] parts = path.split("/");
+        int courseId = Integer.parseInt(parts[parts.length - 1]);
+        List<String> types = gradeDAO.getCourseExamTypes(courseId);
+        sendResponse(t, 200, JsonHelper.toJson(types));
+    }
+
+    private void handleDeleteGrade(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_GRADES"))
+            return;
+        String[] parts = path.split("/");
+        int gradeId = Integer.parseInt(parts[parts.length - 1]);
+        Grade existing = gradeDAO.getGradeById(gradeId);
+        if (existing == null) {
+            sendResponse(t, 404, errorJson("Grade not found"));
+            return;
+        }
+        if (!requireGradeEditAccess(t, existing.getCourseId()))
+            return;
+        if (gradeDAO.deleteGrade(gradeId)) {
+            sendResponse(t, 200, "{\"message\":\"Grade deleted\"}");
+        } else {
+            sendResponse(t, 400, errorJson("Failed to delete grade"));
+        }
+    }
+
+    /**
+     * Permission + course-ownership gate for grade mutations. Admins may edit
+     * any course; faculty are restricted to the subjects they teach. Sends the
+     * appropriate error response itself and returns false when access is denied.
+     */
+    private boolean requireGradeEditAccess(HttpExchange t, int courseId) throws IOException {
+        if (courseId <= 0)
+            return true; // validation below reports the precise error
+        TokenStore.TokenInfo info = getTokenInfo(t);
+        if (info == null)
+            return false; // requirePermission already handled this upstream
+        Role role = PermissionService.getInstance().getUserRole(info.userId);
+        if (role != null && "ADMIN".equalsIgnoreCase(role.getCode()))
+            return true;
+        com.college.models.Faculty f = new FacultyDAO().getFacultyByUserId(info.userId);
+        if (f == null) {
+            sendResponse(t, 403, errorJson("Only faculty or admin can assign grades"));
+            return false;
+        }
+        if (!gradeDAO.isCourseInstructor(f.getId(), courseId)) {
+            sendResponse(t, 403, errorJson("You can only grade subjects you teach"));
+            return false;
+        }
+        return true;
     }
 
     private static final java.util.Set<String> VALID_GRADES =
@@ -182,8 +272,9 @@ public class GradeController extends BaseController implements HttpHandler {
         if (g.getExamType() == null || g.getExamType().trim().isEmpty())
             return "Exam type is required";
         double marks = g.getMarksObtained();
-        if (Double.isNaN(marks) || Double.isInfinite(marks) || marks < 0 || marks > 100)
-            return "Marks must be between 0 and 100";
+        double max = g.getMaxMarks() > 0 ? g.getMaxMarks() : 100;
+        if (Double.isNaN(marks) || Double.isInfinite(marks) || marks < 0 || marks > max)
+            return "Marks must be between 0 and " + max;
         if (g.getGrade() == null || !VALID_GRADES.contains(g.getGrade().trim()))
             return "Grade must be one of A, B, C, D, E, F";
         return null;
