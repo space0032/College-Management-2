@@ -41,16 +41,20 @@ public class RoleController extends BaseController implements HttpHandler {
                     handleDelete(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else {
+            } else if (path.equals("/api/roles")) {
                 if ("GET".equals(method))
                     handleGetAll(t);
                 else if ("POST".equals(method))
                     handleCreate(t);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            }
+            } else sendResponse(t, 404, errorJson("Not found"));
+        } catch (com.college.utils.ManagementException e) {
+            sendResponse(t, e.getStatus(), errorJson(e.getMessage()));
+        } catch (com.google.gson.JsonParseException | IllegalArgumentException e) {
+            sendResponse(t, 400, errorJson("Invalid role input"));
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
+            sendResponse(t, 500, errorJson("Could not complete role request"));
         }
     }
 
@@ -85,10 +89,15 @@ public class RoleController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Role name must contain letters or numbers"));
             return;
         }
+        role.setCode(role.getCode().trim().toUpperCase(java.util.Locale.ROOT));
+        if (!role.getCode().matches("[A-Z][A-Z0-9_]{0,49}") || name.length() > 100) {
+            sendResponse(t, 400, errorJson("Role code must start with a letter and contain up to 50 uppercase letters, digits or underscores; name must be at most 100 characters.")); return;
+        }
         role.setSystemRole(false);
         if (role.getPortalType() == null || role.getPortalType().isBlank()) {
             role.setPortalType("ADMIN");
         }
+        if (!java.util.Set.of("ADMIN", "FACULTY", "STUDENT", "WARDEN", "FINANCE").contains(role.getPortalType())) { sendResponse(t, 400, errorJson("Invalid portal type")); return; }
         boolean ok = roleDAO.createRole(role);
         if (ok)
             sendResponse(t, 201, JsonHelper.toJson(role));
@@ -100,11 +109,8 @@ public class RoleController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "DELETE_ROLE"))
             return;
         int id = extractId(path);
-        boolean ok = roleDAO.deleteRole(id);
-        if (ok)
-            sendResponse(t, 200, "{\"status\":\"Deleted\"}");
-        else
-            sendResponse(t, 400, errorJson("Failed to delete role"));
+        new com.college.dao.AccessManagementDAO().deleteRole(id);
+        sendResponse(t, 200, JSON.toJson(java.util.Map.of("status", "Deleted")));
     }
 
     private int extractId(String path) {
@@ -143,14 +149,16 @@ public class RoleController extends BaseController implements HttpHandler {
         int roleId;
         try {
             roleId = Integer.parseInt(parts[parts.length - 2]);
-        } catch (NumberFormatException e) {
+        } catch (ArithmeticException | NumberFormatException e) {
             sendResponse(t, 400, errorJson("Invalid role id in path"));
             return;
         }
-        if (roleDAO.getRoleById(roleId) == null) {
+        Role targetRole = roleDAO.getRoleById(roleId);
+        if (targetRole == null) {
             sendResponse(t, 404, errorJson("Role not found"));
             return;
         }
+        if ("ADMIN".equalsIgnoreCase(targetRole.getCode())) { sendResponse(t, 409, errorJson("Administrator access is built in and cannot be edited.")); return; }
         String body = readBody(t);
         List<Integer> permIds;
         try {
@@ -200,7 +208,7 @@ public class RoleController extends BaseController implements HttpHandler {
      * Elements may be numbers or numeric strings. Throws IllegalArgumentException
      * with a human-readable message for any malformed input.
      */
-    private List<Integer> parsePermissionIds(String body) {
+    static List<Integer> parsePermissionIds(String body) {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Invalid JSON: empty request body");
         }
@@ -228,22 +236,26 @@ public class RoleController extends BaseController implements HttpHandler {
         java.util.LinkedHashSet<Integer> ids = new java.util.LinkedHashSet<>();
         for (com.google.gson.JsonElement el : arr) {
             if (el.isJsonNull()) {
-                continue;
+                throw new IllegalArgumentException("Permission IDs cannot be null");
             }
             try {
                 if (el.isJsonPrimitive()) {
                     com.google.gson.JsonPrimitive prim = el.getAsJsonPrimitive();
                     if (prim.isNumber()) {
-                        ids.add(prim.getAsInt());
+                        int id = prim.getAsBigDecimal().intValueExact();
+                        if (id <= 0) throw new IllegalArgumentException("Permission IDs must be positive");
+                        ids.add(id);
                     } else if (prim.isString()) {
-                        ids.add(Integer.parseInt(prim.getAsString().trim()));
+                        int id = Integer.parseInt(prim.getAsString().trim());
+                        if (id <= 0) throw new IllegalArgumentException("Permission IDs must be positive");
+                        ids.add(id);
                     } else if (prim.isBoolean()) {
                         throw new IllegalArgumentException("Invalid JSON: permission IDs must be numbers");
                     }
                 } else {
                     throw new IllegalArgumentException("Invalid JSON: permission IDs must be numbers");
                 }
-            } catch (NumberFormatException e) {
+            } catch (ArithmeticException | NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid JSON: permission IDs must be numbers");
             }
         }

@@ -65,7 +65,8 @@ public class H2SchemaInitializer {
         "V64__Add_Specializations_Master.sql",
         "V69__Complete_Fee_Management.sql",
         "V70__Warden_Gate_Pass_Permissions.sql",
-        "V71__Ensure_Warden_Role_Assigned.sql"
+        "V71__Ensure_Warden_Role_Assigned.sql",
+            "V72__Unique_Payroll_Period.sql"
     };
 
     /**
@@ -86,7 +87,7 @@ public class H2SchemaInitializer {
 
             for (String fileName : MIGRATIONS) {
                 String version = extractVersion(fileName);
-                
+
                 if (isMigrationApplied(conn, version)) {
                     skipped++;
                     continue;
@@ -96,6 +97,7 @@ public class H2SchemaInitializer {
                     applyMigration(conn, fileName, version);
                     applied++;
                 } catch (Exception e) {
+                    if (e instanceof PayrollMigration.Failure) throw (PayrollMigration.Failure) e;
                     Logger.warn("[H2SchemaInit] Migration " + fileName + " failed (may be expected): " + e.getMessage());
                     // Continue with other migrations — some may fail due to 
                     // IF NOT EXISTS / ON CONFLICT which is fine
@@ -105,6 +107,7 @@ public class H2SchemaInitializer {
             Logger.info("[H2SchemaInit] H2 schema initialization complete. Applied: " + applied + ", Skipped: " + skipped);
 
         } catch (Exception e) {
+            if (e instanceof PayrollMigration.Failure) throw (PayrollMigration.Failure) e;
             Logger.error("[H2SchemaInit] Failed to initialize H2 schema", e);
         }
     }
@@ -142,7 +145,7 @@ public class H2SchemaInitializer {
      */
     private static void applyMigration(Connection conn, String fileName, String version) throws Exception {
         String path = "/db/migration/" + fileName;
-        
+
         try (InputStream is = H2SchemaInitializer.class.getResourceAsStream(path)) {
             if (is == null) {
                 Logger.warn("[H2SchemaInit] Migration file not found: " + path);
@@ -159,7 +162,9 @@ public class H2SchemaInitializer {
             // Execute migration (split by semicolons for multiple statements)
             conn.setAutoCommit(false);
             try (Statement stmt = conn.createStatement()) {
-                String[] statements = sql.split(";");
+                boolean payroll = fileName.equals("V72__Unique_Payroll_Period.sql");
+                if (payroll) PayrollMigration.apply(conn);
+                String[] statements = payroll ? new String[0] : sql.split(";");
                 for (String s : statements) {
                     String trimmed = s.trim();
                     if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {

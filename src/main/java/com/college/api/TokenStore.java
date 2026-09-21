@@ -37,6 +37,11 @@ public class TokenStore {
         tokens.remove(token);
     }
 
+    public static void removeTokensForUser(int userId) { tokens.entrySet().removeIf(entry -> entry.getValue().userId == userId); }
+    public static void refreshRoleForUser(int userId, String role) {
+        tokens.replaceAll((token, info) -> info.userId == userId ? new TokenInfo(info.userId, info.username, role, info.expiresAt) : info);
+    }
+
     public static class TokenInfo {
         public final int userId;
         public final String username;

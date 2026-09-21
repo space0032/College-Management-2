@@ -23,7 +23,7 @@ public class RoleDAO {
                 "FROM roles r " +
                 "LEFT JOIN role_permissions rp ON rp.role_id = r.id " +
                 "LEFT JOIN permissions p ON p.id = rp.permission_id " +
-                "ORDER BY r.name, p.name";
+                "ORDER BY r.name, r.id, p.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
@@ -56,7 +56,7 @@ public class RoleDAO {
             }
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
 
         return roles;
@@ -77,7 +77,7 @@ public class RoleDAO {
                 return role;
             }
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return null;
     }
@@ -86,8 +86,7 @@ public class RoleDAO {
         try (Connection conn = DatabaseConnection.getConnection()) {
             return getRoleByCode(conn, code);
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-            return null;
+            throw com.college.utils.ManagementException.database(e);
         }
     }
 
@@ -108,7 +107,7 @@ public class RoleDAO {
                 return role;
             }
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return null;
     }
@@ -130,7 +129,7 @@ public class RoleDAO {
                 return role;
             }
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return null;
     }
@@ -156,7 +155,7 @@ public class RoleDAO {
                 return true;
             }
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return false;
     }
@@ -175,9 +174,8 @@ public class RoleDAO {
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
-        return false;
     }
 
     public boolean assignPermissionToRole(int roleId, int permissionId) {
@@ -190,9 +188,8 @@ public class RoleDAO {
             stmt.setInt(2, permissionId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
-        return false;
     }
 
     public boolean removePermissionFromRole(int roleId, int permissionId) {
@@ -205,9 +202,8 @@ public class RoleDAO {
             stmt.setInt(2, permissionId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
-        return false;
     }
 
     public boolean setRolePermissions(int roleId, List<Integer> permissionIds) {
@@ -223,6 +219,10 @@ public class RoleDAO {
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
+            try (PreparedStatement lock = conn.prepareStatement("SELECT id FROM roles WHERE id = ? FOR UPDATE")) {
+                lock.setInt(1, roleId);
+                try (ResultSet rs = lock.executeQuery()) { if (!rs.next()) throw new SQLException("Role no longer exists", "23503"); }
+            }
 
             try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
                 deleteStmt.setInt(1, roleId);
@@ -246,13 +246,12 @@ public class RoleDAO {
             conn.commit();
             return true;
         } catch (SQLException e) {
-            Logger.error("Failed to set role permissions", e);
             try {
                 if (conn != null)
                     conn.rollback();
             } catch (Exception ex) {
             }
-            return false;
+            throw com.college.utils.ManagementException.database(e);
         } finally {
             try {
                 if (conn != null) {
@@ -265,51 +264,17 @@ public class RoleDAO {
     }
 
     public boolean deleteRole(int roleId) {
-        // 1. Check if it's a protected system role
-        String checkSql = "SELECT code FROM roles WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(checkSql)) {
-            pstmt.setInt(1, roleId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                String code = rs.getString("code");
-                if ("ADMIN".equalsIgnoreCase(code) || "WARDEN".equalsIgnoreCase(code)
-                        || "FINANCE".equalsIgnoreCase(code) || "FACULTY".equalsIgnoreCase(code)
-                        || "STUDENT".equalsIgnoreCase(code)) {
-                    Logger.error("Attempt to delete system role prevented: " + code);
-                    return false; // Prevent deletion
-                }
-            }
-        } catch (SQLException e) {
-            Logger.error("Failed to check role type", e);
-            return false;
-        }
-
-        // 2. Proceed with deletion if safe
-        String sql = "DELETE FROM roles WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, roleId);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            Logger.error("Failed to delete role", e);
-            return false;
-        }
+        new AccessManagementDAO().deleteRole(roleId);
+        return true;
     }
 
     public boolean assignRoleToUser(int userId, int roleId) {
-        String sql = "UPDATE users SET role_id = ? WHERE id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, roleId);
-            stmt.setInt(2, userId);
+        // Shared primitive: synchronize both role columns in one statement.
+        String sql = "UPDATE users SET role_id = ?, role = (SELECT code FROM roles WHERE id = ?) WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, roleId); stmt.setInt(2, roleId); stmt.setInt(3, userId);
             return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-        }
-        return false;
+        } catch (SQLException e) { throw com.college.utils.ManagementException.database(e); }
     }
 
     private void loadPermissionsForRole(Connection conn, Role role) {
@@ -332,7 +297,7 @@ public class RoleDAO {
                 }
             }
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
     }
 

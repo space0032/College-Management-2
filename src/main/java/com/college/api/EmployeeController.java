@@ -5,95 +5,66 @@ import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.EmployeeDAO;
 import com.college.models.Employee;
 import com.college.utils.JsonHelper;
+import com.college.utils.ManagementException;
+import com.college.utils.ManagementValidation;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 
 public class EmployeeController extends BaseController implements HttpHandler {
-
-    private final EmployeeDAO employeeDAO = new EmployeeDAO();
-
-    @Override
-    public void handle(HttpExchange t) throws IOException {
+    private final EmployeeDAO employeeDAO;
+    public EmployeeController() { this(new EmployeeDAO()); }
+    EmployeeController(EmployeeDAO employeeDAO) { this.employeeDAO = employeeDAO; }
+    @Override public void handle(HttpExchange t) throws IOException {
         if (handleOptions(t)) return;
-
-        String method = t.getRequestMethod();
-        String path = t.getRequestURI().getPath();
-
         try {
-            if (path.equals("/api/employees")) {
-                if ("GET".equals(method)) handleGetEmployees(t);
-                else if ("POST".equals(method)) handleAddEmployee(t);
-                else if ("PUT".equals(method)) handleUpdateEmployee(t);
-                else sendResponse(t, 405, errorJson("Method not allowed"));
-            } else {
-                sendResponse(t, 404, errorJson("Not found"));
+            if (!t.getRequestURI().getPath().equals("/api/employees")) { sendResponse(t, 404, errorJson("Not found")); return; }
+            String method = t.getRequestMethod();
+            if (method.equals("GET")) {
+                if (!requirePermission(t, "VIEW_EMPLOYEE")) return;
+                sendResponse(t, 200, JsonHelper.toJson(employeeDAO.getAllEmployees())); return;
             }
-        } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
-        }
+            if (!method.equals("POST") && !method.equals("PUT")) { sendResponse(t, 405, errorJson("Method not allowed")); return; }
+            if (!requirePermission(t, method.equals("POST") ? "CREATE_EMPLOYEE" : "UPDATE_EMPLOYEE")) return;
+            JsonObject body = ManagementValidation.object(readBody(t));
+            Employee employee = parseEmployee(body);
+            if (method.equals("PUT")) {
+                int id = ManagementValidation.integer(body, "id", 1, Integer.MAX_VALUE);
+                Employee existing = employeeDAO.getAllEmployees().stream().filter(e -> e.getId() == id).findFirst().orElseThrow(() -> new ManagementException(404, "Employee not found."));
+                if (!java.util.Objects.equals(existing.getEmployeeId(), employee.getEmployeeId())) throw new ManagementException(409, "Employee ID cannot be changed.");
+                employee.setId(id);
+                if (existing.getUserId() != null) employee.setDesignation(existing.getDesignation());
+                if (!employeeDAO.updateEmployee(employee)) throw new ManagementException(404, "Employee not found.");
+            } else {
+                Employee linked = employeeDAO.getAllEmployees().stream().filter(e -> e.getEmployeeId() != null && e.getEmployeeId().equalsIgnoreCase(employee.getEmployeeId())).findFirst().orElse(null);
+                if (linked != null && linked.getId() > 0) throw new ManagementException(409, "Employee ID already exists.");
+                if (linked != null && linked.getUserId() != null) employee.setDesignation(linked.getDesignation());
+                if (!employeeDAO.addEmployee(employee)) throw new ManagementException(500, "Could not create employee.");
+            }
+            sendResponse(t, method.equals("POST") ? 201 : 200, JSON.toJson(java.util.Map.of("message", "Employee saved successfully")));
+        } catch (ManagementException e) { sendResponse(t, e.getStatus(), errorJson(e.getMessage())); }
+        catch (IllegalArgumentException e) { sendResponse(t, 400, errorJson("Invalid employee input.")); }
+        catch (Exception e) { com.college.utils.Logger.error("Employee request failed", e); sendResponse(t, 500, errorJson("Could not complete employee request.")); }
     }
-
-    private void handleGetEmployees(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_EMPLOYEE")) return;
-        List<Employee> employees = employeeDAO.getAllEmployees();
-        sendResponse(t, 200, JsonHelper.toJson(employees));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void handleAddEmployee(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "CREATE_EMPLOYEE")) return;
-        String body = readBody(t);
-        Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
-        
-        Employee emp = mapToEmployee(map);
-        boolean ok = employeeDAO.addEmployee(emp);
-        if (ok) sendResponse(t, 201, "{\"message\":\"Employee added successfully\"}");
-        else sendResponse(t, 400, errorJson("Failed to add employee"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void handleUpdateEmployee(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "UPDATE_EMPLOYEE")) return;
-        String body = readBody(t);
-        Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
-        
-        Employee emp = mapToEmployee(map);
-        // Ensure ID is passed for update if modifying existing record
-        if (map.containsKey("id") && map.get("id") != null) {
-            emp.setId(((Double) map.get("id")).intValue());
-        }
-
-        boolean ok = employeeDAO.updateEmployee(emp);
-        if (ok) sendResponse(t, 200, "{\"message\":\"Employee updated successfully\"}");
-        else sendResponse(t, 400, errorJson("Failed to update employee"));
-    }
-
-    private Employee mapToEmployee(Map<String, Object> map) {
-        Employee e = new Employee();
-        if (map.containsKey("employeeId")) e.setEmployeeId((String) map.get("employeeId"));
-        if (map.containsKey("firstName")) e.setFirstName((String) map.get("firstName"));
-        if (map.containsKey("lastName")) e.setLastName((String) map.get("lastName"));
-        if (map.containsKey("email")) e.setEmail((String) map.get("email"));
-        if (map.containsKey("phone")) e.setPhone((String) map.get("phone"));
-        if (map.containsKey("designation")) e.setDesignation((String) map.get("designation"));
-        
-        if (map.containsKey("joinDate") && map.get("joinDate") != null && !((String)map.get("joinDate")).isEmpty()) {
-            e.setJoinDate(LocalDate.parse((String) map.get("joinDate")));
-        }
-        
-        if (map.containsKey("salary") && map.get("salary") != null) {
-            e.setSalary(new BigDecimal(map.get("salary").toString()));
-        }
-
-        if (map.containsKey("status") && map.get("status") != null) {
-            e.setStatus(Employee.Status.valueOf((String) map.get("status")));
-        } else {
-            e.setStatus(Employee.Status.ACTIVE);
-        }
-        
-        return e;
+    static Employee parseEmployee(JsonObject body) {
+        Employee employee = new Employee();
+        employee.setEmployeeId(ManagementValidation.text(body, "employeeId", true, 50));
+        employee.setFirstName(ManagementValidation.text(body, "firstName", true, 100));
+        employee.setLastName(ManagementValidation.text(body, "lastName", false, 100));
+        String email = ManagementValidation.text(body, "email", true, 100);
+        if (!email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) throw new ManagementException(400, "Enter a valid email address.");
+        employee.setEmail(email);
+        String phone = ManagementValidation.text(body, "phone", false, 20);
+        if (!phone.isEmpty() && (!phone.matches("[+0-9 -]+") || phone.replaceAll("[^0-9]", "").length() < 7 || phone.replaceAll("[^0-9]", "").length() > 15 || phone.indexOf('+') > 0 || phone.lastIndexOf('+') > 0)) throw new ManagementException(400, "Phone must contain 7 to 15 digits, with an optional leading +.");
+        employee.setPhone(phone);
+        employee.setDesignation(ManagementValidation.text(body, "designation", true, 100));
+        String date = ManagementValidation.text(body, "joinDate", false, 10);
+        try { employee.setJoinDate(date.isEmpty() ? null : LocalDate.parse(date)); }
+        catch (Exception e) { throw new ManagementException(400, "Enter a valid joining date."); }
+        employee.setSalary(ManagementValidation.money(body, "salary", BigDecimal.ZERO));
+        try { employee.setStatus(body.has("status") ? Employee.Status.valueOf(ManagementValidation.text(body, "status", true, 20)) : Employee.Status.ACTIVE); }
+        catch (IllegalArgumentException e) { throw new ManagementException(400, "Invalid employee status."); }
+        return employee;
     }
 }

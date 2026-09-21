@@ -1,232 +1,103 @@
 package com.college.api;
 
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.EmployeeDAO;
 import com.college.dao.PayrollDAO;
 import com.college.models.Employee;
 import com.college.models.PayrollEntry;
 import com.college.utils.JsonHelper;
-import com.google.gson.Gson;
+import com.college.utils.ManagementException;
+import com.college.utils.ManagementValidation;
+import com.google.gson.JsonObject;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.time.YearMonth;
+import java.util.*;
 
 public class PayrollController extends BaseController implements HttpHandler {
+    private final PayrollDAO payrollDAO;
+    private final EmployeeDAO employeeDAO;
+    public PayrollController() { this(new PayrollDAO(), new EmployeeDAO()); }
+    PayrollController(PayrollDAO payrollDAO, EmployeeDAO employeeDAO) { this.payrollDAO = payrollDAO; this.employeeDAO = employeeDAO; }
 
-    private final PayrollDAO payrollDAO = new PayrollDAO();
-    private final EmployeeDAO employeeDAO = new EmployeeDAO();
-    private final Gson gson = new Gson();
-
-    @Override
-    public void handle(HttpExchange t) throws IOException {
-        if (handleOptions(t))
-            return;
-
-        String method = t.getRequestMethod();
-        String path = t.getRequestURI().getPath();
-        String query = t.getRequestURI().getQuery();
-
+    @Override public void handle(HttpExchange t) throws IOException {
+        if (handleOptions(t)) return;
+        String path = t.getRequestURI().getPath(), method = t.getRequestMethod();
         try {
-            if (path.equals("/api/payroll")) {
-                if ("GET".equals(method))
-                    handleGetPayroll(t, query);
-                else if ("POST".equals(method))
-                    handleGeneratePayroll(t);
-                else
-                    sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.equals("/api/payroll/mark-paid")) {
-                if ("POST".equals(method))
-                    handleMarkPaid(t);
-                else
-                    sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.equals("/api/payroll/mark-all-paid")) {
-                if ("POST".equals(method))
-                    handleMarkAllPaid(t);
-                else
-                    sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches("/api/payroll/\\d+")) {
-                int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
-                if ("PUT".equals(method))
-                    handleUpdatePayrollEntry(t, id);
-                else if ("DELETE".equals(method))
-                    handleDeletePayrollEntry(t, id);
-                else
-                    sendResponse(t, 405, errorJson("Method not allowed"));
-            } else {
-                sendResponse(t, 404, errorJson("Not found"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
-        }
-    }
-
-    private void handleGetPayroll(HttpExchange t, String query) throws IOException {
-        if (!requirePermission(t, "VIEW_PAYROLL")) return;
-        int month = LocalDate.now().getMonthValue();
-        int year = LocalDate.now().getYear();
-
-        if (query != null) {
-            for (String param : query.split("&")) {
-                String[] kv = param.split("=");
-                if (kv.length == 2) {
-                    if ("month".equals(kv[0]))
-                        month = Integer.parseInt(kv[1]);
-                    if ("year".equals(kv[0]))
-                        year = Integer.parseInt(kv[1]);
+            if (path.equals("/api/payroll") && method.equals("GET")) {
+                if (!requirePermission(t, "VIEW_PAYROLL")) return;
+                JsonObject query = new JsonObject(); getQueryMap(t).forEach(query::addProperty);
+                int[] period = period(query);
+                Map<Integer, Employee> employees = new HashMap<>();
+                employeeDAO.getAllEmployees().forEach(e -> { if (e.getId() > 0) employees.put(e.getId(), e); });
+                List<Map<String, Object>> data = new ArrayList<>();
+                for (PayrollEntry entry : payrollDAO.getPayrollEntriesByMonthYear(period[0], period[1])) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("id", entry.getId()); row.put("employeeId", entry.getEmployeeId());
+                    row.put("month", entry.getMonth()); row.put("year", entry.getYear());
+                    row.put("basicSalary", entry.getBasicSalary()); row.put("bonuses", entry.getBonuses()); row.put("deductions", entry.getDeductions()); row.put("netSalary", entry.getNetSalary());
+                    row.put("status", entry.getStatus().name()); row.put("paymentDate", entry.getPaymentDate() == null ? null : entry.getPaymentDate().toString());
+                    Employee employee = employees.get(entry.getEmployeeId());
+                    row.put("employeeName", employee == null ? "Employee " + entry.getEmployeeId() : ((employee.getFirstName() == null ? "" : employee.getFirstName()) + " " + (employee.getLastName() == null ? "" : employee.getLastName())).trim());
+                    row.put("designation", employee == null ? "" : employee.getDesignation()); data.add(row);
                 }
-            }
-        }
-
-        List<PayrollEntry> entries = payrollDAO.getPayrollEntriesByMonthYear(month, year);
-
-        // Build employee map for name lookups
-        List<Employee> employees = employeeDAO.getAllEmployees();
-        Map<Integer, Employee> empMap = new HashMap<>();
-        for (Employee e : employees) {
-            if (e.getId() > 0)
-                empMap.put(e.getId(), e);
-        }
-
-        // Enrich with employee name/designation
-        List<Map<String, Object>> enriched = new ArrayList<>();
-        for (PayrollEntry p : entries) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", p.getId());
-            map.put("employeeId", p.getEmployeeId());
-            map.put("month", p.getMonth());
-            map.put("year", p.getYear());
-            map.put("basicSalary", p.getBasicSalary());
-            map.put("bonuses", p.getBonuses());
-            map.put("deductions", p.getDeductions());
-            map.put("netSalary", p.getNetSalary());
-            map.put("status", p.getStatus().name());
-            map.put("paymentDate", p.getPaymentDate() != null ? p.getPaymentDate().toString() : null);
-
-            Employee emp = empMap.get(p.getEmployeeId());
-            if (emp != null) {
-                map.put("employeeName", emp.getFirstName() + " " + emp.getLastName());
-                map.put("designation", emp.getDesignation());
-            } else {
-                map.put("employeeName", "Unknown");
-                map.put("designation", "");
-            }
-            enriched.add(map);
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("data", enriched);
-        response.put("month", month);
-        response.put("year", year);
-        response.put("total", enriched.size());
-        sendResponse(t, 200, JsonHelper.toJson(response));
+                sendResponse(t, 200, JsonHelper.toJson(Map.of("data", data, "month", period[0], "year", period[1], "total", data.size())));
+            } else if (path.equals("/api/payroll") && method.equals("POST")) {
+                if (!requirePermission(t, "MANAGE_PAYROLL")) return;
+                int[] period = period(ManagementValidation.object(readBody(t)));
+                List<PayrollEntry> entries = new ArrayList<>(); List<Map<String, Object>> skipped = new ArrayList<>();
+                for (Employee employee : employeeDAO.getAllEmployees()) {
+                    String reason = eligibility(employee, period[0], period[1]);
+                    if (reason != null) { skipped.add(Map.of("employeeId", Objects.toString(employee.getEmployeeId(), "Unknown"), "reason", reason)); continue; }
+                    entries.add(new PayrollEntry(employee.getId(), period[0], period[1], employee.getSalary()));
+                }
+                List<Integer> inserted = payrollDAO.generateBatch(entries);
+                int existing = entries.size() - inserted.size();
+                for (PayrollEntry entry : entries) if (!inserted.contains(entry.getEmployeeId())) skipped.add(Map.of("employeeId", entry.getEmployeeId(), "reason", "Already generated"));
+                sendResponse(t, 200, JsonHelper.toJson(Map.of("generated", inserted.size(), "existing", existing, "skipped", skipped, "message", "Generated " + inserted.size() + " payroll entries; " + skipped.size() + " skipped.")));
+            } else if (path.equals("/api/payroll/mark-paid") && method.equals("POST")) {
+                if (!requirePermission(t, "MANAGE_PAYROLL")) return;
+                int id = ManagementValidation.integer(ManagementValidation.object(readBody(t)), "id", 1, Integer.MAX_VALUE);
+                PayrollEntry entry = entry(id);
+                if (entry.getStatus() != PayrollEntry.Status.PAID && !payrollDAO.markAsPaid(id)) throw new ManagementException(409, "Only pending entries can be marked paid. Refresh the payroll list.");
+                sendResponse(t, 200, "{\"success\":true,\"message\":\"Marked as paid\"}");
+            } else if (path.equals("/api/payroll/mark-all-paid") && method.equals("POST")) {
+                if (!requirePermission(t, "MANAGE_PAYROLL")) return;
+                int[] period = period(ManagementValidation.object(readBody(t)));
+                payrollDAO.markMonthAsPaid(period[0], period[1]);
+                sendResponse(t, 200, "{\"success\":true,\"message\":\"Pending entries marked as paid\"}");
+            } else if (path.matches("/api/payroll/[0-9]+") && (method.equals("PUT") || method.equals("DELETE"))) {
+                if (!requirePermission(t, method.equals("PUT") ? "UPDATE_PAYROLL" : "DELETE_PAYROLL")) return;
+                int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1)); PayrollEntry entry = entry(id);
+                if (entry.getStatus() != PayrollEntry.Status.PENDING) throw new ManagementException(409, "Only pending payroll entries can be changed.");
+                boolean updated;
+                if (method.equals("PUT")) {
+                    JsonObject body = ManagementValidation.object(readBody(t));
+                    entry.setBonuses(ManagementValidation.money(body, "bonuses", entry.getBonuses()));
+                    entry.setDeductions(ManagementValidation.money(body, "deductions", entry.getDeductions()));
+                    updated = payrollDAO.updatePayrollEntry(entry);
+                } else updated = payrollDAO.deletePayrollEntry(id);
+                if (!updated) throw new ManagementException(409, "Payroll changed while you were editing. Refresh and retry.");
+                sendResponse(t, 200, "{\"success\":true}");
+            } else if (path.equals("/api/payroll") || path.matches("/api/payroll/([0-9]+|mark-paid|mark-all-paid)")) sendResponse(t, 405, errorJson("Method not allowed"));
+            else sendResponse(t, 404, errorJson("Not found"));
+        } catch (ManagementException e) { sendResponse(t, e.getStatus(), errorJson(e.getMessage())); }
+        catch (IllegalArgumentException e) { sendResponse(t, 400, errorJson("Invalid payroll input.")); }
+        catch (Exception e) { com.college.utils.Logger.error("Payroll request failed", e); sendResponse(t, 500, errorJson("Could not complete payroll request.")); }
     }
-
-    @SuppressWarnings("unchecked")
-    private void handleGeneratePayroll(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "MANAGE_PAYROLL")) return;
-        String body = readBody(t);
-        Map<String, Object> req = gson.fromJson(body, Map.class);
-
-        int month = req.containsKey("month") ? ((Double) req.get("month")).intValue() : LocalDate.now().getMonthValue();
-        int year = req.containsKey("year") ? ((Double) req.get("year")).intValue() : LocalDate.now().getYear();
-
-        List<Employee> active = employeeDAO.getAllEmployees().stream()
-                .filter(e -> e.getStatus() == Employee.Status.ACTIVE)
-                .collect(Collectors.toList());
-
-        List<PayrollEntry> existing = payrollDAO.getPayrollEntriesByMonthYear(month, year);
-        Set<Integer> existingIds = existing.stream()
-                .map(PayrollEntry::getEmployeeId)
-                .collect(Collectors.toSet());
-
-        int count = 0;
-        for (Employee e : active) {
-            if (!existingIds.contains(e.getId())) {
-                PayrollEntry entry = new PayrollEntry(e.getId(), month, year,
-                        e.getSalary() != null ? e.getSalary() : BigDecimal.ZERO);
-                if (payrollDAO.createPayrollEntry(entry))
-                    count++;
-            }
-        }
-
-        Map<String, Object> res = new HashMap<>();
-        res.put("generated", count);
-        res.put("message", "Generated " + count + " payroll entries for " + month + "/" + year);
-        sendResponse(t, 200, JsonHelper.toJson(res));
+    private PayrollEntry entry(int id) { PayrollEntry value = payrollDAO.getById(id); if (value == null) throw new ManagementException(404, "Payroll entry not found."); return value; }
+    static int[] period(JsonObject body) {
+        int month = body.has("month") ? ManagementValidation.integer(body, "month", 1, 12) : LocalDate.now().getMonthValue();
+        int year = body.has("year") ? ManagementValidation.integer(body, "year", 1, 9999) : LocalDate.now().getYear();
+        return new int[]{month, year};
     }
-
-    @SuppressWarnings("unchecked")
-    private void handleMarkPaid(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "MANAGE_PAYROLL")) return;
-        String body = readBody(t);
-        Map<String, Object> req = gson.fromJson(body, Map.class);
-        if (!req.containsKey("id")) {
-            sendResponse(t, 400, errorJson("Missing payroll entry id"));
-            return;
-        }
-        int id = ((Double) req.get("id")).intValue();
-        boolean ok = payrollDAO.markAsPaid(id);
-        if (ok)
-            sendResponse(t, 200, "{\"success\":true,\"message\":\"Marked as paid\"}");
-        else
-            sendResponse(t, 500, errorJson("Failed to mark as paid"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void handleMarkAllPaid(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "MANAGE_PAYROLL")) return;
-        String body = readBody(t);
-        Map<String, Object> req = gson.fromJson(body, Map.class);
-        int month = req.containsKey("month") ? ((Double) req.get("month")).intValue() : LocalDate.now().getMonthValue();
-        int year = req.containsKey("year") ? ((Double) req.get("year")).intValue() : LocalDate.now().getYear();
-
-        boolean ok = payrollDAO.markMonthAsPaid(month, year);
-        if (ok)
-            sendResponse(t, 200, "{\"success\":true,\"message\":\"All pending entries marked as paid\"}");
-        else
-            sendResponse(t, 500, errorJson("Failed to mark all as paid"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void handleUpdatePayrollEntry(HttpExchange t, int id) throws IOException {
-        if (!requirePermission(t, "UPDATE_PAYROLL")) return;
-        String body = readBody(t);
-        Map<String, Object> req = gson.fromJson(body, Map.class);
-
-        List<PayrollEntry> all = payrollDAO.getAllPayrollEntries();
-        PayrollEntry existing = all.stream().filter(p -> p.getId() == id).findFirst().orElse(null);
-        if (existing == null) {
-            sendResponse(t, 404, errorJson("Payroll entry not found"));
-            return;
-        }
-
-        if (req.containsKey("bonuses"))
-            existing.setBonuses(new BigDecimal(req.get("bonuses").toString()));
-        if (req.containsKey("deductions"))
-            existing.setDeductions(new BigDecimal(req.get("deductions").toString()));
-        existing.calculateNet();
-
-        boolean ok = payrollDAO.updatePayrollEntry(existing);
-        if (ok)
-            sendResponse(t, 200, "{\"success\":true}");
-        else
-            sendResponse(t, 500, errorJson("Failed to update payroll entry"));
-    }
-
-    private void handleDeletePayrollEntry(HttpExchange t, int id) throws IOException {
-        if (!requirePermission(t, "DELETE_PAYROLL")) return;
-        boolean ok = payrollDAO.deletePayrollEntry(id);
-        if (ok)
-            sendResponse(t, 200, "{\"success\":true}");
-        else
-            sendResponse(t, 500, errorJson("Failed to delete payroll entry"));
+    static String eligibility(Employee employee, int month, int year) {
+        if (employee.getStatus() != Employee.Status.ACTIVE) return "Not active";
+        if (employee.getId() <= 0) return "Employee profile not saved";
+        if (employee.getSalary() == null || employee.getSalary().signum() <= 0) return "Set a positive monthly salary";
+        if (employee.getJoinDate() == null) return "Set a joining date";
+        if (employee.getJoinDate().isAfter(YearMonth.of(year, month).atEndOfMonth())) return "Joining date is after this period";
+        return null;
     }
 }

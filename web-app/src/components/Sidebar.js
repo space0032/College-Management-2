@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       { to: '/dashboard/notifications', label: 'Notifications', icon: '🔔', perm: 'VIEW_NOTIFICATION' },
     ],
     Admin: [
-      { to: '/dashboard/management', label: 'Institute Management', icon: '🏛️', perm: 'VIEW_ROLE' },
+      { to: '/dashboard/management', label: 'Institute Management', anyPerm: ['VIEW_DEPARTMENT', 'VIEW_USER', 'VIEW_ROLE'], icon: '🏛️', perm: 'VIEW_ROLE' },
       { to: '/dashboard/roles', label: 'Role Management', icon: '🔑', perm: 'VIEW_ROLE' },
       { to: '/dashboard/employees', label: 'Employees', icon: '👨‍💼', perm: 'VIEW_EMPLOYEE' },
       { to: '/dashboard/payroll', label: 'Payroll', icon: '💸', perm: 'VIEW_PAYROLL' },
@@ -76,7 +76,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
   Object.entries(navSections).forEach(([sectionTitle, items]) => {
     const visible = items.filter((item) =>
       (!item.adminOnly || isAdmin) &&
-      (!item.perm || isAdmin || can(item.perm))
+      (isAdmin || (item.anyPerm ? item.anyPerm.some(can) : (!item.perm || can(item.perm))))
     );
     if (visible.length > 0) {
       filteredSections[sectionTitle] = visible;

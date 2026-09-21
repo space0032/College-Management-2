@@ -25,7 +25,7 @@ public class DatabaseMigrator {
             System.out.println("[Migration] H2 fallback is active; schema was already initialized by H2SchemaInitializer. Skipping PostgreSQL migrations.");
             return;
         }
-        
+
         String[] migrations = {
             "V1__Supabase_Schema.sql",
             "V2__Fix_Schema_Permissions_Wardens.sql",
@@ -59,12 +59,13 @@ public class DatabaseMigrator {
             "V64__Add_Specializations_Master.sql",
             "V69__Complete_Fee_Management.sql",
             "V70__Warden_Gate_Pass_Permissions.sql",
-            "V71__Ensure_Warden_Role_Assigned.sql"
+            "V71__Ensure_Warden_Role_Assigned.sql",
+            "V72__Unique_Payroll_Period.sql"
         };
 
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
-            
+
             for (String fileName : migrations) {
                 String path = "/db/migration/" + fileName;
                 try (InputStream is = DatabaseMigrator.class.getResourceAsStream(path)) {
@@ -83,9 +84,11 @@ public class DatabaseMigrator {
                     }
 
                     // Execute migration
-                    stmt.execute(sql);
+                    if (fileName.equals("V72__Unique_Payroll_Period.sql")) PayrollMigration.apply(conn);
+                    else stmt.execute(sql);
                     System.out.println(fileName + " executed successfully!");
                 } catch (Exception e) {
+                    if (e instanceof PayrollMigration.Failure) throw (PayrollMigration.Failure) e;
                     System.err.println("Failed to execute " + fileName + ": " + e.getMessage());
                     // Continue with others if possible
                 }
@@ -93,6 +96,7 @@ public class DatabaseMigrator {
             System.out.println("Database Migration Complete!");
 
         } catch (Exception e) {
+            if (e instanceof PayrollMigration.Failure) throw (PayrollMigration.Failure) e;
             System.err.println("Migration Failed: " + e.getMessage());
             e.printStackTrace();
         }

@@ -1,213 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import { getRoles, addRole, deleteRole, getUsers, updateUserRole } from '../services/instituteService';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { getRoles, addRole, deleteRole, getUsers, updateUserRole, getAllPermissions, getRolePermissions, setRolePermissions } from '../services/instituteService';
+import SessionManager from '../utils/SessionManager';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import { Empty, Feedback, Loading, Stats, useManagementAction, useManagementData } from '../components/ManagementUI';
 
-const RoleManagementPage = () => {
-    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-    const [roles, setRoles] = useState([]);
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('roles');
-    const [roleModal, setRoleModal] = useState(false);
-    const [roleName, setRoleName] = useState('');
-    const [roleDesc, setRoleDesc] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [search, setSearch] = useState('');
-
-    const fetchAll = React.useCallback(async () => {
-        setLoading(true);
-        try {
-            const [r, u] = await Promise.all([getRoles(), getUsers()]);
-            setRoles(r.data || []);
-            setUsers(u.data || []);
-        } catch { console.error('Failed to load roles/users'); }
-        finally { setLoading(false); }
-    }, []);
-
-    useEffect(() => {
-        if (user.role === 'ADMIN') {
-            fetchAll();
-        }
-    }, [user.role, fetchAll]);
-
-    if (user.role !== 'ADMIN') {
-        return (
-            <div className="page-container" style={{ textAlign: 'center', paddingTop: '80px' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🔐</div>
-                <h2>Admin Access Required</h2>
-                <p style={{ color: '#64748b' }}>Role management is restricted to administrators.</p>
-            </div>
-        );
-    }
-
-    const handleAddRole = async (e) => {
-        e.preventDefault();
-        if (!roleName.trim()) return;
-        setSaving(true);
-        try {
-            await addRole({ code: roleName.trim(), name: roleName.trim(), description: roleDesc.trim(), portalType: 'ADMIN' });
-            setRoleModal(false); setRoleName(''); setRoleDesc('');
-            fetchAll();
-        } catch (err) { alert(err.response?.data?.error || 'Failed to create role.'); }
-        finally { setSaving(false); }
-    };
-
-    const handleDeleteRole = async (id, name) => {
-        if (!window.confirm(`Delete role "${name}"? This cannot be undone.`)) return;
-        try { await deleteRole(id); fetchAll(); }
-        catch { alert('Failed to delete role.'); }
-    };
-
-    const handleRoleChange = async (userId, roleId) => {
-        if (!roleId) return;
-        try {
-            await updateUserRole(userId, Number(roleId));
-            fetchAll();
-        } catch (err) { alert(err.response?.data?.error || 'Failed to update role.'); }
-    };
-
-    const filteredUsers = users.filter(u =>
-        !search || u.name?.toLowerCase().includes(search.toLowerCase()) ||
-        u.username?.toLowerCase().includes(search.toLowerCase()) ||
-        u.role?.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const roleCounts = users.reduce((acc, u) => {
-        acc[u.role] = (acc[u.role] || 0) + 1;
-        return acc;
-    }, {});
-
-    const tabStyle = (t) => ({
-        padding: '8px 18px', border: 'none', cursor: 'pointer',
-        borderBottom: activeTab === t ? '3px solid #3b82f6' : '3px solid transparent',
-        background: 'none', fontWeight: activeTab === t ? '600' : '400',
-        color: activeTab === t ? '#3b82f6' : '#64748b', fontSize: '0.9rem'
-    });
-
-    return (
-        <div className="page-container">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">🔑 Role Management</h1>
-                    <p className="page-subtitle">Manage system roles and user access control</p>
-                </div>
-                {activeTab === 'roles' && (
-                    <button className="btn btn-primary" onClick={() => setRoleModal(true)}>+ Add Role</button>
-                )}
-            </div>
-
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                {[
-                    { label: 'Total Roles', value: roles.length, icon: '🏷️', color: '#3b82f6' },
-                    { label: 'Total Users', value: users.length, icon: '👥', color: '#10b981' },
-                    { label: 'Admins', value: roleCounts['ADMIN'] || 0, icon: '👑', color: '#f59e0b' },
-                    { label: 'Faculty', value: roleCounts['FACULTY'] || 0, icon: '👩‍🏫', color: '#8b5cf6' },
-                ].map(s => (
-                    <div key={s.label} className="stat-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ fontSize: '2rem', background: s.color + '18', padding: '12px', borderRadius: '10px' }}>{s.icon}</div>
-                        <div>
-                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{s.label}</div>
-                            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: s.color }}>{s.value}</div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Tabs */}
-            <div style={{ borderBottom: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex' }}>
-                <button style={tabStyle('roles')} onClick={() => setActiveTab('roles')}>🏷️ Roles ({roles.length})</button>
-                <button style={tabStyle('users')} onClick={() => setActiveTab('users')}>👥 Users ({users.length})</button>
-            </div>
-
-            {loading ? (
-                <div className="loading-container"><div className="spinner" /><span>Loading...</span></div>
-            ) : activeTab === 'roles' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-                    {roles.length === 0 ? (
-                        <p style={{ color: '#94a3b8', gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>No custom roles defined. System roles are managed automatically.</p>
-                    ) : roles.map(role => (
-                        <div key={role.id} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                                    <span style={{ background: '#3b82f620', color: '#3b82f6', padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' }}>
-                                        {role.name}
-                                    </span>
-                                    <span className="badge badge-secondary">{roleCounts[role.name] || 0} users</span>
-                                </div>
-                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>{role.description || 'No description provided'}</p>
-                            </div>
-                            {!['ADMIN', 'FACULTY', 'STUDENT'].includes(role.name) && (
-                                <button className="btn btn-sm btn-danger" onClick={() => handleDeleteRole(role.id, role.name)}>🗑</button>
-                            )}
-                        </div>
-                    ))}
-                    {/* System roles info card */}
-                    <div className="stat-card" style={{ border: '1px dashed #cbd5e1', background: '#f8fafc' }}>
-                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '10px', fontWeight: '600' }}>SYSTEM ROLES (Protected)</div>
-                        {['ADMIN', 'FACULTY', 'STUDENT'].map(r => (
-                            <div key={r} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '0.85rem' }}>
-                                <span style={{ color: '#475569' }}>{r}</span>
-                                <span className="badge badge-primary">{roleCounts[r] || 0}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <div style={{ marginBottom: '16px' }}>
-                        <input
-                            className="form-control" placeholder="Search by name, username, or role..."
-                            value={search} onChange={e => setSearch(e.target.value)}
-                            style={{ maxWidth: '400px' }}
-                        />
-                    </div>
-                    <DataTable
-                        columns={[
-                            { key: 'id', label: 'ID' },
-                            { key: 'name', label: 'Full Name' },
-                            { key: 'username', label: 'Username' },
-                            { key: 'email', label: 'Email' },
-                            {
-                                key: 'role', label: 'Role', render: (v, row) => (
-                                    <select
-                                        className="form-control"
-                                        value={row.roleId || ''}
-                                        onChange={e => handleRoleChange(row.id, e.target.value)}
-                                        style={{ minWidth: '140px' }}
-                                        title="Assign role to this user"
-                                    >
-                                        <option value="">-- Select --</option>
-                                        {roles.map(r => (
-                                            <option key={r.id} value={r.id}>{r.name || r.code}</option>
-                                        ))}
-                                    </select>
-                                )
-                            },
-                            { key: 'department', label: 'Department' },
-                        ]}
-                        data={filteredUsers}
-                        emptyMessage="No users found."
-                    />
-                </>
-            )}
-
-            {roleModal && (
-                <Modal isOpen={roleModal} title="Create New Role" onClose={() => setRoleModal(false)} onSubmit={handleAddRole} submitLabel={saving ? 'Creating...' : 'Create Role'}>
-                    <div className="form-group">
-                        <label>Role Name *</label>
-                        <input className="form-control" placeholder="e.g. LIBRARIAN, HOD" value={roleName} onChange={e => setRoleName(e.target.value.toUpperCase().replace(/\s/g, '_'))} />
-                        <small style={{ color: '#94a3b8' }}>Auto-formatted to uppercase with underscores</small>
-                    </div>
-                    <div className="form-group">
-                        <label>Description</label>
-                        <textarea className="form-control" rows="2" placeholder="What can this role do?" value={roleDesc} onChange={e => setRoleDesc(e.target.value)} />
-                    </div>
-                </Modal>
-            )}
-        </div>
-    );
-};
-
-export default RoleManagementPage;
+const PROTECTED = ['ADMIN', 'FACULTY', 'STUDENT', 'WARDEN', 'FINANCE'];
+const EMPTY = { code: '', name: '', description: '', portalType: 'ADMIN' };
+export default function RoleManagementPage() {
+  const can = code => SessionManager.hasPermission(code);
+  const canView = can('VIEW_ROLE'), canUsers = can('VIEW_USER');
+  const [params, setParams] = useSearchParams();
+  const tab = ['roles', 'users', 'permissions'].includes(params.get('tab')) ? params.get('tab') : 'roles';
+  const [form, setForm] = useState(null), [search, setSearch] = useState(''), [selectedId, setSelectedId] = useState('');
+  const [draft, setDraft] = useState({ roleId: '', ids: [] });
+  const action = useManagementAction();
+  const roleLoader = useCallback(async () => (await getRoles()).data || [], []);
+  const userLoader = useCallback(async () => (await getUsers()).data || [], []);
+  const catalogLoader = useCallback(async () => (await getAllPermissions()).data || [], []);
+  const permissionLoader = useCallback(async () => (await getRolePermissions(selectedId)).data || [], [selectedId]);
+  const roles = useManagementData(roleLoader, canView);
+  const users = useManagementData(userLoader, canView && canUsers);
+  const catalog = useManagementData(catalogLoader, canView && tab === 'permissions');
+  const permissions = useManagementData(permissionLoader, canView && tab === 'permissions' && Boolean(selectedId));
+  const selected = roles.data.find(role => String(role.id) === selectedId);
+  const sorted = ids => [...ids].map(Number).sort((a, b) => a - b).join(',');
+  const dirty = permissions.loaded && draft.roleId === selectedId && sorted(draft.ids) !== sorted(permissions.data.map(p => p.id));
+  useEffect(() => { if (permissions.loaded) setDraft({ roleId: selectedId, ids: permissions.data.map(p => p.id) }); }, [permissions.loaded, permissions.data, selectedId]);
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = event => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+  const discard = () => !dirty || window.confirm('Discard unsaved permission changes?');
+  const changeTab = next => { if (!discard()) return; action.clear(); setSearch(''); setParams({ tab: next }); };
+  const choose = id => { if (!discard()) return; action.clear(); setSelectedId(id); };
+  const create = () => action.run(async () => {
+    const payload = { ...form, code: form.code.trim().toUpperCase(), name: form.name.trim(), description: form.description.trim() };
+    if (!/^[A-Z][A-Z0-9_]{0,49}$/.test(payload.code) || !payload.name) throw new Error('Enter a valid role code and name.');
+    await addRole(payload); setForm(null); await roles.reload();
+  }, 'Role created.');
+  const remove = role => { if (window.confirm('Delete role "' + role.name + '"? Assigned roles must be reassigned first.')) action.run(async () => { await deleteRole(role.id); if (selectedId === String(role.id)) setSelectedId(''); await roles.reload(); }, 'Role deleted.'); };
+  const assign = (user, roleId) => {
+    if (!roleId || Number(roleId) === user.roleId) return;
+    const role = roles.data.find(r => r.id === Number(roleId));
+    if (!window.confirm('Assign ' + role.name + ' to ' + user.username + '?')) return;
+    action.run(async () => { await updateUserRole(user.id, Number(roleId)); await SessionManager.refreshPermissions(); await users.reload(); }, 'User role updated.');
+  };
+  const savePermissions = () => action.run(async () => {
+    await setRolePermissions(selectedId, draft.ids); await SessionManager.refreshPermissions(); await permissions.reload(); await roles.reload();
+  }, 'Permissions saved.');
+  const editable = can('UPDATE_ROLE') && selected?.code !== 'ADMIN' && permissions.loaded && catalog.loaded && draft.roleId === selectedId && !action.busy;
+  const grouped = catalog.data.reduce((groups, permission) => { const category = permission.category || 'Other'; (groups[category] ||= []).push(permission); return groups; }, {});
+  const toggle = ids => setDraft(prev => ({ ...prev, ids: ids.every(id => prev.ids.includes(id)) ? prev.ids.filter(id => !ids.includes(id)) : [...new Set([...prev.ids, ...ids])] }));
+  const counts = users.data.reduce((result, user) => { result[user.roleId] = (result[user.roleId] || 0) + 1; return result; }, {});
+  if (!canView) return <div className="management-page"><Empty title="Access restricted">You need permission to view roles.</Empty></div>;
+  return <div className="management-page">
+    <div className="page-header"><div><h1 className="page-title">Roles & permissions</h1><p className="page-subtitle">Define access, assign roles and review permissions in one place.</p></div>{can('CREATE_ROLE') && <button className="btn btn-primary" disabled={action.busy} onClick={() => { action.clear(); setForm({ ...EMPTY }); }}>Add role</button>}</div>
+    <Stats items={[[ 'Roles', roles.loaded ? roles.data.length : '-'], ['User accounts', users.loaded ? users.data.length : '-'], ['Protected roles', roles.loaded ? roles.data.filter(r => r.systemRole || PROTECTED.includes(r.code)).length : '-']]} />
+    <div className="management-tabs">{[['roles', 'Roles'], ...(canUsers ? [['users', 'User assignments']] : []), ['permissions', 'Permissions']].map(([key, label]) => <button key={key} aria-pressed={tab === key} className={'btn ' + (tab === key ? 'btn-primary' : 'btn-secondary')} disabled={action.busy} onClick={() => changeTab(key)}>{label}</button>)}</div>
+    <Feedback error={action.error} notice={action.notice} />
+    {roles.error ? <Feedback error={roles.error} onRetry={roles.reload} /> : roles.loading ? <Loading /> : <>
+      {tab === 'roles' && <><div className="management-toolbar"><label htmlFor="role-search">Find a role</label><input id="role-search" className="form-control" type="search" placeholder="Search name or code" value={search} onChange={e => setSearch(e.target.value)} /></div><div className="management-grid">{roles.data.filter(r => (r.name + ' ' + r.code).toLowerCase().includes(search.toLowerCase().trim())).map(role => <article key={role.id} className="management-card"><h3>{role.name}</h3><span className="badge badge-primary">{role.code}</span><p>{role.description || 'No description provided.'}</p><p>{users.loaded ? (counts[role.id] || 0) + ' assigned users' : 'User counts unavailable'} &middot; {role.portalType} portal</p><div className="management-actions"><button className="btn btn-secondary btn-sm" disabled={action.busy} onClick={() => { setSelectedId(String(role.id)); changeTab('permissions'); }}>Permissions</button>{role.systemRole || PROTECTED.includes(role.code) ? <span className="badge badge-secondary">Protected</span> : can('DELETE_ROLE') && <button className="btn btn-danger btn-sm" disabled={action.busy || Boolean(counts[role.id])} onClick={() => remove(role)}>Delete</button>}</div></article>)}</div>{!roles.data.some(r => (r.name + ' ' + r.code).toLowerCase().includes(search.toLowerCase().trim())) && <Empty>No roles match your search.</Empty>}</>}
+      {tab === 'users' && (!canUsers ? <Empty title="Access restricted">You need permission to view user accounts.</Empty> : users.loading ? <Loading /> : users.error ? <Feedback error={users.error} onRetry={users.reload} /> : <><div className="management-toolbar"><label htmlFor="user-search">Find an account</label><input id="user-search" type="search" className="form-control" placeholder="Username or role" value={search} onChange={e => setSearch(e.target.value)} /></div><DataTable data={users.data.filter(u => (u.username + ' ' + (u.roleName || u.role || '')).toLowerCase().includes(search.toLowerCase().trim()))} columns={[{ key: 'username', label: 'Username' }, { key: 'roleName', label: 'Role', render: (value, user) => can('UPDATE_USER') ? <select className="form-control" aria-label={'Role for ' + user.username} disabled={action.busy} value={user.roleId || ''} onChange={e => assign(user, e.target.value)}><option value="" disabled>Unassigned</option>{roles.data.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}</select> : value || user.role || 'Unassigned' }]} /></>)}
+      {tab === 'permissions' && <><div className="management-toolbar"><label htmlFor="permission-role">Role</label><select id="permission-role" className="form-control" value={selectedId} disabled={action.busy} onChange={e => choose(e.target.value)}><option value="">Select a role</option>{roles.data.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}</select><span className="management-muted">{dirty ? 'Unsaved changes' : 'Select a role to review its access'}</span>{can('UPDATE_ROLE') && <button className="btn btn-primary" disabled={!editable || !dirty} onClick={savePermissions}>Save permissions</button>}</div>
+        {!selected ? <Empty title="Choose a role">Review its permissions before making changes.</Empty> : selected.code === 'ADMIN' ? <Empty title="Administrator access is built in">Administrators have full access. This permission set is read-only.</Empty> : permissions.loading || catalog.loading ? <Loading /> : permissions.error || catalog.error ? <Feedback error={permissions.error || catalog.error} onRetry={() => { permissions.reload(); catalog.reload(); }} /> : Object.entries(grouped).map(([category, perms]) => <fieldset key={category} className="permission-category" disabled={!editable}><legend>{category}</legend><label><input type="checkbox" aria-label={'Select all ' + category + ' permissions'} checked={perms.every(p => draft.ids.includes(p.id))} ref={el => { if (el) el.indeterminate = perms.some(p => draft.ids.includes(p.id)) && !perms.every(p => draft.ids.includes(p.id)); }} onChange={() => toggle(perms.map(p => p.id))} /> Select all in {category}</label><div className="permission-options">{perms.map(permission => <label key={permission.id} className="permission-option"><input type="checkbox" checked={draft.ids.includes(permission.id)} onChange={() => toggle([permission.id])} /><span>{permission.name}<small className="management-muted" style={{ display: 'block' }}>{permission.description || permission.code}</small></span></label>)}</div></fieldset>)}
+      </>}
+    </>}
+    <Modal isOpen={Boolean(form)} title="Create role" onClose={() => setForm(null)} onSubmit={create} submitting={action.busy} submitLabel="Create role" isDirty={Boolean(form && (form.code || form.name || form.description))}>{form && <form className="management-form" onSubmit={e => { e.preventDefault(); create(); }}><Feedback error={action.error} /><fieldset disabled={action.busy}>{[['name', 'Role name'], ['code', 'Role code'], ['description', 'Description']].map(([key, label]) => <div className="form-group" key={key}><label className="form-label" htmlFor={'role-' + key}>{label}{key !== 'description' ? ' *' : ''}</label><input id={'role-' + key} className="form-control" required={key !== 'description'} pattern={key === 'code' ? '[A-Z][A-Z0-9_]{0,49}' : undefined} maxLength={key === 'code' ? 50 : key === 'name' ? 100 : 1000} value={form[key]} onChange={e => setForm({ ...form, [key]: key === 'code' ? e.target.value.toUpperCase().replace(/\s/g, '_') : e.target.value })} /></div>)}<div className="form-group"><label htmlFor="role-portal" className="form-label">Portal</label><select id="role-portal" className="form-control" value={form.portalType} onChange={e => setForm({ ...form, portalType: e.target.value })}>{['ADMIN', 'FACULTY', 'STUDENT', 'WARDEN', 'FINANCE'].map(portal => <option key={portal}>{portal}</option>)}</select></div></fieldset></form>}</Modal>
+  </div>;
+}

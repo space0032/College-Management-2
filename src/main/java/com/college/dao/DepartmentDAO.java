@@ -12,6 +12,9 @@ import java.util.List;
  * DepartmentDAO - Data Access Object for Department operations
  */
 public class DepartmentDAO {
+    private final PayrollDAO.ConnectionProvider connections;
+    public DepartmentDAO() { this(DatabaseConnection::getConnection); }
+    public DepartmentDAO(PayrollDAO.ConnectionProvider connections) { this.connections = connections; }
 
     /**
      * Get all departments
@@ -20,7 +23,7 @@ public class DepartmentDAO {
         List<Department> departments = new ArrayList<>();
         String sql = "SELECT * FROM departments ORDER BY name";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -29,7 +32,7 @@ public class DepartmentDAO {
             }
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
 
         return departments;
@@ -37,13 +40,13 @@ public class DepartmentDAO {
 
     public int getTotalCount() {
         String sql = "SELECT COUNT(*) FROM departments";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next())
                 return rs.getInt(1);
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return 0;
     }
@@ -54,7 +57,7 @@ public class DepartmentDAO {
     public Department getDepartmentById(int id) {
         String sql = "SELECT * FROM departments WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -65,7 +68,7 @@ public class DepartmentDAO {
             }
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
 
         return null;
@@ -77,7 +80,7 @@ public class DepartmentDAO {
     public boolean addDepartment(Department department) {
         String sql = "INSERT INTO departments (name, code, description, head_of_department) VALUES (?, ?, ?, ?)";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, department.getName());
@@ -88,8 +91,7 @@ public class DepartmentDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-            return false;
+            throw com.college.utils.ManagementException.database(e);
         }
     }
 
@@ -99,7 +101,7 @@ public class DepartmentDAO {
     public boolean updateDepartment(Department department) {
         String sql = "UPDATE departments SET name = ?, code = ?, description = ?, head_of_department = ? WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, department.getName());
@@ -111,8 +113,7 @@ public class DepartmentDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-            return false;
+            throw com.college.utils.ManagementException.database(e);
         }
     }
 
@@ -120,18 +121,47 @@ public class DepartmentDAO {
      * Delete department
      */
     public boolean deleteDepartment(int id) {
-        String sql = "DELETE FROM departments WHERE id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-            return false;
-        }
+        try (Connection conn = connections.open()) {
+            conn.setAutoCommit(false);
+            try {
+                String name, code;
+                try (PreparedStatement lock = conn.prepareStatement("SELECT name, code FROM departments WHERE id = ? FOR UPDATE")) {
+                    lock.setInt(1, id);
+                    try (ResultSet rs = lock.executeQuery()) {
+                        if (!rs.next()) { conn.rollback(); return false; }
+                        name = rs.getString(1); code = rs.getString(2);
+                    }
+                }
+                DatabaseMetaData meta = conn.getMetaData();
+                boolean upper = meta.storesUpperCaseIdentifiers();
+                String table = upper ? "DEPARTMENTS" : "departments";
+                String quote = meta.getIdentifierQuoteString().trim();
+                try (ResultSet keys = meta.getExportedKeys(conn.getCatalog(), conn.getSchema(), table)) {
+                    while (keys.next()) {
+                        String target = keys.getString("FKTABLE_NAME"), column = keys.getString("FKCOLUMN_NAME");
+                        try (PreparedStatement check = conn.prepareStatement("SELECT COUNT(*) FROM " + quote + target + quote + " WHERE " + quote + column + quote + " = ?")) {
+                            check.setInt(1, id);
+                            try (ResultSet rs = check.executeQuery()) { rs.next(); if (rs.getInt(1) > 0) throw new com.college.utils.ManagementException(409, "This department is in use. Reassign its linked records before deleting it."); }
+                        }
+                    }
+                }
+                // Some legacy records link departments by name/code instead of a foreign key.
+                for (String related : new String[]{"students", "faculty", "courses"}) {
+                    String relatedTable = upper ? related.toUpperCase(java.util.Locale.ROOT) : related;
+                    String column = upper ? "DEPARTMENT" : "department";
+                    try (ResultSet columns = meta.getColumns(conn.getCatalog(), conn.getSchema(), relatedTable, column)) {
+                        if (!columns.next()) continue;
+                    }
+                    try (PreparedStatement check = conn.prepareStatement("SELECT COUNT(*) FROM " + quote + relatedTable + quote + " WHERE " + quote + column + quote + " = ? OR " + quote + column + quote + " = ?")) {
+                        check.setString(1, name); check.setString(2, code);
+                        try (ResultSet rs = check.executeQuery()) { rs.next(); if (rs.getInt(1) > 0) throw new com.college.utils.ManagementException(409, "This department is assigned to students, faculty or courses."); }
+                    }
+                }
+                try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM departments WHERE id = ?")) { stmt.setInt(1, id); stmt.executeUpdate(); }
+                conn.commit(); return true;
+            } catch (Exception e) { conn.rollback(); throw e; }
+            finally { conn.setAutoCommit(true); }
+        } catch (SQLException e) { throw com.college.utils.ManagementException.database(e); }
     }
 
     /**
@@ -141,7 +171,7 @@ public class DepartmentDAO {
         List<Department> departments = new ArrayList<>();
         String sql = "SELECT * FROM departments WHERE name ILIKE ? OR code ILIKE ? ORDER BY name";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             String searchPattern = "%" + query + "%";
@@ -154,7 +184,7 @@ public class DepartmentDAO {
             }
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
 
         return departments;
@@ -166,7 +196,7 @@ public class DepartmentDAO {
     public boolean hasCourses(int departmentId) {
         String sql = "SELECT COUNT(*) as count FROM courses WHERE department_id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, departmentId);
@@ -177,7 +207,7 @@ public class DepartmentDAO {
             }
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
 
         return false;

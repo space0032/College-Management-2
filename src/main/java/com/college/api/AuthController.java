@@ -115,6 +115,7 @@ public class AuthController extends BaseController implements HttpHandler {
             User user = userDAO.getUserById(info.userId);
             if (user != null) {
                 session.put("roleId", user.getRoleId());
+                session.put("role", user.getRoleName() != null ? user.getRoleName() : user.getRole());
                 Role role = new RoleDAO().getRoleById(user.getRoleId());
                 session.put("permissions", role != null && role.getPermissions() != null
                         ? role.getPermissions() : java.util.List.of());

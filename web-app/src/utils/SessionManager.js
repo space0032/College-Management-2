@@ -126,7 +126,7 @@ class SessionManager {
     if (this.hasRole('ADMIN')) return true;
 
     const user = this.getUser();
-    if (!user || (!user.permissions && !Array.isArray(user.permissions))) {
+    if (!user || !Array.isArray(user.permissions)) {
       return false;
     }
 
@@ -144,6 +144,7 @@ class SessionManager {
     if (!user) return;
     user.permissions = permissions;
     this.cachedUser = user;
+    window.dispatchEvent(new Event('session-updated'));
     try {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     } catch (e) {
@@ -162,6 +163,11 @@ class SessionManager {
       const res = await getSession();
       const permissions = res?.data?.permissions;
       if (Array.isArray(permissions)) {
+        const user = this.getUser();
+        if (user && res.data.role) {
+          user.role = res.data.role;
+          user.roleId = res.data.roleId;
+        }
         this.updatePermissions(permissions);
         return permissions;
       }

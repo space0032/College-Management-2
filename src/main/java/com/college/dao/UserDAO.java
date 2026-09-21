@@ -116,7 +116,7 @@ public class UserDAO {
                 users.add(user);
             }
         } catch (SQLException e) {
-            Logger.error("Error fetching users", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return users;
     }

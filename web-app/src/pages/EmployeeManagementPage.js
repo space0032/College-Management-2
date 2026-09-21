@@ -1,290 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { getEmployees, addEmployee, updateEmployee } from '../services/employeeService';
 import { exportToCSV } from '../utils/exportUtils';
+import SessionManager from '../utils/SessionManager';
 import Modal from '../components/Modal';
-import { toast } from '../components/Toast';
-import { getErrorMessage, getSuccessRefId } from '../utils/error';
-import { SkeletonCards } from '../components/Skeleton';
+import { currency, Empty, Feedback, Loading, Stats, useManagementAction, useManagementData } from '../components/ManagementUI';
 
-const EmployeeManagementPage = () => {
-    const [employees, setEmployees] = useState([]);
-    const [filteredEmployees, setFilteredEmployees] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const [showModal, setShowModal] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('ALL');
-
-    const [formData, setFormData] = useState({
-        id: 0, employeeId: '', firstName: '', lastName: '', email: '',
-        phone: '', designation: '', joinDate: '', salary: 0, status: 'ACTIVE'
-    });
-    const [saving, setSaving] = useState(false);
-
-    const fetchEmployees = React.useCallback(async (signal) => {
-        try {
-            setLoading(true);
-            const res = await getEmployees(signal);
-            if (signal?.aborted) return;
-            setEmployees(res.data || []);
-            setError(null);
-        } catch (err) {
-            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
-            setError('System error retrieving staff records.');
-        } finally { if (!signal?.aborted) setLoading(false); }
-    }, []);
-
-    const filterData = React.useCallback(() => {
-        let result = employees;
-        if (statusFilter !== 'ALL') result = result.filter(e => e.status === statusFilter);
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(e =>
-                (e.firstName + ' ' + e.lastName).toLowerCase().includes(q) ||
-                e.employeeId.toLowerCase().includes(q) ||
-                e.designation.toLowerCase().includes(q)
-            );
-        }
-        setFilteredEmployees(result);
-    }, [employees, statusFilter, searchQuery]);
-
-    useEffect(() => {
-        const controller = new AbortController();
-        fetchEmployees(controller.signal);
-        return () => controller.abort();
-    }, [fetchEmployees]);
-    useEffect(() => { filterData(); }, [filterData]);
-
-    const handleSubmit = async () => {
-        if (formData.phone && !/^\+?[0-9\s-]{7,15}$/.test(formData.phone.trim())) {
-            toast.error('Enter a valid phone number using 7 to 15 digits.');
-            return;
-        }
-        if (!Number.isFinite(Number(formData.salary)) || Number(formData.salary) < 0) {
-            toast.error('Annual salary cannot be negative.');
-            return;
-        }
-        setSaving(true);
-        try {
-            const refId = getSuccessRefId();
-            if (isEditing) {
-                await updateEmployee(formData.id, formData);
-                toast.success('Personnel profile updated.', { refId });
-            } else {
-                await addEmployee(formData);
-                toast.success('Staff profile initialized.', { refId });
-            }
-            setShowModal(false);
-            fetchEmployees();
-        } catch (err) {
-            const { message, status, refId } = getErrorMessage(err, 'Could not save this staff profile.');
-            toast.error(message, { refId, details: { status } });
-        } finally { setSaving(false); }
-    };
-
-    const handleEdit = (emp) => {
-        setFormData({
-            id: emp.id || 0,
-            employeeId: emp.employeeId || '',
-            firstName: emp.firstName || '',
-            lastName: emp.lastName || '',
-            email: emp.email || '',
-            phone: emp.phone || '',
-            designation: emp.designation || '',
-            joinDate: emp.joinDate || '',
-            salary: emp.salary ?? 0,
-            status: emp.status || 'ACTIVE'
-        });
-        setIsEditing(true);
-        setShowModal(true);
-    };
-
-    const getAvatarColor = (name) => {
-        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
-        const charCode = name.charCodeAt(0) || 0;
-        return colors[charCode % colors.length];
-    };
-
-    // Stats
-    const totalStaff = employees.length;
-    const activeStaff = employees.filter(e => e.status === 'ACTIVE').length;
-    const depts = [...new Set(employees.map(e => e.designation))].length;
-
-    return (
-        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
-            <div className="page-header" style={{ marginBottom: '30px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                        <h1 className="page-title">👥 Human Capital Management</h1>
-                        <p className="page-subtitle">Unified staff directory, lifecycle management, and organizational hierarchy</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button className="btn btn-secondary" onClick={() => exportToCSV(
-                            ['Employee ID', 'Name', 'Designation', 'Join Date', 'Salary', 'Status'],
-                            filteredEmployees.map(e => [e.employeeId, `${e.firstName} ${e.lastName}`, e.designation, e.joinDate, e.salary, e.status]),
-                            'employee_export'
-                        )}>⬇ Export CSV</button>
-                        <button className="btn btn-primary" onClick={() => { setFormData({ id: 0, employeeId: '', firstName: '', lastName: '', email: '', phone: '', designation: '', joinDate: '', salary: 0, status: 'ACTIVE' }); setIsEditing(false); setShowModal(true); }}>
-                            + Onboard Staff
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Premium Stats Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
-                <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)', color: 'white' }}>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Total Workforce</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '8px 0' }}>{totalStaff}</div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Non-Teaching & Support</div>
-                </div>
-                <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Active Status</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>{activeStaff}</div>
-                </div>
-                <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Units / Designations</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: '8px 0' }}>{depts}</div>
-                </div>
-                <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Retention Rate</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>N/A</div>
-                </div>
-            </div>
-
-            {/* Filter Bar */}
-            <div className="stat-card" style={{ marginBottom: '30px', padding: '20px', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                    <input
-                        type="text"
-                        placeholder="Search by name, ID or role..."
-                        className="form-control"
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        style={{ paddingLeft: '40px' }}
-                    />
-                    <span style={{ position: 'absolute', left: '15px', top: '12px', color: '#94a3b8' }}>🔍</span>
-                </div>
-                <select className="form-control" style={{ width: '200px' }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                    <option value="ALL">All Status</option>
-                    <option value="ACTIVE">Active Only</option>
-                    <option value="INACTIVE">Inactive / Former</option>
-                </select>
-            </div>
-
-            {error ? (
-                <div className="retry-bar" role="alert" style={{ marginBottom: '16px' }}>
-                    <span>{error}</span>
-                    <button className="btn btn-secondary btn-sm" onClick={() => fetchEmployees()}>Retry</button>
-                </div>
-            ) : null}
-            {loading ? (
-                <SkeletonCards count={6} />
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '25px' }}>
-                    {filteredEmployees.map(emp => (
-                        <div key={emp.id} className="stat-card" style={{ display: 'flex', gap: '20px', alignItems: 'center', transition: 'box-shadow 0.2s' }}>
-                            <div style={{
-                                width: '60px', height: '60px', borderRadius: '15px',
-                                background: getAvatarColor(emp.firstName), color: 'white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '1.5rem', fontWeight: '900', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-                            }}>
-                                {emp.firstName.charAt(0)}{emp.lastName.charAt(0)}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{emp.firstName} {emp.lastName}</h4>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: '600' }}>{emp.designation}</div>
-                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>ID: {emp.employeeId}</div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <span className={`badge ${emp.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'}`} style={{ fontSize: '0.6rem', padding: '4px 8px' }}>{emp.status}</span>
-                                <div style={{ marginTop: '10px' }}>
-                                    <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(emp)} style={{ padding: '4px 8px' }}>Edit</button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    {filteredEmployees.length === 0 && (
-                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px', color: '#94a3b8' }}>
-                            <div style={{ fontSize: '3rem' }}>🚫</div>
-                            <p>No matching staff profiles found.</p>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            <Modal
-                isOpen={showModal}
-                title={isEditing ? 'Modify Personnel Profile' : 'Staff Onboarding'}
-                onClose={() => setShowModal(false)}
-                onSubmit={handleSubmit}
-                submitLabel={isEditing ? 'Commit Changes' : 'Initialize Profile'}
-                submitting={saving}
-                isDirty={Boolean(formData.firstName || formData.lastName || formData.employeeId)}
-                size="drawer"
-            >
-                <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="form-grid">
-                    <div className="form-section" style={{ gridColumn: '1 / -1' }}>
-                        <h4 className="form-section-title">Personal</h4>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label className="form-label">First Name *</label>
-                                <input required className="form-control" type="text" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Last Name *</label>
-                                <input required className="form-control" type="text" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="form-section" style={{ gridColumn: '1 / -1' }}>
-                        <h4 className="form-section-title">Employment</h4>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label className="form-label">Official ID *</label>
-                                <input required className="form-control" type="text" value={formData.employeeId} onChange={e => setFormData({ ...formData, employeeId: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Designation / Unit *</label>
-                                <input required className="form-control" type="text" value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Join Date</label>
-                                <input className="form-control" type="date" value={formData.joinDate} onChange={e => setFormData({ ...formData, joinDate: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Employment Status</label>
-                                <select className="form-control" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
-                                    <option value="ACTIVE">Active</option>
-                                    <option value="INACTIVE">Inactive / Former</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="form-section" style={{ gridColumn: '1 / -1' }}>
-                        <h4 className="form-section-title">Contact & Pay</h4>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label className="form-label">Work Email *</label>
-                                <input required className="form-control" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Phone Contact</label>
-                                <input className="form-control" type="tel" inputMode="tel" pattern="[+]?[0-9\- ]{7,15}" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-                            </div>
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label className="form-label">Annual Salary (₹)</label>
-                                <input className="form-control" type="number" min="0" step="0.01" value={formData.salary} onChange={e => setFormData({ ...formData, salary: e.target.value })} />
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </Modal>
-        </div>
-    );
-};
-
-export default EmployeeManagementPage;
+const EMPTY = { id: 0, employeeId: '', firstName: '', lastName: '', email: '', phone: '', designation: '', joinDate: '', salary: '', status: 'ACTIVE' };
+const STATUSES = ['ACTIVE', 'ON_LEAVE', 'RESIGNED', 'TERMINATED'];
+export default function EmployeeManagementPage() {
+  const can = code => SessionManager.hasPermission(code);
+  const canView = can('VIEW_EMPLOYEE');
+  const loader = useCallback(async () => (await getEmployees()).data || [], []);
+  const list = useManagementData(loader, canView);
+  const action = useManagementAction();
+  const [query, setQuery] = useState(''), [status, setStatus] = useState('ALL');
+  const [form, setForm] = useState(null), [formError, setFormError] = useState('');
+  const [initial, setInitial] = useState('');
+  const records = list.data.filter(employee => (status === 'ALL' || employee.status === status) && [employee.firstName, employee.lastName, employee.employeeId, employee.designation, employee.email].some(value => String(value || '').toLowerCase().includes(query.trim().toLowerCase())));
+  const open = employee => {
+    const value = { ...EMPTY, ...employee };
+    Object.keys(EMPTY).forEach(key => { if (value[key] == null) value[key] = EMPTY[key]; });
+    setForm(value); setInitial(JSON.stringify(value)); setFormError(''); action.clear();
+  };
+  const save = async () => {
+    const salary = String(form.salary).trim();
+    if (!form.employeeId.trim() || !form.firstName.trim() || !form.email.trim() || !form.designation.trim()) { setFormError('Employee ID, first name, email and designation are required.'); return; }
+    if (salary && (!/^\d+(\.\d{1,2})?$/.test(salary) || Number(salary) > 99999999.99)) { setFormError('Enter a non-negative monthly salary with at most two decimal places.'); return; }
+    if (form.phone && (!/^\+?[0-9 -]+$/.test(form.phone) || form.phone.replace(/\D/g, '').length < 7 || form.phone.replace(/\D/g, '').length > 15)) { setFormError('Enter a phone number containing 7 to 15 digits.'); return; }
+    await action.run(async () => {
+      const payload = { ...form, employeeId: form.employeeId.trim(), firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim(), salary: salary || '0' };
+      await (form.id > 0 ? updateEmployee(payload) : addEmployee(payload));
+      setForm(null); await list.reload();
+    }, 'Employee profile saved.');
+  };
+  if (!canView) return <div className="management-page"><Empty title="Access restricted">You need permission to view employees.</Empty></div>;
+  return <div className="management-page">
+    <div className="page-header"><div><h1 className="page-title">Employees</h1><p className="page-subtitle">Staff profiles, employment status and monthly salary details.</p></div><div className="management-actions"><button className="btn btn-secondary" disabled={!list.loaded || !records.length} onClick={() => exportToCSV(['Employee ID', 'Name', 'Designation', 'Joining date', 'Monthly salary (INR)', 'Status', 'Profile'], records.map(e => [e.employeeId, [e.firstName, e.lastName].filter(Boolean).join(' '), e.designation, e.joinDate, e.salary, e.status, e.id > 0 ? 'Saved' : 'Needs setup']), 'employees')}>Export CSV</button>{can('CREATE_EMPLOYEE') && <button className="btn btn-primary" disabled={action.busy} onClick={() => open(EMPTY)}>Add employee</button>}</div></div>
+    <Feedback error={action.error} notice={action.notice} />
+    <Stats items={[[ 'Staff', list.loaded ? list.data.length : '-'], ['Active', list.loaded ? list.data.filter(e => e.status === 'ACTIVE').length : '-'], ['Profiles needing setup', list.loaded ? list.data.filter(e => !(e.id > 0)).length : '-']]} />
+    <div className="management-toolbar"><label htmlFor="employee-search">Find an employee</label><input id="employee-search" type="search" className="form-control" placeholder="Name, ID, designation or email" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Employment status" className="form-control" value={status} onChange={e => setStatus(e.target.value)}><option value="ALL">All statuses</option>{STATUSES.map(value => <option key={value}>{value}</option>)}</select></div>
+    {list.loading ? <Loading /> : list.error ? <Feedback error={list.error} onRetry={list.reload} /> : !records.length ? <Empty title="No employees found">{query || status !== 'ALL' ? 'Try a different search or status filter.' : 'Add an employee to get started.'}</Empty> : <div className="management-grid">{records.map(employee => <article key={employee.id > 0 ? 'employee-' + employee.id : 'account-' + employee.employeeId} className="management-card"><h3>{[employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.employeeId || 'Staff member'}</h3><p>{employee.designation || 'Designation not set'} &middot; {employee.employeeId || 'ID not set'}</p><span className={'badge ' + (employee.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary')}>{employee.status || 'Unknown'}</span>{!(employee.id > 0) && <span className="badge badge-warning">Profile needs setup</span>}<dl><dt>Email</dt><dd>{employee.email || 'Not set'}</dd><dt>Joining date</dt><dd>{employee.joinDate || 'Not set'}</dd><dt>Monthly salary</dt><dd>{employee.salary == null ? 'Not set' : currency(employee.salary)}</dd></dl>{can(employee.id > 0 ? 'UPDATE_EMPLOYEE' : 'CREATE_EMPLOYEE') && <button className="btn btn-secondary" disabled={action.busy} onClick={() => open(employee)}>{employee.id > 0 ? 'Edit profile' : 'Set up profile'}</button>}</article>)}</div>}
+    <Modal isOpen={Boolean(form)} title={form?.id > 0 ? 'Edit employee' : form?.userId ? 'Set up employee profile' : 'Add employee'} onClose={() => setForm(null)} onSubmit={save} submitting={action.busy} isDirty={Boolean(form && JSON.stringify(form) !== initial)} size="large">
+      {form && <form className="management-form" onSubmit={e => { e.preventDefault(); save(); }}><Feedback error={formError || action.error} /><fieldset disabled={action.busy}><div className="form-grid">{[
+        ['employeeId', 'Employee ID', 'text', true], ['firstName', 'First name', 'text', true], ['lastName', 'Last name', 'text', false], ['email', 'Work email', 'email', true], ['phone', 'Phone', 'tel', false], ['designation', 'Designation', 'text', true], ['joinDate', 'Joining date', 'date', false], ['salary', 'Monthly salary (INR)', 'number', false]
+      ].map(([key, label, type, required]) => <div className="form-group" key={key}><label className="form-label" htmlFor={'employee-' + key}>{label}{required ? ' *' : ''}</label><input id={'employee-' + key} className="form-control" type={type} required={required} min={type === 'number' ? '0' : undefined} max={type === 'number' ? '99999999.99' : undefined} step={type === 'number' ? '0.01' : undefined} maxLength={key === 'employeeId' ? 50 : key === 'phone' ? 20 : 100} readOnly={(key === 'employeeId' && (form.id > 0 || Boolean(form.userId))) || (key === 'designation' && Boolean(form.userId))} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} />{key === 'designation' && form.userId && <small className="management-muted">Managed by the linked account's role.</small>}{key === 'salary' && <small className="management-muted">Payroll uses this monthly amount. A positive salary and joining date are needed to generate payroll.</small>}</div>)}<div className="form-group"><label className="form-label" htmlFor="employee-status">Status</label><select id="employee-status" className="form-control" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{STATUSES.map(value => <option key={value}>{value}</option>)}</select></div></div></fieldset></form>}
+    </Modal>
+  </div>;
+}

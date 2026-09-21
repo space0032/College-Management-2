@@ -29,12 +29,16 @@ public class UserController extends BaseController implements HttpHandler {
             } else if (path.matches(".*/users/\\d+")) {
                 if ("DELETE".equals(method)) handleDelete(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
-            } else {
+            } else if (path.equals("/api/users")) {
                 if ("GET".equals(method)) handleGetAll(t);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
-            }
+            } else sendResponse(t, 404, errorJson("Not found"));
+        } catch (com.college.utils.ManagementException e) {
+            sendResponse(t, e.getStatus(), errorJson(e.getMessage()));
+        } catch (com.google.gson.JsonParseException | IllegalArgumentException e) {
+            sendResponse(t, 400, errorJson("Invalid request input"));
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
+            sendResponse(t, 500, errorJson("Could not complete user request"));
         }
     }
 
@@ -47,9 +51,9 @@ public class UserController extends BaseController implements HttpHandler {
     private void handleDelete(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "DELETE_USER")) return;
         int id = extractId(path);
-        boolean ok = userDAO.deleteUser(id);
-        if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");
-        else sendResponse(t, 400, errorJson("Failed to delete user"));
+        new com.college.dao.AccessManagementDAO().deleteUser(getTokenInfo(t).userId, id);
+        TokenStore.removeTokensForUser(id);
+        sendResponse(t, 200, JSON.toJson(java.util.Map.of("status", "Deleted")));
     }
 
     @SuppressWarnings("unchecked")
@@ -57,23 +61,11 @@ public class UserController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "UPDATE_USER")) return;
         String[] parts = path.split("/");
         int userId = Integer.parseInt(parts[parts.length - 2]); // /users/{id}/role
-        String body = readBody(t);
-        java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || map.get("roleId") == null) {
-            sendResponse(t, 400, errorJson("roleId is required"));
-            return;
-        }
-        int roleId = ((Number) map.get("roleId")).intValue();
-        com.college.dao.RoleDAO roleDAO = new com.college.dao.RoleDAO();
-        com.college.models.Role role = roleDAO.getRoleById(roleId);
-        if (role == null) {
-            sendResponse(t, 404, errorJson("Role not found"));
-            return;
-        }
-        boolean ok = roleDAO.assignRoleToUser(userId, roleId);
-        if (ok) userDAO.updateUserRole(userId, role.getCode()); // sync legacy column
-        if (ok) sendResponse(t, 200, "{\"status\":\"Role updated\"}");
-        else sendResponse(t, 400, errorJson("Failed to update role"));
+        int roleId = com.college.utils.ManagementValidation.integer(com.college.utils.ManagementValidation.object(readBody(t)), "roleId", 1, Integer.MAX_VALUE);
+        new com.college.dao.AccessManagementDAO().assignRole(getTokenInfo(t).userId, userId, roleId);
+        com.college.models.Role role = new com.college.dao.RoleDAO().getRoleById(roleId);
+        TokenStore.refreshRoleForUser(userId, role.getCode());
+        sendResponse(t, 200, JSON.toJson(java.util.Map.of("status", "Role updated")));
     }
 
     @SuppressWarnings("unchecked")
@@ -84,7 +76,7 @@ public class UserController extends BaseController implements HttpHandler {
 
         String body = readBody(t);
         java.util.Map<String, String> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        
+
         String oldPassword = map.get("oldPassword");
         String newPassword = map.get("newPassword");
 

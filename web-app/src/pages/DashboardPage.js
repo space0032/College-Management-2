@@ -92,6 +92,12 @@ const DashboardPage = () => {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const refresh = () => forceUpdate(value => value + 1);
+    window.addEventListener('session-updated', refresh);
+    return () => window.removeEventListener('session-updated', refresh);
+  }, []);
+
   return (
     <div className="app-layout">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -149,20 +155,24 @@ const DashboardPage = () => {
               <Route path="faculty-portal" element={<FacultyPortalPage />} />
             )}
 
+            <Route path="management" element={<InstituteManagementPage />} />
+            <Route path="employees" element={<EmployeeManagementPage />} />
+            <Route path="payroll" element={<PayrollManagementPage />} />
+            <Route path="roles" element={<RoleManagementPage />} />
             {/* Admin Only Routes */}
             {isAdmin && (
               <>
                 <Route path="faculty" element={<FacultyManagementPage />} />
-                <Route path="management" element={<InstituteManagementPage />} />
-                <Route path="employees" element={<EmployeeManagementPage />} />
+
+
                 <Route path="leaves" element={<LeaveApprovalPage />} />
                 <Route path="workload" element={<FacultyWorkloadPage />} />
-                <Route path="payroll" element={<PayrollManagementPage />} />
+
                 <Route path="audit" element={<AuditLogPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="student-affairs" element={<StudentAffairsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
-                <Route path="roles" element={<RoleManagementPage />} />
+
               </>
             )}
 

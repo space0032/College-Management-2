@@ -25,13 +25,17 @@ public class DepartmentController extends BaseController implements HttpHandler 
                 if ("PUT".equals(method)) handleUpdate(t, path);
                 else if ("DELETE".equals(method)) handleDelete(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
-            } else {
+            } else if (path.equals("/api/departments")) {
                 if ("GET".equals(method)) handleGetAll(t);
                 else if ("POST".equals(method)) handleAdd(t);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
-            }
+            } else sendResponse(t, 404, errorJson("Not found"));
+        } catch (com.college.utils.ManagementException e) {
+            sendResponse(t, e.getStatus(), errorJson(e.getMessage()));
+        } catch (com.google.gson.JsonParseException | IllegalArgumentException e) {
+            sendResponse(t, 400, errorJson("Invalid department input"));
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
+            sendResponse(t, 500, errorJson("Could not complete department request"));
         }
     }
 
@@ -68,6 +72,7 @@ public class DepartmentController extends BaseController implements HttpHandler 
             return;
         }
         if (!normalizeAndValidate(t, department)) return;
+        if (departmentDAO.getDepartmentById(id) == null) { sendResponse(t, 404, errorJson("Department not found")); return; }
         department.setId(id);
         boolean ok = departmentDAO.updateDepartment(department);
         if (ok) sendResponse(t, 200, JsonHelper.toJson(department));
@@ -77,6 +82,7 @@ public class DepartmentController extends BaseController implements HttpHandler 
     private void handleDelete(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "DELETE_DEPARTMENT")) return;
         int id = extractId(path);
+        if (departmentDAO.getDepartmentById(id) == null) { sendResponse(t, 404, errorJson("Department not found")); return; }
         boolean ok = departmentDAO.deleteDepartment(id);
         if (ok) sendResponse(t, 200, "{\"status\":\"Deleted\"}");
         else sendResponse(t, 400, errorJson("Failed to delete department"));

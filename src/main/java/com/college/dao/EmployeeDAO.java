@@ -9,14 +9,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class EmployeeDAO {
+    private final PayrollDAO.ConnectionProvider connections;
+    public EmployeeDAO() { this(DatabaseConnection::getConnection); }
+    public EmployeeDAO(PayrollDAO.ConnectionProvider connections) { this.connections = connections; }
 
     public boolean addEmployee(Employee emp) {
         String sql = "INSERT INTO employees (employee_id, first_name, last_name, email, phone, designation, join_date, salary, status) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
+            try (PreparedStatement account = conn.prepareStatement("SELECT u.id FROM users u LEFT JOIN roles r ON r.id = u.role_id WHERE u.username = ? AND COALESCE(r.code, u.role) = 'STUDENT'")) {
+                account.setString(1, emp.getEmployeeId());
+                try (ResultSet rs = account.executeQuery()) {
+                    if (rs.next()) throw new com.college.utils.ManagementException(409, "A student account cannot be used as an employee profile.");
+                }
+            }
             pstmt.setString(1, emp.getEmployeeId());
             pstmt.setString(2, emp.getFirstName());
             pstmt.setString(3, emp.getLastName());
@@ -27,15 +36,14 @@ public class EmployeeDAO {
             if (emp.getJoinDate() != null) {
                 pstmt.setDate(7, Date.valueOf(emp.getJoinDate()));
             } else {
-                pstmt.setDate(7, Date.valueOf(java.time.LocalDate.now()));
+                pstmt.setNull(7, Types.DATE);
             }
             pstmt.setBigDecimal(8, emp.getSalary());
             pstmt.setString(9, emp.getStatus().name());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-            return false;
+            throw com.college.utils.ManagementException.database(e);
         }
     }
 
@@ -44,12 +52,13 @@ public class EmployeeDAO {
         // yet.
         // We must CREATE (Insert) the profile instead of updating.
         if (emp.getId() == 0) {
+            // Legacy desktop profile setup; the HTTP update endpoint requires a positive ID.
             return addEmployee(emp);
         }
 
         String sql = "UPDATE employees SET first_name = ?, last_name = ?, email = ?, phone = ?, " +
                 "designation = ?, join_date = ?, salary = ?, status = ? WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, emp.getFirstName());
@@ -61,7 +70,7 @@ public class EmployeeDAO {
             if (emp.getJoinDate() != null) {
                 pstmt.setDate(6, Date.valueOf(emp.getJoinDate()));
             } else {
-                pstmt.setDate(6, Date.valueOf(java.time.LocalDate.now()));
+                pstmt.setNull(6, Types.DATE);
             }
             pstmt.setBigDecimal(7, emp.getSalary());
             pstmt.setString(8, emp.getStatus().name());
@@ -69,8 +78,7 @@ public class EmployeeDAO {
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            Logger.error("Failed to update employee", e);
-            return false;
+            throw com.college.utils.ManagementException.database(e);
         }
     }
 
@@ -94,13 +102,14 @@ public class EmployeeDAO {
                 "WHERE r.code NOT IN ('STUDENT') " +
                 "ORDER BY u.username";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = connections.open();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 Employee e = new Employee();
                 // Map User info
+                e.setUserId(rs.getInt("u_id"));
                 String username = rs.getString("username");
                 String roleName = rs.getString("role_name");
                 String facultyEmail = rs.getString("faculty_email");
@@ -174,7 +183,7 @@ public class EmployeeDAO {
 
             // Get all employees
             try (Statement stmt2 = conn.createStatement();
-                    ResultSet rs2 = stmt2.executeQuery("SELECT * FROM employees")) {
+                    ResultSet rs2 = stmt2.executeQuery("SELECT e.* FROM employees e WHERE NOT EXISTS (SELECT 1 FROM users u LEFT JOIN roles r ON r.id = u.role_id WHERE u.username = e.employee_id AND COALESCE(r.code, u.role) = 'STUDENT')")) {
 
                 while (rs2.next()) {
                     String empIdStr = rs2.getString("employee_id");
@@ -205,7 +214,7 @@ public class EmployeeDAO {
             }
 
         } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            throw com.college.utils.ManagementException.database(e);
         }
         return list;
     }
