@@ -22,6 +22,19 @@ public class WardenDAO {
     /** Default login password for auto-generated warden accounts (testing). */
     public static final String DEFAULT_PASSWORD = "123";
 
+    /** Standard permission codes for the WARDEN role. */
+    private static final String[] WARDEN_PERMISSIONS = {
+            "VIEW_HOSTEL", "CREATE_HOSTEL", "UPDATE_HOSTEL", "DELETE_HOSTEL", "MANAGE_HOSTEL",
+            "VIEW_HOSTEL_ATTENDANCE",
+            "VIEW_ROOM", "MANAGE_ROOM", "ROOM_CHECK",
+            "VIEW_STUDENT", "MANAGE_STUDENTS",
+            "VIEW_ANNOUNCEMENT", "VIEW_NOTIFICATION", "CREATE_ANNOUNCEMENT",
+            "VIEW_LEAVE", "UPDATE_LEAVE",
+            "VIEW_COMPLAINT", "MANAGE_COMPLAINT",
+            "VIEW_GATEPASS", "MANAGE_GATEPASS", "APPROVE_GATE_PASS",
+            "VIEW_ATTENDANCE_REPORT", "VIEW_FEES_REPORT"
+    };
+
     private static final String SELECT_SQL = "SELECT w.*, h.name as hostel_name, u.username FROM wardens w " +
             "LEFT JOIN hostels h ON w.hostel_id = h.id " +
             "LEFT JOIN users u ON w.user_id = u.id ";
@@ -271,22 +284,79 @@ public class WardenDAO {
         warden.setUsername(username); // Set for display back to user
 
         UserDAO userDAO = new UserDAO();
-        RoleDAO roleDAO = new RoleDAO();
-        com.college.models.Role wardenRole = roleDAO.getRoleByCode(conn, "WARDEN");
-        int roleId = (wardenRole != null) ? wardenRole.getId() : 0;
+        int roleId = ensureWardenRole(conn);
 
-        int userId;
-        if (roleId > 0) {
-            userId = userDAO.addUser(conn, username, DEFAULT_PASSWORD, "WARDEN", roleId);
-        } else {
-            userId = userDAO.addUser(conn, username, DEFAULT_PASSWORD, "WARDEN");
-        }
-
+        int userId = userDAO.addUser(conn, username, DEFAULT_PASSWORD, "WARDEN", roleId);
         if (userId <= 0) {
             return -1;
         }
         warden.setUserId(userId);
         return userId;
+    }
+
+    /**
+     * Resolve (or create) the WARDEN role, then return its id.
+     *
+     * The V65 migration deleted every non-ADMIN role without recreating WARDEN,
+     * which previously caused created warden accounts to be inserted with
+     * role_id NULL and therefore zero permissions. Creating the role here (and
+     * wiring its permissions) inside the same transaction guarantees every
+     * warden account is properly linked to the WARDEN role regardless of which
+     * migrations have run. Idempotent: reuses an existing role and only inserts
+     * permissions that are not yet assigned.
+     */
+    private int ensureWardenRole(Connection conn) throws SQLException {
+        com.college.models.Role existing = new RoleDAO().getRoleByCode(conn, "WARDEN");
+        int roleId = (existing != null) ? existing.getId() : insertWardenRole(conn);
+        wireWardenPermissions(conn, roleId);
+        return roleId;
+    }
+
+    private int insertWardenRole(Connection conn) throws SQLException {
+        String sql = "INSERT INTO roles (code, name, description, is_system_role, portal_type) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, "WARDEN");
+            pstmt.setString(2, "Hostel Warden");
+            pstmt.setString(3, "Manages hostel rooms, gate passes, and resident students");
+            pstmt.setBoolean(4, true);
+            pstmt.setString(5, "WARDEN");
+            if (pstmt.executeUpdate() > 0) {
+                try (ResultSet keys = pstmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        return keys.getInt(1);
+                    }
+                }
+            }
+        }
+        // Fallback in case a concurrent create won the race
+        com.college.models.Role reloaded = new RoleDAO().getRoleByCode(conn, "WARDEN");
+        if (reloaded != null) {
+            return reloaded.getId();
+        }
+        return -1;
+    }
+
+    /**
+     * Assign the standard WARDEN permissions. Idempotent per permission code.
+     */
+    private void wireWardenPermissions(Connection conn, int roleId) {
+        if (roleId <= 0) {
+            return;
+        }
+        String sql = "INSERT INTO role_permissions (role_id, permission_id) " +
+                "SELECT ?, p.id FROM permissions p WHERE p.code = ? " +
+                "AND NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = ? AND rp.permission_id = p.id)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            for (String code : WARDEN_PERMISSIONS) {
+                pstmt.setInt(1, roleId);
+                pstmt.setString(2, code);
+                pstmt.setInt(3, roleId);
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        } catch (SQLException e) {
+            Logger.error("Failed to wire warden role permissions", e);
+        }
     }
 
     /**
