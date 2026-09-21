@@ -7,6 +7,7 @@ import com.college.models.Hostel;
 import com.college.models.Room;
 import com.college.models.HostelAllocation;
 import com.college.utils.JsonHelper;
+import com.college.utils.Logger;
 import java.io.IOException;
 import java.util.List;
 
@@ -63,7 +64,8 @@ public class HostelController extends BaseController implements HttpHandler {
                     sendResponse(t, 405, errorJson("Method not allowed"));
             }
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
+            Logger.error("Hostel API error", e);
+            sendResponse(t, 500, errorJson("Internal server error"));
         }
     }
 

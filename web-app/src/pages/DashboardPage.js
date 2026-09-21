@@ -170,8 +170,10 @@ const DashboardPage = () => {
             {can('VIEW_HOSTEL') && (
               <>
                 <Route path="hostel/attendance" element={<HostelAttendancePage />} />
-                <Route path="wardens" element={<WardenManagementPage />} />
               </>
+            )}
+            {isAdmin && (
+              <Route path="wardens" element={<WardenManagementPage />} />
             )}
             {can('VIEW_COMPLAINT') && (
               <Route path="hostel/complaints" element={<HostelComplaintsPage />} />

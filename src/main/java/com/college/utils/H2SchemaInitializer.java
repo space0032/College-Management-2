@@ -63,7 +63,8 @@ public class H2SchemaInitializer {
         "V62__Add_Track_Specialization.sql",
         "V63__Add_Track_To_Program_Fees.sql",
         "V64__Add_Specializations_Master.sql",
-        "V69__Complete_Fee_Management.sql"
+        "V69__Complete_Fee_Management.sql",
+        "V70__Warden_Gate_Pass_Permissions.sql"
     };
 
     /**

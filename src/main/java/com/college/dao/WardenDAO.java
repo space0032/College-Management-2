@@ -4,87 +4,87 @@ import com.college.models.Warden;
 
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
+import com.college.utils.WardenValidation;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DAO for Warden Management
+ * DAO for Warden Management.
+ *
+ * Creating a warden auto-generates a WARDEN user account; deleting one removes
+ * the linked user and employee records in the same transaction so no orphan
+ * accounts are left behind.
  */
 public class WardenDAO {
 
+    /** Default login password for auto-generated warden accounts (testing). */
+    public static final String DEFAULT_PASSWORD = "123";
+
+    private static final String SELECT_SQL = "SELECT w.*, h.name as hostel_name, u.username FROM wardens w " +
+            "LEFT JOIN hostels h ON w.hostel_id = h.id " +
+            "LEFT JOIN users u ON w.user_id = u.id ";
+
     /**
-     * Add new warden
-     */
-    /**
-     * Add new warden with auto-generated user account
+     * Add new warden with auto-generated user account.
      */
     public int addWarden(Warden warden) {
+        if (WardenValidation.isBlank(warden.getName()) || !WardenValidation.isValidEmail(warden.getEmail())) {
+            return -1;
+        }
+        if (!WardenValidation.isValidPhone(warden.getPhone())) {
+            return -1;
+        }
+
+        String name = warden.getName().trim();
+        String email = warden.getEmail().trim();
+        String phone = WardenValidation.trimToNull(warden.getPhone());
+        int hostelId = warden.getHostelId();
+
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false); // Start transaction
 
             try {
-                // 1. Create User Account if not exists
-                int userId = warden.getUserId();
+                // Reject duplicate email up front (column is UNIQUE NOT NULL)
+                if (isEmailTaken(conn, email)) {
+                    conn.rollback();
+                    return -1;
+                }
+                // A "0" / blank hostel ID means "unassigned"; anything else must exist
+                if (hostelId > 0 && !hostelExists(conn, hostelId)) {
+                    conn.rollback();
+                    return -1;
+                }
+
+                // 1. Create the WARDEN user account if none is pre-supplied
+                int userId = resolveUserId(conn, warden, email);
                 if (userId <= 0) {
-                    // Generate unique username: WARDEN + 4 random digits
-                    String username = "WARDEN" + (int) (Math.random() * 9000 + 1000);
-                    UserDAO userDAO = new UserDAO();
-                    RoleDAO roleDAO = new RoleDAO();
-
-                    // Use SHARED connection to avoid pool deadlock
-                    com.college.models.Role wardenRole = roleDAO.getRoleByCode(conn, "WARDEN");
-                    int roleId = (wardenRole != null) ? wardenRole.getId() : 0;
-
-                    // Ensure uniqueness (simple retry logic could be added here, but purely random
-                    // is usually fine for low volume)
-                    // Default password: password123
-                    if (roleId > 0) {
-                        userId = userDAO.addUser(conn, username, "password123", "WARDEN", roleId);
-                    } else {
-                        userId = userDAO.addUser(conn, username, "password123", "WARDEN");
-                    }
-
-                    if (userId <= 0) {
-                        conn.rollback();
-                        return -1;
-                    }
-                    warden.setUserId(userId);
-                    warden.setUsername(username); // Set for display back to user
+                    conn.rollback();
+                    return -1;
                 }
 
                 // 2. Insert Warden
                 String sql = "INSERT INTO wardens (name, email, phone, hostel_id, user_id) VALUES (?, ?, ?, ?, ?)";
                 try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-                    pstmt.setString(1, warden.getName());
-                    pstmt.setString(2, warden.getEmail());
-                    pstmt.setString(3, warden.getPhone());
+                    pstmt.setString(1, name);
+                    pstmt.setString(2, email);
+                    pstmt.setString(3, phone == null ? "" : phone);
 
-                    if (warden.getHostelId() > 0) {
-                        pstmt.setInt(4, warden.getHostelId());
+                    if (hostelId > 0) {
+                        pstmt.setInt(4, hostelId);
                     } else {
                         pstmt.setNull(4, Types.INTEGER);
                     }
 
                     pstmt.setInt(5, userId);
 
-                    int affectedRows = pstmt.executeUpdate();
-
-                    if (affectedRows > 0) {
+                    if (pstmt.executeUpdate() > 0) {
                         try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
                             if (generatedKeys.next()) {
                                 int wardenId = generatedKeys.getInt(1);
+                                createEmployeeRecord(conn, warden, userId);
                                 conn.commit(); // Commit transaction
-
-                                // AUTO-CREATE EMPLOYEE RECORD WITH SALARY
-                                try {
-                                    createEmployeeRecord(warden, userId);
-                                } catch (Exception e) {
-                                    Logger.error("Failed to auto-create employee for warden", e);
-                                    // Don't fail the operation
-                                }
-
                                 return wardenId;
                             }
                         }
@@ -107,21 +107,17 @@ public class WardenDAO {
      */
     public List<Warden> getAllWardens() {
         List<Warden> wardens = new ArrayList<>();
-        String sql = "SELECT w.*, h.name as hostel_name, u.username FROM wardens w " +
-                "LEFT JOIN hostels h ON w.hostel_id = h.id " +
-                "LEFT JOIN users u ON w.user_id = u.id " +
-                "ORDER BY w.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+                ResultSet rs = stmt.executeQuery(SELECT_SQL + "ORDER BY w.name")) {
 
             while (rs.next()) {
                 wardens.add(extractWardenFromResultSet(rs));
             }
-
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
+            throw new RuntimeException("Failed to load wardens", e);
         }
 
         return wardens;
@@ -131,14 +127,25 @@ public class WardenDAO {
      * Update warden
      */
     public boolean updateWarden(Warden warden) {
+        if (WardenValidation.isBlank(warden.getName()) || !WardenValidation.isValidEmail(warden.getEmail())) {
+            return false;
+        }
+        if (!WardenValidation.isValidPhone(warden.getPhone())) {
+            return false;
+        }
+
         String sql = "UPDATE wardens SET name = ?, email = ?, phone = ?, hostel_id = ? WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, warden.getName());
-            pstmt.setString(2, warden.getEmail());
-            pstmt.setString(3, warden.getPhone());
+            if (warden.getHostelId() > 0 && !hostelExists(conn, warden.getHostelId())) {
+                return false;
+            }
+
+            pstmt.setString(1, warden.getName().trim());
+            pstmt.setString(2, warden.getEmail().trim());
+            pstmt.setString(3, WardenValidation.trimToNull(warden.getPhone()) == null ? "" : warden.getPhone().trim());
 
             if (warden.getHostelId() > 0) {
                 pstmt.setInt(4, warden.getHostelId());
@@ -158,23 +165,51 @@ public class WardenDAO {
     }
 
     /**
-     * Delete warden
+     * Delete warden together with its linked user and employee records in a
+     * single transaction so nothing is orphaned on partial failure.
      */
     public boolean deleteWarden(int id) {
-        // First delete user account if exists
-        Warden warden = getWardenById(id);
-        if (warden != null && warden.getUserId() > 0) {
-            deleteUser(warden.getUserId());
-        }
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
 
-        String sql = "DELETE FROM wardens WHERE id = ?";
+            try {
+                Warden warden = getWardenById(id);
+                if (warden == null) {
+                    conn.rollback();
+                    return false;
+                }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                // Remove auto-created employee record (employee_id == warden username)
+                if (warden.getUsername() != null && !warden.getUsername().isEmpty()) {
+                    try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM employees WHERE employee_id = ?")) {
+                        pstmt.setString(1, warden.getUsername());
+                        pstmt.executeUpdate();
+                    }
+                }
 
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+                // Remove the linked user account
+                if (warden.getUserId() > 0) {
+                    try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM users WHERE id = ?")) {
+                        pstmt.setInt(1, warden.getUserId());
+                        pstmt.executeUpdate();
+                    }
+                }
 
+                // Remove the warden row itself
+                try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM wardens WHERE id = ?")) {
+                    pstmt.setInt(1, id);
+                    boolean deleted = pstmt.executeUpdate() > 0;
+                    if (deleted) {
+                        conn.commit();
+                    } else {
+                        conn.rollback();
+                    }
+                    return deleted;
+                }
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
         }
@@ -182,28 +217,12 @@ public class WardenDAO {
         return false;
     }
 
-    private void deleteUser(int userId) {
-        String sql = "DELETE FROM users WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
-        }
-    }
-
     /**
      * Get warden by ID
      */
     public Warden getWardenById(int id) {
-        String sql = "SELECT w.*, h.name as hostel_name, u.username FROM wardens w " +
-                "LEFT JOIN hostels h ON w.hostel_id = h.id " +
-                "LEFT JOIN users u ON w.user_id = u.id " +
-                "WHERE w.id = ?";
-
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(SELECT_SQL + "WHERE w.id = ?")) {
 
             pstmt.setInt(1, id);
             ResultSet rs = pstmt.executeQuery();
@@ -223,13 +242,8 @@ public class WardenDAO {
      * Get warden by User ID
      */
     public Warden getWardenByUserId(int userId) {
-        String sql = "SELECT w.*, h.name as hostel_name, u.username FROM wardens w " +
-                "LEFT JOIN hostels h ON w.hostel_id = h.id " +
-                "LEFT JOIN users u ON w.user_id = u.id " +
-                "WHERE w.user_id = ?";
-
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(SELECT_SQL + "WHERE w.user_id = ?")) {
 
             pstmt.setInt(1, userId);
             ResultSet rs = pstmt.executeQuery();
@@ -243,6 +257,117 @@ public class WardenDAO {
         }
 
         return null;
+    }
+
+    private int resolveUserId(Connection conn, Warden warden, String email) throws SQLException {
+        if (warden.getUserId() > 0) {
+            return warden.getUserId();
+        }
+
+        String username = generateUniqueUsername(conn);
+        if (username == null) {
+            return -1;
+        }
+        warden.setUsername(username); // Set for display back to user
+
+        UserDAO userDAO = new UserDAO();
+        RoleDAO roleDAO = new RoleDAO();
+        com.college.models.Role wardenRole = roleDAO.getRoleByCode(conn, "WARDEN");
+        int roleId = (wardenRole != null) ? wardenRole.getId() : 0;
+
+        int userId;
+        if (roleId > 0) {
+            userId = userDAO.addUser(conn, username, DEFAULT_PASSWORD, "WARDEN", roleId);
+        } else {
+            userId = userDAO.addUser(conn, username, DEFAULT_PASSWORD, "WARDEN");
+        }
+
+        if (userId <= 0) {
+            return -1;
+        }
+        warden.setUserId(userId);
+        return userId;
+    }
+
+    /**
+     * Pick a WARDENxxxx username that is not already present. Retries a few
+     * times before falling back to a timestamped suffix so collisions can never
+     * abort a create.
+     */
+    private String generateUniqueUsername(Connection conn) throws SQLException {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            String candidate = "WARDEN" + (1000 + (int) (Math.random() * 9000));
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1 FROM users WHERE username = ?")) {
+                pstmt.setString(1, candidate);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (!rs.next()) {
+                        return candidate;
+                    }
+                }
+            }
+        }
+        return "WARDEN" + (System.currentTimeMillis() % 100_000_000L);
+    }
+
+    private boolean isEmailTaken(Connection conn, String email) throws SQLException {
+        try (PreparedStatement pstmt = conn.prepareStatement(
+                "SELECT 1 FROM wardens WHERE LOWER(email) = LOWER(?)")) {
+            pstmt.setString(1, email);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private boolean hostelExists(Connection conn, int hostelId) throws SQLException {
+        try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1 FROM hostels WHERE id = ?")) {
+            pstmt.setInt(1, hostelId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
+     * Auto-create a linked employee record for the warden.
+     * Idempotent: skips when an employee with the same employee_id already exists.
+     */
+    private void createEmployeeRecord(Connection conn, Warden warden, int userId) {
+        if (userId <= 0) {
+            return;
+        }
+
+        String username = warden.getUsername();
+        if (username == null || username.isEmpty()) {
+            return;
+        }
+
+        try (PreparedStatement chk = conn.prepareStatement("SELECT 1 FROM employees WHERE employee_id = ?")) {
+            chk.setString(1, username);
+            try (ResultSet rs = chk.executeQuery()) {
+                if (rs.next()) {
+                    return; // Already exists — do not duplicate
+                }
+            }
+
+            String sql = "INSERT INTO employees (employee_id, first_name, last_name, email, phone, designation, join_date, salary, status) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, username);
+                pstmt.setString(2, warden.getName() == null ? "" : warden.getName());
+                pstmt.setString(3, "");
+                pstmt.setString(4, warden.getEmail() == null ? "" : warden.getEmail());
+                pstmt.setString(5, warden.getPhone() == null ? "" : warden.getPhone());
+                pstmt.setString(6, "WARDEN");
+                pstmt.setDate(7, Date.valueOf(java.time.LocalDate.now()));
+                pstmt.setBigDecimal(8, new java.math.BigDecimal("40000")); // Warden salary
+                pstmt.setString(9, com.college.models.Employee.Status.ACTIVE.name());
+                pstmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to auto-create employee for warden", e);
+            // Best effort — do not fail the whole warden creation
+        }
     }
 
     private Warden extractWardenFromResultSet(ResultSet rs) throws SQLException {
@@ -262,7 +387,6 @@ public class WardenDAO {
             warden.setUserId(userId);
         }
 
-        // Check if hostel_name column exists (it might not if using simple select)
         try {
             warden.setHostelName(rs.getString("hostel_name"));
         } catch (SQLException e) {
@@ -276,37 +400,5 @@ public class WardenDAO {
         }
 
         return warden;
-    }
-
-    private void createEmployeeRecord(Warden warden, int userId) {
-        if (userId <= 0)
-            return;
-
-        UserDAO userDAO = new UserDAO();
-        com.college.models.User user = userDAO.getUserById(userId);
-
-        EmployeeDAO employeeDAO = new EmployeeDAO();
-        com.college.models.Employee emp = new com.college.models.Employee();
-
-        // Use username if available, otherwise fetch from user
-        String username = warden.getUsername();
-        if (username == null || username.isEmpty()) {
-            if (user != null)
-                username = user.getUsername();
-            else
-                return;
-        }
-
-        emp.setEmployeeId(username);
-        emp.setFirstName(warden.getName());
-        emp.setLastName("");
-        emp.setEmail(warden.getEmail());
-        emp.setPhone(warden.getPhone());
-        emp.setDesignation("WARDEN");
-        emp.setSalary(new java.math.BigDecimal("40000")); // Warden Salary
-        emp.setStatus(com.college.models.Employee.Status.ACTIVE);
-        emp.setJoinDate(java.time.LocalDate.now());
-
-        employeeDAO.addEmployee(emp);
     }
 }

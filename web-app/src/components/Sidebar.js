@@ -35,7 +35,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       { to: '/dashboard/hostel', label: 'Hostel', icon: '🏠', perm: 'VIEW_HOSTEL' },
       { to: '/dashboard/hostel/complaints', label: 'Hostel Complaints', icon: '📣', perm: 'VIEW_COMPLAINT' },
       { to: '/dashboard/hostel/attendance', label: 'Hostel Attendance', icon: '🛏️', perm: 'VIEW_HOSTEL_ATTENDANCE' },
-      { to: '/dashboard/wardens', label: 'Wardens', icon: '🛡️', perm: 'VIEW_HOSTEL' },
+      { to: '/dashboard/wardens', label: 'Wardens', icon: '🛡️', perm: 'MANAGE_HOSTEL', adminOnly: true },
       { to: '/dashboard/book-requests', label: 'Book Requests', icon: '📚', perm: 'VIEW_LIBRARY' },
       { to: '/dashboard/feedback', label: 'Feedback', icon: '💬', perm: 'VIEW_FACULTY' },
       { to: '/dashboard/gatepass', label: 'Gate Pass', icon: '🎫', perm: 'VIEW_GATEPASS' },
@@ -74,7 +74,10 @@ const Sidebar = ({ isOpen = false, onClose }) => {
 
   const filteredSections = {};
   Object.entries(navSections).forEach(([sectionTitle, items]) => {
-    const visible = items.filter((item) => !item.perm || isAdmin || can(item.perm));
+    const visible = items.filter((item) =>
+      (!item.adminOnly || isAdmin) &&
+      (!item.perm || isAdmin || can(item.perm))
+    );
     if (visible.length > 0) {
       filteredSections[sectionTitle] = visible;
     }

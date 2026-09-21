@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.HostelAttendanceDAO;
 import com.college.models.HostelAttendance;
 import com.college.utils.JsonHelper;
+import com.college.utils.Logger;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -45,7 +46,8 @@ public class HostelAttendanceController extends BaseController implements HttpHa
                 sendResponse(t, 405, errorJson("Method not allowed"));
             }
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
+            Logger.error("Hostel attendance API error", e);
+            sendResponse(t, 500, errorJson("Internal server error"));
         }
     }
 
