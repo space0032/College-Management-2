@@ -37,6 +37,7 @@ const GradesPage = () => {
     const [courses, setCourses] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [deptFilter, setDeptFilter] = useState('');
+    const [subjectFilter, setSubjectFilter] = useState('');
     const [formData, setFormData] = useState({
         studentId: '',
         courseId: '',
@@ -57,6 +58,7 @@ const GradesPage = () => {
     const [bulkResult, setBulkResult] = useState(null);
     const [bulkDirty, setBulkDirty] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkSearch, setBulkSearch] = useState('');
 
     // List + form loading / dialog state
     const [listLoading, setListLoading] = useState(true);
@@ -374,14 +376,14 @@ const GradesPage = () => {
         marksRefs.current[studentId]?.select?.();
     };
 
-    const handleBulkKeyDown = (e, index) => {
+    const handleBulkKeyDown = (e, index, list = bulkEntries) => {
         if (e.key === 'Enter' || e.key === 'ArrowDown') {
             e.preventDefault();
-            const next = bulkEntries[index + 1];
+            const next = list[index + 1];
             if (next) focusMarks(next.studentId);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            const prev = bulkEntries[index - 1];
+            const prev = list[index - 1];
             if (prev) focusMarks(prev.studentId);
         }
     };
@@ -537,6 +539,19 @@ const GradesPage = () => {
     const visibleCourses = deptFilter
         ? courses.filter(c => String(c.departmentId) === String(deptFilter))
         : courses;
+    const fq = subjectFilter.trim().toLowerCase();
+    const filteredCourses = fq
+        ? visibleCourses.filter(c =>
+            (c.name || '').toLowerCase().includes(fq) ||
+            (c.code || '').toLowerCase().includes(fq) ||
+            (c.specialization || '').toLowerCase().includes(fq))
+        : visibleCourses;
+    const sq = bulkSearch.trim().toLowerCase();
+    const visibleBulkEntries = sq
+        ? bulkEntries.filter(e =>
+            (e.studentName || '').toLowerCase().includes(sq) ||
+            (e.enrollmentNumber || '').toLowerCase().includes(sq))
+        : bulkEntries;
 
     return (
         <div className="page-container">
@@ -735,12 +750,24 @@ const GradesPage = () => {
                                     {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
                             </div>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
+                                <label>Subject (filter)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Search subject name / code…"
+                                    value={subjectFilter}
+                                    onChange={e => setSubjectFilter(e.target.value)}
+                                    style={{ padding: '7px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.9rem', width: '100%' }}
+                                />
+                            </div>
                             <div className="form-group" style={{ margin: 0, flex: '2 1 220px' }}>
                                 <label>Subject (assignment target)</label>
-                                <select value={bulkCourseId} onChange={e => handleBulkCourseSelect(e.target.value)}>
-                                    <option value="">-- Select Subject --</option>
-                                    {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}{c.specialization ? ` [${c.specialization}]` : ''}</option>)}
-                                </select>
+                                <SearchableSelect
+                                    options={filteredCourses.map(c => ({ value: c.id, label: `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}` }))}
+                                    value={bulkCourseId ? Number(bulkCourseId) : ''}
+                                    onChange={v => handleBulkCourseSelect(String(v))}
+                                    placeholder="Type to search subject / course…"
+                                />
                             </div>
                             <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
                                 <label>Exam Type (assignment target)</label>
@@ -900,12 +927,24 @@ const GradesPage = () => {
                                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                         </div>
-                        <div className="form-group" style={{ margin: 0, flex: '2 1 200px' }}>
-                            <label>Course *</label>
-                            <select required value={bulkCourseId} onChange={e => handleBulkCourseSelect(e.target.value)}>
-                                <option value="">-- Select Course --</option>
-                                {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
-                            </select>
+                        <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
+                            <label>Subject (filter)</label>
+                            <input
+                                type="text"
+                                placeholder="Search subject name / code…"
+                                value={subjectFilter}
+                                onChange={e => setSubjectFilter(e.target.value)}
+                                style={{ padding: '7px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.9rem', width: '100%' }}
+                            />
+                        </div>
+                        <div className="form-group" style={{ margin: 0, flex: '2 1 220px' }}>
+                            <label>Subject / Course *</label>
+                            <SearchableSelect
+                                options={filteredCourses.map(c => ({ value: c.id, label: `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}` }))}
+                                value={bulkCourseId ? Number(bulkCourseId) : ''}
+                                onChange={v => handleBulkCourseSelect(String(v))}
+                                placeholder="Type to search subject / course…"
+                            />
                         </div>
                         <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
                             <label>Exam Type *</label>
@@ -969,16 +1008,25 @@ const GradesPage = () => {
                         </div>
                     ) : (
                         <>
-                            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ fontSize: '0.85rem', color: '#718096' }}>
-                                    {bulkEntries.filter(e => e.marks !== '').length} of {bulkEntries.length} students filled
+                            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.85rem', color: '#718096' }}>
+                                        {filledCount} of {bulkEntries.length} students filled{sq ? ` · showing ${visibleBulkEntries.length}` : ''}
+                                    </span>
+                                    <input
+                                        type="text"
+                                        placeholder="Filter roster: name / enrollment…"
+                                        value={bulkSearch}
+                                        onChange={e => setBulkSearch(e.target.value)}
+                                        style={{ padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', maxWidth: 240 }}
+                                    />
                                 </div>
                                 <button
                                     className="btn btn-primary"
                                     onClick={handleBulkSubmit}
                                     disabled={bulkSaving}
                                 >
-                                    {bulkSaving ? 'Saving…' : `💾 Save All Grades (${bulkEntries.filter(e => e.marks !== '').length})`}
+                                    {bulkSaving ? 'Saving…' : `💾 Save All Grades (${filledCount})`}
                                 </button>
                             </div>
 
@@ -997,7 +1045,7 @@ const GradesPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {bulkEntries.map((entry, idx) => {
+                                        {visibleBulkEntries.map((entry, idx) => {
                                             const invalid = entry.over || (entry.marks !== '' && !isValidMarks(entry.marks, entry.outOf));
                                             const rowMax = parseFloat(entry.outOf) || 100;
                                             return (
@@ -1018,7 +1066,7 @@ const GradesPage = () => {
                                                         aria-label={`Marks for ${entry.studentName} (0 to ${rowMax})`}
                                                         aria-invalid={invalid}
                                                         onChange={e => handleBulkMarksChange(entry.studentId, e.target.value)}
-                                                        onKeyDown={e => handleBulkKeyDown(e, idx)}
+                                                        onKeyDown={e => handleBulkKeyDown(e, idx, visibleBulkEntries)}
                                                         style={{
                                                             width: '100%', padding: '5px 8px', border: `1px solid ${invalid ? '#f04438' : '#e2e8f0'}`,
                                                             borderRadius: '6px', outline: 'none', fontSize: '0.9rem',
@@ -1058,10 +1106,10 @@ const GradesPage = () => {
                                             </tr>
                                             );
                                         })}
-                                        {bulkEntries.length === 0 && (
+                                        {visibleBulkEntries.length === 0 && (
                                             <tr>
                                                 <td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>
-                                                    No enrolled students found for this subject exam.
+                                                    {bulkEntries.length === 0 ? 'No enrolled students found for this subject exam.' : 'No students match your roster filter.'}
                                                 </td>
                                             </tr>
                                         )}
