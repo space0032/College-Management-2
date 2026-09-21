@@ -129,6 +129,11 @@ public class GradeController extends BaseController implements HttpHandler {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        String validation = validateGrade(grade);
+        if (validation != null) {
+            sendResponse(t, 400, errorJson(validation));
+            return;
+        }
         boolean success = gradeDAO.saveGrade(grade);
         if (success) {
             sendResponse(t, 200, "{\"message\":\"Grade saved successfully\"}");
@@ -150,10 +155,37 @@ public class GradeController extends BaseController implements HttpHandler {
         }
         int count = 0;
         for (Grade g : list) {
+            if (validateGrade(g) != null) {
+                continue; // skip invalid entries, report only valid saves
+            }
             if (gradeDAO.saveGrade(g)) {
                 count++;
             }
         }
         sendResponse(t, 200, "{\"saved\":" + count + "}");
+    }
+
+    private static final java.util.Set<String> VALID_GRADES =
+            java.util.Set.of("A", "B", "C", "D", "E", "F");
+
+    /**
+     * Server-side validation mirroring the web UI rules. Returns an error
+     * message, or null when the grade is acceptable.
+     */
+    private String validateGrade(Grade g) {
+        if (g == null)
+            return "Grade is empty";
+        if (g.getStudentId() <= 0)
+            return "A valid student is required";
+        if (g.getCourseId() <= 0)
+            return "A valid subject is required";
+        if (g.getExamType() == null || g.getExamType().trim().isEmpty())
+            return "Exam type is required";
+        double marks = g.getMarksObtained();
+        if (Double.isNaN(marks) || Double.isInfinite(marks) || marks < 0 || marks > 100)
+            return "Marks must be between 0 and 100";
+        if (g.getGrade() == null || !VALID_GRADES.contains(g.getGrade().trim()))
+            return "Grade must be one of A, B, C, D, E, F";
+        return null;
     }
 }

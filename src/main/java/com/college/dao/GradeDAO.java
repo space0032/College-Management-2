@@ -63,7 +63,7 @@ public class GradeDAO {
     public List<Grade> getGradesByStudent(int studentId) {
         List<Grade> grades = new ArrayList<>();
         // Changed g.semester to c.semester
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, COALESCE(g.max_marks, 100) as max_marks, g.grade, c.semester as semester, "
                 +
                 "c.name as course_name, c.credits FROM grades g " +
                 "JOIN courses c ON g.course_id = c.id " +
@@ -94,7 +94,7 @@ public class GradeDAO {
     public List<Grade> getGradesByCourse(int courseId) {
         List<Grade> grades = new ArrayList<>();
         // Changed g.semester to c.semester
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, COALESCE(g.max_marks, 100) as max_marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, c.name as course_name " +
                 "FROM grades g " +
@@ -128,7 +128,7 @@ public class GradeDAO {
     public List<Grade> getGrades(int studentId, int courseId) {
         List<Grade> grades = new ArrayList<>();
         // Changed g.semester to c.semester
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, COALESCE(g.max_marks, 100) as max_marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, c.name as course_name " +
                 "FROM grades g " +
@@ -213,7 +213,7 @@ public class GradeDAO {
     public List<Grade> getAllGrades() {
         List<Grade> grades = new ArrayList<>();
         // Changed g.semester to c.semester
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, COALESCE(g.max_marks, 100) as max_marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, u.username as enrollment_no, " +
                 "c.name as course_name, c.credits, d.name as dept_name " +
@@ -243,7 +243,7 @@ public class GradeDAO {
     public List<Grade> getGradesByFaculty(int facultyId) {
         List<Grade> grades = new ArrayList<>();
         // Changed g.semester to c.semester
-        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, g.grade, c.semester as semester, "
+        String sql = "SELECT g.id, g.student_id, g.course_id, g.exam_type, g.marks_obtained as marks, COALESCE(g.max_marks, 100) as max_marks, g.grade, c.semester as semester, "
                 +
                 "s.name as student_name, u.username as enrollment_no, " +
                 "c.name as course_name, c.credits, d.name as dept_name " +
@@ -280,6 +280,11 @@ public class GradeDAO {
         grade.setCourseId(rs.getInt("course_id"));
         grade.setExamType(rs.getString("exam_type"));
         grade.setMarksObtained(rs.getDouble("marks"));
+        try {
+            grade.setMaxMarks(rs.getDouble("max_marks"));
+        } catch (SQLException e) {
+            // max_marks column may not exist in older schemas
+        }
         grade.setGrade(rs.getString("grade"));
         grade.setSemester(rs.getInt("semester"));
 

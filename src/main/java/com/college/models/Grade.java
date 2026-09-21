@@ -29,25 +29,37 @@ public class Grade {
         this.studentId = studentId;
         this.courseId = courseId;
         this.examType = examType;
-        this.marksObtained = marksObtained;
         this.maxMarks = maxMarks;
-        this.percentage = (marksObtained / maxMarks) * 100;
+        this.marksObtained = marksObtained;
+        this.percentage = computePercentage(marksObtained, maxMarks);
         this.grade = calculateGrade(percentage);
+    }
+
+    /**
+     * Percentage is based on maxMarks when a real maximum is provided (e.g. a
+     * 50-mark exam stores raw marks). When maxMarks is absent (0 / null row,
+     * as the web app stores marks directly on a 0-100 scale) the stored marks
+     * are treated as the percentage so we never divide by zero (which used to
+     * serialize as Infinity/NaN and produce invalid JSON).
+     */
+    private double computePercentage(double marks, double max) {
+        if (max > 0) {
+            return (marks / max) * 100.0;
+        }
+        return marks;
     }
 
     private String calculateGrade(double percentage) {
         if (percentage >= 90)
-            return "A+";
-        if (percentage >= 80)
             return "A";
-        if (percentage >= 70)
-            return "B+";
-        if (percentage >= 60)
+        if (percentage >= 75)
             return "B";
-        if (percentage >= 50)
+        if (percentage >= 60)
             return "C";
-        if (percentage >= 40)
+        if (percentage >= 50)
             return "D";
+        if (percentage >= 40)
+            return "E";
         return "F";
     }
 
@@ -55,17 +67,15 @@ public class Grade {
         if (grade == null)
             return 0.0;
         switch (grade) {
-            case "A+":
-                return 10.0;
             case "A":
-                return 9.0;
-            case "B+":
-                return 8.0;
+                return 10.0;
             case "B":
-                return 7.0;
+                return 8.0;
             case "C":
-                return 6.0;
+                return 7.0;
             case "D":
+                return 6.0;
+            case "E":
                 return 5.0;
             default:
                 return 0.0;
@@ -111,7 +121,7 @@ public class Grade {
 
     public void setMarksObtained(double marksObtained) {
         this.marksObtained = marksObtained;
-        this.percentage = (marksObtained / maxMarks) * 100;
+        this.percentage = computePercentage(marksObtained, this.maxMarks);
         this.grade = calculateGrade(percentage);
     }
 
@@ -126,7 +136,7 @@ public class Grade {
 
     public void setMaxMarks(double maxMarks) {
         this.maxMarks = maxMarks;
-        this.percentage = (marksObtained / maxMarks) * 100;
+        this.percentage = computePercentage(this.marksObtained, maxMarks);
         this.grade = calculateGrade(percentage);
     }
 

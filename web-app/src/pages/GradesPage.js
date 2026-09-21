@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    getAllGrades, getStudentGrades, getStudentCGPA, saveGrade, bulkSaveGrade
+    getAllGrades, getStudentGrades, getFacultyGrades, getStudentCGPA, saveGrade, bulkSaveGrade
 } from '../services/gradeService';
+import { getMyProfile } from '../services/facultyService';
+import { getEnrolledStudents } from '../services/featureService';
 import { safeParseFloat } from '../utils/validationUtils';
 import { getAllCourses } from '../services/courseService';
 import { getAllStudents } from '../services/studentService';
@@ -25,6 +27,7 @@ const GradesPage = () => {
     const [grades, setGrades] = useState([]);
     const [viewFilter, setViewFilter] = useState('');
     const [cgpa, setCgpa] = useState(null);
+    const [facultyId, setFacultyId] = useState(null);
 
     // Manage State (Admin/Faculty)
     const [students, setStudents] = useState([]);
@@ -63,41 +66,47 @@ const GradesPage = () => {
     useEffect(() => {
         const controller = new AbortController();
         if (activeTab === 'view') {
-            if (user.role === 'STUDENT') {
-                loadStudentGrades(user.username, controller.signal);
-            } else {
-                loadAllGrades(controller.signal);
-            }
+            loadGradesForRole(controller.signal);
         } else if (activeTab === 'manage' || activeTab === 'bulk') {
             loadFormData(controller.signal);
         }
         return () => controller.abort();
     }, [activeTab, user.username, user.role]);
 
-    const loadStudentGrades = async (studentId, signal) => {
-        setListLoading(true);
-        setListError('');
+    const resolveFacultyId = async () => {
         try {
-            const res = await getStudentGrades(studentId, signal);
-            if (signal?.aborted) return;
-            setGrades(res.data || []);
-            const cgpaRes = await getStudentCGPA(studentId, signal);
-            if (!signal?.aborted) setCgpa(cgpaRes.data?.cgpa);
+            const res = await getMyProfile();
+            const id = res.data?.id;
+            if (id) setFacultyId(id);
+            return id || null;
         } catch (err) {
-            if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
-            setListError(err?.response?.data?.error || 'Could not load grades.');
-        } finally {
-            if (!signal?.aborted) setListLoading(false);
+            return null;
         }
     };
 
-    const loadAllGrades = async (signal) => {
+    const loadGradesForRole = async (signal) => {
         setListLoading(true);
         setListError('');
+        let fid = facultyId;
+        if (user.role === 'FACULTY' && !fid) {
+            fid = await resolveFacultyId();
+            if (signal?.aborted) return;
+        }
         try {
-            const res = await getAllGrades(signal);
+            let res;
+            if (user.role === 'STUDENT') {
+                res = await getStudentGrades(user.username, signal);
+            } else if (user.role === 'FACULTY' && fid) {
+                res = await getFacultyGrades(fid, signal);
+            } else {
+                res = await getAllGrades(signal);
+            }
             if (signal?.aborted) return;
             setGrades(res.data || []);
+            if (user.role === 'STUDENT') {
+                const cgpaRes = await getStudentCGPA(user.username, signal);
+                if (!signal?.aborted) setCgpa(cgpaRes.data?.cgpa);
+            }
         } catch (err) {
             if (signal?.aborted || err?.code === 'ERR_CANCELED') return;
             setListError(err?.response?.data?.error || 'Could not load grades.');
@@ -154,8 +163,7 @@ const GradesPage = () => {
     };
 
     const refreshView = () => {
-        if (user.role === 'STUDENT') loadStudentGrades(user.username);
-        else loadAllGrades();
+        loadGradesForRole();
     };
 
     const handleSaveGrade = async () => {
@@ -191,7 +199,7 @@ const GradesPage = () => {
     };
 
     // Auto-load students into bulk table when course is chosen
-    const handleBulkCourseSelect = (courseId) => {
+    const handleBulkCourseSelect = async (courseId) => {
         if (bulkDirty && bulkEntries.some(e => e.marks !== '')) {
             // eslint-disable-next-line no-alert
             if (!window.confirm('Switch course? Unsaved bulk marks will be lost.')) return;
@@ -200,8 +208,19 @@ const GradesPage = () => {
         setBulkResult(null);
         setBulkDirty(false);
         if (!courseId) { setBulkEntries([]); return; }
+        let roster = [];
+        try {
+            const res = await getEnrolledStudents(courseId);
+            roster = res.data || [];
+        } catch (err) {
+            roster = [];
+        }
+        if (roster.length === 0) {
+            roster = students;
+            toast.info('No enrollments found for this course yet — using the full student list.');
+        }
         setBulkEntries(
-            students.map(s => ({
+            roster.map(s => ({
                 studentId: s.id,
                 studentName: s.name,
                 enrollmentNumber: s.username || s.enrollmentId || s.enrollmentNumber,
@@ -472,6 +491,16 @@ const GradesPage = () => {
                         </div>
                     )}
 
+                    {!listLoading && !listError && grades.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📂</div>
+                            No grades recorded yet.
+                            {canEdit && <div style={{ marginTop: '6px', color: '#64748b' }}>Use “Enter/Edit Grades” or “Bulk Entry” to add the first grade.</div>}
+                            {user.role === 'STUDENT' && <div style={{ marginTop: '6px', color: '#64748b' }}>Your grades will appear here once your teachers record them.</div>}
+                        </div>
+                    )}
+
+                    {grades.length > 0 && (
                     <div className="data-table-container">
                         <table className="data-table">
                             <thead>
@@ -522,6 +551,7 @@ const GradesPage = () => {
                             </tbody>
                         </table>
                     </div>
+                    )}
                 </>
             )}
 
@@ -593,6 +623,7 @@ const GradesPage = () => {
                             required
                             className="form-control"
                             value={formData.examType}
+                            disabled={Boolean(editingGrade)}
                             onChange={e => setFormData({ ...formData, examType: e.target.value })}
                         >
                             <option value="MID TERM">Mid Term</option>
@@ -600,6 +631,8 @@ const GradesPage = () => {
                             <option value="ASSIGNMENT">Assignment</option>
                             <option value="PRACTICAL">Practical</option>
                         </select>
+                        {Boolean(editingGrade) &&
+                            <span className="field-hint">Exam type can't be changed on edit — it identifies the grade record.</span>}
                     </div>
                     <div className="form-group">
                         <label className="form-label">Marks Obtained (0–100) *</label>
