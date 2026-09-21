@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     getAllGrades, getStudentGrades, getFacultyGrades, getStudentCGPA, saveGrade, bulkSaveGrade,
     deleteGrade, getGradeAssignmentMatrix, getCourseExamTypes
@@ -75,17 +75,7 @@ const GradesPage = () => {
     const canEdit = SessionManager.hasRole('ADMIN') || user.role === 'FACULTY';
     const singleDirty = Boolean(formData.studentId || formData.courseId || formData.marksObtained);
 
-    useEffect(() => {
-        const controller = new AbortController();
-        if (activeTab === 'view') {
-            loadGradesForRole(controller.signal);
-        } else if (activeTab === 'manage' || activeTab === 'bulk') {
-            loadFormData(controller.signal);
-        }
-        return () => controller.abort();
-    }, [activeTab, user.username, user.role]);
-
-    const resolveFacultyId = async () => {
+    const resolveFacultyId = useCallback(async () => {
         try {
             const res = await getMyProfile();
             const id = res.data?.id;
@@ -94,9 +84,9 @@ const GradesPage = () => {
         } catch (err) {
             return null;
         }
-    };
+    }, []);
 
-    const loadGradesForRole = async (signal) => {
+    const loadGradesForRole = useCallback(async (signal) => {
         setListLoading(true);
         setListError('');
         let fid = facultyId;
@@ -125,9 +115,9 @@ const GradesPage = () => {
         } finally {
             if (!signal?.aborted) setListLoading(false);
         }
-    };
+    }, [user.role, user.username, facultyId, resolveFacultyId]);
 
-    const loadFormData = async (signal) => {
+    const loadFormData = useCallback(async (signal) => {
         setFormLoading(true);
         setFormError('');
         try {
@@ -148,7 +138,17 @@ const GradesPage = () => {
         } finally {
             if (!signal?.aborted) setFormLoading(false);
         }
-    };
+    }, [user.role]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        if (activeTab === 'view') {
+            loadGradesForRole(controller.signal);
+        } else if (activeTab === 'manage' || activeTab === 'bulk') {
+            loadFormData(controller.signal);
+        }
+        return () => controller.abort();
+    }, [activeTab, user.username, user.role, loadGradesForRole, loadFormData]);
 
     const pctOf = (marks, outOf) => {
         const o = parseFloat(outOf);
