@@ -72,7 +72,16 @@ public class HostelAttendanceController extends BaseController implements HttpHa
 
         HostelAttendance ha = new HostelAttendance();
         ha.setStudentId(studentId);
-        ha.setHostelId(map.get("hostelId") != null ? ((Number) map.get("hostelId")).intValue() : 0);
+        int hostelId = map.get("hostelId") != null ? ((Number) map.get("hostelId")).intValue() : 0;
+        if (hostelId <= 0) {
+            // Resolve from the student's active allocation rather than persisting 0
+            hostelId = new com.college.dao.HostelDAO().getHostelIdForStudent(studentId);
+        }
+        if (hostelId <= 0) {
+            sendResponse(t, 400, errorJson("Student has no active hostel allocation"));
+            return;
+        }
+        ha.setHostelId(hostelId);
         ha.setDate(parseDate((String) map.getOrDefault("date", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))));
         ha.setStatus((String) map.getOrDefault("status", "PRESENT"));
         ha.setRemarks((String) map.getOrDefault("remarks", ""));

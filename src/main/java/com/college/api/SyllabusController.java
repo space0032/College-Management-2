@@ -121,8 +121,8 @@ public class SyllabusController extends BaseController implements HttpHandler {
         }
         s.setFilePath(filePath);
 
-        if (s.getCourseId() == 0 || s.getTitle().isEmpty()) {
-            sendResponse(t, 400, errorJson("courseId and title are required"));
+        if (s.getCourseId() == 0 || s.getTitle().isEmpty() || filePath == null || filePath.isBlank()) {
+            sendResponse(t, 400, errorJson("courseId, title and a file are required"));
             return;
         }
 
@@ -162,8 +162,22 @@ public class SyllabusController extends BaseController implements HttpHandler {
             return;
         }
 
-        t.getResponseHeaders().set("Content-Type", "application/octet-stream");
-        t.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
+        String downloadName = target.getTitle() == null ? "" : target.getTitle().trim();
+        if (downloadName.isEmpty()) {
+            downloadName = file.getName();
+        }
+        if (downloadName.lastIndexOf('.') <= 0 && file.getName().lastIndexOf('.') > 0) {
+            downloadName += file.getName().substring(file.getName().lastIndexOf('.'));
+        }
+        downloadName = downloadName.replaceAll("[\\r\\n\"\\\\/]+", "_");
+
+        String contentType = Files.probeContentType(file.toPath());
+        if (contentType == null || contentType.isBlank()) {
+            contentType = "application/octet-stream";
+        }
+
+        t.getResponseHeaders().set("Content-Type", contentType);
+        t.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + downloadName + "\"");
         t.sendResponseHeaders(200, file.length());
 
         try (OutputStream os = t.getResponseBody()) {

@@ -52,6 +52,20 @@ public class VisitorDAO {
 
     // --- Log Methods ---
 
+    public boolean hasActiveLog(int visitorId) {
+        String sql = "SELECT 1 FROM visitor_logs WHERE visitor_id = ? AND status = 'IN'";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, visitorId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public void logEntry(int visitorId, String purpose, String personToMeet, String gateNumber) {
         String sql = "INSERT INTO visitor_logs (visitor_id, purpose, person_to_meet, gate_number, status) VALUES (?, ?, ?, ?, 'IN')";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -66,15 +80,16 @@ public class VisitorDAO {
         }
     }
 
-    public void logExit(int logId) {
-        String sql = "UPDATE visitor_logs SET exit_time = CURRENT_TIMESTAMP, status = 'OUT' WHERE id = ?";
+    public boolean logExit(int logId) {
+        String sql = "UPDATE visitor_logs SET exit_time = CURRENT_TIMESTAMP, status = 'OUT' WHERE id = ? AND status = 'IN'";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, logId);
-            stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return false;
     }
 
     public List<VisitorLog> getActiveVisitors() {

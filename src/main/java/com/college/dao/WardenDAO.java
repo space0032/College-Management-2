@@ -19,8 +19,20 @@ import java.util.List;
  */
 public class WardenDAO {
 
-    /** Default login password for auto-generated warden accounts (testing). */
-    public static final String DEFAULT_PASSWORD = "123";
+    /**
+     * Auto-generated initial password for warden accounts is random so a warden
+     * can never be logged into with a well-known default credential. The admin
+     * who creates the account receives the generated value via the API response.
+     */
+    public static String generatePassword() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        StringBuilder sb = new StringBuilder(12);
+        java.security.SecureRandom rnd = new java.security.SecureRandom();
+        for (int i = 0; i < 12; i++) {
+            sb.append(chars.charAt(rnd.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
 
     /** Standard permission codes for the WARDEN role. */
     private static final String[] WARDEN_PERMISSIONS = {
@@ -286,11 +298,13 @@ public class WardenDAO {
         UserDAO userDAO = new UserDAO();
         int roleId = ensureWardenRole(conn);
 
-        int userId = userDAO.addUser(conn, username, DEFAULT_PASSWORD, "WARDEN", roleId);
+        String generatedPassword = generatePassword();
+        int userId = userDAO.addUser(conn, username, generatedPassword, "WARDEN", roleId);
         if (userId <= 0) {
             return -1;
         }
         warden.setUserId(userId);
+        warden.setGeneratedPassword(generatedPassword);
         return userId;
     }
 

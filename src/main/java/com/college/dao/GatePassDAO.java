@@ -52,7 +52,7 @@ public class GatePassDAO {
      */
     public static boolean approveRequest(int gatePassId, int approvedBy, String comment) {
         String sql = "UPDATE gate_passes SET status = 'APPROVED', approved_by = ?, " +
-                "approved_at = NOW(), approval_comment = ? WHERE id = ?";
+                "approved_at = NOW(), approval_comment = ? WHERE id = ? AND status = 'PENDING'";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -74,7 +74,7 @@ public class GatePassDAO {
      */
     public static boolean rejectRequest(int gatePassId, int rejectedBy, String comment) {
         String sql = "UPDATE gate_passes SET status = 'REJECTED', approved_by = ?, " +
-                "approved_at = NOW(), approval_comment = ? WHERE id = ?";
+                "approved_at = NOW(), approval_comment = ? WHERE id = ? AND status = 'PENDING'";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

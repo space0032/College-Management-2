@@ -172,14 +172,16 @@ const SyllabusManagementPage = () => {
         }
         try {
             const res = await downloadSyllabus(s.id);
+            let fileName = (res.headers?.['content-disposition'] || '').match(/filename="?([^"]+)"?/i)?.[1];
+            if (!fileName) fileName = s.filePath ? s.filePath.split('/').pop().split('\\').pop() : `syllabus_${s.id}`;
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
-            const fileName = s.filePath ? s.filePath.split('/').pop().split('\\').pop() : `syllabus_${s.id}`;
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
+            window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             toast.success('Download started.', { refId: getSuccessRefId() });
         } catch (err) {
             const { message, refId } = getErrorMessage(err, 'Could not download this file.');

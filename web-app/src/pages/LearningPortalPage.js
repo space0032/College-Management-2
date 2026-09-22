@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSyllabiBycourse } from '../services/syllabusService';
+import { getSyllabiBycourse, downloadSyllabus } from '../services/syllabusService';
 import { getResources } from '../services/resourceService';
 import { getAllCourses } from '../services/courseService';
 import { searchStudents, getStudentCourses } from '../services/studentService';
@@ -88,6 +88,24 @@ const LearningPortalPage = () => {
             (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (r.courseName || '').toLowerCase().includes(searchTerm.toLowerCase());
     });
+
+    const onDownload = async (sy) => {
+        try {
+            const res = await downloadSyllabus(sy.id);
+            let fileName = (res.headers?.['content-disposition'] || '').match(/filename="?([^"]+)"?/i)?.[1];
+            if (!fileName) fileName = `${(sy.title || 'syllabus').replace(/[\\/:*?"<>|]/g, '_')}`;
+            const url = URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Download failed. Please try again.');
+        }
+    };
 
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px' }}>
@@ -195,7 +213,7 @@ const LearningPortalPage = () => {
                                         </div>
                                         <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '5px 0' }}>{s.description}</p>
                                     </div>
-                                    <a href={s.filePath} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Download PDF</a>
+                                    <button onClick={() => onDownload(s)} className="btn btn-secondary">Download PDF</button>
                                 </div>
                             ))
                         )}

@@ -59,11 +59,22 @@ public class CalendarController extends BaseController implements HttpHandler {
 
         List<CalendarEvent> events = calendarDAO.getEventsByMonth(year, month);
 
-        // Merge Google Calendar Holidays
+        // Merge Google Calendar Holidays (deterministic negative ids => never collide with DB ids)
         try {
             List<CalendarEvent> holidays = googleService.getHolidays(year, month);
             if (holidays != null && !holidays.isEmpty()) {
-                events.addAll(holidays);
+                holidays.sort((a, b) -> {
+                    int byDate = a.getEventDate().compareTo(b.getEventDate());
+                    return byDate != 0 ? byDate : a.getTitle().compareTo(b.getTitle());
+                });
+                for (int i = 0; i < holidays.size(); i++) {
+                    CalendarEvent h = holidays.get(i);
+                    h.setId(-(i + 1));
+                    if (h.getDescription() == null || h.getDescription().isBlank()) {
+                        h.setDescription("Public holiday");
+                    }
+                    events.add(h);
+                }
             }
         } catch (Exception e) {
             com.college.utils.Logger.error("Failed to merge Google holidays", e);

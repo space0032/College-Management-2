@@ -179,17 +179,73 @@ public class EventDAO {
 
     // Registration methods
     public boolean registerStudent(int eventId, int studentId) {
-        String sql = "INSERT INTO event_registrations (event_id, student_id) VALUES (?, ?)";
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            // Lock the event row and enforce max_participants server-side
+            int maxParticipants = -1;
+            String getSql = "SELECT max_participants FROM events WHERE id = ? FOR UPDATE";
+            try (PreparedStatement p = conn.prepareStatement(getSql)) {
+                p.setInt(1, eventId);
+                try (ResultSet rs = p.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    maxParticipants = rs.getInt("max_participants");
+                    if (rs.wasNull()) {
+                        maxParticipants = -1;
+                    }
+                }
+            }
 
-            pstmt.setInt(1, eventId);
-            pstmt.setInt(2, studentId);
-            return pstmt.executeUpdate() > 0;
+            if (maxParticipants >= 0) {
+                int count = 0;
+                String cntSql = "SELECT COUNT(*) FROM event_registrations WHERE event_id = ?";
+                try (PreparedStatement p = conn.prepareStatement(cntSql)) {
+                    p.setInt(1, eventId);
+                    try (ResultSet rs = p.executeQuery()) {
+                        if (rs.next()) {
+                            count = rs.getInt(1);
+                        }
+                    }
+                }
+                if (count >= maxParticipants) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            String sql = "INSERT INTO event_registrations (event_id, student_id) VALUES (?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setInt(1, eventId);
+                pstmt.setInt(2, studentId);
+                pstmt.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    Logger.error("Rollback error: " + ex.getMessage());
+                }
+            }
             Logger.error("Error registering student for event: " + e.getMessage());
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    Logger.error("Error closing connection: " + e.getMessage());
+                }
+            }
         }
     }
 

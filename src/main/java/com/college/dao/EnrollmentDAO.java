@@ -146,7 +146,8 @@ public class EnrollmentDAO {
             // Or better, add registerCourse(Connection, ...) to DAO.
             // Let's implement a simple direct insert here to be safe within transaction
 
-            String sql = "INSERT INTO course_registrations (student_id, course_id, status, registration_date) VALUES (?, ?, 'APPROVED', CURRENT_DATE)";
+            String sql = "INSERT INTO course_registrations (student_id, course_id, status, registration_date) VALUES (?, ?, 'APPROVED', CURRENT_DATE) "
+                    + "ON CONFLICT (student_id, course_id) DO UPDATE SET status = 'APPROVED', registration_date = CURRENT_DATE";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 for (com.college.models.Course c : coreCourses) {
                     pstmt.setInt(1, studentId);

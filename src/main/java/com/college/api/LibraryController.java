@@ -242,9 +242,14 @@ private void handleGetFines(HttpExchange t, String path) throws IOException {
 
         int sentCount = 0;
         com.college.dao.NotificationDAO notificationDAO = new com.college.dao.NotificationDAO();
+        com.college.dao.StudentDAO studentDAO = new com.college.dao.StudentDAO();
         for (com.college.models.BookIssue issue : overdueIssues) {
+            int recipientUserId = studentDAO.getUserIdByStudentId(issue.getStudentId());
+            if (recipientUserId <= 0) {
+                continue; // no linked users account; notifications.user_id FK would be violated
+            }
             com.college.models.Notification notification = new com.college.models.Notification();
-            notification.setRecipientUserId(issue.getStudentId());
+            notification.setRecipientUserId(recipientUserId);
             notification.setSubject("Overdue Book Reminder");
             notification.setMessage(String.format("Your book '%s' was due on %s. Please return it to avoid additional fines.", issue.getBookTitle(), issue.getDueDate()));
             notification.setType(com.college.models.Notification.Type.SYSTEM);

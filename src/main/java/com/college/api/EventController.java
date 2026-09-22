@@ -208,7 +208,7 @@ public class EventController extends BaseController implements HttpHandler {
         if (success) {
             sendResponse(t, 200, "{\"message\":\"Registered successfully\"}");
         } else {
-            sendResponse(t, 400, errorJson("Failed to register"));
+            sendResponse(t, 400, errorJson("Failed to register (event may be at capacity)"));
         }
     }
 

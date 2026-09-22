@@ -20,7 +20,13 @@ public class HostelDAO {
      */
     public List<Hostel> getAllHostels() {
         List<Hostel> hostels = new ArrayList<>();
-        String sql = "SELECT * FROM hostels ORDER BY name";
+        // Derive room/capacity figures live from the rooms table so the hostel
+        // summary never drifts from actual room data (V49 columns may be stale).
+        String sql = "SELECT h.*, " +
+                "COALESCE((SELECT COUNT(*) FROM rooms r WHERE r.hostel_id = h.id), 0) AS computed_rooms, " +
+                "COALESCE((SELECT SUM(r.capacity) FROM rooms r WHERE r.hostel_id = h.id), 0) AS computed_capacity, " +
+                "COALESCE((SELECT SUM(r.occupied_count) FROM rooms r WHERE r.hostel_id = h.id), 0) AS computed_occupied " +
+                "FROM hostels h ORDER BY h.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();
@@ -582,6 +588,30 @@ public class HostelDAO {
         return 0;
     }
 
+    /**
+     * Resolve the hostel a student is currently allocated to via their active
+     * room allocation. Returns -1 when the student has no active allocation.
+     * Used by the hostel attendance API so it never persists a bogus hostelId of 0.
+     */
+    public int getHostelIdForStudent(int studentId) {
+        String sql = "SELECT r.hostel_id FROM hostel_allocations ha " +
+                "JOIN rooms r ON ha.room_id = r.id " +
+                "WHERE ha.student_id = ? AND ha.status = 'ACTIVE' " +
+                "ORDER BY ha.check_in_date DESC LIMIT 1";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("hostel_id");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to resolve hostel for student " + studentId, e);
+        }
+        return -1;
+    }
+
     // Extract methods
     private Hostel extractHostelFromResultSet(ResultSet rs) throws SQLException {
         Hostel hostel = new Hostel();
@@ -590,8 +620,14 @@ public class HostelDAO {
         hostel.setType(rs.getString("type"));
         hostel.setWardenName(rs.getString("warden_name"));
         hostel.setWardenContact(rs.getString("warden_contact"));
-        hostel.setTotalRooms(rs.getInt("total_rooms"));
-        hostel.setTotalCapacity(rs.getInt("total_capacity"));
+        try {
+            // Prefer live aggregate when the column exists (getAllHostels); fall back to stored value
+            hostel.setTotalRooms(rs.getInt("computed_rooms"));
+            hostel.setTotalCapacity(rs.getInt("computed_capacity"));
+        } catch (SQLException e) {
+            hostel.setTotalRooms(rs.getInt("total_rooms"));
+            hostel.setTotalCapacity(rs.getInt("total_capacity"));
+        }
         hostel.setAddress(rs.getString("address"));
         return hostel;
     }

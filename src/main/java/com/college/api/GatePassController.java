@@ -122,7 +122,7 @@ private void handleGetStudentPasses(HttpExchange t, String path) throws IOExcept
             return;
         }
 
-        int approvedBy = ((Double) map.get("approvedBy")).intValue();
+        int approvedBy = ((Number) map.get("approvedBy")).intValue();
         String comment = map.get("comment") != null ? (String) map.get("comment") : "Approved";
 
         boolean success = GatePassDAO.approveRequest(passId, approvedBy, comment);
@@ -146,7 +146,7 @@ private void handleGetStudentPasses(HttpExchange t, String path) throws IOExcept
             return;
         }
 
-        int rejectedBy = ((Double) map.get("rejectedBy")).intValue();
+        int rejectedBy = ((Number) map.get("rejectedBy")).intValue();
         String comment = map.get("comment") != null ? (String) map.get("comment") : "Rejected";
 
         boolean success = GatePassDAO.rejectRequest(passId, rejectedBy, comment);

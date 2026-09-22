@@ -63,7 +63,9 @@ public class DatabaseMigrator {
             "V72__Unique_Payroll_Period.sql",
             "V73__Restore_Roles_And_Grants.sql",
             "V74__Add_Event_Poll_Votes.sql",
-            "V75__Add_Faculty_Address.sql"
+            "V75__Add_Faculty_Address.sql",
+            "V76__Course_Registration_Integrity.sql",
+            "V77__Placement_Status_Constraint.sql"
         };
 
         try (Connection conn = DatabaseConnection.getConnection();

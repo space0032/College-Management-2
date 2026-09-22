@@ -182,7 +182,7 @@ public class PlacementController extends BaseController implements HttpHandler {
         int applicationId = Integer.parseInt(parts[parts.length - 2]); // .../applications/{id}/status
         String body = readBody(t);
         java.util.Map<String, String> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
-        if (map == null || !java.util.Set.of("APPLIED", "INTERVIEWING", "OFFERED", "REJECTED").contains((map.get("status") == null ? "" : map.get("status")))) {
+        if (map == null || !java.util.Set.of("APPLIED", "SHORTLISTED", "SELECTED", "REJECTED", "INTERVIEWING", "OFFERED").contains((map.get("status") == null ? "" : map.get("status")))) {
             sendResponse(t, 400, errorJson("status is required"));
             return;
         }

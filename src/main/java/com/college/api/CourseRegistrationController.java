@@ -44,7 +44,7 @@ public class CourseRegistrationController extends BaseController implements Http
                 handleApprove(t, path);
             } else if (path.matches(".*/course-registrations/\\d+/reject") && "POST".equals(method)) {
                 handleReject(t, path);
-            } else if (path.matches(".*/course-registrations/drop/.+") && "DELETE".equals(method)) {
+            } else if (path.matches(".*/course-registrations/drop") && "DELETE".equals(method)) {
                 handleDrop(t, path);
             } else {
                 sendResponse(t, 405, errorJson("Method not allowed"));

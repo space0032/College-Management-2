@@ -107,20 +107,28 @@ public class CourseRegistrationDAO {
             conn.setAutoCommit(false);
 
             // 1. Check if already registered or pending
-            String dupSql = "SELECT id, status FROM course_registrations WHERE student_id = ? AND course_id = ?";
+            String dupSql = "SELECT status FROM course_registrations WHERE student_id = ? AND course_id = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(dupSql)) {
                 pstmt.setInt(1, studentId);
                 pstmt.setInt(2, courseId);
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) {
                     String status = rs.getString("status");
-                    if ("REGISTERED".equals(status) || "ENROLLED".equals(status))
+                    if ("REGISTERED".equals(status) || "ENROLLED".equals(status) || "APPROVED".equals(status))
                         return "Already registered.";
                     if ("PENDING".equals(status))
                         return "Request already pending.";
-                    if ("REJECTED".equals(status)) {
-                        // Allow re-request? For now, YES.
+                    // REJECTED (or any other non-active state): re-request by flipping the existing
+                    // row back to PENDING instead of inserting a duplicate. Unique on
+                    // (student_id, course_id) via uq_course_registrations_student_course.
+                    try (PreparedStatement up = conn.prepareStatement(
+                            "UPDATE course_registrations SET status = 'PENDING', registration_date = CURRENT_DATE WHERE student_id = ? AND course_id = ?")) {
+                        up.setInt(1, studentId);
+                        up.setInt(2, courseId);
+                        up.executeUpdate();
                     }
+                    conn.commit();
+                    return "SUCCESS";
                 }
             }
 
@@ -179,16 +187,48 @@ public class CourseRegistrationDAO {
             if (courseId == -1)
                 return false;
 
-            // Update status
-            String upSql = "UPDATE course_registrations SET status = 'ENROLLED' WHERE id = ?";
+            // Update status — only while still PENDING so counts stay consistent and a
+            // request can never be approved (and counted) more than once.
+            String upSql = "UPDATE course_registrations SET status = 'ENROLLED' WHERE id = ? AND status = 'PENDING'";
+            int updated;
             try (PreparedStatement pstmt = conn.prepareStatement(upSql)) {
                 pstmt.setInt(1, requestId);
-                pstmt.executeUpdate();
+                updated = pstmt.executeUpdate();
             }
 
-            // Update capacity
-            String capSql = "UPDATE courses SET enrolled_count = enrolled_count + 1 WHERE id = ?";
+            if (updated == 0) {
+                // Already ENROLLED/REJECTED/APPROVED or missing; don't touch the count.
+                conn.rollback();
+                return false;
+            }
+
+            // Respect course capacity before committing the enrollment
+            int capacity = -1;
+            int enrolledCount = 0;
+            String capSql = "SELECT capacity, enrolled_count FROM courses WHERE id = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(capSql)) {
+                pstmt.setInt(1, courseId);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    capacity = rs.getInt("capacity");
+                    enrolledCount = rs.getInt("enrolled_count");
+                }
+            }
+
+            if (capacity > 0 && enrolledCount >= capacity) {
+                // Roll the enrollment back so the request stays reviewable
+                try (PreparedStatement pstmt = conn.prepareStatement(
+                        "UPDATE course_registrations SET status = 'PENDING' WHERE id = ? AND status = 'ENROLLED'")) {
+                    pstmt.setInt(1, requestId);
+                    pstmt.executeUpdate();
+                }
+                conn.rollback();
+                return false;
+            }
+
+            // Update capacity (never goes below zero)
+            String capUpdateSql = "UPDATE courses SET enrolled_count = GREATEST(enrolled_count + 1, 0) WHERE id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(capUpdateSql)) {
                 pstmt.setInt(1, courseId);
                 pstmt.executeUpdate();
             }
@@ -221,7 +261,7 @@ public class CourseRegistrationDAO {
      * Reject a registration request.
      */
     public boolean rejectRequest(int requestId) {
-        String sql = "UPDATE course_registrations SET status = 'REJECTED' WHERE id = ?";
+        String sql = "UPDATE course_registrations SET status = 'REJECTED' WHERE id = ? AND status = 'PENDING'";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, requestId);
@@ -297,9 +337,9 @@ public class CourseRegistrationDAO {
                 pstmt.executeUpdate();
             }
 
-            // If was ENROLLED, decrement count
+            // If was ENROLLED, decrement count (never below zero)
             if ("ENROLLED".equalsIgnoreCase(status) || "REGISTERED".equalsIgnoreCase(status)) {
-                String updateSql = "UPDATE courses SET enrolled_count = enrolled_count - 1 WHERE id = ?";
+                String updateSql = "UPDATE courses SET enrolled_count = GREATEST(enrolled_count - 1, 0) WHERE id = ?";
                 try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
                     pstmt.setInt(1, courseId);
                     pstmt.executeUpdate();
@@ -442,6 +482,18 @@ public class CourseRegistrationDAO {
                 s.setName(rs.getString("name"));
                 try {
                     s.setUsername(rs.getString("username"));
+                } catch (SQLException e) {
+                    /* Ignore */ }
+                try {
+                    s.setDepartment(rs.getString("department"));
+                } catch (SQLException e) {
+                    /* Ignore */ }
+                try {
+                    s.setSemester(rs.getInt("semester"));
+                } catch (SQLException e) {
+                    /* Ignore */ }
+                try {
+                    s.setSpecialization(rs.getString("specialization"));
                 } catch (SQLException e) {
                     /* Ignore */ }
 

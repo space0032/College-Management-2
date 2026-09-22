@@ -80,6 +80,16 @@ public class Warden {
         return username;
     }
 
+    private String generatedPassword;
+
+    public void setGeneratedPassword(String generatedPassword) {
+        this.generatedPassword = generatedPassword;
+    }
+
+    public String getGeneratedPassword() {
+        return generatedPassword;
+    }
+
     public String getHostelName() {
         return hostelName;
     }

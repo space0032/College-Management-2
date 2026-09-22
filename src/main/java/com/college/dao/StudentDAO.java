@@ -536,6 +536,27 @@ public class StudentDAO {
     }
 
     /**
+     * Resolve a user id (users.id) for a student profile id (students.id).
+     * Used to map student-facing notifications to the correct users row.
+     * Returns -1 if no matching student is found.
+     */
+    public int getUserIdByStudentId(int studentId) {
+        String sql = "SELECT user_id FROM students WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return -1;
+    }
+
+    /**
      * Resolve a user id (users.id) from an enrollment number.
      * Returns -1 if no matching student/user is found.
      */

@@ -105,10 +105,15 @@ public class VisitorController extends BaseController implements HttpHandler {
             }
         }
 
-        // Log entry
+// Log entry
         String purpose = (String) map.get("purpose");
         String personToMeet = (String) map.get("personToMeet");
         String gateNumber = (String) map.get("gateNumber");
+
+        if (visitorDAO.hasActiveLog(visitorId)) {
+            sendResponse(t, 400, errorJson("Visitor is already on campus (an active entry exists)"));
+            return;
+        }
 
         visitorDAO.logEntry(visitorId, purpose, personToMeet, gateNumber);
         sendResponse(t, 201, "{\"message\":\"Visitor entry logged successfully\", \"visitorId\": " + visitorId + "}");
@@ -118,7 +123,10 @@ public class VisitorController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "MANAGE_VISITOR")) return;
         String[] parts = path.split("/");
         int logId = Integer.parseInt(parts[parts.length - 2]); // .../log/{id}/exit
-        visitorDAO.logExit(logId);
+        if (!visitorDAO.logExit(logId)) {
+            sendResponse(t, 400, errorJson("No active entry found for this visitor log"));
+            return;
+        }
         sendResponse(t, 200, "{\"message\":\"Visitor exit logged successfully\"}");
     }
 

@@ -176,14 +176,18 @@ public class ClubDAO {
             }
             int clubId = rs.getInt("club_id");
 
-            // Update membership status
-            String sql = "UPDATE club_memberships SET status = 'APPROVED' WHERE id = ?";
+            // approve only while still PENDING so double-approval never double-counts
+            String sql = "UPDATE club_memberships SET status = 'APPROVED' WHERE id = ? AND status = 'PENDING'";
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, membershipId);
-            pstmt.executeUpdate();
+            int updated = pstmt.executeUpdate();
+            if (updated == 0) {
+                conn.rollback();
+                return false;
+            }
 
             // Increment member count
-            String updateSql = "UPDATE clubs SET member_count = member_count + 1 WHERE id = ?";
+            String updateSql = "UPDATE clubs SET member_count = GREATEST(member_count + 1, 0) WHERE id = ?";
             PreparedStatement updatePstmt = conn.prepareStatement(updateSql);
             updatePstmt.setInt(1, clubId);
             updatePstmt.executeUpdate();
@@ -266,18 +270,20 @@ public class ClubDAO {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Remove membership
-            String sql = "DELETE FROM club_memberships WHERE club_id = ? AND student_id = ?";
+            // Remove membership — only APPROVED memberships count toward member_count
+            String sql = "DELETE FROM club_memberships WHERE club_id = ? AND student_id = ? AND status = 'APPROVED' RETURNING id";
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, clubId);
             pstmt.setInt(2, studentId);
-            pstmt.executeUpdate();
+            int deleted = pstmt.executeUpdate();
 
-            // Update member count
-            String updateSql = "UPDATE clubs SET member_count = member_count - 1 WHERE id = ?";
-            PreparedStatement updatePstmt = conn.prepareStatement(updateSql);
-            updatePstmt.setInt(1, clubId);
-            updatePstmt.executeUpdate();
+            // Update member count (only when an actual approved membership was removed, never below zero)
+            if (deleted > 0) {
+                String updateSql = "UPDATE clubs SET member_count = GREATEST(member_count - 1, 0) WHERE id = ?";
+                PreparedStatement updatePstmt = conn.prepareStatement(updateSql);
+                updatePstmt.setInt(1, clubId);
+                updatePstmt.executeUpdate();
+            }
 
             conn.commit();
             return true;

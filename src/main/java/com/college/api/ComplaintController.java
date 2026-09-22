@@ -106,6 +106,10 @@ public class ComplaintController extends BaseController implements HttpHandler {
             return;
         }
         String status = (String) map.get("status");
+        if (status == null || !java.util.Set.of("OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED").contains(status)) {
+            sendResponse(t, 400, errorJson("Invalid status (expected OPEN, IN_PROGRESS, RESOLVED or REJECTED)"));
+            return;
+        }
         int resolvedBy = map.get("resolvedBy") != null ? ((Number) map.get("resolvedBy")).intValue() : 0;
         String remarks = (String) map.getOrDefault("remarks", "");
 

@@ -168,37 +168,65 @@ const AcademicCalendarPage = () => {
     const eventCount = filteredEvents.filter(e => e.eventType === 'EVENT').length;
     const weekdayCount = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1).getDay())
         .filter(day => day !== 0 && day !== 6).length;
-    const weekdayHolidayCount = filteredEvents.filter(e => {
-        if (e.eventType !== 'HOLIDAY') return false;
-        const day = new Date(`${e.eventDate}T00:00:00`).getDay();
-        return day !== 0 && day !== 6;
-    }).length;
+    const weekdayNonWorking = new Set(
+        filteredEvents
+            .filter(e => e.eventType === 'HOLIDAY' || e.eventType === 'EXAM')
+            .filter(e => {
+                const day = new Date(`${e.eventDate}T00:00:00`).getDay();
+                return day !== 0 && day !== 6;
+            })
+            .map(e => e.eventDate)
+    );
+    const nonWorkingDayCount = weekdayNonWorking.size;
+
+    const csvCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
 
     const handleExportCSV = () => {
-        const rows = [['Date','Title','Type','Description']];
+        const rows = [['Date', 'Title', 'Type', 'Description'].map(csvCell).join(',')];
         filteredEvents.forEach(ev => {
-            rows.push([ev.eventDate, `"${ev.title}"`, ev.eventType, `"${(ev.description || '').replace(/"/g, '""')}"`]);
+            rows.push([csvCell(ev.eventDate), csvCell(ev.title), csvCell(ev.eventType), csvCell(ev.description)].join(','));
         });
-        const csv = rows.map(r => r.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const csv = rows.join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `calendar-${year}-${String(month+1).padStart(2,'0')}.csv`;
-        a.click(); URL.revokeObjectURL(url);
+        a.href = url; a.download = `calendar-${year}-${String(month + 1).padStart(2, '0')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
+
+    const icsEscape = (val) => String(val ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,')
+        .replace(/\r?\n/g, '\\n');
 
     const handleExportICS = () => {
         let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//CollegeCalendar//EN\n';
         filteredEvents.forEach(ev => {
             const dt = ev.eventDate.replace(/-/g, '');
-            ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dt}\nDTEND;VALUE=DATE:${dt}\nSUMMARY:${ev.title}\nDESCRIPTION:${(ev.description || '').replace(/\n/g, '\\n')}\nEND:VEVENT\n`;
+            const end = new Date(`${ev.eventDate}T00:00:00`);
+            end.setDate(end.getDate() + 1);
+            const dtEnd = `${end.getFullYear()}${String(end.getMonth() + 1).padStart(2, '0')}${String(end.getDate()).padStart(2, '0')}`;
+            ics += 'BEGIN:VEVENT\n';
+            ics += 'UID:' + (ev.id) + '@college-calendar\n';
+            ics += `DTSTART;VALUE=DATE:${dt}\n`;
+            ics += `DTEND;VALUE=DATE:${dtEnd}\n`;
+            ics += `SUMMARY:${icsEscape(ev.title)}\n`;
+            ics += `DESCRIPTION:${icsEscape(ev.description)}\n`;
+            ics += 'END:VEVENT\n';
         });
         ics += 'END:VCALENDAR';
         const blob = new Blob([ics], { type: 'text/calendar' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `calendar-${year}-${String(month+1).padStart(2,'0')}.ics`;
-        a.click(); URL.revokeObjectURL(url);
+        a.href = url; a.download = `calendar-${year}-${String(month + 1).padStart(2, '0')}.ics`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
     const selectedDayEvents = selectedDate ? filteredEvents.filter(ev => ev.eventDate === selectedDate) : [];
@@ -244,7 +272,7 @@ const AcademicCalendarPage = () => {
 
                 <div className="stat-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white' }}>
                     <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Month Productivity</div>
-                    <div style={{ fontSize: '2.4rem', fontWeight: 'bold', margin: '10px 0' }}>{Math.max(0, weekdayCount - weekdayHolidayCount - examCount)}</div>
+                    <div style={{ fontSize: '2.4rem', fontWeight: 'bold', margin: '10px 0' }}>{Math.max(0, weekdayCount - nonWorkingDayCount)}</div>
                     <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Standard Academic Days</div>
                 </div>
 
@@ -296,8 +324,8 @@ const AcademicCalendarPage = () => {
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{ev.eventType}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>×</button>
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{ev.id < 0 ? 'HOLIDAY · synchronized' : ev.eventType}</span>
+                                            {ev.id >= 0 && <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer' }}>×</button>}
                                         </div>
                                     </div>
                                 </div>
@@ -349,10 +377,16 @@ const AcademicCalendarPage = () => {
                                                         {ev.description && (
                                                             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ev.description}</div>
                                                         )}
-                                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'flex', gap: '12px', alignItems: 'center' }}>
                                                             <span style={{ padding: '2px 8px', borderRadius: '10px', background: `var(--event-${ev.eventType.toLowerCase()}-color, #cbd5e1)`, color: 'white', fontWeight: '600' }}>{ev.eventType}</span>
-                                                            <button onClick={() => openEditDialog(ev, { stopPropagation: () => {} })} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 8px' }}>✏️ Edit</button>
-                                                            <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 8px' }}>🗑 Delete</button>
+                                                            {ev.id < 0 ? (
+                                                                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Public holiday · synchronized</span>
+                                                            ) : (
+                                                                <>
+                                                                    <button onClick={() => openEditDialog(ev, { stopPropagation: () => {} })} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 8px' }}>✏️ Edit</button>
+                                                                    <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 8px' }}>🗑 Delete</button>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -453,8 +487,14 @@ const AcademicCalendarPage = () => {
                                         <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{ev.title}</span>
                                     </div>
                                     <div style={{ display: 'flex', gap: '4px' }}>
-                                        <button onClick={(e) => openEditDialog(ev, e)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '1.1rem', cursor: 'pointer', padding: '4px' }} title="Edit event">✏️</button>
-                                        <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1.2rem', cursor: 'pointer', padding: '4px' }} title="Delete event">×</button>
+                                        {ev.id < 0 ? (
+                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic', alignSelf: 'center' }}>Public holiday · synchronized</span>
+                                        ) : (
+                                            <>
+                                                <button onClick={(e) => openEditDialog(ev, e)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '1.1rem', cursor: 'pointer', padding: '4px' }} title="Edit event">✏️</button>
+                                                <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1.2rem', cursor: 'pointer', padding: '4px' }} title="Delete event">×</button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 {ev.description && (

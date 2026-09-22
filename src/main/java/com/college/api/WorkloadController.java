@@ -137,8 +137,8 @@ public class WorkloadController extends BaseController implements HttpHandler {
         List<Map<String, String>> conflicts = new ArrayList<>();
         for (Timetable fEntry : facultySchedule) {
             for (Timetable cEntry : courseSchedule) {
-                if (fEntry.getDayOfWeek().equals(cEntry.getDayOfWeek()) &&
-                    fEntry.getTimeSlot().equals(cEntry.getTimeSlot())) {
+                if (fEntry.getDayOfWeek() != null && fEntry.getDayOfWeek().equals(cEntry.getDayOfWeek()) &&
+                    fEntry.getTimeSlot() != null && fEntry.getTimeSlot().equals(cEntry.getTimeSlot())) {
                     Map<String, String> conflict = new HashMap<>();
                     conflict.put("dayOfWeek", fEntry.getDayOfWeek());
                     conflict.put("timeSlot", fEntry.getTimeSlot());

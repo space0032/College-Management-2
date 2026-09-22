@@ -608,9 +608,7 @@ return (
                             if (typeof payload.phone === 'string') payload.phone = payload.phone.trim();
                             const targetId = student?.id || viewedStudentId;
                             if (!targetId) throw new Error('No student selected');
-                            if (userRole === 'STUDENT') await api.put(`/students/${targetId}`, payload);
-                            else if (userRole === 'FACULTY') await api.put(`/faculty/${targetId}`, payload);
-                            else await api.put(`/students/${targetId}`, payload);
+                            await api.put(`/students/${targetId}`, payload);
                             setShowEditModal(false);
                             // Preserve the viewed-student context instead of reloading to own profile.
                             setViewedStudentId(targetId);

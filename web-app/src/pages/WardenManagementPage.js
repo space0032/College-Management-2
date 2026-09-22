@@ -54,8 +54,8 @@ export default function WardenManagementPage() {
       const payload = { ...form, name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), hostelId: Number(form.hostelId || 0) };
       if (editMode) { await updateWarden(form.id, payload); setNotice(`${payload.name}’s profile has been updated.`); }
       else {
-        const res = await addWarden(payload);
-        setNotice(res?.data?.username ? `${payload.name} added. Login username: ${res.data.username}. Initial password: 123. Ask the warden to change it after first login.` : `${payload.name} added successfully.`);
+const res = await addWarden(payload);
+        setNotice(res?.data?.username ? `${payload.name} added. Login username: ${res.data.username}. Initial password: ${res.data.generatedPassword || '123'}. Ask the warden to change it after first login.` : `${payload.name} added successfully.`);
       }
       setShowForm(false); await load();
     } catch (err) { setFormError(err.response?.data?.error || 'Failed to save warden. Please try again.'); }
@@ -132,7 +132,7 @@ export default function WardenManagementPage() {
           <div className="form-group"><label className="form-label" htmlFor="warden-hostel">Hostel assignment</label><select id="warden-hostel" className="form-control" value={form.hostelId} disabled={Boolean(hostelError)} onChange={e => setForm({ ...form, hostelId: e.target.value })} aria-describedby="warden-hostel-help"><option value="">Unassigned</option>{form.hostelId && !hostels.some(h => String(h.id) === String(form.hostelId)) && <option value={form.hostelId}>Current hostel #{form.hostelId}</option>}{hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</select><p id="warden-hostel-help" className="warden-field-hint">You can leave this unassigned and choose a hostel later.</p></div>
         </fieldset>
         {hostelError && <div className="warden-warning" role="alert">{hostelError}<button type="button" className="btn btn-secondary btn-sm" onClick={loadHostels}>Retry</button></div>}
-        {!editMode && <div className="warden-account-note"><strong>Login account</strong><p>The initial password is 123. Ask the warden to change it after their first login. Their username will appear after creation.</p></div>}
+        {!editMode && <div className="warden-account-note"><strong>Login account</strong><p>When the warden is created, a random initial password is generated and shown in the success notice. Ask the warden to change it after their first login. Their username will appear after creation.</p></div>}
       </form>
     </Modal>
     <Modal isOpen={Boolean(deleteTarget)} title="Delete warden?" onClose={() => setDeleteTarget(null)} onSubmit={handleDelete} submitLabel="Delete warden" submitting={deleting} destructive size="sm">
