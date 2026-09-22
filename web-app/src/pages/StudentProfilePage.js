@@ -1,9 +1,10 @@
 import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import api from '../services/api';
-import { createPaymentRequest, getPaymentRequests, getStudentFees } from '../services/feesService';
+import { createPaymentRequest, getPaymentRequests, getStudentFees, getPaymentHistory } from '../services/feesService';
 import { searchStudents, getStudentMe, getStudentMeCourses } from '../services/studentService';
 import Modal from '../components/Modal';
+import ReceiptModal from '../components/ReceiptModal';
 
 const StudentProfilePage = () => {
     const user = SessionManager.getUser() || {};
@@ -22,6 +23,11 @@ const StudentProfilePage = () => {
     const [requestFee, setRequestFee] = useState(null);
     const [requestForm, setRequestForm] = useState({ amount: '', paymentMode: 'UPI', referenceNumber: '', paymentDate: new Date().toISOString().slice(0, 10), note: '' });
     const [requestError, setRequestError] = useState('');
+    const [selectedReceipt, setSelectedReceipt] = useState(null);
+    const [receiptPicker, setReceiptPicker] = useState(null);
+    const [receiptPayments, setReceiptPayments] = useState([]);
+    const [receiptsLoading, setReceiptsLoading] = useState(false);
+    const [receiptsError, setReceiptsError] = useState('');
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({});
@@ -206,7 +212,7 @@ const StudentProfilePage = () => {
         setRequestForm({ amount: balance.toFixed(2), paymentMode: 'UPI', referenceNumber: '', paymentDate: new Date().toISOString().slice(0, 10), note: '' });
     };
 
-    const submitPaymentRequest = async () => {
+const submitPaymentRequest = async () => {
         const amount = Number(requestForm.amount);
         const balance = Math.max(0, Number(requestFee?.totalAmount || 0) - Number(requestFee?.paidAmount || 0));
         if (!(amount > 0) || amount > balance || !requestForm.referenceNumber.trim()) {
@@ -223,6 +229,39 @@ const StudentProfilePage = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const openReceiptPicker = async (fee) => {
+        setReceiptPicker(fee.id);
+        setReceiptPayments([]);
+        setReceiptsLoading(true);
+        setReceiptsError('');
+        try {
+            const response = await getPaymentHistory(fee.id);
+            const payments = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+            setReceiptPayments(payments);
+            if (!payments.length) {
+                setReceiptsError('No verified payments yet. Your payment appears here once finance verifies it.');
+            }
+        } catch (err) {
+            setReceiptsError(err?.response?.data?.error || 'Could not load payment records.');
+        } finally {
+            setReceiptsLoading(false);
+        }
+    };
+
+    const openReceipt = (fee, payment) => {
+        setSelectedReceipt({
+            ...fee,
+            studentName: student?.name,
+            studentUsername: student?.username || student?.enrollmentId || student?.enrollmentNumber,
+            categoryName: fee.categoryName,
+            amount: payment.amount,
+            paidAmount: payment.amount,
+            receiptNumber: payment.receiptNumber,
+            paymentDate: payment.paymentDate
+        });
+        setReceiptPicker(null);
     };
 
     const initials = (student?.name || user.name || user.username || 'S')
@@ -538,7 +577,10 @@ return (
                                             <td>{f.dueDate || f.due_date || '—'}</td>
                                             <td>{f.lastPaymentDate || f.paidDate || f.paid_date || '—'}</td>
                                             <td><span className={`status-badge ${f.status === 'PAID' ? 'status-active' : 'status-pending'}`}>{f.status || ((Number(f.paidAmount) || 0) > 0 ? 'PARTIAL' : 'PENDING')}</span></td>
-                                            <td>{userRole === 'STUDENT' && f.status !== 'PAID' ? (() => {
+<td>{userRole === 'STUDENT' ? (() => {
+                                                if (f.status === 'PAID' || (Number(f.paidAmount) || 0) > 0) {
+                                                    return <button className="btn btn-sm btn-secondary" onClick={() => openReceiptPicker(f)}>View receipts</button>;
+                                                }
                                                 const pendingRequest = paymentRequests.find(r => r.studentFeeId === f.id && (r.status === 'PENDING' || r.status === 'PROCESSING'));
                                                 return pendingRequest
                                                     ? <span className="badge badge-warning">Request {pendingRequest.status.toLowerCase()}</span>
@@ -601,8 +643,63 @@ return (
                     <div className="form-group"><label className="form-label">Payment mode</label><select className="form-control" value={requestForm.paymentMode} onChange={e => setRequestForm(p => ({ ...p, paymentMode: e.target.value }))}><option>UPI</option><option>CARD</option><option>ONLINE</option><option>BANK_TRANSFER</option><option>CHEQUE</option></select></div>
                     <div className="form-group"><label className="form-label">Transaction / reference number</label><input className="form-control" maxLength="120" value={requestForm.referenceNumber} onChange={e => setRequestForm(p => ({ ...p, referenceNumber: e.target.value }))} /></div>
                     <div className="form-group"><label className="form-label">Payment date</label><input className="form-control" type="date" max={new Date().toISOString().slice(0, 10)} value={requestForm.paymentDate} onChange={e => setRequestForm(p => ({ ...p, paymentDate: e.target.value }))} /></div>
-                    <div className="form-group"><label className="form-label">Note (optional)</label><textarea className="form-control" maxLength="500" value={requestForm.note} onChange={e => setRequestForm(p => ({ ...p, note: e.target.value }))} /></div>
+<div className="form-group"><label className="form-label">Note (optional)</label><textarea className="form-control" maxLength="500" value={requestForm.note} onChange={e => setRequestForm(p => ({ ...p, note: e.target.value }))} /></div>
                 </Modal>
+            )}
+            {/* Receipt picker modal */}
+            {receiptPicker !== null && (
+                <Modal
+                    isOpen
+                    title="Payment Receipts"
+                    onClose={() => setReceiptPicker(null)}
+                    hideFooter
+                    size="medium"
+                >
+                    {receiptsLoading ? (
+                        <p className="text-muted" style={{ padding: '20px', textAlign: 'center' }}>Loading payment records...</p>
+                    ) : receiptsError ? (
+                        <>
+                            <div className="alert alert-error" style={{ marginBottom: 12 }}>{receiptsError}</div>
+                            <button className="btn btn-secondary" onClick={() => setReceiptPicker(null)}>Close</button>
+                        </>
+                    ) : receiptPayments.length === 0 ? (
+                        <>
+                            <p className="text-muted">No payment records found for this fee.</p>
+                            <button className="btn btn-secondary" onClick={() => setReceiptPicker(null)}>Close</button>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-muted" style={{ marginBottom: 12 }}>
+                                Verified payments for this fee. Select a transaction to view or download its receipt.
+                            </p>
+                            {receiptPayments.map(p => (
+                                <div key={p.id ?? p.receiptNumber} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    gap: '12px', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '10px'
+                                }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.receiptNumber || `Payment #${p.id}`}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#718096' }}>
+                                            {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'} · {p.paymentMode || '—'}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#276749' }}>{formatCurrency(p.amount)}</div>
+                                        <button className="btn btn-sm btn-secondary" onClick={() => {
+                                            const fee = fees.find(f => f.id === receiptPicker);
+                                            openReceipt(fee || {}, p);
+                                        }}>View receipt</button>
+                                    </div>
+                                </div>
+                            ))}
+                            <button className="btn btn-secondary" style={{ marginTop: 4 }} onClick={() => setReceiptPicker(null)}>Close</button>
+                        </>
+                    )}
+                </Modal>
+            )}
+            {/* Receipt modal */}
+            {selectedReceipt && (
+                <ReceiptModal fee={selectedReceipt} onClose={() => setSelectedReceipt(null)} />
             )}
             {/* Edit Modal */}
             {showEditModal && (
