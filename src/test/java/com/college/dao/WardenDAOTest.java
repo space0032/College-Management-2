@@ -3,6 +3,8 @@ package com.college.dao;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Pure-logic unit tests for warden account settings. Database-backed flows
@@ -11,7 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class WardenDAOTest {
 
     @Test
-    void defaultPasswordIsTestingValue() {
-        assertEquals("123", WardenDAO.DEFAULT_PASSWORD);
+    void generatedPasswordIsSecureRandom() {
+        String p = WardenDAO.generatePassword();
+        assertTrue(p.length() >= 8, "generated password must be at least 8 chars");
+        assertNotEquals("123", p, "no well-known default password allowed");
+        assertNotEquals(WardenDAO.generatePassword(), p, "passwords must be random, not constant");
     }
 }
