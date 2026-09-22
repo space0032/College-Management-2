@@ -141,9 +141,37 @@ const VisitorPage = () => {
         }
     };
 
-    // Stats
+    // Stats (derived from real data only; no fabricated demo numbers)
     const onCampus = logs.filter(l => !l.exitTime).length;
     const totalToday = logs.length;
+    const peakHour = (() => {
+        const counts = logs.reduce((acc, l) => {
+            try {
+                const hour = new Date(l.entryTime).getHours();
+                acc[hour] = (acc[hour] || 0) + 1;
+            } catch { /* ignore malformed timestamps */ }
+            return acc;
+        }, {});
+        const entries = Object.entries(counts);
+        if (!entries.length) return '—';
+        const [hour] = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
+        const h = Number(hour);
+        return (h % 12 || 12) + (h < 12 ? ' AM' : ' PM');
+    })();
+    const avgStayMins = (() => {
+        const durations = logs
+            .filter(l => l.entryTime && l.exitTime)
+            .map(l => {
+                try {
+                    const diff = (new Date(l.exitTime) - new Date(l.entryTime)) / 60000;
+                    return diff >= 0 ? diff : null;
+                } catch { return null; }
+            })
+            .filter(d => d !== null);
+        if (!durations.length) return '—';
+        const avg = durations.reduce((s, d) => s + d, 0) / durations.length;
+        return avg < 1 ? '<1m' : `${Math.round(avg)}m`;
+    })();
 
     return (
         <div className="page-container">
@@ -177,15 +205,15 @@ const VisitorPage = () => {
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Check-ins (Today)</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b', margin: '8px 0' }}>{Math.max(totalToday, 8)}</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b', margin: '8px 0' }}>{totalToday}</div>
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Peak Hour</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#0ea5e9', margin: '8px 0' }}>11:00 AM</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#0ea5e9', margin: '8px 0' }}>{peakHour}</div>
                 </div>
                 <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Avg Stay Time</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>42m</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>{avgStayMins}</div>
                 </div>
             </div>
 

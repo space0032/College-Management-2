@@ -59,10 +59,17 @@ const GatePassPage = () => {
         if (activeTab === 'history' && user.role !== 'STUDENT') loadAllPasses();
     }, [activeTab, user.role, loadStudentPasses, loadPendingPasses, loadAllPasses]);
 
+    const todayStr = () => {
+        const d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${d.getFullYear()}-${mm}-${dd}`;
+    };
+
     const handleRequestPass = async (e) => {
         e.preventDefault();
         // Date validation — no past dates
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayStr();
         if (formData.fromDate < today) { alert('From date cannot be in the past.'); return; }
         if (formData.toDate && formData.toDate < formData.fromDate) { alert('Return date must be after departure date.'); return; }
         setIsSubmitting(true);
@@ -95,9 +102,10 @@ const GatePassPage = () => {
     };
 
     // Stats
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const pendingCount = user.role !== 'STUDENT' ? passes.filter(p => p.status === 'PENDING').length : 0;
-    const approvedToday = passes.filter(p => p.status === 'APPROVED' && (p.approvedAt || p.requestDate || '').startsWith(today)).length;
+    const approvedToday = passes.filter(p => p.status === 'APPROVED' && (p.approvedAt || p.requestedAt || '').startsWith(today)).length;
+    const awayNow = user.role !== 'STUDENT' ? passes.filter(p => p.status === 'APPROVED' && p.fromDate <= today && p.toDate >= today).length : 0;
 
     return (
         <div className="page-container">
@@ -137,8 +145,8 @@ const GatePassPage = () => {
                     <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>{approvedToday}</div>
                 </div>
                 <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Off-Campus Residents</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>{Math.max(0, approvedToday - 2)}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Off-Campus Now</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>{awayNow}</div>
                 </div>
             </div>
 
@@ -200,8 +208,8 @@ const GatePassPage = () => {
                                     <tr key={p.id}>
                                         {user.role !== 'STUDENT' && (
                                             <td>
-                                                <strong>{p.studentName}</strong><br />
-                                                <code style={{ fontSize: '0.75rem', color: '#64748b' }}>{p.enrollmentId || 'ID:EX-001'}</code>
+                                                {p.studentName}<br />
+                                                <code style={{ fontSize: '0.75rem', color: '#64748b' }}>{p.enrollmentId || '—'}</code>
                                             </td>
                                         )}
                                         <td style={{ maxWidth: '200px', fontSize: '0.9rem' }}>{p.destination}</td>
@@ -238,11 +246,11 @@ const GatePassPage = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                                     <div>
                                         <h4 style={{ margin: 0 }}>{p.studentName}</h4>
-                                        <code style={{ fontSize: '0.8rem' }}>{p.enrollmentId || 'ID:EX-001'}</code>
+                                        <code style={{ fontSize: '0.8rem' }}>{p.enrollmentId || '—'}</code>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase' }}>Applied On</div>
-                                        <div style={{ fontSize: '0.85rem' }}>{new Date().toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '0.85rem' }}>{p.requestedAt ? new Date(p.requestedAt).toLocaleDateString() : '—'}</div>
                                     </div>
                                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Modal from '../components/Modal';
 import { saveTimetableEntry } from '../services/timetableService';
 
@@ -28,6 +28,15 @@ const BookRoomModal = ({ booking, onClose, onBooked }) => {
     });
     const [saving, setSaving] = useState(false);
     const [modalError, setModalError] = useState('');
+
+    const prevBooking = useRef(booking);
+    useEffect(() => {
+        if (prevBooking.current !== booking) {
+            prevBooking.current = booking;
+            setForm(prev => ({ ...prev, subject: '', facultyName: '', specialization: '' }));
+            setModalError('');
+        }
+    }, [booking]);
 
     if (!booking) return null;
 

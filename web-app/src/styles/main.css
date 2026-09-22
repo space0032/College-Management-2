@@ -510,7 +510,8 @@ ol {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -526,7 +527,8 @@ ol {
 
 .modal {
   background-color: var(--bg-white);
-  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
   box-shadow: var(--shadow-md);
   width: 100%;
   max-width: 520px;
@@ -542,7 +544,7 @@ ol {
 }
 
 .modal-header {
-  padding: 16px 20px;
+  padding: 19px 22px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -550,7 +552,7 @@ ol {
 }
 
 .modal-title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -572,13 +574,14 @@ ol {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 22px;
   overflow-y: auto;
   flex: 1;
 }
 
 .modal-footer {
-  padding: 12px 20px;
+  padding: 15px 22px;
+  background: #fafbfc;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
@@ -727,30 +730,35 @@ ol {
 /* ===== Badge ===== */
 .badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.67rem;
   font-weight: 600;
 }
 
 .badge-success {
-  background-color: #dcffe4;
-  color: #176f2c;
+  background-color: #ecfdf3;
+  color: #027a48;
 }
 
 .badge-danger {
-  background-color: #ffeef0;
-  color: #86181d;
+  background-color: #fef3f2;
+  color: #b42318;
 }
 
 .badge-warning {
-  background-color: #fffbdd;
-  color: #735c0f;
+  background-color: #fffaeb;
+  color: #b54708;
 }
 
 .badge-primary {
-  background-color: #f1f8ff;
-  color: #0366d6;
+  background-color: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.badge-secondary {
+  background-color: #eef1f6;
+  color: #5b6472;
 }
 
 /* ===== Tabs ===== */
@@ -1116,21 +1124,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .table-empty { padding: 64px 20px; }
 .table-empty-icon { width: 48px; height: 48px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 14px; background: var(--primary-soft); font-size: 1.35rem; }
 
-.badge { padding: 4px 9px; border-radius: 999px; font-size: .67rem; }
-.badge-success { background: #ecfdf3; color: #027a48; }
-.badge-danger { background: #fef3f2; color: #b42318; }
-.badge-warning { background: #fffaeb; color: #b54708; }
-.badge-primary { background: var(--primary-soft); color: var(--primary-dark); }
-.badge-secondary { background: #eef1f6; color: #5b6472; }
-
 .modal-sm .btn-primary.danger, .modal-sm .btn.btn-danger { background: #ef4444; border-color: #ef4444; color: #fff; }
-
-.modal-backdrop { background: rgba(15, 23, 42, .55); backdrop-filter: blur(5px); }
-.modal { border: 1px solid rgba(255,255,255,.7); border-radius: 20px; }
-.modal-header { padding: 19px 22px; }
-.modal-title { font-size: 1.05rem; }
-.modal-body { padding: 22px; }
-.modal-footer { padding: 15px 22px; background: #fafbfc; }
 
 .alert { padding: 11px 13px; border-radius: 10px; font-size: .79rem; }
 .alert-error { background: #fff5f5; border-color: #fecaca; color: #b42318; }

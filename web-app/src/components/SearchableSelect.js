@@ -14,6 +14,10 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
 
     const selected = options.find(o => o.value === value);
 
+    const filtered = query
+        ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+        : options;
+
     useEffect(() => {
         const onDocClick = (e) => {
             if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
@@ -26,9 +30,9 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
         if (!open) setQuery('');
     }, [open]);
 
-    const filtered = query
-        ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
-        : options;
+    useEffect(() => {
+        setActive((a) => Math.min(Math.max(a, 0), Math.max(filtered.length - 1, 0)));
+    }, [filtered]);
 
     const pick = (opt) => {
         if (!opt) return;
@@ -38,11 +42,12 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
 
     const handleKeyDown = (e) => {
         if (!open && e.key !== 'Enter') return;
-        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, filtered.length - 1)); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(a - 1, 0)); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(Math.max(a + 1, 0), Math.max(filtered.length - 1, 0))); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(Math.min(a - 1, Math.max(filtered.length - 1, 0)), 0)); }
         else if (e.key === 'Enter') {
             e.preventDefault();
-            if (open) pick(filtered[active]);
+            if (open && filtered.length > 0) pick(filtered[active]);
+            else if (open) { setQuery(''); setActive(0); setOpen(false); }
             else setOpen(true);
         }
         else if (e.key === 'Escape') { setOpen(false); }

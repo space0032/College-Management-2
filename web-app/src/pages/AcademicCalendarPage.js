@@ -21,14 +21,24 @@ const AcademicCalendarPage = () => {
     const [animDir, setAnimDir] = useState(null);
     const addDialogRef = useRef(null);
     const detailDialogRef = useRef(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const loadSeqRef = useRef(0);
 
     const loadEvents = useCallback(async () => {
+        const seq = ++loadSeqRef.current;
+        setLoading(true);
+        setError('');
         try {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
             const res = await getMonthEvents(year, month);
-            setEvents(res.data || []);
-        } catch (err) { console.error(err); }
+            if (seq === loadSeqRef.current) setEvents(res.data || []);
+        } catch (err) {
+            if (seq === loadSeqRef.current) { setEvents([]); setError('Failed to load calendar events.'); }
+        } finally {
+            if (seq === loadSeqRef.current) setLoading(false);
+        }
     }, [currentDate]);
 
     useEffect(() => { loadEvents(); }, [loadEvents]);
@@ -305,7 +315,10 @@ const AcademicCalendarPage = () => {
                     <h4 style={{ margin: '0 0 20px 0' }}>Upcoming Milestones</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         {filteredEvents.length === 0 ? (
-                            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No events logged for this period.</div>
+                            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>
+                                No events logged for this period.
+                                <div><button className="btn btn-sm btn-secondary" style={{ marginTop: '12px' }} onClick={loadEvents}>↻ Refresh</button></div>
+                            </div>
                         ) : (
                             filteredEvents.slice(0, 5).map(ev => (
                                 <div key={ev.id} style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => handleDayClick(ev.eventDate)}>
@@ -464,6 +477,16 @@ const AcademicCalendarPage = () => {
                     </button>
                 ))}
             </div>
+
+            {error && (
+                <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderLeft: '4px solid #ef4444', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <span style={{ color: '#b91c1c', fontSize: '0.9rem' }}>⚠️ {error}</span>
+                    <button className="btn btn-sm btn-secondary" onClick={loadEvents}>↻ Retry</button>
+                </div>
+            )}
+            {loading && events.length === 0 && !error ? (
+                <div className="loading-container" style={{ padding: '60px' }}><div className="spinner" /><span>Loading calendar…</span></div>
+            ) : null}
 
             {viewMode === 'grid' ? renderGridView : renderListView}
 

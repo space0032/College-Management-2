@@ -55,13 +55,13 @@ Status legend: [ ] open · [x] fixed · [~] partial
 - [x] Modal nesting (Announcement/Assignment AI) — done
 - [x] badge CSS + hostel/complaint badge semantics — done
 - [x] JsonHelper ISO-8601 dates — done
-- [ ] NotificationPage skeleton flash + mark-as-unread
-- [ ] Attendance "Subject" column raw numeric id
-- [ ] Faculty "Average Experience" hardcoded `'N/A'`
-- [ ] Calendar error/race + empty-state-with-no-retry patterns
-- [ ] Hardcoded demo data (VisitorPage, CrowdfundingPage, gate-pass timestamps)
-- [ ] `Header.js` nested-route title
-- [ ] `api.js` 401 → `SessionManager.clearSession()`
-- [ ] `BookRoomModal`/`CourseManagementPage` form reset
-- [ ] Duplicate `.badge`/`.modal`/`.modal-backdrop` CSS blocks
-- [ ] `Toast`/`SearchableSelect`/`useManagementData` robustness
+- [x] NotificationPage skeleton flash + mark-as-unread
+- [x] Attendance "Subject" column raw numeric id
+- [x] Faculty "Average Experience" hardcoded `'N/A'`
+- [x] Calendar error/race + empty-state-with-no-retry patterns
+- [x] Hardcoded demo data (VisitorPage, CrowdfundingPage, gate-pass timestamps)
+- [x] `Header.js` nested-route title
+- [x] `api.js` 401 → `SessionManager.clearSession()`
+- [x] `BookRoomModal`/`CourseManagementPage` form reset
+- [x] Duplicate `.badge`/`.modal`/`.modal-backdrop` CSS blocks
+- [x] `Toast`/`SearchableSelect`/`useManagementData` robustness

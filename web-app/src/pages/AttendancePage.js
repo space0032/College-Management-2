@@ -19,7 +19,7 @@ const COLUMNS = [
     </span>
   )},
   { key: 'studentName', label: 'Student' },
-  { key: 'courseId', label: 'Subject' },
+  { key: 'courseId', label: 'Subject', render: (v) => v || '—' },
   { key: 'date', label: 'Date' },
   { key: 'status', label: 'Status', render: (v) => (
     <span style={{
@@ -32,7 +32,13 @@ const COLUMNS = [
 ];
 
 const STATUS_OPTIONS = ['PRESENT', 'ABSENT', 'LATE'];
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 const AttendancePage = () => {
   const [records, setRecords] = useState([]);
@@ -65,6 +71,12 @@ const AttendancePage = () => {
     const c = subjects.find(x => String(x.id) === String(id));
     return c ? `${c.code} — ${c.name}` : `Subject ${id}`;
   }, [subjects]);
+
+  const columns = useMemo(() => COLUMNS.map(col =>
+    col.key === 'courseId'
+      ? { ...col, render: (v) => subjectLabel(v) }
+      : col
+  ), [subjectLabel]);
 
   const handleFetch = useCallback(async () => {
     if (!filterCourse || !filterDate) { setError('Please select both Subject and Date.'); return; }
@@ -342,7 +354,7 @@ const AttendancePage = () => {
       {loading ? (
         <div className="loading-container"><div className="spinner" /><span>Loading attendance…</span></div>
       ) : (
-        <DataTable columns={COLUMNS} data={records} emptyMessage="No attendance records. Select a course and date to load." />
+        <DataTable columns={columns} data={records} emptyMessage="No attendance records. Select a course and date to load." />
       )}
 
       <Modal isOpen={markModal} title="Mark Attendance" onClose={() => setMarkModal(false)} onSubmit={handleMark} submitLabel={saving ? 'Saving…' : 'Save'}>

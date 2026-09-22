@@ -151,19 +151,24 @@ public class BookIssue {
     }
 
     /**
-     * Calculate fine based on overdue days
-     * 
+     * Calculate fine based on overdue days.
+     * <p>
+     * Uses calendar-day arithmetic (matched to the {@code (CURRENT_DATE - due_date)}
+     * formula applied by {@code BookIssueDAO.updateFinesForStudent}) rather than
+     * millisecond division, so DST/time-of-day rounding cannot produce a different
+     * day count.
+     *
      * @param finePerDay Fine amount per day
      * @return Calculated fine
      */
     public double calculateFine(double finePerDay) {
-        if (returnDate == null) {
-            returnDate = new Date();
+        if (dueDate == null) {
+            return 0.0;
         }
-
-        long diff = returnDate.getTime() - dueDate.getTime();
-        long overdueDays = diff / (1000 * 60 * 60 * 24);
-
+        java.time.LocalDate startDate = new java.sql.Date(dueDate.getTime()).toLocalDate();
+        Date end = returnDate != null ? returnDate : new Date();
+        java.time.LocalDate endDate = new java.sql.Date(end.getTime()).toLocalDate();
+        long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
         if (overdueDays > 0) {
             return overdueDays * finePerDay;
         }

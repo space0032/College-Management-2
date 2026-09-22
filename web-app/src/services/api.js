@@ -1,4 +1,5 @@
 import axios from 'axios';
+import SessionManager from '../utils/SessionManager';
 
 const API = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:7000/api',
@@ -6,7 +7,7 @@ const API = axios.create({
 });
 
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = SessionManager.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -17,9 +18,8 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Selective clearing to preserve app settings (e.g. collegeName)
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Centralized session teardown clears the cached user too.
+      SessionManager.clearSession();
       window.location.href = '/';
     }
     return Promise.reject(error);

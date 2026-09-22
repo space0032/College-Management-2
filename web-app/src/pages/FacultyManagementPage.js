@@ -211,6 +211,18 @@ const FacultyManagementPage = () => {
 
   const depts = useMemo(() => [...new Set(faculty.map(f => f.department).filter(Boolean))].sort(), [faculty]);
   const phds = useMemo(() => faculty.filter(f => (f.qualification || '').toUpperCase().includes('PHD')).length, [faculty]);
+  const avgExperience = useMemo(() => {
+    const years = faculty
+      .map(f => f.joinDate || f.join_date || f.joiningDate)
+      .filter(Boolean)
+      .map(d => {
+        const t = new Date(d).getTime();
+        return Number.isNaN(t) ? null : (Date.now() - t) / (365.25 * 24 * 3600 * 1000);
+      })
+      .filter(Number.isFinite);
+    if (years.length === 0) return 'N/A';
+    return `${(years.reduce((a, b) => a + b, 0) / years.length).toFixed(1)} yrs`;
+  }, [faculty]);
   const handleExport = useCallback(() => {
     exportToCSV(
       ['Faculty ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
@@ -253,7 +265,7 @@ const FacultyManagementPage = () => {
         </div>
         <div className="stat-card">
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Average Experience</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9f7aea' }}>N/A</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9f7aea' }}>{avgExperience}</div>
         </div>
       </div>
 

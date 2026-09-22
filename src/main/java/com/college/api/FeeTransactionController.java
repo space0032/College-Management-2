@@ -2,7 +2,9 @@ package com.college.api;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import com.college.api.TokenStore.TokenInfo;
 import com.college.dao.FeeTransactionDAO;
+import com.college.dao.StudentDAO;
 import com.college.models.FeeTransaction;
 import com.college.models.FeeTransaction.Type;
 import com.college.models.FeeTransaction.PaymentMode;
@@ -70,7 +72,17 @@ public class FeeTransactionController extends BaseController implements HttpHand
 
         FeeTransaction ft = new FeeTransaction();
         ft.setTransactionId((String) map.getOrDefault("transactionId", "TXN-" + UUID.randomUUID().toString().substring(0, 8)));
-        ft.setStudentId(((Number) map.get("studentId")).intValue());
+        int studentId = ((Number) map.get("studentId")).intValue();
+        TokenInfo tokenInfo = getTokenInfo(t);
+        if (tokenInfo != null && "STUDENT".equalsIgnoreCase(tokenInfo.role)) {
+            int self = new StudentDAO().getStudentIdByUserId(tokenInfo.userId);
+            if (self <= 0) {
+                sendResponse(t, 403, errorJson("Forbidden: No student profile linked to this account"));
+                return;
+            }
+            studentId = self;
+        }
+        ft.setStudentId(studentId);
         if (map.get("feePaymentId") != null) {
             ft.setFeePaymentId(((Number) map.get("feePaymentId")).intValue());
         }

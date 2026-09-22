@@ -52,7 +52,7 @@ function courseReducer(state, action) {
     case 'OPEN_MODAL':
       return { ...state, modalOpen: true, form: action.form || EMPTY_FORM, editId: action.editId || null, formError: '' };
     case 'CLOSE_MODAL':
-      return { ...state, modalOpen: false };
+      return { ...state, modalOpen: false, form: EMPTY_FORM, editId: null, formError: '' };
     case 'SET_FORM':
       return { ...state, form: { ...state.form, [action.name]: action.value }, formError: '' };
     case 'SET_FORM_ERROR':

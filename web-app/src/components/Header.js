@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlobalSearch from './GlobalSearch';
+import { getPageTitle } from './PageTitle';
 import SessionManager from '../utils/SessionManager';
 
 const Header = ({ onMenuClick }) => {
@@ -25,9 +26,9 @@ const Header = ({ onMenuClick }) => {
     navigate('/');
   };
 
-  const pageName = location.pathname === '/dashboard'
+const pageName = location.pathname === '/dashboard'
     ? 'Overview'
-    : location.pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ');
+    : getPageTitle(location.pathname) || 'Overview';
   const displayName = user.name || user.username || 'User';
   const initials = displayName.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
 

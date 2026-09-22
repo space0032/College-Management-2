@@ -12,7 +12,13 @@ import {
 } from '../services/feesService';
 
 const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value) || 0);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 const balanceOf = (fee) => Math.max(0, fee?.balanceAmount == null ? Number(fee?.totalAmount ?? fee?.amount ?? 0) - Number(fee?.paidAmount ?? 0) : Number(fee.balanceAmount));
 const dateText = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const badge = (status) => <span className={`badge badge-${status === 'PAID' || status === 'APPROVED' ? 'success' : status === 'PARTIAL' || status === 'PENDING' || status === 'PROCESSING' ? 'warning' : 'danger'}`}>{status || 'PENDING'}</span>;

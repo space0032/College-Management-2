@@ -34,8 +34,8 @@ const NotificationPage = () => {
 
   const isAdmin = SessionManager.hasRole('ADMIN');
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (silent = false) => {
+    if (!silent) setLoading(true);
     getNotifications()
       .then((res) => setNotifications(res.data || []))
       .catch(() => setError('Failed to load notifications.'))
@@ -44,8 +44,8 @@ const NotificationPage = () => {
 
   useEffect(() => {
     fetchData();
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(fetchData, 30000);
+    // Poll every 30 seconds for new notifications without flashing the list
+    const interval = setInterval(() => fetchData(true), 30000);
     return () => clearInterval(interval);
   }, []);
 

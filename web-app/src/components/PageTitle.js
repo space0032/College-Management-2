@@ -29,13 +29,18 @@ const PATH_TITLES = {
   '/dashboard/feedback': 'Feedback',
 };
 
+export function getPageTitle(pathname) {
+  const exact = PATH_TITLES[pathname];
+  if (exact) return exact;
+  const section = pathname.split('/').filter(Boolean).pop() || '';
+  return TITLES[section] || '';
+}
+
 const PageTitle = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const exact = PATH_TITLES[pathname];
-    const section = pathname.split('/').filter(Boolean).pop() || '';
-    document.title = `${exact || TITLES[section] || 'Page'} | CampusOne`;
+    document.title = `${getPageTitle(pathname) || 'Page'} | CampusOne`;
   }, [pathname]);
 
   return null;

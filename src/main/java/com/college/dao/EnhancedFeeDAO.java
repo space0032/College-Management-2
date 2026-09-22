@@ -20,6 +20,13 @@ import java.util.Locale;
 public class EnhancedFeeDAO {
 
     /**
+     * Serializes the H2 fallback payment path. H2 does not honour FOR UPDATE on
+     * every plan, so without this a concurrent double-payment could read the
+     * same remaining balance twice. The main path keeps the real row lock.
+     */
+    private static final Object FALLBACK_PAYMENT_LOCK = new Object();
+
+    /**
      * Get all fee categories
      */
     public List<FeeCategory> getAllCategories() {
@@ -295,7 +302,8 @@ public class EnhancedFeeDAO {
     }
 
     private PaymentResult recordPaymentDetailedFallback(FeePayment payment) {
-        String checkSql = "SELECT student_id, total_amount, paid_amount FROM student_fees WHERE id = ?";
+        synchronized (FALLBACK_PAYMENT_LOCK) {
+            String checkSql = "SELECT student_id, total_amount, paid_amount FROM student_fees WHERE id = ?";
         String insertSql = "INSERT INTO fee_payments (student_fee_id, payment_date, amount, payment_mode, "
                 + "transaction_id, receipt_number, received_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -391,6 +399,7 @@ public class EnhancedFeeDAO {
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
             return PaymentResult.failure("Failed to record payment");
+        }
         }
     }
 
@@ -569,8 +578,8 @@ public class EnhancedFeeDAO {
 
     private void updateStudentFeeStatus(Connection conn, int studentFeeId) throws SQLException {
         String sql = "UPDATE student_fees SET " +
-                "paid_amount = GREATEST((SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) - " +
-                "(SELECT COALESCE(SUM(amount), 0) FROM fee_transactions WHERE student_fee_id = ? AND type = 'REFUND'), 0), " +
+                "paid_amount = LEAST(GREATEST((SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) - " +
+                "(SELECT COALESCE(SUM(amount), 0) FROM fee_transactions WHERE student_fee_id = ? AND type = 'REFUND'), 0), total_amount), " +
                 "status = CASE " +
                 "    WHEN ((SELECT COALESCE(SUM(amount), 0) FROM fee_payments WHERE student_fee_id = ?) - (SELECT COALESCE(SUM(amount), 0) FROM fee_transactions WHERE student_fee_id = ? AND type = 'REFUND')) >= total_amount THEN 'PAID' "
                 +

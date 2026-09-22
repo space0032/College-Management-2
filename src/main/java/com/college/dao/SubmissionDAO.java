@@ -201,6 +201,8 @@ public class SubmissionDAO {
 
         submission.setFeedback(rs.getString("feedback"));
         submission.setPlagiarismScore(rs.getInt("plagiarism_score"));
+        submission.setGraded("GRADED".equalsIgnoreCase(rs.getString("status")));
+        submission.setSubmissionDate(submission.getSubmittedAt());
 
         try {
             submission.setStudentName(rs.getString("student_name"));

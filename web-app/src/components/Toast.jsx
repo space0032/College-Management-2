@@ -1,19 +1,26 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 const ToastContext = createContext(null);
 
 let externalPush = null;
 let seq = 0;
 
+const asMessage = (message) => {
+  if (message instanceof Error) return message.message || String(message);
+  if (message == null) return '';
+  if (typeof message === 'object' && typeof message.message === 'string') return message.message;
+  return String(message);
+};
+
 export const toast = {
   success(message, opts = {}) {
-    externalPush?.({ kind: 'success', message, refId: opts.refId, title: opts.title || 'Success' });
+    externalPush?.({ kind: 'success', message: asMessage(message), refId: opts.refId, title: opts.title || 'Success' });
   },
   error(message, opts = {}) {
-    externalPush?.({ kind: 'error', message, refId: opts.refId, title: opts.title || 'Something went wrong', details: opts.details });
+    externalPush?.({ kind: 'error', message: asMessage(message), refId: opts.refId, title: opts.title || 'Something went wrong', details: opts.details });
   },
   info(message, opts = {}) {
-    externalPush?.({ kind: 'info', message, refId: opts.refId, title: opts.title || 'Note' });
+    externalPush?.({ kind: 'info', message: asMessage(message), refId: opts.refId, title: opts.title || 'Note' });
   },
 };
 
@@ -44,7 +51,10 @@ export function ToastProvider({ children }) {
     timers.current.set(id, tm);
   }, [dismiss]);
 
-  externalPush = push;
+  useEffect(() => {
+    externalPush = push;
+    return () => { externalPush = null; };
+  }, [push]);
 
   const value = useMemo(() => ({ ...toast, dismiss, items }), [dismiss, items]);
 

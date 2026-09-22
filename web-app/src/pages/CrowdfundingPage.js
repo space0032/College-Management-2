@@ -140,17 +140,17 @@ const CrowdfundingPage = () => {
                             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '8px 0' }}>₹{totalRaised.toLocaleString()}+</div>
                             <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Community Contributions</div>
                         </div>
-                        <div className="stat-card">
+<div className="stat-card">
                             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Active Projects</div>
                             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b', margin: '8px 0' }}>{campaigns.filter(c => c.status === 'ACTIVE').length}</div>
                         </div>
                         <div className="stat-card">
-                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Impact Network</div>
-                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>N/A</div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Funded Projects</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: '8px 0' }}>{campaigns.filter(c => c.status !== 'ACTIVE').length}</div>
                         </div>
                         <div className="stat-card">
-                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Success Rate</div>
-                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>N/A</div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Avg Collection</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#6366f1', margin: '8px 0' }}>{campaigns.length ? `₹${Math.round(campaigns.reduce((s, c) => s + c.raisedAmount, 0) / campaigns.length).toLocaleString()}` : '—'}</div>
                         </div>
                     </div>
 
@@ -197,29 +197,8 @@ const CrowdfundingPage = () => {
                         {/* Recent Activity / Hall of Fame Sidebar */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             <div className="stat-card">
-                                <h4 style={{ marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>🌟 Top Contributors</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {[
-                                        { name: 'Dr. John Watson', amount: 25000, initials: 'JW' },
-                                        { name: 'Alumni Assoc (Batch 2008)', amount: 18500, initials: 'AA' },
-                                        { name: 'Sarah Miller', amount: 12000, initials: 'SM' }
-                                    ].map((donor, i) => (
-                                        <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                            <div style={{ width: '36px', height: '36px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', color: '#6366f1' }}>{donor.initials}</div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: '0.85rem', fontWeight: '600' }}>{donor.name}</div>
-                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Donated ₹{donor.amount.toLocaleString()}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="stat-card">
-                                <h4 style={{ marginBottom: '15px' }}>Impact Feed</h4>
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>
-                                    "Your donations last month successfully funded the new Cricket Training Net! 🏏"
-                                </div>
+                                <h4 style={{ marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>🌟 Donor Roll</h4>
+                                <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Individual donor activity is not displayed on the public feed.</p>
                             </div>
                         </div>
                     </div>

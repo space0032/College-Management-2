@@ -40,7 +40,7 @@ const ISSUE_COLUMNS = [
   },
 ];
 
-const EMPTY_FORM = { title: '', author: '', isbn: '', quantity: 1, available: true };
+const EMPTY_FORM = { title: '', author: '', isbn: '', quantity: 1, available: 1 };
 
 const LibraryPage = () => {
   const [books, setBooks] = useState([]);

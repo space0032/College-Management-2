@@ -105,6 +105,10 @@ private void handleGetAll(HttpExchange t) throws IOException {
             sendResponse(t, 400, errorJson("Invalid JSON"));
             return;
         }
+        if (book.getQuantity() <= 0 || book.getAvailable() < 0 || book.getAvailable() > book.getQuantity()) {
+            sendResponse(t, 400, errorJson("quantity must be positive and available must be between 0 and quantity"));
+            return;
+        }
         boolean ok = libraryDAO.addBook(book);
         if (ok)
             sendResponse(t, 201, JsonHelper.toJson(book));
@@ -119,6 +123,10 @@ private void handleGetAll(HttpExchange t) throws IOException {
         Book book = JsonHelper.fromJson(body, Book.class);
         if (book == null) {
             sendResponse(t, 400, errorJson("Invalid JSON"));
+            return;
+        }
+        if (book.getQuantity() <= 0 || book.getAvailable() < 0 || book.getAvailable() > book.getQuantity()) {
+            sendResponse(t, 400, errorJson("quantity must be positive and available must be between 0 and quantity"));
             return;
         }
         book.setId(id);

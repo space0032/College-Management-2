@@ -18,6 +18,8 @@ public class Submission {
     private String studentName;
     private String studentEnrollmentId;
     private String assignmentTitle;
+    private boolean isGraded;
+    private java.util.Date submissionDate;
 
     public Submission() {
     }
@@ -131,5 +133,21 @@ public class Submission {
 
     public void setAssignmentTitle(String assignmentTitle) {
         this.assignmentTitle = assignmentTitle;
+    }
+
+    public boolean isGraded() {
+        return isGraded;
+    }
+
+    public void setGraded(boolean graded) {
+        isGraded = graded;
+    }
+
+    public java.util.Date getSubmissionDate() {
+        return submissionDate;
+    }
+
+    public void setSubmissionDate(java.util.Date submissionDate) {
+        this.submissionDate = submissionDate;
     }
 }
