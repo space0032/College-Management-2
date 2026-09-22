@@ -7,6 +7,8 @@ export const getAllStudents = (page, size) => {
     return API.get('/students');
 };
 export const getStudentById = (id) => API.get(`/students/${id}`);
+export const getStudentMe = () => API.get('/students/me');
+export const getStudentMeCourses = (signal) => API.get('/students/me/courses', signal ? { signal } : undefined);
 export const createStudent = (student) => API.post('/students', student);
 export const updateStudent = (id, student) => API.put(`/students/${id}`, student);
 export const deleteStudent = (id) => API.delete(`/students/${id}`);

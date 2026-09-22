@@ -2,7 +2,7 @@ import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import api from '../services/api';
 import { createPaymentRequest, getPaymentRequests, getStudentFees } from '../services/feesService';
-import { searchStudents } from '../services/studentService';
+import { searchStudents, getStudentMe, getStudentMeCourses } from '../services/studentService';
 import Modal from '../components/Modal';
 
 const StudentProfilePage = () => {
@@ -90,7 +90,9 @@ const StudentProfilePage = () => {
 
                 // Fetch enrolled subjects (source of truth: course_registrations)
                 try {
-                    const cRes = await api.get(`/students/${studentId}/courses`);
+                    const cRes = canSearch
+                        ? await api.get(`/students/${studentId}/courses`)
+                        : await getStudentMeCourses();
                     const cData = Array.isArray(cRes.data) ? cRes.data : (cRes.data?.data || []);
                     setEnrolledCourses(cData);
                 } catch { setEnrolledCourses([]); }
@@ -102,7 +104,7 @@ const StudentProfilePage = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchStudentFees]);
+}, [fetchStudentFees, canSearch]);
 
     // Load own profile on mount
     useEffect(() => {
@@ -111,6 +113,17 @@ const StudentProfilePage = () => {
                 setLoading(true);
                 setError(null);
                 try {
+                    // Self-service path for students: no VIEW_STUDENT (admin list) needed.
+                    if (!canSearch) {
+                        const meRes = await getStudentMe();
+                        if (meRes.data) {
+                            await fetchStudentData(meRes.data.id);
+                        } else {
+                            setError('Student record not found.');
+                            setLoading(false);
+                        }
+                        return;
+                    }
                     const sRes = await api.get('/students');
                     const sList = Array.isArray(sRes.data) ? sRes.data : (sRes.data?.data || []);
                     const found = sList.find(s =>
@@ -130,7 +143,7 @@ const StudentProfilePage = () => {
             };
             fetchOwn();
         }
-    }, [user.id, user.email, fetchStudentData, viewedStudentId]);
+    }, [user.id, user.email, fetchStudentData, viewedStudentId, canSearch]);
 
     // Load viewed student when viewedStudentId changes
     useEffect(() => {

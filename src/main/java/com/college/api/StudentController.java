@@ -24,7 +24,17 @@ public class StudentController extends BaseController implements HttpHandler {
         String method = t.getRequestMethod();
         String path = normalizePath(t.getRequestURI().getPath());
 
-if (path.matches("/students/\\d+/courses")) {
+if (path.equals("/students/me/courses")) {
+            if ("GET".equals(method))
+                handleGetMyCourses(t);
+            else
+                sendResponse(t, 405, "Method Not Allowed");
+        } else if (path.equals("/students/me")) {
+            if ("GET".equals(method))
+                handleGetMe(t);
+            else
+                sendResponse(t, 405, "Method Not Allowed");
+        } else if (path.matches("/students/\\d+/courses")) {
             if ("GET".equals(method))
                 handleGetCourses(t, extractStudentId(path));
             else
@@ -146,6 +156,35 @@ if (path.matches("/students/\\d+/courses")) {
             e.printStackTrace();
             sendResponse(t, 500, "{\"error\":\"" + e.getMessage() + "\"}");
         }
+    }
+
+    private Student resolveSelf(HttpExchange t) throws IOException {
+        com.college.api.TokenStore.TokenInfo info = getTokenInfo(t);
+        if (info == null) return null;
+        return studentDAO.getStudentByUserId(info.userId);
+    }
+
+    private void handleGetMe(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT_PROFILE"))
+            return;
+        Student self = resolveSelf(t);
+        if (self == null) {
+            sendResponse(t, 404, "{\"error\":\"No student profile linked to this account\"}");
+            return;
+        }
+        sendResponse(t, 200, JsonHelper.toJson(self));
+    }
+
+    private void handleGetMyCourses(HttpExchange t) throws IOException {
+        if (!requirePermission(t, "VIEW_STUDENT_PROFILE"))
+            return;
+        Student self = resolveSelf(t);
+        if (self == null) {
+            sendResponse(t, 404, "{\"error\":\"No student profile linked to this account\"}");
+            return;
+        }
+        List<?> courses = studentDAO.getRegisteredCourses(self.getId());
+        sendResponse(t, 200, JsonHelper.toJson(courses));
     }
 
     private void handlePost(HttpExchange t) throws IOException {
