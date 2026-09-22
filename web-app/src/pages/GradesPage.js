@@ -176,7 +176,7 @@ const GradesPage = () => {
             courseId: formatCourseId(bulkCourseId),
             examType: bulkExamType,
             marksObtained: '',
-            outOf: '100',
+            outOf: parseFloat(bulkOutOf) > 0 ? String(bulkOutOf) : '100',
             grade: 'A'
         });
         setMarksError('');
@@ -269,7 +269,13 @@ const GradesPage = () => {
                 }));
                 toast.info('No enrollments found for this course yet — using the full student list.');
             }
-            const defaultOut = parseFloat(bulkOutOf) || 100;
+            const gradedMarks = rows.filter(r => r.maxMarks > 0).map(r => Number(r.maxMarks));
+            let defaultOut = parseFloat(bulkOutOf) || 100;
+            if (gradedMarks.length > 0) {
+                const sorted = [...gradedMarks].sort((a, b) => a - b);
+                defaultOut = sorted[Math.floor(sorted.length / 2)];
+            }
+            if (defaultOut !== parseFloat(bulkOutOf)) setBulkOutOf(String(defaultOut));
             setBulkEntries(rows.map(r => ({
                 studentId: r.studentId,
                 studentName: r.studentName,
@@ -288,6 +294,10 @@ const GradesPage = () => {
         } finally {
             setBulkLoading(false);
         }
+    };
+
+    const selectManageTarget = (courseId) => {
+        setBulkCourseId(courseId ? String(courseId) : '');
     };
 
     const handleBulkCourseSelect = async (courseId) => {
@@ -552,6 +562,26 @@ const GradesPage = () => {
             (e.studentName || '').toLowerCase().includes(sq) ||
             (e.enrollmentNumber || '').toLowerCase().includes(sq))
         : bulkEntries;
+    const examTypeOptions = () => (
+        courseExamTypes.length
+            ? EXAM_TYPES.concat(courseExamTypes.filter(t => !EXAM_TYPES.includes(t)))
+            : EXAM_TYPES
+    );
+    const courseLabel = (c) => `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}`;
+    const withSelectedCourse = (list, selectedId) => {
+        const opts = list.map(c => ({ value: c.id, label: courseLabel(c) }));
+        const selId = selectedId != null ? String(selectedId) : '';
+        if (selId && !list.some(c => String(c.id) === selId)) {
+            const sel = courses.find(c => String(c.id) === selId);
+            if (sel) opts.unshift({ value: sel.id, label: `${courseLabel(sel)} ✓ (selected)` });
+        }
+        return opts;
+    };
+    const selectedCourseName = () => {
+        const sel = courses.find(c => String(c.id) === String(bulkCourseId));
+        return sel ? courseLabel(sel) : '';
+    };
+    const clearFilters = () => { setDeptFilter(''); setSubjectFilter(''); };
 
     return (
         <div className="page-container">
@@ -742,38 +772,54 @@ const GradesPage = () => {
             {activeTab === 'manage' && (
                 <div className="stat-card">
                     {canEdit && (
-                        <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                            <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
-                                <label>Department (filter)</label>
-                                <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
-                                    <option value="">All Departments</option>
-                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                </select>
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    🎯 Assignment Target
+                                </span>
+                                {(deptFilter || subjectFilter) && (
+                                    <button className="btn btn-secondary btn-sm" onClick={clearFilters}>✕ Clear filters</button>
+                                )}
                             </div>
-                            <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
-                                <label>Subject (filter)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Search subject name / code…"
-                                    value={subjectFilter}
-                                    onChange={e => setSubjectFilter(e.target.value)}
-                                    style={{ padding: '7px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.9rem', width: '100%' }}
-                                />
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
+                                    <label>Department</label>
+                                    <select className="form-control" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+                                        <option value="">All Departments</option>
+                                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
+                                    <label>Subject search</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Name / code / track…"
+                                        value={subjectFilter}
+                                        onChange={e => setSubjectFilter(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group" style={{ margin: 0, flex: '2 1 240px' }}>
+                                    <label>Subject → Course</label>
+                                    <SearchableSelect
+                                        options={withSelectedCourse(filteredCourses, bulkCourseId)}
+                                        value={bulkCourseId ? Number(bulkCourseId) : ''}
+                                        onChange={v => selectManageTarget(String(v))}
+                                        placeholder="Type to pick the assignment target…"
+                                    />
+                                </div>
+                                <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
+                                    <label>Exam Type</label>
+                                    <select className="form-control" value={bulkExamType} onChange={e => setBulkExamType(e.target.value)}>
+                                        {examTypeOptions().map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
                             </div>
-                            <div className="form-group" style={{ margin: 0, flex: '2 1 220px' }}>
-                                <label>Subject (assignment target)</label>
-                                <SearchableSelect
-                                    options={filteredCourses.map(c => ({ value: c.id, label: `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}` }))}
-                                    value={bulkCourseId ? Number(bulkCourseId) : ''}
-                                    onChange={v => handleBulkCourseSelect(String(v))}
-                                    placeholder="Type to search subject / course…"
-                                />
-                            </div>
-                            <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
-                                <label>Exam Type (assignment target)</label>
-                                <select value={bulkExamType} onChange={e => handleBulkExamTypeChange(e.target.value)}>
-                                    {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                </select>
+                            <div style={{ marginTop: '10px', fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <span>{filteredCourses.length} subject(s) match{fq ? ` “${subjectFilter.trim()}”` : ' the current filters'} ·</span>
+                                {bulkCourseId
+                                    ? <span><strong style={{ color: '#475569' }}>Target:</strong> {selectedCourseName() || 'selected subject'} · “+ Enter Grade” will prefill it.</span>
+                                    : <span>No target selected — “+ Enter Grade” opens empty.</span>}
                             </div>
                         </div>
                     )}
@@ -826,7 +872,7 @@ const GradesPage = () => {
                     <div className="form-group">
                         <label className="form-label">Subject *</label>
                         <SearchableSelect
-                            options={visibleCourses.map(c => ({ value: c.id, label: `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}` }))}
+                            options={withSelectedCourse(visibleCourses, formData.courseId)}
                             value={formData.courseId ? Number(formData.courseId) : ''}
                             onChange={v => setFormData({ ...formData, courseId: String(v) })}
                             placeholder="Search subject by code or name…"
@@ -918,59 +964,75 @@ const GradesPage = () => {
                         {bulkSaving && <span className="badge badge-primary">Saving…</span>}
                         {bulkLoading && <span className="badge badge-primary">Loading roster…</span>}
                     </div>
-                    {/* Config row */}
-                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                        <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
-                            <label>Department (filter)</label>
-                            <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
-                                <option value="">All Departments</option>
-                                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
+{/* Config row */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                📋 Bulk Assignment
+                            </span>
+                            {(deptFilter || subjectFilter) && (
+                                <button className="btn btn-secondary btn-sm" onClick={clearFilters}>✕ Clear filters</button>
+                            )}
                         </div>
-                        <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
-                            <label>Subject (filter)</label>
-                            <input
-                                type="text"
-                                placeholder="Search subject name / code…"
-                                value={subjectFilter}
-                                onChange={e => setSubjectFilter(e.target.value)}
-                                style={{ padding: '7px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.9rem', width: '100%' }}
-                            />
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
+                                <label>Department</label>
+                                <select className="form-control" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+                                    <option value="">All Departments</option>
+                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 180px' }}>
+                                <label>Subject search</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Name / code / track…"
+                                    value={subjectFilter}
+                                    onChange={e => setSubjectFilter(e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group" style={{ margin: 0, flex: '2 1 220px' }}>
+                                <label>Subject → Course *</label>
+                                <SearchableSelect
+                                    options={withSelectedCourse(filteredCourses, bulkCourseId)}
+                                    value={bulkCourseId ? Number(bulkCourseId) : ''}
+                                    onChange={v => handleBulkCourseSelect(String(v))}
+                                    placeholder="Type to search subject / course…"
+                                />
+                            </div>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
+                                <label>Exam Type *</label>
+                                <select className="form-control" required value={bulkExamType} onChange={e => handleBulkExamTypeChange(e.target.value)}>
+                                    {examTypeOptions().map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ margin: 0, flex: '1 1 130px' }}>
+                                <label>Out Of (default)</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    min="1"
+                                    step="1"
+                                    value={bulkOutOf}
+                                    onChange={e => handleBulkOutOfChange(e.target.value)}
+                                />
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', flex: '1 1 180px', fontSize: '0.85rem', gap: '6px', color: '#475569', minHeight: '38px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={bulkOverwrite}
+                                    onChange={e => setBulkOverwrite(e.target.checked)}
+                                />
+                                Overwrite existing grades
+                            </label>
                         </div>
-                        <div className="form-group" style={{ margin: 0, flex: '2 1 220px' }}>
-                            <label>Subject / Course *</label>
-                            <SearchableSelect
-                                options={filteredCourses.map(c => ({ value: c.id, label: `${c.code} — ${c.name}${c.specialization ? ` [${c.specialization}]` : ''}` }))}
-                                value={bulkCourseId ? Number(bulkCourseId) : ''}
-                                onChange={v => handleBulkCourseSelect(String(v))}
-                                placeholder="Type to search subject / course…"
-                            />
+                        <div style={{ marginTop: '10px', fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>{filteredCourses.length} subject(s) match{fq ? ` “${subjectFilter.trim()}”` : ' the current filters'} ·</span>
+                            {bulkCourseId
+                                ? <span><strong style={{ color: '#475569' }}>Roster:</strong> {selectedCourseName() || 'selected subject'} · {bulkExamType} · default Out Of {bulkOutOf}</span>
+                                : <span>Pick a subject course above to load its roster.</span>}
                         </div>
-                        <div className="form-group" style={{ margin: 0, flex: '1 1 170px' }}>
-                            <label>Exam Type *</label>
-                            <select required value={bulkExamType} onChange={e => handleBulkExamTypeChange(e.target.value)}>
-                                {(courseExamTypes.length ? EXAM_TYPES.concat(courseExamTypes.filter(t => !EXAM_TYPES.includes(t))) : EXAM_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
-                        <div className="form-group" style={{ margin: 0, flex: '1 1 130px' }}>
-                            <label>Out Of (default)</label>
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={bulkOutOf}
-                                onChange={e => handleBulkOutOfChange(e.target.value)}
-                                style={{ padding: '7px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.9rem', width: '100%' }}
-                            />
-                        </div>
-                        <label style={{ display: 'flex', alignItems: 'center', flex: '1 1 180px', fontSize: '0.85rem', gap: '6px', color: '#475569' }}>
-                            <input
-                                type="checkbox"
-                                checked={bulkOverwrite}
-                                onChange={e => setBulkOverwrite(e.target.checked)}
-                            />
-                            Overwrite existing grades
-                        </label>
                     </div>
 
                     {/* Assignment summary */}
