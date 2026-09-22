@@ -182,12 +182,28 @@ public class FacultyController extends BaseController implements HttpHandler {
     }
 
     private int createFacultyUser(Faculty f, String password) {
+        // Retry with a bumped FAC-number on duplicate-key errors so two admins
+        // creating faculty at the same time don't collide on the generated
+        // username (users_username_key).
+        for (int attempt = 0; attempt < 5; attempt++) {
+            int userId = tryCreateFacultyUser(f, password, attempt);
+            if (userId != -2) return userId;
+        }
+        return -1;
+    }
+
+    /**
+     * @return the created user id, -1 on failure, or -2 if a duplicate
+     *         username was chosen and the caller should retry with a new suffix.
+     */
+    private int tryCreateFacultyUser(Faculty f, String password, int attempt) {
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
-            // Generate unique username by querying max existing number
-            String username = generateUniqueUsername(conn);
+            // Generate unique username by querying max existing number, bumped by
+            // the retry attempt to avoid colliding with a concurrent creation.
+            String username = generateUniqueUsername(conn, attempt);
             RoleDAO roleDAO = new RoleDAO();
             UserDAO userDAO = new UserDAO();
             Role role = roleDAO.getRoleByCode(conn, "FACULTY");
@@ -214,7 +230,7 @@ public class FacultyController extends BaseController implements HttpHandler {
                     Logger.error("Rollback failed", ex);
                 }
             }
-            return -1;
+            return isDuplicateKey(e) ? -2 : -1;
         } finally {
             if (conn != null) {
                 try {
@@ -227,22 +243,32 @@ public class FacultyController extends BaseController implements HttpHandler {
         }
     }
 
-    private String generateUniqueUsername(Connection conn) throws SQLException {
-        String sql = "SELECT username FROM users WHERE username LIKE 'FAC%' ORDER BY id DESC LIMIT 1";
+    private boolean isDuplicateKey(SQLException e) {
+        String state = e.getSQLState();
+        if (state != null && state.startsWith("23505")) return true;
+        String msg = e.getMessage();
+        return msg != null && (msg.toLowerCase().contains("duplicate")
+                || msg.toLowerCase().contains("already exists")
+                || msg.toLowerCase().contains("unique constraint"));
+    }
+
+    private String generateUniqueUsername(Connection conn, int attempt) throws SQLException {
+        int maxNum = 1000;
+        String sql = "SELECT username FROM users WHERE username LIKE 'FAC%'";
         try (PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            if (rs.next()) {
-                String last = rs.getString("username");
-                if (last != null && last.startsWith("FAC")) {
+                ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                String u = rs.getString("username");
+                if (u != null && u.length() > 3 && u.startsWith("FAC")) {
                     try {
-                        int num = Integer.parseInt(last.substring(3));
-                        return "FAC" + (num + 1);
+                        int num = Integer.parseInt(u.substring(3));
+                        if (num > maxNum) maxNum = num;
                     } catch (NumberFormatException ignored) {
                     }
                 }
             }
         }
-        return "FAC1001";
+        return "FAC" + (maxNum + 1 + attempt);
     }
 
     private String escapeJson(String s) {

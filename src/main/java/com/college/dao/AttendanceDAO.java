@@ -285,6 +285,40 @@ public class AttendanceDAO {
     }
 
     /**
+     * Present/total attendance counts for every student in a course, resolved in
+     * a single aggregated query (avoids the per-student N+1 in the stats API).
+     *
+     * @param courseId Course ID
+     * @return Map of student ID to {present, total}
+     */
+    public Map<Integer, int[]> getCourseAttendanceCounts(int courseId) {
+        Map<Integer, int[]> counts = new HashMap<>();
+        String sql = "SELECT " +
+                "student_id, " +
+                "COUNT(*) as total, " +
+                "SUM(CASE WHEN status = 'PRESENT' THEN 1 ELSE 0 END) as present_count " +
+                "FROM attendance " +
+                "WHERE course_id = ? " +
+                "GROUP BY student_id";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, courseId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                counts.put(rs.getInt("student_id"),
+                        new int[]{rs.getInt("present_count"), rs.getInt("total")});
+            }
+
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return counts;
+    }
+
+    /**
      * Get students with low attendance (below threshold)
      * 
      * @param courseId  Course ID

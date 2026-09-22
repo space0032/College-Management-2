@@ -116,6 +116,10 @@ public class ScholarshipController extends BaseController implements HttpHandler
         boolean ok = communityDAO.applyForScholarship(app);
         if (ok) {
             sendResponse(t, 201, "{\"message\":\"Application submitted successfully\"}");
+        } else if (communityDAO.getApplications(scholarshipId).stream().anyMatch(item -> item.getStudentId() == app.getStudentId())) {
+            // Lost a TOCTOU race: a concurrent submit inserted first. Report as
+            // a duplicate, matching the pre-check that normally catches this.
+            sendResponse(t, 409, errorJson("You have already applied for this scholarship"));
         } else {
             sendResponse(t, 400, errorJson("Failed to submit application"));
         }

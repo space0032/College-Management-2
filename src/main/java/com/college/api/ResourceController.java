@@ -29,9 +29,6 @@ public class ResourceController extends BaseController implements HttpHandler {
             } else if (path.equals("/api/resources/categories")) {
                 if ("GET".equals(method)) handleGetCategories(t);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/api/resources/search.*")) {
-                if ("GET".equals(method)) handleGetResources(t); // handle course filtering
-                else sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/resources/\\d+/download")) {
                 if ("POST".equals(method)) handleIncrementDownload(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
@@ -83,8 +80,8 @@ public class ResourceController extends BaseController implements HttpHandler {
         r.setUploadedBy(toInt(map.get("uploadedBy"), 0));
         r.setPublic(map.get("isPublic") instanceof Boolean ? (Boolean) map.get("isPublic") : Boolean.FALSE);
 
-        boolean ok = resourceDAO.addResource(r);
-        if (ok) sendResponse(t, 201, "{\"message\":\"Resource added successfully\"}");
+        int id = resourceDAO.addResource(r);
+        if (id > 0) sendResponse(t, 201, "{\"id\":" + id + ",\"message\":\"Resource added successfully\"}");
         else sendResponse(t, 400, errorJson("Failed to add resource"));
     }
 

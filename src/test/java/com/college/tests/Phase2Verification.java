@@ -196,7 +196,7 @@ public class Phase2Verification {
         r.setUploadedBy(testFaculty.getId());
         r.setPublic(true);
 
-        assertTrue(resourceDAO.addResource(r), "Add resource success");
+        assertTrue(resourceDAO.addResource(r) > 0, "Add resource success");
 
         List<LearningResource> list = resourceDAO.getResourcesByCourse(courseId);
         boolean found = list.stream().anyMatch(lr -> lr.getTitle().equals("P2 Test Resource Doc"));

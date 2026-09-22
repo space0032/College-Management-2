@@ -32,18 +32,18 @@ Status legend: [ ] open · [x] fixed · [~] partial
 - [x] **Warden default password `"123"` seeded/printed** — random 12-char generated once, shown on creation only
 - [x] **Visitors: duplicate check-in + exit on non-IN** — `VisitorDAO.hasActiveLog` + guarded `logExit`
 - [x] **Hostel stats drift + hostel attendance `hostelId:0`** — computed stats from rooms table; auto-resolve hostelId from active allocation
-- [ ] **`FeeTransactionController.handleRecord` ownership scope** (left as-is in 3351d9d)
+- [x] **`FeeTransactionController.handleRecord` ownership scope** — done in 2f31d55 (STUDENT records only self)
 
 ## Medium
 
-- [ ] New-book `available` defaults to 0 + no `0<=available<=quantity` server validation
-- [ ] Fine day-count ms math vs SQL formula
-- [ ] Payment-request approval cap; refund > total; H2 no row lock
-- [ ] `FeesPage.today()`/`AttendancePage` UTC off-by-one
-- [ ] `Submission` JSON lacks `isGraded`/`submissionDate`
-- [ ] Resource new-row dead code + dead `/api/resources/search`; faculty-username collision; deleted-course resource orphans
-- [ ] TOCTOU duplicate applications (scholarship unique)
-- [ ] Attendance stats N+1 / swallowed errors
+- [x] New-book `available` defaults to 0 + no `0<=available<=quantity` server validation — done in 2f31d55
+- [x] Fine day-count ms math vs SQL formula — done in 2f31d55
+- [x] Payment-request approval cap; refund > total; H2 no row lock — capped + clamped in 2f31d55 (H2 row-lock remains a local-DB only caveat)
+- [x] `FeesPage.today()`/`AttendancePage` UTC off-by-one — done in 2f31d55
+- [x] `Submission` JSON lacks `isGraded`/`submissionDate` — done in 2f31d55
+- [x] Resource new-row dead code + dead `/api/resources/search`; faculty-username collision; deleted-course resource orphans — removed dead search route, backend returns new id so row highlight works, faculty username generation retries on duplicate (FAC counter), course delete detaches resources
+- [x] TOCTOU duplicate applications (scholarship unique) — V78 unique index on (scholarship_id, student_id) + dedupe + H2 fallback constraint + 409 on race loss
+- [x] Attendance stats N+1 / swallowed errors — `getCourseAttendanceCounts` single grouped query, swallowed per-student loop removed
 
 ## UI
 

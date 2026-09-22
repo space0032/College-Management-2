@@ -291,6 +291,7 @@ public class CourseDAO {
      */
     public boolean deleteCourse(int courseId) {
         String deleteAssignmentsSql = "DELETE FROM assignments WHERE course_id = ?";
+        String detachResourcesSql = "UPDATE learning_resources SET course_id = NULL WHERE course_id = ?";
         String deleteCourseSql = "DELETE FROM courses WHERE id = ?";
 
         Connection conn = null;
@@ -304,7 +305,13 @@ public class CourseDAO {
                 pstmt1.executeUpdate();
             }
 
-            // 2. Delete the course itself
+            // 2. Detach learning resources so they don't orphan to a deleted course
+            try (PreparedStatement pstmtRes = conn.prepareStatement(detachResourcesSql)) {
+                pstmtRes.setInt(1, courseId);
+                pstmtRes.executeUpdate();
+            }
+
+            // 3. Delete the course itself
             int rowsAffected = 0;
             try (PreparedStatement pstmt2 = conn.prepareStatement(deleteCourseSql)) {
                 pstmt2.setInt(1, courseId);

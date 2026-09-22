@@ -396,7 +396,7 @@ public class ResourceManagementView {
         });
 
         dialog.showAndWait().ifPresent(resource -> {
-            if (resourceDAO.addResource(resource)) {
+            if (resourceDAO.addResource(resource) > 0) {
                 loadResources();
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Resource uploaded successfully!");
                 DialogUtils.styleDialog(alert);

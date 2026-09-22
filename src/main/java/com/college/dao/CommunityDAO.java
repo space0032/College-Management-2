@@ -188,6 +188,7 @@ public class CommunityDAO {
                 "student_id INT, " +
                 "statement TEXT, " +
                 "status VARCHAR(50), " +
+                "CONSTRAINT uq_scholarship_applications_student UNIQUE (scholarship_id, student_id), " +
                 "FOREIGN KEY (scholarship_id) REFERENCES scholarships(id) ON DELETE CASCADE)";
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement()) {

@@ -113,27 +113,13 @@ public class AttendanceController extends BaseController implements HttpHandler 
         List<com.college.models.Student> allStudents = studentDAO.getAllStudents();
         java.util.Map<Integer, String> nameMap = new java.util.HashMap<>();
         java.util.Map<Integer, String> enrollMap = new java.util.HashMap<>();
-        java.util.Map<Integer, int[]> countMap = new java.util.HashMap<>();
         for (com.college.models.Student s : allStudents) {
             nameMap.put(s.getId(), s.getName());
             enrollMap.put(s.getId(), s.getEnrollmentId() != null ? s.getEnrollmentId() : s.getUsername());
         }
-        // present/total counts per student for richer cards (LATE stays non-present)
-        try {
-            java.util.List<Attendance> all = new java.util.ArrayList<>();
-            for (com.college.models.Student s : allStudents) {
-                java.util.List<Attendance> recs = attendanceDAO.getAttendanceByStudent(s.getId());
-                int total = 0, present = 0;
-                for (Attendance a : recs) {
-                    if (a.getCourseId() == courseId) {
-                        total++;
-                        if ("PRESENT".equalsIgnoreCase(a.getStatus())) present++;
-                    }
-                }
-                if (total > 0) countMap.put(s.getId(), new int[]{present, total});
-            }
-        } catch (Exception ignored) {
-        }
+        // present/total counts per student for richer cards (LATE stays non-present),
+        // resolved in a single grouped query instead of per-student lookups.
+        java.util.Map<Integer, int[]> countMap = attendanceDAO.getCourseAttendanceCounts(courseId);
 
         java.util.List<java.util.Map<String, Object>> statsList = new java.util.ArrayList<>();
         for (java.util.Map.Entry<Integer, Double> entry : stats.entrySet()) {

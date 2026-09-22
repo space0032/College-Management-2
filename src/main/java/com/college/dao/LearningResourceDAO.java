@@ -11,10 +11,10 @@ import java.util.List;
 
 public class LearningResourceDAO {
 
-    public boolean addResource(LearningResource resource) {
+    public int addResource(LearningResource resource) {
         String sql = "INSERT INTO learning_resources (title, description, course_id, category_id, file_path, file_type, file_size, uploaded_by, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, resource.getTitle());
             pstmt.setString(2, resource.getDescription());
@@ -30,10 +30,18 @@ public class LearningResourceDAO {
             pstmt.setInt(8, resource.getUploadedBy());
             pstmt.setBoolean(9, resource.isPublic());
 
-            return pstmt.executeUpdate() > 0;
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+            return -1;
         } catch (SQLException e) {
             Logger.error("Failed to add learning resource", e);
-            return false;
+            return -1;
         }
     }
 
