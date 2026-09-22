@@ -502,6 +502,9 @@ return (
                             <div style={{ fontSize: '0.8rem', color: '#4a5568' }}>Total</div>
                         </div>
                     </div>
+                    {userRole === 'STUDENT' && fees.some(f => f.status !== 'PAID') && (
+                        <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '10px' }}>Payments are submitted for finance verification before being reflected as paid.</p>
+                    )}
                     <div className="data-table-container">
                         <table className="data-table">
                             <thead><tr><th>Fee Type</th><th>Amount</th><th>Due Date</th><th>Paid Date</th><th>Status</th><th>Payment</th></tr></thead>

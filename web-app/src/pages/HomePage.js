@@ -221,7 +221,7 @@ const HomePage = () => {
             )}
             {user.role === 'STUDENT' && (
               <>
-                <button onClick={() => navigate('/dashboard/fees')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                <button onClick={() => navigate('/dashboard/student-profile')} className="btn btn-secondary" style={{ padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
                   <span style={{ fontSize: '1.5rem' }}>💳</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>Pay Fees</span>
                 </button>
