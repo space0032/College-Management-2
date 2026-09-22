@@ -3,13 +3,16 @@ package com.college.dao;
 import com.college.models.FeeCategory;
 import com.college.models.StudentFee;
 import com.college.models.FeePayment;
+import com.college.models.FeeTransaction;
 import com.college.models.ProgramFeeStructure;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * DAO for Enhanced Fee Management
@@ -180,7 +183,7 @@ public class EnhancedFeeDAO {
             payment.setPaymentDate(new java.util.Date());
         }
 
-        String checkSql = "SELECT total_amount, paid_amount FROM student_fees WHERE id = ? FOR UPDATE";
+        String checkSql = "SELECT student_id, total_amount, paid_amount FROM student_fees WHERE id = ? FOR UPDATE";
         String insertSql = "INSERT INTO fee_payments (student_fee_id, payment_date, amount, payment_mode, "
                 + "transaction_id, receipt_number, received_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -191,6 +194,7 @@ public class EnhancedFeeDAO {
                     conn.setAutoCommit(false);
                 }
                 double remaining;
+                int studentId;
                 try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                     checkStmt.setInt(1, payment.getStudentFeeId());
                     try (ResultSet rs = checkStmt.executeQuery()) {
@@ -200,6 +204,7 @@ public class EnhancedFeeDAO {
                             }
                             return PaymentResult.failure("Unknown fee entry");
                         }
+                        studentId = rs.getInt("student_id");
                         remaining = rs.getDouble("total_amount") - rs.getDouble("paid_amount");
                     }
                 }
@@ -219,7 +224,8 @@ public class EnhancedFeeDAO {
                 }
 
                 String receiptNumber = generateReceiptNumber(conn);
-                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                int paymentId = -1;
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
                     pstmt.setInt(1, payment.getStudentFeeId());
                     pstmt.setDate(2, new java.sql.Date(payment.getPaymentDate().getTime()));
                     pstmt.setDouble(3, recorded);
@@ -238,7 +244,15 @@ public class EnhancedFeeDAO {
                         }
                         return PaymentResult.failure("Failed to record payment");
                     }
+                    try (ResultSet keys = pstmt.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            paymentId = keys.getInt(1);
+                        }
+                    }
                 }
+                writePaymentLedger(conn, paymentId, studentId, payment.getStudentFeeId(),
+                        payment.getTransactionId(), receiptNumber, recorded,
+                        payment.getPaymentMode(), payment.getReceivedBy());
                 updateStudentFeeStatus(conn, payment.getStudentFeeId());
                 if (ownTransaction) {
                     conn.commit();
@@ -281,7 +295,7 @@ public class EnhancedFeeDAO {
     }
 
     private PaymentResult recordPaymentDetailedFallback(FeePayment payment) {
-        String checkSql = "SELECT total_amount, paid_amount FROM student_fees WHERE id = ?";
+        String checkSql = "SELECT student_id, total_amount, paid_amount FROM student_fees WHERE id = ?";
         String insertSql = "INSERT INTO fee_payments (student_fee_id, payment_date, amount, payment_mode, "
                 + "transaction_id, receipt_number, received_by, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -291,6 +305,7 @@ public class EnhancedFeeDAO {
                     conn.setAutoCommit(false);
                 }
                 double remaining;
+                int studentId;
                 try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                     checkStmt.setInt(1, payment.getStudentFeeId());
                     try (ResultSet rs = checkStmt.executeQuery()) {
@@ -300,6 +315,7 @@ public class EnhancedFeeDAO {
                             }
                             return PaymentResult.failure("Unknown fee entry");
                         }
+                        studentId = rs.getInt("student_id");
                         remaining = rs.getDouble("total_amount") - rs.getDouble("paid_amount");
                     }
                 }
@@ -312,7 +328,8 @@ public class EnhancedFeeDAO {
                 boolean capped = payment.getAmount() > remaining;
                 double recorded = capped ? remaining : payment.getAmount();
                 String receiptNumber = generateReceiptNumber(conn);
-                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                int paymentId = -1;
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
                     pstmt.setInt(1, payment.getStudentFeeId());
                     pstmt.setDate(2, new java.sql.Date(payment.getPaymentDate().getTime()));
                     pstmt.setDouble(3, recorded);
@@ -331,7 +348,15 @@ public class EnhancedFeeDAO {
                         }
                         return PaymentResult.failure("Failed to record payment");
                     }
+                    try (ResultSet keys = pstmt.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            paymentId = keys.getInt(1);
+                        }
+                    }
                 }
+                writePaymentLedger(conn, paymentId, studentId, payment.getStudentFeeId(),
+                        payment.getTransactionId(), receiptNumber, recorded,
+                        payment.getPaymentMode(), payment.getReceivedBy());
                 updateStudentFeeStatus(conn, payment.getStudentFeeId());
                 if (ownTransaction) {
                     conn.commit();
@@ -366,6 +391,47 @@ public class EnhancedFeeDAO {
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
             return PaymentResult.failure("Failed to record payment");
+        }
+    }
+
+    /**
+     * Write the payment into the fee_transactions ledger so every received
+     * payment is mirrored in the transaction history shown to students.
+     */
+    private void writePaymentLedger(Connection conn, int paymentId, int studentId, int studentFeeId,
+            String transactionId, String receiptNumber, double amount, String paymentMode,
+            Integer createdBy) throws SQLException {
+        String sql = "INSERT INTO fee_transactions (transaction_id, student_id, fee_payment_id, amount, "
+                + "type, description, payment_mode, created_by) VALUES (?, ?, ?, ?, 'PAYMENT', ?, ?, ?)";
+        try (PreparedStatement p = conn.prepareStatement(sql)) {
+            String txn = (transactionId == null || transactionId.isBlank()) ? receiptNumber : transactionId;
+            p.setString(1, txn);
+            p.setInt(2, studentId);
+            if (paymentId > 0) {
+                p.setInt(3, paymentId);
+            } else {
+                p.setNull(3, Types.INTEGER);
+            }
+            p.setBigDecimal(4, BigDecimal.valueOf(amount));
+            p.setString(5, "Receipt " + receiptNumber + " for fee entry #" + studentFeeId);
+            p.setString(6, normalizeMode(paymentMode));
+            if (createdBy != null) {
+                p.setInt(7, createdBy);
+            } else {
+                p.setNull(7, Types.INTEGER);
+            }
+            p.executeUpdate();
+        }
+    }
+
+    private static String normalizeMode(String mode) {
+        if (mode == null) {
+            return "CASH";
+        }
+        try {
+            return FeeTransaction.PaymentMode.valueOf(mode.toUpperCase(Locale.ROOT)).name();
+        } catch (Exception e) {
+            return "ONLINE";
         }
     }
 

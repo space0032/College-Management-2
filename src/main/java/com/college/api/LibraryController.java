@@ -154,7 +154,8 @@ private void handleGetAllIssues(HttpExchange t) throws IOException {
             if (params.containsKey("page")) page = Integer.parseInt(params.get("page"));
             if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
         }
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1));
+        if (studentId < 0) return;
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         List<com.college.models.BookIssue> issues = issueDAO.getIssuedBooksByStudent(studentId, page, size);
         int total = issueDAO.getIssuedBookCountByStudent(studentId);
@@ -218,9 +219,10 @@ private void handleGetAllIssues(HttpExchange t) throws IOException {
             sendResponse(t, 400, errorJson("Failed to return book"));
     }
 
-    private void handleGetFines(HttpExchange t, String path) throws IOException {
+private void handleGetFines(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1));
+        if (studentId < 0) return;
         com.college.dao.BookIssueDAO issueDAO = new com.college.dao.BookIssueDAO();
         double fines = issueDAO.getPendingFines(studentId);
         sendResponse(t, 200, String.format("{\"totalFines\": %.2f}", fines));

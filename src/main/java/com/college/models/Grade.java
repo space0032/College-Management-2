@@ -82,6 +82,22 @@ public class Grade {
         }
     }
 
+    /**
+     * Canonical terminal-exam test shared by every CGPA calculator (web CGPA
+     * endpoint and the desktop transcript) so a student's CGPA does not depend
+     * on which UI computed it. Accepts both the desktop "FINAL" label and the
+     * web "END TERM" label; mid-terms, assignments and practicals never count
+     * into a terminal CGPA without being double-counted twice.
+     */
+    public static boolean isTerminalExam(String examType) {
+        if (examType == null) {
+            return false;
+        }
+        String t = examType.trim().toUpperCase();
+        return t.equals("FINAL") || t.equals("END TERM") || t.equals("ENDTERM")
+                || t.equals("TERMINAL") || t.equals("END_TERM") || t.equals("END-TERM");
+    }
+
     // Getters and Setters
     public int getId() {
         return id;

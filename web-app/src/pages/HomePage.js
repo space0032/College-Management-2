@@ -9,13 +9,15 @@ const STATS_CONFIG = [
     key: 'totalStudents', icon: '🎓', label: 'Total Students',
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     trendKey: 'studentsThisWeek', trendLabel: 'enrolled this week',
-    route: '/dashboard/students'
+    route: '/dashboard/students',
+    perm: 'VIEW_STUDENT'
   },
   {
     key: 'totalFaculty', icon: '👩‍🏫', label: 'Total Faculty',
     gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
     trendKey: 'facultyThisWeek', trendLabel: 'new this week',
-    route: '/dashboard/faculty'
+    route: '/dashboard/faculty',
+    adminOnly: true
   },
   {
     key: 'activeCourses', icon: '📚', label: 'Active Courses',
@@ -30,6 +32,11 @@ const STATS_CONFIG = [
     route: '/dashboard/departments'
   },
 ];
+
+const visibleStatConfigs = (isAdmin) =>
+  STATS_CONFIG.filter(stat =>
+    stat.adminOnly ? isAdmin : (!stat.perm || SessionManager.hasPermission(stat.perm))
+  );
 
 const PRIORITY_COLORS = { HIGH: '#e53e3e', MEDIUM: '#dd6b20', LOW: '#38a169', NORMAL: '#3182ce' };
 
@@ -130,7 +137,7 @@ const HomePage = () => {
 
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-        {STATS_CONFIG.map((stat) => {
+        {visibleStatConfigs(SessionManager.hasRole('ADMIN')).map((stat) => {
           const value = stats[stat.key];
           const trend = stat.trendKey ? stats[stat.trendKey] : null;
           return (

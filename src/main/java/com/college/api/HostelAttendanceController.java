@@ -103,7 +103,8 @@ public class HostelAttendanceController extends BaseController implements HttpHa
         if (!requirePermission(t, "VIEW_HOSTEL_ATTENDANCE"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<HostelAttendance> list = attendanceDAO.getAttendanceByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }

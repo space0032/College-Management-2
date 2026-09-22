@@ -45,7 +45,7 @@ const PlacementPage = () => {
   const canDelete = SessionManager.hasPermission('DELETE_PLACEMENT');
   const canUpdateStatus = SessionManager.hasPermission('UPDATE_PLACEMENT');
   const isStudent = SessionManager.hasRole('STUDENT');
-  const canApply = isStudent && SessionManager.hasPermission('MANAGE_PLACEMENT');
+  const canApply = isStudent && SessionManager.hasPermission('VIEW_PLACEMENT');
 
   const [tab, setTab] = useState('drives');
   const [companies, setCompanies] = useState([]);

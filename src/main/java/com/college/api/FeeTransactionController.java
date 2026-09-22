@@ -51,7 +51,8 @@ public class FeeTransactionController extends BaseController implements HttpHand
         if (!requireAnyPermission(t, "VIEW_FEES", "VIEW_ALL_FEES", "MANAGE_FEES"))
             return;
         String[] parts = path.split("/");
-        int studentId = Integer.parseInt(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<FeeTransaction> list = transactionDAO.getTransactionsByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }

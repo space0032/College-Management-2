@@ -75,13 +75,13 @@ public class ResourceController extends BaseController implements HttpHandler {
         LearningResource r = new LearningResource();
         r.setTitle((String) map.get("title"));
         r.setDescription((String) map.get("description"));
-        r.setCourseId(((Double) map.get("courseId")).intValue());
-        r.setCategoryId(((Double) map.get("categoryId")).intValue());
+        r.setCourseId(toInt(map.get("courseId"), 0));
+        r.setCategoryId(toInt(map.get("categoryId"), 0));
         r.setFilePath((String) map.get("filePath"));
         r.setFileType((String) map.get("fileType"));
-        r.setFileSize(((Double) map.get("fileSize")).longValue());
-        r.setUploadedBy(((Double) map.get("uploadedBy")).intValue());
-        r.setPublic((Boolean) map.get("isPublic"));
+        r.setFileSize(toLong(map.get("fileSize")));
+        r.setUploadedBy(toInt(map.get("uploadedBy"), 0));
+        r.setPublic(map.get("isPublic") instanceof Boolean ? (Boolean) map.get("isPublic") : Boolean.FALSE);
 
         boolean ok = resourceDAO.addResource(r);
         if (ok) sendResponse(t, 201, "{\"message\":\"Resource added successfully\"}");
@@ -96,8 +96,8 @@ public class ResourceController extends BaseController implements HttpHandler {
         else sendResponse(t, 400, errorJson("Failed to delete resource"));
     }
 
-    private void handleIncrementDownload(HttpExchange t, String path) throws IOException {
-        if (!requirePermission(t, "MANAGE_RESOURCE")) return;
+private void handleIncrementDownload(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "VIEW_RESOURCE")) return;
         String[] parts = path.split("/");
         int id = Integer.parseInt(parts[parts.length - 2]); // /resources/{id}/download
         resourceDAO.incrementDownloadCount(id);
@@ -107,5 +107,13 @@ public class ResourceController extends BaseController implements HttpHandler {
     private int extractId(String path) {
         String[] parts = path.split("/");
         return Integer.parseInt(parts[parts.length - 1]);
+    }
+
+    private static int toInt(Object value, int defaultValue) {
+        return value instanceof Number ? ((Number) value).intValue() : defaultValue;
+    }
+
+    private static long toLong(Object value) {
+        return value instanceof Number ? ((Number) value).longValue() : 0L;
     }
 }

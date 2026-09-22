@@ -55,6 +55,7 @@ const ProfilePage = () => {
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [editForm, setEditForm] = useState({ phone: '', address: '' });
   const [infoMessage, setInfoMessage] = useState(null);
+  const [infoError, setInfoError] = useState(false);
 
   useEffect(() => {
     if (isStudent) {
@@ -161,14 +162,22 @@ const ProfilePage = () => {
             {profileData && (
               <button
                 className="btn btn-secondary btn-sm"
-                onClick={() => {
+                onClick={async () => {
                   if (isEditingInfo) {
-                    // Mock save
-                    setProfileData({ ...profileData, phone: editForm.phone, address: editForm.address });
-                    setInfoMessage('Profile info updated successfully!');
+                    try {
+                      await api.put('/profile/contact', { phone: editForm.phone, address: editForm.address });
+                      setProfileData({ ...profileData, phone: editForm.phone, address: editForm.address });
+                      setInfoMessage('Profile info updated successfully!');
+                      setInfoError(false);
+                    } catch (err) {
+                      setInfoError(true);
+                      setInfoMessage(err.response?.data?.error || 'Failed to update contact info.');
+                    }
                     setIsEditingInfo(false);
                     setTimeout(() => setInfoMessage(null), 3000);
                   } else {
+                    setEditForm({ phone: profileData.phone, address: profileData.address });
+                    setInfoMessage(null);
                     setIsEditingInfo(true);
                   }
                 }}
@@ -179,7 +188,7 @@ const ProfilePage = () => {
           </div>
 
           {infoMessage && (
-            <div style={{ padding: '10px', background: '#f0fdf4', color: '#166534', borderRadius: '6px', marginBottom: '15px', border: '1px solid #bbf7d0' }}>
+            <div style={{ padding: '10px', background: infoError ? '#fff5f5' : '#f0fdf4', color: infoError ? '#c53030' : '#166534', borderRadius: '6px', marginBottom: '15px', border: `1px solid ${infoError ? '#feb2b2' : '#bbf7d0'}` }}>
               {infoMessage}
             </div>
           )}

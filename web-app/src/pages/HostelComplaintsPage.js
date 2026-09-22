@@ -106,7 +106,7 @@ const HostelComplaintsPage = () => {
                   {!isStudent && <td>{c.studentName || c.enrollmentId || c.enrollmentNumber || c.username || c.studentId || 'N/A'}</td>}
                   <td>{c.title}</td>
                   <td>{c.category}</td>
-                  <td><span className={`badge badge-${c.status === 'OPEN' ? 'warning' : 'success'}`}>{c.status}</span></td>
+                  <td><span className={`badge ${c.status === 'OPEN' ? 'badge-warning' : c.status === 'RESOLVED' ? 'badge-success' : c.status === 'REJECTED' ? 'badge-danger' : 'badge-secondary'}`}>{c.status}</span></td>
                   <td>{c.remarks || '—'}</td>
                   {!isStudent && (
                     <td>

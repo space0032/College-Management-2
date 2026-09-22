@@ -70,13 +70,18 @@ public class CrowdfundingController extends BaseController implements HttpHandle
 
     @SuppressWarnings("unchecked")
     private void handleDonate(HttpExchange t, String path) throws IOException {
-        if (!requirePermission(t, "MANAGE_CROWDFUNDING")) return;
+        if (!requireAnyPermission(t, "MANAGE_CROWDFUNDING", "CROWDFUNDING_DONATE")) return;
         String[] parts = path.split("/");
         int campaignId = Integer.parseInt(parts[parts.length - 2]); // /campaigns/{id}/donate
         String body = readBody(t);
         Map<String, Object> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
-        double amount = ((Double) map.get("amount"));
+        Object amountObj = map.get("amount");
+        if (!(amountObj instanceof Number) || ((Number) amountObj).doubleValue() <= 0) {
+            sendResponse(t, 400, errorJson("A positive donation amount is required"));
+            return;
+        }
+        double amount = ((Number) amountObj).doubleValue();
 
         boolean ok = communityDAO.donateToCampaign(campaignId, amount);
         if (ok)

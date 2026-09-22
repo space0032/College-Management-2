@@ -1121,6 +1121,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .badge-danger { background: #fef3f2; color: #b42318; }
 .badge-warning { background: #fffaeb; color: #b54708; }
 .badge-primary { background: var(--primary-soft); color: var(--primary-dark); }
+.badge-secondary { background: #eef1f6; color: #5b6472; }
+
+.modal-sm .btn-primary.danger, .modal-sm .btn.btn-danger { background: #ef4444; border-color: #ef4444; color: #fff; }
 
 .modal-backdrop { background: rgba(15, 23, 42, .55); backdrop-filter: blur(5px); }
 .modal { border: 1px solid rgba(255,255,255,.7); border-radius: 20px; }

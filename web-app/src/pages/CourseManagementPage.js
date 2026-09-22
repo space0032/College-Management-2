@@ -139,6 +139,7 @@ const CourseManagementPage = () => {
     try {
       const payload = {
         ...form,
+        departmentId: departmentOptions.find((d) => d.name === form.department)?.id || 0,
         credits: Number(form.credits),
         semester: Number(form.semester),
         capacity: form.capacity === '' || form.capacity === null ? 60 : Number(form.capacity),

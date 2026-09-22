@@ -115,63 +115,104 @@ public class HostelDAO {
 
     /**
      * Allocate room to student.
-     * Rejects duplicate ACTIVE allocations for the same student and
-     * refuses rooms that are already at capacity.
+     * Rejects duplicate ACTIVE allocations for the same student and refuses
+     * rooms that are already at capacity. The check + insert + occupancy bump
+     * run in a single transaction with the room row locked (FOR UPDATE) so two
+     * concurrent allocations cannot exceed capacity.
      */
     public boolean allocateRoom(HostelAllocation allocation) {
         if (allocation == null || allocation.getStudentId() <= 0 || allocation.getRoomId() <= 0) {
             return false;
         }
-        if (hasActiveAllocation(allocation.getStudentId())) {
-            Logger.error("Allocate rejected: student " + allocation.getStudentId() + " already has an ACTIVE allocation", null);
-            return false;
-        }
-        Room room = getRoomById(allocation.getRoomId());
-        if (room == null || room.getOccupiedCount() >= room.getCapacity()) {
-            Logger.error("Allocate rejected: room " + allocation.getRoomId() + " is full or missing", null);
-            return false;
-        }
-        String sql = "INSERT INTO hostel_allocations (student_id, room_id, check_in_date, remarks, allocated_by, status) "
-                +
-                "VALUES (?, ?, ?, ?, ?, 'ACTIVE')";
+        String lockSql = "SELECT occupied_count, capacity FROM rooms WHERE id = ? FOR UPDATE";
+        String insertSql = "INSERT INTO hostel_allocations (student_id, room_id, check_in_date, remarks, allocated_by, status) "
+                + "VALUES (?, ?, ?, ?, ?, 'ACTIVE')";
+        String updateRoomSql = "UPDATE rooms SET occupied_count = occupied_count + 1, "
+                + "status = CASE WHEN occupied_count + 1 >= capacity THEN 'FULL' ELSE 'AVAILABLE' END WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement active = conn
+                        .prepareStatement("SELECT 1 FROM hostel_allocations WHERE student_id = ? AND status = 'ACTIVE'")) {
+                    active.setInt(1, allocation.getStudentId());
+                    try (ResultSet rs = active.executeQuery()) {
+                        if (rs.next()) {
+                            conn.rollback();
+                            Logger.error("Allocate rejected: student " + allocation.getStudentId() + " already has an ACTIVE allocation", null);
+                            return false;
+                        }
+                    }
+                }
 
-            pstmt.setInt(1, allocation.getStudentId());
-            pstmt.setInt(2, allocation.getRoomId());
-            pstmt.setDate(3, new java.sql.Date(allocation.getCheckInDate().getTime()));
-            pstmt.setString(4, allocation.getRemarks());
-            if (allocation.getAllocatedBy() != null) {
-                pstmt.setInt(5, allocation.getAllocatedBy());
-            } else {
-                pstmt.setNull(5, Types.INTEGER);
-            }
+                try (PreparedStatement lockStmt = conn.prepareStatement(lockSql)) {
+                    lockStmt.setInt(1, allocation.getRoomId());
+                    try (ResultSet rs = lockStmt.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.rollback();
+                            Logger.error("Allocate rejected: room " + allocation.getRoomId() + " missing", null);
+                            return false;
+                        }
+                        if (rs.getInt("occupied_count") >= rs.getInt("capacity")) {
+                            conn.rollback();
+                            Logger.error("Allocate rejected: room " + allocation.getRoomId() + " is full", null);
+                            return false;
+                        }
+                    }
+                }
 
-            if (pstmt.executeUpdate() > 0) {
-                // Update room occupied count
-                updateRoomOccupancy(allocation.getRoomId(), 1);
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                    pstmt.setInt(1, allocation.getStudentId());
+                    pstmt.setInt(2, allocation.getRoomId());
+                    java.sql.Date checkIn = allocation.getCheckInDate() != null
+                            ? new java.sql.Date(allocation.getCheckInDate().getTime())
+                            : new java.sql.Date(System.currentTimeMillis());
+                    pstmt.setDate(3, checkIn);
+                    pstmt.setString(4, allocation.getRemarks());
+                    if (allocation.getAllocatedBy() != null) {
+                        pstmt.setInt(5, allocation.getAllocatedBy());
+                    } else {
+                        pstmt.setNull(5, Types.INTEGER);
+                    }
+                    if (pstmt.executeUpdate() == 0) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                try (PreparedStatement updStmt = conn.prepareStatement(updateRoomSql)) {
+                    updStmt.setInt(1, allocation.getRoomId());
+                    updStmt.executeUpdate();
+                }
+
+                conn.commit();
                 return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                Logger.error("Database operation failed", e);
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
             }
-
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
+            return false;
         }
-
-        return false;
     }
 
     /**
-     * Vacate room
+     * Vacate room. Only an ACTIVE allocation may be vacated, and occupancy is
+     * decremented exactly once (a second vacate call is a no-op).
      */
     public boolean vacateRoom(int allocationId) {
         // Get allocation first to update room
         HostelAllocation allocation = getAllocationById(allocationId);
-        if (allocation == null) {
+        if (allocation == null || !"ACTIVE".equals(allocation.getStatus())) {
             return false;
         }
 
-        String sql = "UPDATE hostel_allocations SET status = 'VACATED', check_out_date = CURRENT_DATE WHERE id = ?";
+        String sql = "UPDATE hostel_allocations SET status = 'VACATED', check_out_date = CURRENT_DATE "
+                + "WHERE id = ? AND status = 'ACTIVE'";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -386,14 +427,39 @@ public class HostelDAO {
     }
 
     /**
-     * Delete hostel
+     * Delete hostel. Refuses when the hostel still has rooms or any ACTIVE
+     * allocation, otherwise deleting would silently cascade through rooms and
+     * hostel_allocations.
      */
     public boolean deleteHostel(int id) {
-        String sql = "DELETE FROM hostels WHERE id = ?";
+        String roomCheckSql = "SELECT COUNT(*) FROM rooms WHERE hostel_id = ?";
+        String activeCheckSql = "SELECT COUNT(*) FROM hostel_allocations ha JOIN rooms r ON ha.room_id = r.id "
+                + "WHERE r.hostel_id = ? AND ha.status = 'ACTIVE'";
+        String deleteSql = "DELETE FROM hostels WHERE id = ?";
+
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+                PreparedStatement roomCheck = conn.prepareStatement(roomCheckSql);
+                PreparedStatement activeCheck = conn.prepareStatement(activeCheckSql)) {
+
+            roomCheck.setInt(1, id);
+            try (ResultSet rs = roomCheck.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    Logger.error("Delete hostel rejected: hostel " + id + " still has rooms", null);
+                    return false;
+                }
+            }
+            activeCheck.setInt(1, id);
+            try (ResultSet rs = activeCheck.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    Logger.error("Delete hostel rejected: hostel " + id + " has ACTIVE allocations", null);
+                    return false;
+                }
+            }
+
+            try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                deleteStmt.setInt(1, id);
+                return deleteStmt.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
         }

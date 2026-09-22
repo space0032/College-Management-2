@@ -162,4 +162,32 @@ public abstract class BaseController {
             return new com.college.dao.StudentDAO().getStudentIdByEnrollment(segment.trim());
         }
     }
+
+    /**
+     * Ownership guard for per-student endpoints (IDOR protection).
+     *
+     * STUDENT tokens can only ever read their own data: the path/enrollment id
+     * is ignored and replaced with the caller's own students.id. Staff (admin,
+     * faculty, warden, finance) keep the requested id because their permissions
+     * legitimately let them inspect any student.
+     *
+     * Returns the effective students.id to query, or -1 if access was denied
+     * (the 401/403 response has already been written in that case).
+     */
+    protected int scopeStudentAccess(HttpExchange t, String segment) throws IOException {
+        TokenInfo tokenInfo = getTokenInfo(t);
+        if (tokenInfo == null) {
+            sendResponse(t, 401, errorJson("Unauthorized: Missing or invalid token"));
+            return -1;
+        }
+        if ("STUDENT".equalsIgnoreCase(tokenInfo.role)) {
+            int self = new com.college.dao.StudentDAO().getStudentIdByUserId(tokenInfo.userId);
+            if (self <= 0) {
+                sendResponse(t, 403, errorJson("Forbidden: No student profile linked to this account"));
+                return -1;
+            }
+            return self;
+        }
+        return resolvePathStudentId(segment);
+    }
 }

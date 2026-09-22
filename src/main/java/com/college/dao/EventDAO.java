@@ -441,13 +441,12 @@ public class EventDAO {
 
     public boolean voteInPoll(int pollId, int studentId, String option) {
         String sql = "INSERT INTO event_poll_votes (poll_id, student_id, selected_option) VALUES (?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE selected_option = ?";
+                "ON CONFLICT (poll_id, student_id) DO UPDATE SET selected_option = excluded.selected_option";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, pollId);
             pstmt.setInt(2, studentId);
             pstmt.setString(3, option);
-            pstmt.setString(4, option);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             Logger.error("Error voting in poll: " + e.getMessage());

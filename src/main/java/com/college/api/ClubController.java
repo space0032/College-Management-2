@@ -165,7 +165,7 @@ public class ClubController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleJoinClub(HttpExchange t, String path) throws IOException {
-        if (!requirePermission(t, "MANAGE_CLUB"))
+        if (!requireAnyPermission(t, "MANAGE_CLUB", "JOIN_CLUBS"))
             return;
         String[] parts = path.split("/");
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/join
@@ -195,7 +195,7 @@ public class ClubController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleLeaveClub(HttpExchange t, String path) throws IOException {
-        if (!requirePermission(t, "MANAGE_CLUB"))
+        if (!requireAnyPermission(t, "MANAGE_CLUB", "JOIN_CLUBS"))
             return;
         String[] parts = path.split("/");
         int clubId = Integer.parseInt(parts[parts.length - 2]); // .../clubs/{id}/leave
@@ -266,7 +266,8 @@ public class ClubController extends BaseController implements HttpHandler {
     private void handleGetStudentClubs(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_CLUB"))
             return;
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1)); // .../clubs/student/{id}
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1)); // .../clubs/student/{id}
+        if (studentId < 0) return;
         List<Club> clubs = clubDAO.getStudentClubs(studentId);
         sendResponse(t, 200, JsonHelper.toJson(clubs));
     }
@@ -274,7 +275,8 @@ public class ClubController extends BaseController implements HttpHandler {
     private void handleGetMyMemberships(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_CLUB"))
             return;
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1)); // .../memberships/student/{id}
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1)); // .../memberships/student/{id}
+        if (studentId < 0) return;
         List<ClubMembership> memberships = clubDAO.getMyMemberships(studentId);
         sendResponse(t, 200, JsonHelper.toJson(memberships));
     }

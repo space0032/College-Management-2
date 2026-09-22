@@ -60,7 +60,8 @@ public class BookRequestController extends BaseController implements HttpHandler
         if (!requireAnyPermission(t, "VIEW_LIBRARY", "MANAGE_LIBRARY"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<BookRequest> list = bookRequestDAO.getRequestsByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }

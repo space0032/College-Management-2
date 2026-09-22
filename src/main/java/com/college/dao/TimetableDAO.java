@@ -82,6 +82,30 @@ public class TimetableDAO {
     }
 
     /**
+     * Check for an existing entry in the same department/semester/day/time slot,
+     * excluding a given id (0 = no exclusion). Used to prevent a second class from
+     * silently clobbering an existing one via the ON CONFLICT upsert.
+     */
+    public boolean slotHasEntry(String department, int semester, String day, String timeSlot, int excludeId) {
+        String sql = "SELECT id FROM timetable WHERE department = ? AND semester = ? "
+                + "AND day_of_week = ? AND time_slot = ? AND id <> ? LIMIT 1";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, department);
+            pstmt.setInt(2, semester);
+            pstmt.setString(3, day);
+            pstmt.setString(4, timeSlot);
+            pstmt.setInt(5, excludeId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            Logger.error("Error checking timetable slot conflict", e);
+            return false;
+        }
+    }
+
+    /**
      * Save or update timetable entry
      */
     public boolean saveTimetableEntry(Timetable entry) {
@@ -91,6 +115,8 @@ public class TimetableDAO {
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT (department, semester, day_of_week, time_slot) DO UPDATE SET " +
                 "subject = EXCLUDED.subject, " +
+                "specialization = EXCLUDED.specialization, " +
+                "course_id = EXCLUDED.course_id, " +
                 "faculty_name = EXCLUDED.faculty_name, " +
                 "room_number = EXCLUDED.room_number";
 

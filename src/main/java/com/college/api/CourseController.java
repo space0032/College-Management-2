@@ -3,10 +3,12 @@ package com.college.api;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.college.dao.CourseDAO;
+import com.college.dao.DepartmentDAO;
 import com.college.dao.FacultyDAO;
 import com.college.dao.TimetableDAO;
 import com.college.dao.NotificationDAO;
 import com.college.models.Course;
+import com.college.models.Department;
 import com.college.models.Faculty;
 import com.college.models.Notification;
 import com.college.models.Timetable;
@@ -22,6 +24,7 @@ public class CourseController extends BaseController implements HttpHandler {
     private final CourseDAO courseDAO = new CourseDAO();
     private final FacultyDAO facultyDAO = new FacultyDAO();
     private final TimetableDAO timetableDAO = new TimetableDAO();
+    private final DepartmentDAO departmentDAO = new DepartmentDAO();
     private final NotificationDAO notificationDAO = new NotificationDAO();
 
     @Override
@@ -117,6 +120,7 @@ public class CourseController extends BaseController implements HttpHandler {
                 sendResponse(t, 400, errorJson("Invalid request body"));
                 return;
             }
+            resolveDepartmentId(c);
             boolean ok = courseDAO.addCourse(c);
             sendResponse(t, ok ? 201 : 400, ok ? JsonHelper.toJson(c) : errorJson("Failed to create course"));
         } catch (Exception e) {
@@ -135,10 +139,23 @@ public class CourseController extends BaseController implements HttpHandler {
                 return;
             }
             c.setId(id);
+            resolveDepartmentId(c);
             boolean ok = courseDAO.updateCourse(c);
             sendResponse(t, ok ? 200 : 400, ok ? JsonHelper.toJson(c) : errorJson("Update failed"));
         } catch (Exception e) {
             sendResponse(t, 500, errorJson(e.getMessage()));
+        }
+    }
+
+    private void resolveDepartmentId(Course course) {
+        if (course.getDepartmentId() > 0 || course.getDepartment() == null) return;
+        String deptName = course.getDepartment().trim();
+        if (deptName.isEmpty()) return;
+        for (Department dept : departmentDAO.getAllDepartments()) {
+            if (dept != null && dept.getName() != null && deptName.equalsIgnoreCase(dept.getName().trim())) {
+                course.setDepartmentId(dept.getId());
+                return;
+            }
         }
     }
 

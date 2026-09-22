@@ -202,6 +202,17 @@ const AssignmentPage = () => {
         return c ? (c.name || c.courseName || '') : '';
     })();
 
+    // Open AI assist and close the parent modal so two modals never stack
+    // (avoids duplicate id="modal-title", broken Escape, and scroll-lock leaks).
+    const openAiAssist = () => {
+        setAiOpen(true);
+        setCreateOpen(false);
+    };
+    const closeAiAssist = () => {
+        setAiOpen(false);
+        setCreateOpen(true);
+    };
+
     // Stats
     const totalAssignments = assignments.length;
     const dueSoon = assignments.filter(a => {
@@ -341,7 +352,7 @@ const AssignmentPage = () => {
                     <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="form-label">Description & Learning Objectives *</label>
                         <textarea required rows="5" className="form-control" value={assignmentForm.description} onChange={e => setAssignmentForm({ ...assignmentForm, description: e.target.value })} placeholder="Detail the requirements, constraints, and submission format..."></textarea>
-                        <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: '8px' }} onClick={() => setAiOpen(true)}>✨ Generate Questions with AI</button>
+                        <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: '8px' }} onClick={openAiAssist}>✨ Generate Questions with AI</button>
                     </div>
                     <div className="form-group">
                         <label className="form-label">Submission Deadline *</label>
@@ -510,7 +521,7 @@ const AssignmentPage = () => {
             </Modal>
             <AiAssistModal
                 isOpen={aiOpen}
-                onClose={() => setAiOpen(false)}
+                onClose={closeAiAssist}
                 onInsert={handleAiInsert}
                 feature="assignment"
                 defaults={{ courseName: selectedCourseName }}

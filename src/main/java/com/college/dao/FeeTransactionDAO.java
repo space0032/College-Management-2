@@ -53,8 +53,8 @@ public class FeeTransactionDAO {
                 ft.setTransactionId(rs.getString("transaction_id"));
                 ft.setStudentId(rs.getInt("student_id"));
                 ft.setAmount(rs.getBigDecimal("amount"));
-                ft.setType(FeeTransaction.Type.valueOf(rs.getString("type")));
-                ft.setPaymentMode(FeeTransaction.PaymentMode.valueOf(rs.getString("payment_mode")));
+                ft.setType(parseType(rs.getString("type")));
+                ft.setPaymentMode(parseMode(rs.getString("payment_mode")));
                 ft.setTransactionDate(rs.getTimestamp("transaction_date").toLocalDateTime());
                 ft.setDescription(rs.getString("description"));
                 list.add(ft);
@@ -63,5 +63,25 @@ public class FeeTransactionDAO {
             Logger.error("Database operation failed", e);
         }
         return list;
+    }
+
+    /**
+     * Tolerant enum parsing: unknown/unseeded values (e.g. a migration skipped)
+     * fall back to defaults instead of throwing IllegalArgumentException -> 500.
+     */
+    private FeeTransaction.Type parseType(String value) {
+        try {
+            return FeeTransaction.Type.valueOf(value);
+        } catch (Exception e) {
+            return FeeTransaction.Type.PAYMENT;
+        }
+    }
+
+    private FeeTransaction.PaymentMode parseMode(String value) {
+        try {
+            return FeeTransaction.PaymentMode.valueOf(value);
+        } catch (Exception e) {
+            return FeeTransaction.PaymentMode.CASH;
+        }
     }
 }

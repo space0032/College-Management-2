@@ -81,7 +81,8 @@ public class AttendanceController extends BaseController implements HttpHandler 
 
     private void handleGetByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_ATTENDANCE")) return;
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1));
+        if (studentId < 0) return;
         if (studentId <= 0) {
             sendResponse(t, 400, errorJson("Invalid or unknown student"));
             return;

@@ -6,6 +6,7 @@ import PrivateRoute from './components/PrivateRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageTitle from './components/PageTitle';
 import { ToastProvider } from './components/Toast';
+import SessionManager from './utils/SessionManager';
 
 const App = () => {
   return (
@@ -14,7 +15,7 @@ const App = () => {
       <Router>
         <PageTitle />
         <Routes>
-          <Route path="/" element={<LoginPage />} />
+          <Route path="/" element={SessionManager.getToken() ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
           <Route
             path="/dashboard/*"
             element={

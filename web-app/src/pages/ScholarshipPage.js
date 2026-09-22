@@ -37,7 +37,7 @@ const ScholarshipPage = () => {
     const canCreate = SessionManager.hasPermission('CREATE_SCHOLARSHIP');
     const canReview = userRole !== 'STUDENT' && SessionManager.hasPermission('VIEW_SCHOLARSHIP');
     const canUpdate = SessionManager.hasPermission('UPDATE_SCHOLARSHIP');
-    const canApply = userRole === 'STUDENT' && SessionManager.hasPermission('MANAGE_SCHOLARSHIP');
+    const canApply = userRole === 'STUDENT' && SessionManager.hasPermission('SCHOLARSHIP_APPLY');
     const wordCount = statement.trim().split(/\s+/).filter(Boolean).length;
     const visibleScholarships = scholarships.filter(s => (statusFilter === 'ALL' || s.status === statusFilter) && `${s.title} ${s.donorName || ''} ${s.description || ''}`.toLowerCase().includes(search.toLowerCase()));
     const totalAwardValue = scholarships.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);

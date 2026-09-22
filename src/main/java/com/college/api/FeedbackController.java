@@ -47,7 +47,8 @@ public class FeedbackController extends BaseController implements HttpHandler {
         if (!requireAnyPermission(t, "VIEW_FACULTY", "VIEW_STUDENT"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<StudentFeedback> list = feedbackDAO.getFeedbackByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }

@@ -36,7 +36,7 @@ public class JsonHelper {
             return "\"" + escape(((Enum<?>) obj).name()) + "\"";
         }
         if (obj instanceof java.util.Date) {
-            return "\"" + obj.toString() + "\"";
+            return "\"" + formatDate((java.util.Date) obj) + "\"";
         }
         if (obj instanceof java.time.LocalDate || obj instanceof java.time.LocalDateTime) {
             return "\"" + obj.toString() + "\"";
@@ -76,6 +76,15 @@ public class JsonHelper {
 
     private static String escape(String s) {
         return s.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    private static String formatDate(java.util.Date date) {
+        try {
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+            return fmt.format(date);
+        } catch (Exception e) {
+            return date.toString();
+        }
     }
 
     // Very basic Parser for flat JSON: {"key":"value", "num":123}
@@ -126,13 +135,18 @@ public class JsonHelper {
                 if (valueVal.startsWith("\"") && valueVal.endsWith("\""))
                     valueVal = valueVal.substring(1, valueVal.length() - 1);
                 field.set(obj, java.time.LocalDateTime.parse(valueVal.replace(" ", "T")));
-            } else if (field.getType() == java.util.Date.class) {
+} else if (field.getType() == java.util.Date.class) {
                 String value = unquote(valueVal);
                 if (!value.isBlank() && !"null".equals(value)) {
-                    java.time.LocalDateTime parsed = value.length() == 10
-                            ? java.time.LocalDate.parse(value).atStartOfDay()
-                            : java.time.LocalDateTime.parse(value.replace(" ", "T"));
-                    field.set(obj, java.util.Date.from(parsed.atZone(java.time.ZoneId.systemDefault()).toInstant()));
+                    try {
+                        java.time.OffsetDateTime odt = java.time.OffsetDateTime.parse(value);
+                        field.set(obj, java.util.Date.from(odt.toInstant()));
+                    } catch (Exception e1) {
+                        java.time.LocalDateTime parsed = value.length() == 10
+                                ? java.time.LocalDate.parse(value).atStartOfDay()
+                                : java.time.LocalDateTime.parse(value.replace(" ", "T"));
+                        field.set(obj, java.util.Date.from(parsed.atZone(java.time.ZoneId.systemDefault()).toInstant()));
+                    }
                 }
             }
             // Add date handling if needed (rudimentary)

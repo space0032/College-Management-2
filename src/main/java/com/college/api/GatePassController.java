@@ -58,10 +58,11 @@ public class GatePassController extends BaseController implements HttpHandler {
         }
     }
 
-    private void handleGetStudentPasses(HttpExchange t, String path) throws IOException {
+private void handleGetStudentPasses(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_GATEPASS")) return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<GatePass> passes = GatePassDAO.getStudentPasses(studentId);
         sendResponse(t, 200, JsonHelper.toJson(passes));
     }
@@ -79,7 +80,7 @@ public class GatePassController extends BaseController implements HttpHandler {
     }
 
     private void handleCreateRequest(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "CREATE_GATEPASS")) return;
+        if (!requireAnyPermission(t, "CREATE_GATEPASS", "REQUEST_GATE_PASS")) return;
         String body = readBody(t);
         GatePass gatePass = JsonHelper.fromJson(body, GatePass.class);
 

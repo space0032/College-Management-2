@@ -29,6 +29,9 @@ public class UserController extends BaseController implements HttpHandler {
             } else if (path.matches(".*/users/\\d+")) {
                 if ("DELETE".equals(method)) handleDelete(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.equals("/api/profile/contact")) {
+                if ("PUT".equals(method)) handleUpdateMyContact(t);
+                else sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.equals("/api/users")) {
                 if ("GET".equals(method)) handleGetAll(t);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
@@ -101,6 +104,47 @@ public class UserController extends BaseController implements HttpHandler {
             sendResponse(t, 200, "{\"message\":\"Password updated successfully\"}");
         } else {
             sendResponse(t, 400, errorJson("Failed to update password"));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleUpdateMyContact(HttpExchange t) throws IOException {
+        if (!requireAuth(t)) return;
+
+        String body = readBody(t);
+        java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
+        String phone = map.get("phone") == null ? null : String.valueOf(map.get("phone")).trim();
+        String address = map.get("address") == null ? null : String.valueOf(map.get("address")).trim();
+        if (phone == null || phone.isEmpty()) {
+            sendResponse(t, 400, errorJson("Phone is required"));
+            return;
+        }
+
+        String role = getTokenInfo(t).role;
+        int userId = getTokenInfo(t).userId;
+        String sql;
+        if ("STUDENT".equals(role)) {
+            sql = "UPDATE students SET phone=COALESCE(?, phone), address=COALESCE(?, address) WHERE user_id=?";
+        } else if ("FACULTY".equals(role)) {
+            sql = "UPDATE faculty SET phone=COALESCE(?, phone), address=COALESCE(?, address) WHERE user_id=?";
+        } else {
+            sendResponse(t, 400, errorJson("Only students and faculty can update contact info"));
+            return;
+        }
+        try (java.sql.Connection conn = com.college.utils.DatabaseConnection.getConnection();
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, phone);
+            pstmt.setString(2, (address == null || address.isEmpty()) ? null : address);
+            pstmt.setInt(3, userId);
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                sendResponse(t, 200, "{\"message\":\"Contact info updated\"}");
+            } else {
+                sendResponse(t, 404, errorJson("Profile not found"));
+            }
+        } catch (Exception e) {
+            com.college.utils.Logger.error("Failed to update profile contact", e);
+            sendResponse(t, 500, errorJson("Could not update contact info"));
         }
     }
 

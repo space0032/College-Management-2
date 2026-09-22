@@ -58,7 +58,7 @@ const AnnouncementPage = () => {
     setFormError('');
   };
 
-  const openAdd = () => { setForm(EMPTY_FORM); setEditId(null); setFormError(''); setModalOpen(true); };
+const openAdd = () => { setForm(EMPTY_FORM); setEditId(null); setFormError(''); setModalOpen(true); };
   const openEdit = (row) => {
     setForm({
       title: row.title || '', content: row.content || '',
@@ -66,6 +66,17 @@ const AnnouncementPage = () => {
       pinned: row.pinned || false
     });
     setEditId(row.id); setFormError(''); setModalOpen(true);
+  };
+
+  // Open AI assist and close the parent modal so two modals never stack
+  // (avoids duplicate id="modal-title", broken Escape, and scroll-lock leaks).
+  const openAiAssist = () => {
+    setAiOpen(true);
+    setModalOpen(false);
+  };
+  const closeAiAssist = () => {
+    setAiOpen(false);
+    setModalOpen(true);
   };
 
   const handleSave = async () => {
@@ -223,7 +234,7 @@ const AnnouncementPage = () => {
 
       <Modal isOpen={modalOpen} title={editId ? 'Edit Announcement' : 'Add Announcement'} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAiOpen(true)} style={{ marginBottom: '12px', width: '100%' }}>✨ Draft with AI</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={openAiAssist} style={{ marginBottom: '12px', width: '100%' }}>✨ Draft with AI</button>
         <div className="form-group">
           <label className="form-label">Title *</label>
           <input name="title" type="text" className="form-control" value={form.title} onChange={handleFormChange} placeholder="Enter title" />
@@ -259,8 +270,8 @@ const AnnouncementPage = () => {
 
       <AiAssistModal
         isOpen={aiOpen}
-        onClose={() => setAiOpen(false)}
-        onInsert={handleAiInsert}
+        onClose={closeAiAssist}
+        onInsert={(draft) => { handleAiInsert(draft); closeAiAssist(); }}
         feature="announcement"
         defaults={{ audience: form.targetAudience }}
       />

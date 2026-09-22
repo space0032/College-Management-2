@@ -79,6 +79,7 @@ const LibraryPage = () => {
   const { success: toastSuccess, error: toastError } = useToast();
   // ConfirmDialog state
   const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [deletingBook, setDeletingBook] = useState(false);
 
   const user = SessionManager.getUser() || {};
   const isAdmin = SessionManager.hasRole('ADMIN');
@@ -148,10 +149,18 @@ useEffect(() => {
     };
   }, [studentSearch, students]);
 
+  // Reset pagination when the active tab changes (view is intentionally the only dep)
   useEffect(() => {
-    if (view === 'books') { setBookPage(0); fetchBooks(); }
-    else if (view === 'issues') { setIssuePage(0); fetchIssues(); }
-    else if (view === 'my') { setMyIssuePage(0); fetchMyIssues(); }
+    setBookPage(0);
+    setIssuePage(0);
+    setMyIssuePage(0);
+  }, [view]);
+
+  // Load data for the active tab; fires when the view changes or its page changes.
+  useEffect(() => {
+    if (view === 'books') fetchBooks();
+    else if (view === 'issues') fetchIssues();
+    else if (view === 'my') fetchMyIssues();
     else if (view === 'requests') { fetchBooks(); fetchRequests(); }
   }, [view, fetchBooks, fetchIssues, fetchMyIssues, fetchRequests]);
 
@@ -223,13 +232,18 @@ const handleFormChange = (e) => {
   };
 
   const handleDeleteBook = (bookId) => {
+    if (deletingBook) return;
     showConfirm('Delete Book', 'Delete this book permanently? This cannot be undone.', async () => {
+      setDeletingBook(true);
       try {
         await deleteBook(bookId);
         toastSuccess('Book deleted successfully');
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
         fetchBooks();
       } catch (err) {
         toastError(err.response?.data?.error || 'Failed to delete book.');
+      } finally {
+        setDeletingBook(false);
       }
     });
   };
@@ -654,6 +668,7 @@ const handleFormChange = (e) => {
         confirmLabel="Confirm"
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+        loading={deletingBook}
         destructive
       />
     </div>

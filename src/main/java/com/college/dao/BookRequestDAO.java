@@ -99,49 +99,86 @@ public class BookRequestDAO {
     }
 
     /**
-     * Approve request and auto-issue book
+     * Approve request and auto-issue book. Only a PENDING request can be
+     * approved, and the approval + issue + availability decrement run in a
+     * single transaction with the book row locked so concurrent approvals
+     * cannot oversell availability.
      */
     public boolean approveRequest(int requestId, int approvedBy) {
-        // Get request details first
         BookRequest request = getRequestById(requestId);
         if (request == null) {
             return false;
         }
-
-        // Check if book is available
-        BookIssueDAO bookIssueDAO = new BookIssueDAO();
-        if (!bookIssueDAO.isBookAvailable(request.getBookId())) {
+        if (!"PENDING".equals(request.getStatus())) {
+            Logger.error("Approve rejected: request " + requestId + " is not PENDING (status=" + request.getStatus() + ")", null);
             return false;
         }
 
         String updateSql = "UPDATE book_requests SET status = 'APPROVED', approved_by = ?, " +
-                "approved_date = CURRENT_TIMESTAMP WHERE id = ?";
+                "approved_date = CURRENT_TIMESTAMP WHERE id = ? AND status = 'PENDING'";
+        String lockSql = "SELECT available FROM books WHERE id = ? FOR UPDATE";
+        String insertSql = "INSERT INTO book_issues (student_id, book_id, issue_date, due_date, status, issued_by) "
+                + "VALUES (?, ?, ?, ?, 'ISSUED', ?)";
+        String decrementSql = "UPDATE books SET available = available - 1 WHERE id = ? AND available > 0";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement lockStmt = conn.prepareStatement(lockSql)) {
+                    lockStmt.setInt(1, request.getBookId());
+                    try (ResultSet rs = lockStmt.executeQuery()) {
+                        if (!rs.next() || rs.getInt("available") <= 0) {
+                            conn.rollback();
+                            Logger.error("Approve rejected: book " + request.getBookId() + " is unavailable", null);
+                            return false;
+                        }
+                    }
+                }
 
-            pstmt.setInt(1, approvedBy);
-            pstmt.setInt(2, requestId);
+                try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+                    pstmt.setInt(1, approvedBy);
+                    pstmt.setInt(2, requestId);
+                    if (pstmt.executeUpdate() != 1) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
 
-            if (pstmt.executeUpdate() > 0) {
-                // Auto-issue the book
                 java.util.Date issueDate = new java.util.Date();
                 Calendar cal = Calendar.getInstance();
                 cal.add(Calendar.DAY_OF_MONTH, request.getLoanPeriodDays());
                 java.util.Date dueDate = cal.getTime();
 
-                BookIssue issue = new BookIssue(request.getStudentId(), request.getBookId(),
-                        issueDate, dueDate);
-                issue.setIssuedBy(approvedBy);
+                try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                    insert.setInt(1, request.getStudentId());
+                    insert.setInt(2, request.getBookId());
+                    insert.setDate(3, new java.sql.Date(issueDate.getTime()));
+                    insert.setDate(4, new java.sql.Date(dueDate.getTime()));
+                    insert.setInt(5, approvedBy);
+                    if (insert.executeUpdate() != 1) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
 
-                return bookIssueDAO.issueBook(issue);
+                try (PreparedStatement decr = conn.prepareStatement(decrementSql)) {
+                    decr.setInt(1, request.getBookId());
+                    decr.executeUpdate();
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                Logger.error("Database operation failed", e);
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
             }
-
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
+            return false;
         }
-
-        return false;
     }
 
     /**

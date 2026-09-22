@@ -1,44 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SessionManager from '../utils/SessionManager';
 
 const ROUTES = [
     { label: 'Home / Dashboard', path: '/dashboard', keywords: ['home', 'dashboard', 'overview'] },
     { label: 'My Profile', path: '/dashboard/profile', keywords: ['profile', 'account', 'me', 'password', 'my info'] },
-    { label: 'Students', path: '/dashboard/students', keywords: ['students', 'student', 'enrollment', 'admission'] },
-    { label: 'Faculty', path: '/dashboard/faculty', keywords: ['faculty', 'teacher', 'professor', 'staff'] },
-    { label: 'Departments', path: '/dashboard/departments', keywords: ['department', 'dept'] },
-    { label: 'Tracks', path: '/dashboard/specializations', keywords: ['track', 'specialization', 'specialisation', 'cyber', 'branch'] },
-    { label: 'Courses', path: '/dashboard/courses', keywords: ['course', 'subject', 'curriculum'] },
-    { label: 'Attendance', path: '/dashboard/attendance', keywords: ['attendance', 'present', 'absent', 'mark'] },
-    { label: 'Grades', path: '/dashboard/grades', keywords: ['grade', 'marks', 'cgpa', 'transcript', 'results'] },
-    { label: 'Fees', path: '/dashboard/fees', keywords: ['fee', 'fees', 'payment', 'receipt', 'dues', 'pending'] },
-    { label: 'Library', path: '/dashboard/library', keywords: ['library', 'book', 'issue', 'return', 'fine'] },
-    { label: 'Hostel', path: '/dashboard/hostel', keywords: ['hostel', 'room', 'accommodation', 'dormitory'] },
-    { label: 'Placements', path: '/dashboard/placements', keywords: ['placement', 'job', 'company', 'interview', 'drive', 'career'] },
-    { label: 'Events', path: '/dashboard/events', keywords: ['event', 'fest', 'seminar', 'workshop', 'cultural'] },
-    { label: 'Clubs', path: '/dashboard/clubs', keywords: ['club', 'society', 'team', 'group'] },
-    { label: 'Scholarships', path: '/dashboard/scholarships', keywords: ['scholarship', 'bursary', 'merit', 'financial aid'] },
-    { label: 'Gate Pass', path: '/dashboard/gatepass', keywords: ['gate pass', 'gatepass', 'outpass', 'exit', 'outing'] },
-    { label: 'Timetable', path: '/dashboard/timetable', keywords: ['timetable', 'schedule', 'time table', 'class schedule'] },
-    { label: 'Announcements', path: '/dashboard/announcements', keywords: ['announcement', 'notice', 'news', 'circular'] },
-    { label: 'Notifications', path: '/dashboard/notifications', keywords: ['notification', 'alert', 'reminder'] },
-    { label: 'Reports', path: '/dashboard/reports', keywords: ['report', 'analytics', 'statistics', 'export'] },
-    { label: 'Settings', path: '/dashboard/settings', keywords: ['settings', 'college settings', 'branding', 'configuration'] },
-    { label: 'Payroll', path: '/dashboard/payroll', keywords: ['payroll', 'salary', 'payment', 'wages'] },
-    { label: 'Employees', path: '/dashboard/employees', keywords: ['employee', 'staff', 'non-teaching'] },
-    { label: 'Leave Approvals', path: '/dashboard/leaves', keywords: ['leave', 'absence', 'vacation', 'sick'] },
-    { label: 'Faculty Workload', path: '/dashboard/workload', keywords: ['workload', 'load', 'classes', 'faculty load'] },
-    { label: 'Room Availability', path: '/dashboard/rooms', keywords: ['room', 'lab', 'classroom', 'available', 'booking'] },
-    { label: 'Assignments', path: '/dashboard/assignments', keywords: ['assignment', 'homework', 'submission', 'task'] },
-    { label: 'Resources', path: '/dashboard/resources', keywords: ['resource', 'material', 'pdf', 'download', 'study'] },
-    { label: 'Syllabus', path: '/dashboard/syllabus', keywords: ['syllabus', 'curriculum', 'course outline'] },
-    { label: 'Learning Portal', path: '/dashboard/learning', keywords: ['learning', 'portal', 'study material'] },
-    { label: 'Volunteer Tasks', path: '/dashboard/volunteer', keywords: ['volunteer', 'contribution', 'help', 'task'] },
-    { label: 'Visitors', path: '/dashboard/visitors', keywords: ['visitor', 'guest', 'entry'] },
-    { label: 'Academic Calendar', path: '/dashboard/calendar', keywords: ['calendar', 'holiday', 'exam schedule', 'academic'] },
-    { label: 'Crowdfunding', path: '/dashboard/crowdfunding', keywords: ['crowdfunding', 'campaign', 'donate', 'fundraise'] },
+    { label: 'Faculty Portal', path: '/dashboard/faculty-portal', keywords: ['faculty portal', 'portal', 'my classes'], perm: 'VIEW_FACULTY_PORTAL' },
+    { label: 'Students', path: '/dashboard/students', keywords: ['students', 'student', 'enrollment', 'admission'], perm: 'VIEW_STUDENT' },
+    { label: 'Student Profile', path: '/dashboard/student-profile', keywords: ['student profile', 'academic record', 'transcript'], perm: 'VIEW_STUDENT_PROFILE' },
+    { label: 'Faculty', path: '/dashboard/faculty', keywords: ['faculty', 'teacher', 'professor', 'staff'], perm: 'VIEW_FACULTY' },
+    { label: 'Departments', path: '/dashboard/departments', keywords: ['department', 'dept'], perm: 'VIEW_DEPARTMENT' },
+    { label: 'Tracks', path: '/dashboard/specializations', keywords: ['track', 'specialization', 'specialisation', 'cyber', 'branch'], perm: 'VIEW_DEPARTMENT' },
+    { label: 'Courses', path: '/dashboard/courses', keywords: ['course', 'subject', 'curriculum'], perm: 'VIEW_COURSE' },
+    { label: 'Course Registration', path: '/dashboard/course-registrations', keywords: ['course registration', 'register', 'elective'], perm: 'VIEW_COURSE' },
+    { label: 'Attendance', path: '/dashboard/attendance', keywords: ['attendance', 'present', 'absent', 'mark'], perm: 'VIEW_ATTENDANCE' },
+    { label: 'Grades', path: '/dashboard/grades', keywords: ['grade', 'marks', 'cgpa', 'transcript', 'results'], perm: 'VIEW_GRADES' },
+    { label: 'Fees', path: '/dashboard/fees', keywords: ['fee', 'fees', 'payment', 'receipt', 'dues', 'pending'], perm: 'VIEW_FEES' },
+    { label: 'Library', path: '/dashboard/library', keywords: ['library', 'book', 'issue', 'return', 'fine'], perm: 'VIEW_LIBRARY' },
+    { label: 'Book Requests', path: '/dashboard/book-requests', keywords: ['book request', 'request book', 'hold'], perm: 'VIEW_FACULTY' },
+    { label: 'Feedback', path: '/dashboard/feedback', keywords: ['feedback', 'review', 'rating'], perm: 'VIEW_FACULTY' },
+    { label: 'Hostel', path: '/dashboard/hostel', keywords: ['hostel', 'room', 'accommodation', 'dormitory'], perm: 'VIEW_HOSTEL' },
+    { label: 'Hostel Complaints', path: '/dashboard/hostel/complaints', keywords: ['hostel complaint', 'complaint', 'issue report'], perm: 'VIEW_COMPLAINT' },
+    { label: 'Hostel Attendance', path: '/dashboard/hostel/attendance', keywords: ['hostel attendance', 'attendance', 'roll call'], perm: 'VIEW_HOSTEL_ATTENDANCE' },
+    { label: 'Wardens', path: '/dashboard/wardens', keywords: ['warden', 'hostel staff'], perm: 'MANAGE_HOSTEL' },
+    { label: 'Placements', path: '/dashboard/placements', keywords: ['placement', 'job', 'company', 'interview', 'drive', 'career'], perm: 'VIEW_PLACEMENT' },
+    { label: 'Events', path: '/dashboard/events', keywords: ['event', 'fest', 'seminar', 'workshop', 'cultural'], perm: 'VIEW_EVENT' },
+    { label: 'Activities Hub', path: '/dashboard/activities', keywords: ['activities', 'activity hub', 'extracurricular'], perm: 'VIEW_EVENT' },
+    { label: 'Clubs', path: '/dashboard/clubs', keywords: ['club', 'society', 'team', 'group'], perm: 'VIEW_CLUB' },
+    { label: 'Scholarships', path: '/dashboard/scholarships', keywords: ['scholarship', 'bursary', 'merit', 'financial aid'], perm: 'VIEW_SCHOLARSHIP' },
+    { label: 'Gate Pass', path: '/dashboard/gatepass', keywords: ['gate pass', 'gatepass', 'outpass', 'exit', 'outing'], perm: 'VIEW_GATEPASS' },
+    { label: 'Timetable', path: '/dashboard/timetable', keywords: ['timetable', 'schedule', 'time table', 'class schedule'], perm: 'VIEW_TIMETABLE' },
+    { label: 'Announcements', path: '/dashboard/announcements', keywords: ['announcement', 'notice', 'news', 'circular'], perm: 'VIEW_ANNOUNCEMENT' },
+    { label: 'Notifications', path: '/dashboard/notifications', keywords: ['notification', 'alert', 'reminder'], perm: 'VIEW_NOTIFICATION' },
+    { label: 'My Leave', path: '/dashboard/staff-leave', keywords: ['my leave', 'leave request', 'staff leave'], perm: 'VIEW_LEAVE' },
+    { label: 'Reports', path: '/dashboard/reports', keywords: ['report', 'analytics', 'statistics', 'export'], perm: 'VIEW_REPORT' },
+    { label: 'Settings', path: '/dashboard/settings', keywords: ['settings', 'college settings', 'branding', 'configuration'], perm: 'VIEW_SETTINGS' },
+    { label: 'Payroll', path: '/dashboard/payroll', keywords: ['payroll', 'salary', 'payment', 'wages'], perm: 'VIEW_PAYROLL' },
+    { label: 'Employees', path: '/dashboard/employees', keywords: ['employee', 'staff', 'non-teaching'], perm: 'VIEW_EMPLOYEE' },
+    { label: 'Leave Approvals', path: '/dashboard/leaves', keywords: ['leave', 'absence', 'vacation', 'sick'], perm: 'VIEW_LEAVE' },
+    { label: 'Faculty Workload', path: '/dashboard/workload', keywords: ['workload', 'load', 'classes', 'faculty load'], perm: 'VIEW_WORKLOAD' },
+    { label: 'Room Availability', path: '/dashboard/rooms', keywords: ['room', 'lab', 'classroom', 'available', 'booking'], perm: 'VIEW_ROOM' },
+    { label: 'Assignments', path: '/dashboard/assignments', keywords: ['assignment', 'homework', 'submission', 'task'], perm: 'VIEW_ASSIGNMENT' },
+    { label: 'Resources', path: '/dashboard/resources', keywords: ['resource', 'material', 'pdf', 'download', 'study'], perm: 'VIEW_RESOURCES' },
+    { label: 'Syllabus', path: '/dashboard/syllabus', keywords: ['syllabus', 'curriculum', 'course outline'], perm: 'VIEW_SYLLABUS' },
+    { label: 'Learning Portal', path: '/dashboard/learning', keywords: ['learning', 'portal', 'study material'], perm: 'VIEW_COURSE' },
+    { label: 'Volunteer Tasks', path: '/dashboard/volunteer', keywords: ['volunteer', 'contribution', 'help', 'task'], perm: 'VIEW_VOLUNTEER' },
+    { label: 'Visitors', path: '/dashboard/visitors', keywords: ['visitor', 'guest', 'entry'], perm: 'VIEW_VISITOR' },
+    { label: 'Academic Calendar', path: '/dashboard/calendar', keywords: ['calendar', 'holiday', 'exam schedule', 'academic'], perm: 'VIEW_CALENDAR' },
+    { label: 'Crowdfunding', path: '/dashboard/crowdfunding', keywords: ['crowdfunding', 'campaign', 'donate', 'fundraise'], perm: 'VIEW_CROWDFUNDING' },
     { label: 'Institute Management', path: '/dashboard/management', keywords: ['institute', 'management', 'admin', 'roles', 'permissions'] },
+    { label: 'Role Management', path: '/dashboard/roles', keywords: ['roles', 'role management', 'permissions'], perm: 'VIEW_ROLE' },
+    { label: 'Student Affairs', path: '/dashboard/student-affairs', keywords: ['student affairs', 'disciplinary', 'counseling'], perm: 'VIEW_STUDENT' },
+    { label: 'Audit Log', path: '/dashboard/audit', keywords: ['audit', 'audit log', 'activity trail'], perm: 'VIEW_AUDIT' },
 ];
+
+const isVisible = (route) => !route.perm || SessionManager.hasPermission(route.perm) || SessionManager.hasRole('ADMIN');
 
 const GlobalSearch = ({ onClose }) => {
     const [query, setQuery] = useState('');
@@ -54,8 +70,9 @@ const GlobalSearch = ({ onClose }) => {
         if (!query.trim()) { setResults([]); return; }
         const q = query.toLowerCase();
         const matches = ROUTES.filter(r =>
-            r.label.toLowerCase().includes(q) ||
-            r.keywords.some(k => k.includes(q) || q.includes(k))
+            isVisible(r) &&
+            (r.label.toLowerCase().includes(q) ||
+            r.keywords.some(k => k.includes(q) || q.includes(k)))
         ).slice(0, 8);
         setResults(matches);
     }, [query]);
@@ -141,16 +158,22 @@ const GlobalSearch = ({ onClose }) => {
                         <div style={{ fontSize: '0.75rem', color: '#a0aec0', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Quick Access
                         </div>
-                        {['Dashboard', 'Attendance', 'Grades', 'Fees', 'Library'].map(name => {
-                            const match = ROUTES.find(r => r.label === name || r.label.startsWith(name));
-                            if (!match) return null;
+                        {[
+                            { label: 'Dashboard', path: '/dashboard' },
+                            { label: 'Attendance', path: '/dashboard/attendance' },
+                            { label: 'Grades', path: '/dashboard/grades' },
+                            { label: 'Fees', path: '/dashboard/fees' },
+                            { label: 'Library', path: '/dashboard/library' },
+                        ].map(qa => {
+                            const match = ROUTES.find(r => r.path === qa.path);
+                            if (!match || !isVisible(match)) return null;
                             return (
-                                <button key={match.path} onClick={() => handleSelect(match.path)} style={{
+                                <button key={qa.path} onClick={() => handleSelect(match.path)} style={{
                                     display: 'inline-block', margin: '4px', padding: '6px 14px',
                                     border: '1px solid #e2e8f0', borderRadius: '20px', background: 'white',
                                     cursor: 'pointer', fontSize: '0.85rem', color: '#4a5568'
                                 }}>
-                                    {match.label}
+                                    {qa.label}
                                 </button>
                             );
                         })}

@@ -153,7 +153,7 @@ const HostelPage = () => {
           <DataTable
             columns={[
               { label: 'Name', key: 'name', render: (v) => <strong>{v}</strong> },
-              { label: 'Type', key: 'type', render: (v) => <span className={`badge ${v === 'Boys' ? 'badge-primary' : 'badge-danger'}`}>{v}</span> },
+              { label: 'Type', key: 'type', render: (v) => <span className="badge badge-primary">{v}</span> },
               { label: 'Warden', key: 'wardenName' },
               { label: 'Rooms', key: 'totalRooms' },
               { label: 'Capacity', key: 'totalCapacity' },

@@ -97,7 +97,8 @@ public class GradeController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_GRADES"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<Grade> grades = gradeDAO.getGradesByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(grades));
     }
@@ -124,7 +125,8 @@ public class GradeController extends BaseController implements HttpHandler {
         if (!requirePermission(t, "VIEW_GRADES"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 2]); // .../student/{id}/cgpa
+        int studentId = scopeStudentAccess(t, parts[parts.length - 2]); // .../student/{id}/cgpa
+        if (studentId < 0) return;
         double cgpa = gradeDAO.calculateCGPA(studentId);
         sendResponse(t, 200, "{\"cgpa\":" + cgpa + "}");
     }

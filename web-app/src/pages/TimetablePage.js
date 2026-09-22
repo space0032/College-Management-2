@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Modal from '../components/Modal';
 import { getTimetable, saveTimetableEntry, deleteTimetableEntry } from '../services/timetableService';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const EMPTY_FORM = { dayOfWeek: '', timeSlot: '', subject: '', roomNumber: '', facultyName: '', specialization: '', courseId: '' };
 
 const SUBJECT_COLORS = [

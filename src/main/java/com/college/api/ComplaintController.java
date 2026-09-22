@@ -58,7 +58,8 @@ public class ComplaintController extends BaseController implements HttpHandler {
     private void handleGetByStudent(HttpExchange t, String path) throws IOException {
         if (!requireAnyPermission(t, "VIEW_COMPLAINT", "CREATE_COMPLAINT"))
             return;
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1));
+        if (studentId < 0) return;
         List<Complaint> list = complaintDAO.getComplaintsByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }

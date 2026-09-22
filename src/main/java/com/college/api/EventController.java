@@ -58,13 +58,6 @@ public class EventController extends BaseController implements HttpHandler {
                     handleDeleteEvent(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/events.*")) {
-                if ("GET".equals(method))
-                    handleGetEvents(t);
-                else if ("POST".equals(method))
-                    handleAddEvent(t);
-                else
-                    sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/events/\\d+/budget")) {
                 if ("GET".equals(method))
                     handleGetEventBudgets(t, path);
@@ -97,6 +90,13 @@ public class EventController extends BaseController implements HttpHandler {
             } else if (path.matches(".*/events/budget/\\d+/actual-cost")) {
                 if ("PUT".equals(method))
                     handleUpdateBudgetActualCost(t, path);
+                else
+                    sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/events")) {
+                if ("GET".equals(method))
+                    handleGetEvents(t);
+                else if ("POST".equals(method))
+                    handleAddEvent(t);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
             } else {
@@ -270,7 +270,8 @@ public class EventController extends BaseController implements HttpHandler {
     private void handleGetStudentEvents(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_EVENT"))
             return;
-        int studentId = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1)); // .../events/student/{id}
+        int studentId = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1)); // .../events/student/{id}
+        if (studentId < 0) return;
         List<Event> events = eventDAO.getStudentRegisteredEvents(studentId);
         sendResponse(t, 200, JsonHelper.toJson(events));
     }

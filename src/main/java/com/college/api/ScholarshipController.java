@@ -83,7 +83,7 @@ public class ScholarshipController extends BaseController implements HttpHandler
     }
 
     private void handleApply(HttpExchange t, String path) throws IOException {
-        if (!requirePermission(t, "MANAGE_SCHOLARSHIP")) return;
+        if (!requireAnyPermission(t, "MANAGE_SCHOLARSHIP", "SCHOLARSHIP_APPLY")) return;
         String[] parts = path.split("/");
         int scholarshipId = Integer.parseInt(parts[parts.length - 2]);
 

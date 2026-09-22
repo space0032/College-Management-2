@@ -29,19 +29,19 @@ public class TranscriptService {
         Map<Integer, Double> semesterGradePoints = new HashMap<>();
         Map<Integer, Integer> semesterCredits = new HashMap<>();
 
-        // Calculate raw points (Assuming simplistic 10-point scale based on marks for
-        // now)
-        // In a real system, this would map Letter Grades to Points (A=10, B=9, etc.)
+        // Single shared calculator: percentage relative to max marks, weighted
+        // by credits, terminal exams only (FINAL / END TERM) so this matches the
+        // web CGPA endpoint. Web-entered "END TERM" grades now count.
         for (Grade g : allGrades) {
-            // Only consider 'Final' exams for Transcript/SGPA calculation to avoid double
-            // counting
-            if (!"Final".equalsIgnoreCase(g.getExamType())) {
+            if (!Grade.isTerminalExam(g.getExamType())) {
                 continue;
             }
 
             int sem = g.getSemester();
             int credits = Math.max(g.getCredits(), 1); // Default to 1 if missing to avoid zero division
-            double points = g.getGradePoints();
+            double max = g.getMaxMarks() > 0 ? g.getMaxMarks() : 100;
+            double percentage = (g.getMarksObtained() / max) * 100;
+            double points = (percentage / 100) * 10;
 
             semesterGradePoints.put(sem, semesterGradePoints.getOrDefault(sem, 0.0) + (points * credits));
             semesterCredits.put(sem, semesterCredits.getOrDefault(sem, 0) + credits);

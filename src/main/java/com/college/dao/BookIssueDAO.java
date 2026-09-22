@@ -47,11 +47,12 @@ public class BookIssueDAO {
     }
 
     /**
-     * Return a book from student
+     * Return a book from student. Only an ISSUED issue may be returned, so a
+     * double-return is a no-op and availability is not incremented twice.
      */
     public boolean returnBook(int issueId, int returnedTo) {
         String sql = "UPDATE book_issues SET return_date = CURRENT_DATE, returned_to = ?, " +
-                "fine_amount = ?, status = 'RETURNED' WHERE id = ?";
+                "fine_amount = ?, status = 'RETURNED' WHERE id = ? AND status = 'ISSUED'";
 
         // Get issue details to calculate fine BEFORE opening connection
         BookIssue issue = getIssueById(issueId);
@@ -137,9 +138,11 @@ public class BookIssueDAO {
 
     public List<BookIssue> getIssuedBooksByStudent(int studentId, int page, int size) {
         List<BookIssue> issues = new ArrayList<>();
-        String sql = "SELECT bi.*, b.title as book_title " +
+        String sql = "SELECT bi.*, s.name as student_name, b.title as book_title, u.username AS enrollment_id " +
                 "FROM book_issues bi " +
+                "JOIN students s ON bi.student_id = s.id " +
                 "JOIN books b ON bi.book_id = b.id " +
+                "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE bi.student_id = ? AND bi.status = 'ISSUED' " +
                 "ORDER BY bi.due_date LIMIT ? OFFSET ?";
 

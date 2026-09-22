@@ -60,7 +60,10 @@ public class DatabaseMigrator {
             "V69__Complete_Fee_Management.sql",
             "V70__Warden_Gate_Pass_Permissions.sql",
             "V71__Ensure_Warden_Role_Assigned.sql",
-            "V72__Unique_Payroll_Period.sql"
+            "V72__Unique_Payroll_Period.sql",
+            "V73__Restore_Roles_And_Grants.sql",
+            "V74__Add_Event_Poll_Votes.sql",
+            "V75__Add_Faculty_Address.sql"
         };
 
         try (Connection conn = DatabaseConnection.getConnection();

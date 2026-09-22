@@ -133,7 +133,8 @@ public class PlacementController extends BaseController implements HttpHandler {
 
     private void handleGetApplicationsForStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_PLACEMENT")) return;
-        int id = resolvePathStudentId(path.substring(path.lastIndexOf('/') + 1));
+        int id = scopeStudentAccess(t, path.substring(path.lastIndexOf('/') + 1));
+        if (id < 0) return;
         sendResponse(t, 200, JsonHelper.toJson(placementDAO.getApplicationsForStudent(id)));
     }
 
@@ -145,7 +146,7 @@ public class PlacementController extends BaseController implements HttpHandler {
 
     @SuppressWarnings("unchecked")
     private void handleApply(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "MANAGE_PLACEMENT")) return;
+        if (!requireAnyPermission(t, "MANAGE_PLACEMENT", "VIEW_PLACEMENT")) return;
         String body = readBody(t);
         java.util.Map<String, Object> map = new com.google.gson.Gson().fromJson(body, java.util.Map.class);
         if (map == null || map.get("driveId") == null || (map.get("studentId") == null && map.get("enrollmentId") == null)) {

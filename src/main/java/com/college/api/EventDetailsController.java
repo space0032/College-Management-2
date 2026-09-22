@@ -203,7 +203,8 @@ public class EventDetailsController extends BaseController implements HttpHandle
         if (!requirePermission(t, "VIEW_VOLUNTEER"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         List<EventVolunteer> list = eventDetailsDAO.getVolunteersByStudent(studentId);
         sendResponse(t, 200, JsonHelper.toJson(list));
     }

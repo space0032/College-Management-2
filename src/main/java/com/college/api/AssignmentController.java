@@ -53,7 +53,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
                     handleSubmitAssignment(t, path);
                 else
                     sendResponse(t, 405, errorJson("Method not allowed"));
-            } else if (path.matches(".*/assignments/\\d+/submissions/student/\\d+")) {
+            } else if (path.matches(".*/assignments/\\d+/submissions/student/[^/]+")) {
                 if ("GET".equals(method))
                     handleGetSubmissionByStudent(t, path);
                 else
@@ -240,7 +240,7 @@ public class AssignmentController extends BaseController implements HttpHandler 
 
     @SuppressWarnings("unchecked")
     private void handleSubmitAssignment(HttpExchange t, String path) throws IOException {
-        if (!requirePermission(t, "MANAGE_ASSIGNMENT")) return;
+        if (!requireAnyPermission(t, "MANAGE_ASSIGNMENT", "SUBMIT_ASSIGNMENT")) return;
         String[] parts = path.split("/");
         int assignmentId = Integer.parseInt(parts[parts.length - 2]);
         String body = readBody(t);
@@ -268,7 +268,8 @@ public class AssignmentController extends BaseController implements HttpHandler 
     private void handleGetSubmissionByStudent(HttpExchange t, String path) throws IOException {
         if (!requirePermission(t, "VIEW_ASSIGNMENT")) return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 1]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 1]);
+        if (studentId < 0) return;
         int assignmentId = Integer.parseInt(parts[parts.length - 4]); // /assignments/{id}/submissions/student/{stdId}
 
         Submission sub = submissionDAO.getSubmission(assignmentId, studentId);

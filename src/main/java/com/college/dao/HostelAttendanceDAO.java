@@ -20,6 +20,7 @@ public class HostelAttendanceDAO {
         String sql = "INSERT INTO hostel_attendance (student_id, hostel_id, date, status, remarks, marked_by) " +
                 "VALUES (?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT (student_id, date) DO UPDATE SET " +
+                "hostel_id = EXCLUDED.hostel_id, " +
                 "status = EXCLUDED.status, " +
                 "remarks = EXCLUDED.remarks, " +
                 "marked_by = EXCLUDED.marked_by";

@@ -162,28 +162,31 @@ public class GradeDAO {
     /**
      * Calculate CGPA for a student
      * 
+     * Single shared calculator: percentages are relative to max_marks, weighted
+     * by course credits, and only counts terminal exams (FINAL / END TERM) so it
+     * agrees with the desktop TranscriptService. 45/50 now yields 9.0, not 4.5.
+     * 
      * @param studentId Student ID
      * @return CGPA (0-10 scale)
      */
     public double calculateCGPA(int studentId) {
-        String sql = "SELECT AVG(marks_obtained) as avg_marks FROM grades WHERE student_id = ?"; // percentage ->
-                                                                                                 // marks_obtained
+        List<Grade> grades = getGradesByStudent(studentId);
+        double totalPoints = 0;
+        int totalCredits = 0;
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, studentId);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                double avgPercentage = rs.getDouble("avg_marks");
-                return (avgPercentage / 100) * 10; // Convert to 10-point scale
+        for (Grade g : grades) {
+            if (!Grade.isTerminalExam(g.getExamType())) {
+                continue;
             }
-
-        } catch (SQLException e) {
-            Logger.error("Database operation failed", e);
+            int credits = Math.max(g.getCredits(), 1);
+            double max = g.getMaxMarks() > 0 ? g.getMaxMarks() : 100;
+            double percentage = (g.getMarksObtained() / max) * 100;
+            double points = (percentage / 100) * 10;
+            totalPoints += points * credits;
+            totalCredits += credits;
         }
-        return 0.0;
+
+        return totalCredits > 0 ? totalPoints / totalCredits : 0.0;
     }
 
     /**

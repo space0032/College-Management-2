@@ -515,6 +515,27 @@ public class StudentDAO {
     }
 
     /**
+     * Resolve the students.id for a logged-in user id (users.id). Used to scope
+     * per-student endpoints so a student account only ever sees its own data.
+     * Returns -1 if the user has no linked student profile.
+     */
+    public int getStudentIdByUserId(int userId) {
+        String sql = "SELECT id FROM students WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+        return -1;
+    }
+
+    /**
      * Resolve a user id (users.id) from an enrollment number.
      * Returns -1 if no matching student/user is found.
      */

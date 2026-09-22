@@ -65,7 +65,8 @@ public class CourseRegistrationController extends BaseController implements Http
         if (!requireAnyPermission(t, "VIEW_COURSE", "MANAGE_COURSES"))
             return;
         String[] parts = path.split("/");
-        int studentId = resolvePathStudentId(parts[parts.length - 2]);
+        int studentId = scopeStudentAccess(t, parts[parts.length - 2]);
+        if (studentId < 0) return;
         List<Integer> ids = registrationDAO.getRegisteredCourseIds(studentId);
         ids.addAll(registrationDAO.getPendingCourseIds(studentId));
         sendResponse(t, 200, JsonHelper.toJson(ids));
