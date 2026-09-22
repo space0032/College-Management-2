@@ -17,6 +17,7 @@ class ScholarshipControllerTest {
     private ScholarshipController controller(CommunityDAO dao) {
         return new ScholarshipController(dao) {
             @Override protected boolean requirePermission(HttpExchange exchange, String permission) { return true; }
+            @Override protected boolean requireAnyPermission(HttpExchange exchange, String... permissions) { return true; }
         };
     }
 
@@ -67,6 +68,7 @@ class ScholarshipControllerTest {
         when(dao.applyForScholarship(any())).thenReturn(true);
         ScholarshipController controller = new ScholarshipController(dao) {
             @Override protected boolean requirePermission(HttpExchange exchange, String permission) { return true; }
+            @Override protected boolean requireAnyPermission(HttpExchange exchange, String... permissions) { return true; }
             @Override protected int resolveStudentId(java.util.Map<String, Object> body, int numericId) {
                 return "S100".equals(body.get("enrollmentId")) ? 7 : 0;
             }
