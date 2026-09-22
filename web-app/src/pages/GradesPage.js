@@ -59,6 +59,7 @@ const GradesPage = () => {
     const [bulkDirty, setBulkDirty] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
     const [bulkSearch, setBulkSearch] = useState('');
+    const [filterHint, setFilterHint] = useState('');
 
     // List + form loading / dialog state
     const [listLoading, setListLoading] = useState(true);
@@ -243,8 +244,9 @@ const GradesPage = () => {
 
     // Auto-load students (with current grades) into bulk table when course/exam chosen
     const loadBulkRoster = async (courseId, examType) => {
-        if (!courseId || !examType) { setBulkEntries([]); return; }
+        if (!courseId || !examType) { setBulkEntries([]); setBulkSearch(''); return; }
         setBulkLoading(true);
+        setBulkSearch('');
         try {
             let rows;
             try {
@@ -268,6 +270,9 @@ const GradesPage = () => {
                     marksObtained: null, grade: null, maxMarks: null
                 }));
                 toast.info('No enrollments found for this course yet — using the full student list.');
+            }
+            if (rows.length === 0) {
+                toast.info('No students found for this subject yet — enrollments will appear here.');
             }
             const gradedMarks = rows.filter(r => r.maxMarks > 0).map(r => Number(r.maxMarks));
             let defaultOut = parseFloat(bulkOutOf) || 100;
@@ -308,7 +313,7 @@ const GradesPage = () => {
         setBulkCourseId(courseId);
         setBulkResult(null);
         setBulkDirty(false);
-        if (!courseId) { setBulkEntries([]); setCourseExamTypes([]); return; }
+        if (!courseId) { setBulkEntries([]); setCourseExamTypes([]); setBulkSearch(''); return; }
         let types = [];
         try {
             const res = await getCourseExamTypes(courseId);
@@ -493,6 +498,40 @@ const GradesPage = () => {
         } catch (err) { /* ignore */ }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Filters drive the roster: when department/subject filters change, keep the current
+    // subject if it still matches; otherwise auto-select the single match, or hint without
+    // silently dropping the loaded roster. Never auto-switch with unsaved marks.
+    useEffect(() => {
+        if (!deptFilter && !subjectFilter) { setFilterHint(''); return; }
+        let matches = deptFilter
+            ? courses.filter(c => String(c.departmentId) === String(deptFilter))
+            : courses;
+        const q = subjectFilter.trim().toLowerCase();
+        if (q) {
+            matches = matches.filter(c =>
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.code || '').toLowerCase().includes(q) ||
+                (c.specialization || '').toLowerCase().includes(q));
+        }
+        const hasDirt = bulkDirty && bulkEntries.some(e => e.marks !== '');
+        if (!bulkCourseId) {
+            if (matches.length === 1) handleBulkCourseSelect(String(matches[0].id));
+            else if (matches.length === 0) setFilterHint('No subject matches the filters — adjust or clear them.');
+            else setFilterHint('');
+            return;
+        }
+        const selectedStillMatches = matches.some(c => String(c.id) === String(bulkCourseId));
+        if (selectedStillMatches) { setFilterHint(''); return; }
+        if (hasDirt) {
+            setFilterHint('Unsaved marks kept — pick the new subject manually or clear filters to load it.');
+            return;
+        }
+        if (matches.length === 0) setFilterHint('No subject matches the filters — clear or adjust them.');
+        else if (matches.length === 1) { handleBulkCourseSelect(String(matches[0].id)); setFilterHint(''); }
+        else setFilterHint('');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [deptFilter, subjectFilter]);
 
     const generateTranscript = () => {
         const dataToExport = viewFilter ? grades.filter(g =>
@@ -817,9 +856,10 @@ const GradesPage = () => {
                             </div>
                             <div style={{ marginTop: '10px', fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 <span>{filteredCourses.length} subject(s) match{fq ? ` “${subjectFilter.trim()}”` : ' the current filters'} ·</span>
-                                {bulkCourseId
-                                    ? <span><strong style={{ color: '#475569' }}>Target:</strong> {selectedCourseName() || 'selected subject'} · “+ Enter Grade” will prefill it.</span>
-                                    : <span>No target selected — “+ Enter Grade” opens empty.</span>}
+{bulkCourseId
+                                                ? <span><strong style={{ color: '#475569' }}>Target:</strong> {selectedCourseName() || 'selected subject'} · “+ Enter Grade” will prefill it.</span>
+                                                : <span>No target selected — “+ Enter Grade” opens empty.</span>}
+                                        {filterHint && <span style={{ color: '#b7791f', fontWeight: '600' }}>{filterHint}</span>}
                             </div>
                         </div>
                     )}
@@ -1029,9 +1069,10 @@ const GradesPage = () => {
                         </div>
                         <div style={{ marginTop: '10px', fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             <span>{filteredCourses.length} subject(s) match{fq ? ` “${subjectFilter.trim()}”` : ' the current filters'} ·</span>
-                            {bulkCourseId
-                                ? <span><strong style={{ color: '#475569' }}>Roster:</strong> {selectedCourseName() || 'selected subject'} · {bulkExamType} · default Out Of {bulkOutOf}</span>
-                                : <span>Pick a subject course above to load its roster.</span>}
+{bulkCourseId
+                                            ? <span><strong style={{ color: '#475569' }}>Roster:</strong> {selectedCourseName() || 'selected subject'} · {bulkExamType} · default Out Of {bulkOutOf}</span>
+                                            : <span>Pick a subject course above to load its roster.</span>}
+                                    {filterHint && <span style={{ color: '#b7791f', fontWeight: '600' }}>{filterHint}</span>}
                         </div>
                     </div>
 
@@ -1075,13 +1116,24 @@ const GradesPage = () => {
                                     <span style={{ fontSize: '0.85rem', color: '#718096' }}>
                                         {filledCount} of {bulkEntries.length} students filled{sq ? ` · showing ${visibleBulkEntries.length}` : ''}
                                     </span>
-                                    <input
-                                        type="text"
-                                        placeholder="Filter roster: name / enrollment…"
-                                        value={bulkSearch}
-                                        onChange={e => setBulkSearch(e.target.value)}
-                                        style={{ padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', maxWidth: 240 }}
-                                    />
+                                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Filter roster: name / enrollment…"
+                                            value={bulkSearch}
+                                            onChange={e => setBulkSearch(e.target.value)}
+                                            style={{ padding: '6px 8px', paddingRight: bulkSearch ? '26px' : '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', maxWidth: 240 }}
+                                        />
+                                        {bulkSearch && (
+                                            <button
+                                                type="button"
+                                                aria-label="Clear roster filter"
+                                                title="Clear roster filter"
+                                                onClick={() => setBulkSearch('')}
+                                                style={{ position: 'absolute', right: '4px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: '#718096', padding: '2px 4px' }}
+                                            >✕</button>
+                                        )}
+                                    </div>
                                 </div>
                                 <button
                                     className="btn btn-primary"
@@ -1171,7 +1223,14 @@ const GradesPage = () => {
                                         {visibleBulkEntries.length === 0 && (
                                             <tr>
                                                 <td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>
-                                                    {bulkEntries.length === 0 ? 'No enrolled students found for this subject exam.' : 'No students match your roster filter.'}
+                                                    <div>
+                                                        {bulkEntries.length === 0 ? 'No students found for this subject exam.' : 'No students match your roster filter.'}
+                                                        {bulkEntries.length === 0 && (
+                                                            <div style={{ marginTop: '10px' }}>
+                                                                <button className="btn btn-secondary btn-sm" onClick={() => loadBulkRoster(bulkCourseId, bulkExamType)}>↻ Reload roster</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )}

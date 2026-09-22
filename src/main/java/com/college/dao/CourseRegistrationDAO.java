@@ -373,8 +373,8 @@ public class CourseRegistrationDAO {
         String sql = "SELECT DISTINCT s.* FROM students s " +
                 "LEFT JOIN course_registrations cr ON s.id = cr.student_id AND cr.course_id = ? " +
                 "LEFT JOIN student_courses sc ON s.id = sc.student_id AND sc.course_id = ? " +
-                "WHERE (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED') " +
-                "OR (sc.status = 'ENROLLED' OR sc.status = 'REGISTERED') " +
+                "WHERE (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED' OR cr.status = 'APPROVED') " +
+                "OR (sc.status = 'ENROLLED' OR sc.status = 'REGISTERED' OR sc.status = 'APPROVED') " +
                 "ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -425,8 +425,8 @@ public class CourseRegistrationDAO {
                 "LEFT JOIN users u ON s.user_id = u.id " +
                 "LEFT JOIN course_registrations cr ON s.id = cr.student_id AND cr.course_id = ? " +
                 "LEFT JOIN student_courses sc ON s.id = sc.student_id AND sc.course_id = ? " +
-                "WHERE (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED') " +
-                "OR (sc.status = 'ENROLLED' OR sc.status = 'REGISTERED') " +
+                "WHERE (cr.status = 'ENROLLED' OR cr.status = 'REGISTERED' OR cr.status = 'APPROVED') " +
+                "OR (sc.status = 'ENROLLED' OR sc.status = 'REGISTERED' OR sc.status = 'APPROVED') " +
                 "ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();

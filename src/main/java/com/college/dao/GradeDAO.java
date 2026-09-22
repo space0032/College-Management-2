@@ -426,7 +426,7 @@ public class GradeDAO {
                 "LEFT JOIN course_registrations cr ON s.id = cr.student_id AND cr.course_id = ? " +
                 "LEFT JOIN student_courses sc ON s.id = sc.student_id AND sc.course_id = ? " +
                 "LEFT JOIN grades g ON g.student_id = s.id AND g.course_id = ? AND g.exam_type = ? " +
-                "WHERE (cr.status IN ('ENROLLED', 'REGISTERED') OR sc.status IN ('ENROLLED', 'REGISTERED')) " +
+                "WHERE (cr.status IN ('ENROLLED', 'REGISTERED', 'APPROVED') OR sc.status IN ('ENROLLED', 'REGISTERED', 'APPROVED')) " +
                 "ORDER BY s.name";
 
         try (Connection conn = DatabaseConnection.getConnection();
