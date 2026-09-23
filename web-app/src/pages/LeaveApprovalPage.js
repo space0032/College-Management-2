@@ -1,7 +1,7 @@
 import SessionManager from '../utils/SessionManager';
 import React, { useState, useEffect, useCallback } from 'react';
 import { getStaffLeaves, getStudentLeaves, getAllPendingLeaves, createStaffLeave, createStudentLeave, updateStaffLeaveStatus, updateStudentLeaveStatus } from '../services/leaveService';
-import { LEAVE_TYPES, LEAVE_STATUSES, calculateDays } from '../constants/leaveConstants';
+import { LEAVE_TYPES, calculateDays } from '../constants/leaveConstants';
 
 const dayDiff = calculateDays;
 

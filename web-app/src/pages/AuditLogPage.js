@@ -20,8 +20,6 @@ const AuditLogPage = () => {
     const [dateTo, setDateTo] = useState('');
     const seqRef = useRef(0);
 
-    useEffect(() => { fetchLogs(); }, []);
-
     const fetchLogs = useCallback(async (params = {}) => {
         // Serialize requests so a slow older response can't clobber a newer one.
         const seq = ++seqRef.current;
@@ -42,6 +40,8 @@ const AuditLogPage = () => {
             }
         }
     }, []);
+
+    useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
     const handleSearch = (e) => {
         e.preventDefault();
