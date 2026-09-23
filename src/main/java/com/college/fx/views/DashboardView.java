@@ -179,6 +179,85 @@ public class DashboardView {
 
     private static final String SVG_SETTINGS = "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z";
 
+    /**
+     * RBAC gate for view access. Mirrors the sidebar's visibility rules so a
+     * user reaching a view directly (Home search, programmatic navigation)
+     * still must hold the required permission (J-C1).
+     */
+    private boolean canAccess(String viewName) {
+        SessionManager session = SessionManager.getInstance();
+        if (session.isAdmin()) return true;
+        switch (viewName) {
+            case "home": case "profile": case "password": case "calendar":
+            case "events": case "clubs": case "crowdfunding": case "scholarships":
+                return true;
+            case "institute":
+                return session.hasPermission("MANAGE_SYSTEM");
+            case "students":
+                return (session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS")) && !session.isStudent();
+            case "faculty":
+                return session.hasPermission("MANAGE_FACULTY");
+            case "faculty_workload":
+                return session.hasPermission("MANAGE_FACULTY") || session.hasPermission("MANAGE_COURSES");
+            case "employees":
+                return session.hasPermission("VIEW_EMPLOYEES");
+            case "courses":
+                return session.isStudent() || session.hasPermission("MANAGE_COURSES") || session.hasPermission("VIEW_COURSES");
+            case "attendance":
+                return session.isStudent() || session.hasPermission("MANAGE_ATTENDANCE");
+            case "grades":
+                return session.isStudent() || session.hasPermission("MANAGE_GRADES") || session.hasPermission("VIEW_GRADES");
+            case "assignments":
+                return session.isStudent() || session.hasPermission("MANAGE_ASSIGNMENTS") || session.hasPermission("VIEW_ASSIGNMENTS");
+            case "timetable":
+                return session.isStudent() || session.hasPermission("VIEW_TIMETABLE");
+            case "library":
+                return session.hasPermission("VIEW_LIBRARY") || session.hasPermission("MANAGE_LIBRARY");
+            case "fees":
+                return session.hasPermission("VIEW_OWN_FEES") || session.hasPermission("MANAGE_FEES");
+            case "hostel":
+                return session.isStudent() || session.hasPermission("VIEW_HOSTEL") || session.hasPermission("MANAGE_HOSTEL");
+            case "gatepass":
+                return session.isStudent() || session.hasPermission("VIEW_GATEPASS") || session.hasPermission("MANAGE_GATEPASS");
+            case "placements":
+                return session.isStudent() || session.hasPermission("VIEW_PLACEMENTS") || session.hasPermission("MANAGE_PLACEMENTS");
+            case "student_leave":
+                return session.isStudent() || session.hasPermission("UPDATE_LEAVE");
+            case "leave_approval":
+                return session.hasPermission("UPDATE_LEAVE");
+            case "staff_leave":
+                return !session.isStudent();
+            case "announcements":
+                return !session.isStudent();
+            case "payroll":
+                return session.hasPermission("MANAGE_PAYROLL");
+            case "reports":
+                return session.hasAnyPermission("VIEW_REPORTS", "MANAGE_VISITORS", "VIEW_PLACEMENTS", "VIEW_FEES_REPORT");
+            case "visitor_log":
+                return session.hasPermission("MANAGE_VISITORS");
+            case "event_management":
+                return session.hasPermission("MANAGE_EVENTS");
+            case "club_management":
+                return session.hasPermission("MANAGE_CLUBS");
+            case "college_settings":
+                return session.hasPermission("MANAGE_COLLEGE_INFO");
+            case "student_activities":
+                return session.isStudent() || session.hasPermission("VIEW_EVENTS");
+            case "syllabus_management":
+                return session.hasPermission("UPLOAD_SYLLABUS");
+            case "resource_management":
+                return session.hasPermission("UPLOAD_RESOURCES");
+            case "learning_portal":
+                return session.isStudent();
+            case "room_availability":
+                return session.hasPermission("ROOM_CHECK");
+            case "student_affairs":
+                return session.hasPermission("MANAGE_STUDENTS");
+            default:
+                return true;
+        }
+    }
+
     private final SystemSettingsDAO systemSettingsDAO = new SystemSettingsDAO();
 
     private javafx.scene.shape.SVGPath createIcon(String pathContent) {
@@ -323,7 +402,7 @@ public class DashboardView {
         }
 
         // Leave Approvals
-        if (session.hasPermission("APPROVE_LEAVE")) {
+        if (session.hasPermission("UPDATE_LEAVE")) {
             addMenuItem(academicContent, "Leave Approvals", "leave_approval", SVG_LEAVE);
             hasAcademic = true;
         }
@@ -519,10 +598,24 @@ public class DashboardView {
     }
 
     private void navigateTo(String viewName) {
+        // RBAC gate: navigation is reachable from the sidebar, the Home search
+        // and programmatically, so permission checks cannot live only in the
+        // sidebar (J-C1).
+        if (!canAccess(viewName)) {
+            com.college.utils.Logger.warn("Navigation denied: user " + userId + " (" + role + ") attempted view '" + viewName + "'");
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            DialogUtils.styleDialog(alert);
+            alert.setTitle("Access Denied");
+            alert.setHeaderText("You do not have permission to view this section");
+            alert.setContentText("Contact your administrator if you believe this is a mistake.");
+            alert.showAndWait();
+            return;
+        }
+
         updateActiveState(viewName);
-        contentArea.getChildren().clear();
 
         try {
+            contentArea.getChildren().clear();
             switch (viewName) {
                 case "home":
                     showHome();
@@ -654,6 +747,11 @@ public class DashboardView {
             }
         } catch (Throwable e) {
             e.printStackTrace();
+            contentArea.getChildren().clear();
+            Label errorLabel = new Label("Failed to load view: " + viewName + "\n\n" + e);
+            errorLabel.setWrapText(true);
+            errorLabel.setStyle("-fx-text-fill: #ef4444; -fx-padding: 20; -fx-font-size: 14px;");
+            contentArea.getChildren().add(errorLabel);
             Alert alert = new Alert(Alert.AlertType.ERROR);
             DialogUtils.styleDialog(alert);
             alert.setTitle("Navigation Error");

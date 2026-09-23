@@ -27,8 +27,8 @@ export default function EmployeeManagementPage() {
     if (!form.employeeId.trim() || !form.firstName.trim() || !form.email.trim() || !form.designation.trim()) { setFormError('Employee ID, first name, email and designation are required.'); return; }
     if (salary && (!/^\d+(\.\d{1,2})?$/.test(salary) || Number(salary) > 99999999.99)) { setFormError('Enter a non-negative monthly salary with at most two decimal places.'); return; }
     if (form.phone && (!/^\+?[0-9 -]+$/.test(form.phone) || form.phone.replace(/\D/g, '').length < 7 || form.phone.replace(/\D/g, '').length > 15)) { setFormError('Enter a phone number containing 7 to 15 digits.'); return; }
-    await action.run(async () => {
-      const payload = { ...form, employeeId: form.employeeId.trim(), firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim(), salary: salary || '0' };
+await action.run(async () => {
+      const payload = { ...form, employeeId: form.employeeId.trim(), firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim(), salary: salary || (form.id > 0 ? (JSON.parse(initial).salary ?? 0) : '0') };
       await (form.id > 0 ? updateEmployee(payload) : addEmployee(payload));
       setForm(null); await list.reload();
     }, 'Employee profile saved.');

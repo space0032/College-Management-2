@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import SessionManager from '../utils/SessionManager';
 import { getWorkloadAnalytics, getFacultyWorkload, assignCourse, unassignCourse, checkConflict, suggestCourses } from '../services/workloadService';
 
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -7,6 +8,9 @@ const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0
 const CREDIT_LIMIT = 18;
 
 const FacultyWorkloadPage = () => {
+    const hasView = SessionManager.hasPermission('VIEW_WORKLOAD') || SessionManager.hasPermission('MANAGE_OWN_COURSES');
+    const canAssign = SessionManager.hasPermission('UPDATE_COURSE');
+
     const [analytics, setAnalytics] = useState([]);
     const [selectedFaculty, setSelectedFaculty] = useState(null);
     const [facultyDetails, setFacultyDetails] = useState(null);
@@ -15,6 +19,7 @@ const FacultyWorkloadPage = () => {
     const [detailsError, setDetailsError] = useState(null);
     const [error, setError] = useState(null);
     const [departmentFilter, setDepartmentFilter] = useState('');
+    const detailsSeq = useRef(0);
 
     // Assignment modal state
     const [assignModal, setAssignModal] = useState(null);
@@ -26,11 +31,7 @@ const FacultyWorkloadPage = () => {
     const [assignError, setAssignError] = useState(null);
     const [assignSuccess, setAssignSuccess] = useState(null);
 
-    useEffect(() => {
-        fetchAnalytics();
-    }, []);
-
-    const fetchAnalytics = async () => {
+    const fetchAnalytics = useCallback(async () => {
         setLoading(true);
         try {
             const res = await getWorkloadAnalytics();
@@ -41,21 +42,47 @@ const FacultyWorkloadPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (!hasView) return;
+        fetchAnalytics();
+    }, [hasView, fetchAnalytics]);
 
     const handleSelectFaculty = async (facultyName) => {
         setSelectedFaculty(facultyName);
         setDetailsLoading(true);
         setDetailsError(null);
+        const seq = ++detailsSeq.current;
         try {
             const res = await getFacultyWorkload(facultyName);
+            if (seq !== detailsSeq.current) return;
             setFacultyDetails(res.data);
         } catch (err) {
             console.error(err);
+            if (seq !== detailsSeq.current) return;
             setDetailsError('Failed to load faculty details.');
         } finally {
-            setDetailsLoading(false);
+            if (seq === detailsSeq.current) {
+                setDetailsLoading(false);
+            }
         }
+    };
+
+    const fetchAllCourses = async () => {
+        // Fetch every page so assignments are never silently dropped by pagination.
+        const api = (await import('../services/api')).default;
+        let courses = [];
+        let page = 1;
+        let total = null;
+        do {
+            const res = await api.get(`/courses?page=${page}&size=1000`);
+            courses = courses.concat(res.data || []);
+            total = Number(res.headers['x-total-count']);
+            if (!total) break;
+            page += 1;
+        } while ((page - 1) * 1000 < total);
+        return courses;
     };
 
     const openAssignModal = async (facultyRow) => {
@@ -69,10 +96,7 @@ const FacultyWorkloadPage = () => {
         setConflictInfo(null);
 
         try {
-            const allCoursesRes = await import('../services/workloadService').then(m =>
-                import('../services/api').then(api => api.default.get('/courses?page=1&size=1000'))
-            );
-            const allCourses = allCoursesRes.data || [];
+            const allCourses = await fetchAllCourses();
             const assigned = allCourses.filter(c => c.facultyId === facultyRow.facultyId);
             const unassigned = allCourses.filter(c => !c.facultyId || c.facultyId === 0);
 
@@ -105,15 +129,17 @@ const FacultyWorkloadPage = () => {
         }
 
         // Check for time conflicts first
+        let conflictFound = false;
         try {
             const conflictRes = await checkConflict(assignModal.facultyId, selectedCourse.id);
             if (conflictRes.data.hasConflict) {
                 setConflictInfo(conflictRes.data.conflicts);
-                return;
+                conflictFound = true;
             }
         } catch (err) {
             // Continue even if conflict check fails (non-critical)
         }
+        if (conflictFound) return;
 
         // Check for overload
         const currentCredits = currentCourses.reduce((sum, c) => sum + (c.credits || 0), 0);
@@ -135,14 +161,17 @@ const FacultyWorkloadPage = () => {
             fetchAnalytics();
         } catch (err) {
             const status = err.response?.status;
-            const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to assign course';
+            const body = err.response?.data || {};
+            const msg = body.message || body.error || 'Failed to assign course';
             console.error(`Assign failed course ${selectedCourse.id} faculty ${assignModal.facultyId}:`, status, msg);
-            if (status === 409) {
-                setConflictInfo([{ dayOfWeek: 'Conflict', timeSlot: '', existingSubject: msg }]);
+            if (status === 409 && body.conflict) {
+                setConflictInfo([{ dayOfWeek: body.dayOfWeek || 'Conflict', timeSlot: body.timeSlot || '', existingSubject: body.existingSubject || msg }]);
             } else if (status === 403) {
-                setAssignError(`Not permitted to assign courses (${msg}). Requires UPDATE_COURSE permission.`);
+                setAssignError(`Not permitted to assign courses (${body.error || msg}). Requires UPDATE_COURSE permission.`);
             } else if (status === 404) {
                 setAssignError(`Assign failed: ${msg}. The faculty or course ID may be stale — reopen Manage and retry.`);
+            } else if (status === 409) {
+                setAssignError(`Assign failed: ${msg}`);
             } else {
                 setAssignError(status ? `Assign failed (${status}) course ${selectedCourse.id} faculty ${assignModal.facultyId}: ${msg}` : `${msg} (course ${selectedCourse.id} faculty ${assignModal.facultyId})`);
             }
@@ -193,6 +222,15 @@ const FacultyWorkloadPage = () => {
     const filteredAnalytics = departmentFilter ? analytics.filter(f => f.department === departmentFilter) : analytics;
 
     if (loading) return <div className="page-container">Loading Workload Analytics...</div>;
+
+    if (!hasView) {
+        return (
+            <div className="page-container">
+                <div className="page-header"><h2>Faculty Workload</h2></div>
+                <div className="alert alert-danger">You do not have permission to view workload data.</div>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -252,9 +290,11 @@ const FacultyWorkloadPage = () => {
                                             <button className="btn btn-primary btn-sm" onClick={() => handleSelectFaculty(f.facultyName)}>
                                                 Details
                                             </button>
-                                            <button className="btn btn-secondary btn-sm" onClick={() => openAssignModal(f)}>
-                                                Manage
-                                            </button>
+                                            {canAssign && (
+                                                <button className="btn btn-secondary btn-sm" onClick={() => openAssignModal(f)}>
+                                                    Manage
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -266,11 +306,11 @@ const FacultyWorkloadPage = () => {
 
             {/* Workload Detail Modal */}
             {selectedFaculty && (
-                <div className="modal-overlay">
+                <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={`Workload report for ${selectedFaculty}`}>
                     <div className="modal-content" style={{ maxWidth: '800px' }}>
                         <div className="modal-header">
                             <h2>Workload Report: {selectedFaculty}</h2>
-                            <button className="modal-close" onClick={() => setSelectedFaculty(null)}>×</button>
+                            <button className="modal-close" aria-label="Close" onClick={() => setSelectedFaculty(null)}>×</button>
                         </div>
 
                         {detailsLoading ? (
@@ -332,11 +372,11 @@ const FacultyWorkloadPage = () => {
 
             {/* Course Assignment Modal */}
             {assignModal && (
-                <div className="modal-overlay">
+                <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={`Manage assignments for ${assignModal.facultyName}`}>
                     <div className="modal-content" style={{ maxWidth: '600px' }}>
                         <div className="modal-header">
                             <h2>Manage Assignments: {assignModal.facultyName}</h2>
-                            <button className="modal-close" onClick={() => setAssignModal(null)}>×</button>
+                            <button className="modal-close" aria-label="Close" onClick={() => setAssignModal(null)}>×</button>
                         </div>
                         <div style={{ padding: '20px' }}>
                             {assignError && <div className="alert alert-danger" style={{ marginBottom: '15px' }}>{assignError}</div>}
@@ -372,7 +412,13 @@ const FacultyWorkloadPage = () => {
                                                             {c.specialization ? <span style={{ marginLeft: '6px', fontSize: '0.78rem', color: '#6b46c1' }}>[{c.specialization}]</span> : null}
                                                             <span style={{ marginLeft: '8px', fontSize: '0.85rem', color: '#666' }}>({c.credits} credits)</span>
                                                         </div>
-                                                        <button className="btn btn-danger btn-sm" onClick={() => handleUnassign(c)}>Unassign</button>
+                                                        <button
+                                                                className="btn btn-danger btn-sm"
+                                                                disabled={assignLoading}
+                                                                onClick={() => handleUnassign(c)}
+                                                            >
+                                                                {assignLoading ? 'Working...' : 'Unassign'}
+                                                            </button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -405,7 +451,7 @@ const FacultyWorkloadPage = () => {
                                                     })}
                                                 </select>
                                             </div>
-                                            <button className="btn btn-secondary btn-sm" onClick={handleSuggestFit} style={{ whiteSpace: 'nowrap' }}>
+                                            <button className="btn btn-secondary btn-sm" onClick={handleSuggestFit} disabled={assignLoading} style={{ whiteSpace: 'nowrap' }}>
                                                 Suggest Fit
                                             </button>
                                             <button
@@ -414,7 +460,7 @@ const FacultyWorkloadPage = () => {
                                                 disabled={!selectedCourse || assignLoading}
                                                 style={{ whiteSpace: 'nowrap' }}
                                             >
-                                                Assign
+                                                {assignLoading ? 'Assigning...' : 'Assign'}
                                             </button>
                                         </div>
                                         {availableCourses.length === 0 && (

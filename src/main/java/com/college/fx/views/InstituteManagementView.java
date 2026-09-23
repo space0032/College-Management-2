@@ -6,6 +6,7 @@ import com.college.dao.RoleDAO;
 import com.college.dao.UserDAO; // Added
 import com.college.dao.AuditLogDAO;
 import com.college.utils.DialogUtils;
+import com.college.utils.SessionManager;
 import com.college.models.Department;
 import com.college.models.Permission;
 import com.college.models.Role;
@@ -112,16 +113,23 @@ public class InstituteManagementView {
         Tab auditTab = new Tab("Audit Logs");
         auditTab.setContent(createAuditSection());
 
-        // Student & Faculty Tabs (Integrated)
-        Tab studentTab = new Tab("Institute");
-        StudentManagementView studentView = new StudentManagementView(userRole, userId);
-        studentTab.setContent(studentView.getView());
+        // Student & Faculty Tabs (Integrated) - gated on the same RBAC permissions
+        SessionManager session = SessionManager.getInstance();
+        if (session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS")) {
+            Tab studentTab = new Tab("Institute");
+            StudentManagementView studentView = new StudentManagementView(userRole, userId);
+            studentTab.setContent(studentView.getView());
+            tabPane.getTabs().add(studentTab);
+        }
 
-        Tab facultyTab = new Tab("Faculty");
-        FacultyManagementView facultyView = new FacultyManagementView(userRole, userId);
-        facultyTab.setContent(facultyView.getView());
+        if (session.hasPermission("MANAGE_FACULTY")) {
+            Tab facultyTab = new Tab("Faculty");
+            FacultyManagementView facultyView = new FacultyManagementView(userRole, userId);
+            facultyTab.setContent(facultyView.getView());
+            tabPane.getTabs().add(facultyTab);
+        }
 
-        tabPane.getTabs().addAll(studentTab, facultyTab, deptTab, roleTab);
+        tabPane.getTabs().addAll(deptTab, roleTab);
 
         // Add Special Users tab only for Admins
         if ("ADMIN".equals(userRole)) {
@@ -518,7 +526,14 @@ public class InstituteManagementView {
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
-                Role result = role != null ? role : new Role();
+                if (role != null && role.isSystemRole()) {
+                    showError("Error", "Cannot edit system roles completely.");
+                    return null;
+                }
+                Role result = new Role();
+                if (role != null) {
+                    result.setId(role.getId());
+                }
                 result.setCode(codeField.getText().toUpperCase());
                 result.setName(nameField.getText());
                 result.setDescription(descArea.getText());
@@ -530,17 +545,29 @@ public class InstituteManagementView {
 
         Optional<Role> result = dialog.showAndWait();
         result.ifPresent(newRole -> {
-            if (role != null && role.isSystemRole()) {
-                showError("Error", "Cannot edit system roles completely.");
-                // Implementing basic edit support if needed or blocking it
-                return;
-            }
-
             boolean success;
             if (role == null) {
                 success = roleDAO.createRole(newRole);
             } else {
-                success = roleDAO.updateRole(newRole);
+                String origCode = role.getCode();
+                String origName = role.getName();
+                String origDesc = role.getDescription();
+                String origPortal = role.getPortalType();
+                role.setCode(newRole.getCode());
+                role.setName(newRole.getName());
+                role.setDescription(newRole.getDescription());
+                role.setPortalType(newRole.getPortalType());
+                try {
+                    success = roleDAO.updateRole(newRole);
+                } catch (RuntimeException e) {
+                    success = false;
+                }
+                if (!success) {
+                    role.setCode(origCode);
+                    role.setName(origName);
+                    role.setDescription(origDesc);
+                    role.setPortalType(origPortal);
+                }
             }
 
             if (success) {
@@ -1046,15 +1073,18 @@ public class InstituteManagementView {
 
     private void deleteUser(User user) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(alert);
         alert.setTitle("Delete User");
         alert.setHeaderText("Delete " + user.getUsername() + "?");
         alert.setContentText("Are you sure? This cannot be undone.");
 
-        if (alert.showAndWait().get() == ButtonType.OK) {
-            if (userDAO.deleteUser(user.getId())) {
+        if (alert.showAndWait().filter(b -> b == ButtonType.OK).isPresent()) {
+            try {
+                new com.college.dao.AccessManagementDAO().deleteUser(userId, user.getId());
                 loadUsers();
-            } else {
-                showError("Error", "Failed to delete user.");
+                showInfo("Success", "User deleted successfully.");
+            } catch (RuntimeException e) {
+                showError("Error", e.getMessage() != null ? e.getMessage() : "Failed to delete user.");
             }
         }
     }

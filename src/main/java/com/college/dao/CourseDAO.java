@@ -386,6 +386,22 @@ public class CourseDAO {
         return stats;
     }
 
+    /** Count distinct subject names across the courses a faculty member teaches. */
+    public int getDistinctSubjectCount(int facultyId) {
+        String sql = "SELECT COUNT(DISTINCT name) FROM courses WHERE faculty_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, facultyId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            Logger.error("Distinct subject count failed", e);
+        }
+        return 0;
+    }
+
     public List<Course> getCoursesByFaculty(int facultyId) {
         List<Course> courses = new ArrayList<>();
         String sql = "SELECT c.*, d.name as dept_name, f.name as faculty_name FROM courses c " +

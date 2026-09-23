@@ -11,6 +11,20 @@ import { CONFIG } from '../config';
 
 const EMPTY_FORM = { name: '', email: '', phone: '', address: '', batch: '', department: '', specialization: '', semester: '', password: '', isHostelite: false, hostelId: '', roomId: '' };
 
+// Cryptographically strong 12-char password generator (webcrypto-backed).
+const generateStrongPassword = () => {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+  const bytes = new Uint8Array(12);
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  let out = '';
+  for (let i = 0; i < bytes.length; i++) out += charset[bytes[i] % charset.length];
+  return out;
+};
+
 const initialState = {
   students: [],
   loading: false,
@@ -303,14 +317,31 @@ const StudentManagementPage = () => {
       }
       if (existing) {
         if (existing.roomId !== nextRoomId) {
+          const oldRoomId = existing.roomId;
           await vacateRoom(existing.id);
-          await allocateRoom({
-            studentId,
-            roomId: nextRoomId,
-            checkInDate: new Date().toISOString().split('T')[0],
-            remarks: 'Room changed during student edit',
-            allocatedBy: currentUser.id || null
-          });
+          try {
+            await allocateRoom({
+              studentId,
+              roomId: nextRoomId,
+              checkInDate: new Date().toISOString().split('T')[0],
+              remarks: 'Room changed during student edit',
+              allocatedBy: currentUser.id || null
+            });
+          } catch (err) {
+            // Roll back so the student is never left without a room.
+            if (oldRoomId) {
+              try {
+                await allocateRoom({
+                  studentId,
+                  roomId: oldRoomId,
+                  checkInDate: new Date().toISOString().split('T')[0],
+                  remarks: 'Rolled back after failed room change',
+                  allocatedBy: currentUser.id || null
+                });
+              } catch { /* best effort */ }
+            }
+            throw err;
+          }
         }
       } else {
         await allocateRoom({
@@ -344,34 +375,44 @@ const StudentManagementPage = () => {
     const wantHostel = !!normalizedForm.isHostelite;
     dispatch({ type: 'SAVING_START' });
     const currentUser = SessionManager.getUser() || {};
-    const payload = { ...normalizedForm, course: normalizedForm.course || '', isHostelite: wantHostel };
+    const payload = { ...normalizedForm, isHostelite: wantHostel };
+    // The editor has no course control — never overwrite the stored course.
+    delete payload.course;
     try {
       if (editId) {
         await updateStudent(editId, payload);
-        await syncAllocation(editId, normalizedForm);
+        let allocWarning = '';
+        try {
+          await syncAllocation(editId, normalizedForm);
+        } catch (allocErr) {
+          allocWarning = 'Student details saved, but the hostel allocation could not be updated. Please review it in the Hostel section.';
+        }
+        if (allocWarning) alert(allocWarning);
         dispatch({ type: 'SAVING_DONE' });
       } else {
+        let allocWarning = '';
         const res = await createStudent(payload);
         const newId = res.data?.id;
         if (wantHostel && newId) {
-          await allocateRoom({
-            studentId: newId,
-            roomId: Number(normalizedForm.roomId),
-            checkInDate: new Date().toISOString().split('T')[0],
-            remarks: 'Allocated during student creation',
-            allocatedBy: currentUser.id || null
-          });
+          try {
+            await allocateRoom({
+              studentId: newId,
+              roomId: Number(normalizedForm.roomId),
+              checkInDate: new Date().toISOString().split('T')[0],
+              remarks: 'Allocated during student creation',
+              allocatedBy: currentUser.id || null
+            });
+          } catch (allocErr) {
+            allocWarning = 'Student was created, but the hostel room could not be allocated. Please allocate a room in the Hostel section.';
+          }
         }
+        if (allocWarning) alert(allocWarning);
         dispatch({ type: 'SAVING_DONE' });
         dispatch({ type: 'SHOW_CREDENTIALS', payload: res.data });
       }
       fetchStudents(1, false);
     } catch (err) {
-      if (editId) {
-        dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save student.' });
-      } else {
-        dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Student created but room allocation failed. Please allocate the room in the Hostel section.' });
-      }
+      dispatch({ type: 'SET_FORM_ERROR', payload: err.response?.data?.error || err.response?.data?.message || 'Failed to save student.' });
     }
   }, [form, editId, fetchStudents, syncAllocation, validateField]);
 
@@ -396,13 +437,30 @@ const StudentManagementPage = () => {
     });
   }, [students, search, filterDept, filterSem]);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
+    // W-L1: exports must cover the full result set, not just fetched rows.
+    const allRows = [];
+    let pageNum = 1;
+    const size = 1000; // matches the backend MAX_PAGE_SIZE cap
+    try {
+      while (true) {
+        const res = await getAllStudents(pageNum, size);
+        const rows = res.data || [];
+        allRows.push(...rows);
+        const total = parseInt(res.headers['x-total-count'] || '0', 10) || allRows.length;
+        if (allRows.length >= total || rows.length === 0) break;
+        pageNum++;
+      }
+    } catch (err) {
+      alert('Failed to load all students for export.');
+      return;
+    }
     exportToCSV(
       ['ID', 'Name', 'Email', 'Phone', 'Course', 'Department', 'Track', 'Semester'],
-      filteredStudents.map(s => [s.id, s.name, s.email, s.phone, s.course, s.department, s.specialization || '', s.semester]),
+      allRows.map(s => [s.id, s.name, s.email, s.phone, s.course, s.department, s.specialization || '', s.semester]),
       'students_export'
     );
-  }, [filteredStudents]);
+  }, []);
 
   const fileInputRef = useRef(null);
 
@@ -777,7 +835,7 @@ const StudentManagementPage = () => {
                   <div className="password-row">
                     <input id="student-password" name="password" className="form-control" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={form.password || ''} onChange={handleFormChange} placeholder="Leave empty for default: 123" />
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowPassword(v => !v)} aria-pressed={showPassword}>{showPassword ? 'Hide' : 'Show'}</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => dispatch({ type: 'SET_FORM', name: 'password', value: Math.random().toString(36).slice(2, 10) })}>Generate</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => dispatch({ type: 'SET_FORM', name: 'password', value: generateStrongPassword() })}>Generate</button>
                   </div>
                   <small className="field-hint">Leave empty for default: 123 · Enrollment number is auto-generated as username.</small>
                 </div>

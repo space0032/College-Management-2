@@ -6,6 +6,7 @@ export const getAuditLogs = (params = {}) => {
     if (params.from) query.set('from', params.from);
     if (params.to) query.set('to', params.to);
     if (params.limit) query.set('limit', params.limit);
+    if (params.q) query.set('q', params.q);
     const qs = query.toString();
     return api.get(`/audit${qs ? '?' + qs : ''}`);
 };

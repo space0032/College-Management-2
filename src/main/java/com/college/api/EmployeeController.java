@@ -33,8 +33,13 @@ public class EmployeeController extends BaseController implements HttpHandler {
                 int id = ManagementValidation.integer(body, "id", 1, Integer.MAX_VALUE);
                 Employee existing = employeeDAO.getAllEmployees().stream().filter(e -> e.getId() == id).findFirst().orElseThrow(() -> new ManagementException(404, "Employee not found."));
                 if (!java.util.Objects.equals(existing.getEmployeeId(), employee.getEmployeeId())) throw new ManagementException(409, "Employee ID cannot be changed.");
-                employee.setId(id);
-                if (existing.getUserId() != null) employee.setDesignation(existing.getDesignation());
+employee.setId(id);
+                // Preserve the existing designation for user-linked employees only
+                // when the update did not include a new one (B-L3).
+                if (existing.getUserId() != null
+                        && (employee.getDesignation() == null || employee.getDesignation().isBlank())) {
+                    employee.setDesignation(existing.getDesignation());
+                }
                 if (!employeeDAO.updateEmployee(employee)) throw new ManagementException(404, "Employee not found.");
             } else {
                 Employee linked = employeeDAO.getAllEmployees().stream().filter(e -> e.getEmployeeId() != null && e.getEmployeeId().equalsIgnoreCase(employee.getEmployeeId())).findFirst().orElse(null);

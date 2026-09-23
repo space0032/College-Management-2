@@ -1,19 +1,34 @@
 package com.college.utils;
 
+import com.college.dao.RoleDAO;
 import com.college.dao.StudentDAO;
 import com.college.dao.UserDAO;
+import com.college.models.Role;
 import com.college.models.Student;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.sql.Date;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CSVImporter {
+
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    // J-H1: import no longer hands every account the same weak "123" password.
+    private static String generateStrongPassword() {
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
 
     public static class ImportResult {
         public int successCount = 0;
@@ -88,8 +103,19 @@ public class CSVImporter {
                     // Generate enrollment number
                     String enrollmentNumber = EnrollmentGenerator.generateStudentEnrollment(department);
 
-                    // Create user account
-                    int userId = userDAO.addUser(enrollmentNumber, "123", "STUDENT");
+                    // Create user account with a strong generated password and RBAC
+                    // role_id.
+                    // J-H1: was a hardcoded weak "123" and no role_id binding.
+                    String password = generateStrongPassword();
+                    com.college.models.Role studentRole = new RoleDAO().getRoleByCode("STUDENT");
+                    int roleId = (studentRole != null) ? studentRole.getId() : 0;
+
+                    int userId;
+                    if (roleId > 0) {
+                        userId = userDAO.addUser(enrollmentNumber, password, "STUDENT", roleId);
+                    } else {
+                        userId = userDAO.addUser(enrollmentNumber, password, "STUDENT");
+                    }
 
                     if (userId == -1) {
                         result.errors.add("Line " + lineNum + ": Failed to create user account");
@@ -115,6 +141,9 @@ public class CSVImporter {
                     if (studentDAO.addStudent(student, userId) > 0) {
                         result.successCount++;
                     } else {
+                        // J-L6: roll back the user account we just created so we
+                        // don't leave an orphaned login with no student record.
+                        userDAO.deleteUser(userId);
                         result.errors.add("Line " + lineNum + ": Failed to add student - " + name);
                         result.failCount++;
                     }

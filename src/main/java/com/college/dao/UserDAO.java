@@ -19,6 +19,22 @@ public class UserDAO {
         }
     }
 
+    /**
+     * Convenience overload that opens its own connection and binds the user to a
+     * specific role_id (RBAC). Mirrors addUser(String,String,String) so callers in
+     * the UI/CSV layers can pass a roleId without managing an explicit Connection.
+     *
+     * @return generated user id, or -1 on failure
+     */
+    public int addUser(String username, String password, String role, int roleId) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            return addUser(conn, username, password, role, roleId);
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+            return -1;
+        }
+    }
+
     public int addUser(Connection conn, String username, String password, String role) throws SQLException {
         // Legacy support - try to find role ID if possible, otherwise just insert
         // string

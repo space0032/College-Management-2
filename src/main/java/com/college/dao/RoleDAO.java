@@ -178,14 +178,17 @@ public class RoleDAO {
         }
     }
 
-    public boolean assignPermissionToRole(int roleId, int permissionId) {
-        String sql = "INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)";
+public boolean assignPermissionToRole(int roleId, int permissionId) {
+        String sql = "INSERT INTO role_permissions (role_id, permission_id) SELECT ?, ? WHERE NOT EXISTS " +
+                "(SELECT 1 FROM role_permissions WHERE role_id = ? AND permission_id = ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, roleId);
             stmt.setInt(2, permissionId);
+            stmt.setInt(3, roleId);
+            stmt.setInt(4, permissionId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw com.college.utils.ManagementException.database(e);

@@ -14,6 +14,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.application.Platform;
 import javafx.scene.control.*;
+import javafx.event.ActionEvent;
 
 import javafx.scene.layout.*;
 
@@ -47,6 +48,9 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
     private TextField searchField;
     private ComboBox<String> deptFilter;
     private Label statsLabel;
+
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
 
     public StudentManagementView(String role, int userId) {
         this.role = role;
@@ -202,17 +206,21 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
             section.getChildren().addAll(addBtn, editBtn, deleteBtn, importBtn);
         }
 
-        Button viewProfileBtn = new Button("View Profile");
-        viewProfileBtn.setStyle(
-                "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
-        viewProfileBtn.setOnAction(e -> viewStudentProfile());
-        section.getChildren().add(viewProfileBtn);
+        // PII + bulk data actions require the view-student permission, not just
+        // the screen being reachable (J-C4).
+        if (session.hasPermission("VIEW_STUDENTS") || session.hasPermission("MANAGE_STUDENTS")) {
+            Button viewProfileBtn = new Button("View Profile");
+            viewProfileBtn.setStyle(
+                    "-fx-background-color: #f59e0b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            viewProfileBtn.setOnAction(e -> viewStudentProfile());
+            section.getChildren().add(viewProfileBtn);
 
-        Button exportBtn = new Button("Export");
-        exportBtn.setStyle(
-                "-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
-        exportBtn.setOnAction(e -> exportData());
-        section.getChildren().add(exportBtn);
+            Button exportBtn = new Button("Export");
+            exportBtn.setStyle(
+                    "-fx-background-color: #64748b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;");
+            exportBtn.setOnAction(e -> exportData());
+            section.getChildren().add(exportBtn);
+        }
 
         return section;
     }
@@ -318,7 +326,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         userLabel.setStyle("-fx-font-weight: bold");
 
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Password (optional, default: 123)");
+        passwordField.setPromptText("Password (optional, auto-generated if empty)");
 
         DialogUtils.addFormRow(grid, "Name:", nameField, 0);
         DialogUtils.addFormRow(grid, "Email:", emailField, 1);
@@ -340,7 +348,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
 
         DialogUtils.addFormRow(grid, "Password:", passwordField, 13);
 
-        Label passHint = new Label("(Leave empty for default: 123)");
+        Label passHint = new Label("(Leave empty to auto-generate a strong password)");
         passHint.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
         grid.add(passHint, 1, 14);
 
@@ -355,6 +363,24 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         });
         deptCombo.valueProperty().addListener((observable, oldValue, newValue) -> {
             saveButton.setDisable(newValue == null || nameField.getText().trim().isEmpty());
+        });
+
+        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
+            String email = emailField.getText() == null ? "" : emailField.getText().trim();
+            String phone = phoneField.getText() == null ? "" : phoneField.getText().trim();
+            if (nameField.getText().trim().isEmpty() || deptCombo.getValue() == null) {
+                showAlert("Validation Error", "Name and Department are required");
+                event.consume();
+            } else if (email.isEmpty()) {
+                showAlert("Validation Error", "Email is required");
+                event.consume();
+            } else if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+                showAlert("Validation Error", "Please enter a valid email (e.g., student@college.com)");
+                event.consume();
+            } else if (!phone.isEmpty() && !phone.matches("^[0-9]{10}$")) {
+                showAlert("Validation Error", "Phone must be 10 digits");
+                event.consume();
+            }
         });
 
         dialog.setResultConverter(dialogButton -> {
@@ -395,7 +421,7 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
                     }
 
                     // Validation passed - use EnrollmentDAO
-                    String password = passwordField.getText().trim().isEmpty() ? "123" : passwordField.getText();
+                    String password = passwordField.getText().trim().isEmpty() ? generateStrongPassword() : passwordField.getText();
 
                     // Create minimal Student object for enrollment
                     Student s = new Student();
@@ -449,7 +475,6 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         result.ifPresent(student -> {
             if (student != null) {
                 loadStudents();
-                showAlert("Success", "Student added successfully!");
             }
         });
     }
@@ -551,6 +576,14 @@ public class StudentManagementView implements com.college.fx.interfaces.ContextA
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private String generateStrongPassword() {
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     private void viewStudentProfile() {

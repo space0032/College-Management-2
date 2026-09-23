@@ -95,6 +95,22 @@ public class StaffLeaveDAO {
         }
     }
 
+    /** Returns the users.id of the staff member who owns the leave (0 if not found). */
+    public int getLeaveOwnerUserId(int leaveId) {
+        String sql = "SELECT user_id FROM staff_leaves WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, leaveId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("user_id");
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to fetch leave owner", e);
+        }
+        return 0;
+    }
+
     private StaffLeave mapResultSetToLeave(ResultSet rs) throws SQLException {
         StaffLeave leave = new StaffLeave();
         leave.setId(rs.getInt("id"));

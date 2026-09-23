@@ -21,6 +21,46 @@ public class AuthController extends BaseController implements HttpHandler {
 
     private final UserDAO userDAO = new UserDAO();
 
+    // Simple in-memory login throttle: track failed attempts per username/IP.
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final long LOCKOUT_MS = 15 * 60 * 1000L; // 15 minutes
+    private static final java.util.concurrent.ConcurrentHashMap<String, LockCell> failedAttempts = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Mutable holder for one credential's failure state. */
+    private static final class LockCell {
+        int attempts;
+        long lastAttemptMs;
+
+        LockCell() {
+            this.lastAttemptMs = System.currentTimeMillis();
+        }
+    }
+
+    private static boolean isLockedOut(String key) {
+        if (key == null) return false;
+        LockCell cell = failedAttempts.get(key);
+        return cell != null && cell.attempts >= MAX_FAILED_ATTEMPTS
+                && (System.currentTimeMillis() - cell.lastAttemptMs) < LOCKOUT_MS;
+    }
+
+    private static boolean recordFailure(String key) {
+        if (key == null) return false;
+        LockCell cell = failedAttempts.computeIfAbsent(key, k -> new LockCell());
+        synchronized (cell) {
+            if (System.currentTimeMillis() - cell.lastAttemptMs > LOCKOUT_MS) {
+                cell.attempts = 0;
+            }
+            cell.attempts++;
+            cell.lastAttemptMs = System.currentTimeMillis();
+            return cell.attempts >= MAX_FAILED_ATTEMPTS;
+        }
+    }
+
+    private static void resetFailures(String key) {
+        if (key == null) return;
+        failedAttempts.remove(key);
+    }
+
     @Override
     public void handle(HttpExchange t) throws IOException {
         if (handleOptions(t))
@@ -51,11 +91,19 @@ public class AuthController extends BaseController implements HttpHandler {
                 return;
             }
 
+            String lockKey = (username + "|" + t.getRemoteAddress().getAddress().getHostAddress()).toLowerCase();
+            if (isLockedOut(lockKey)) {
+                sendResponse(t, 429, errorJson("Too many failed attempts. Try again in 15 minutes."));
+                return;
+            }
+
             int userId = authenticateUser(username, password);
             if (userId <= 0) {
+                recordFailure(lockKey);
                 sendResponse(t, 401, errorJson("Invalid username or password"));
                 return;
             }
+            resetFailures(lockKey);
 
             User user = userDAO.getUserById(userId);
             if (user == null) {

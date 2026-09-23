@@ -295,15 +295,11 @@ public class HomeView {
 
     private void handleQuickAction(String action) {
         if ("Add Student Fee".equals(action)) {
-            // We can't easily open dialog from here without reference to FeesView or Main
-            // controller
-            // For now, redirect to Fees Page
-            com.college.MainFX.getPrimaryStage().getScene()
-                    .setRoot(new DashboardView(SessionManager.getInstance().getUsername(), role, userId).getView());
-            // This resets dashboard. Ideally we need a way to navigate.
-            // Since DashboardView handles navigation, HomeView is a child.
-            // We'll show an alert for now or try to find parent.
-            showAlert("Quick Action", "Please navigate to 'Student Fees' to perform this action.");
+            if (navigationHandler != null) {
+                navigationHandler.accept("fees");
+            } else {
+                showAlert("Quick Action", "Please navigate to 'Student Fees' to perform this action.");
+            }
         } else if ("Record Payment".equals(action)) {
             showAlert("Quick Action", "Please navigate to 'Student Fees' to perform this action.");
         }
@@ -582,7 +578,8 @@ public class HomeView {
             }
 
             // Sort by Date Descending
-            Collections.sort(alerts, Comparator.comparing((DashboardAlert a) -> a.timestamp).reversed());
+            Collections.sort(alerts, Comparator.comparing((DashboardAlert a) -> a.timestamp,
+                    Comparator.nullsLast(java.time.LocalDateTime::compareTo)).reversed());
 
             listView.getItems().addAll(alerts);
 
@@ -682,13 +679,42 @@ public class HomeView {
     }
 
     private String getMyAttendance() {
-        // Simplified - return placeholder
-        return "85";
+        try {
+            Student student = new StudentDAO().getStudentByUserId(userId);
+            if (student != null) {
+                List<com.college.models.Attendance> records = new AttendanceDAO().getAttendanceByStudent(student.getId());
+                if (records.isEmpty()) {
+                    return "N/A";
+                }
+                long present = records.stream()
+                        .filter(a -> "PRESENT".equalsIgnoreCase(a.getStatus()))
+                        .count();
+                return String.valueOf(Math.round(present * 100.0 / records.size()));
+            }
+        } catch (Exception e) {
+        }
+        return "N/A";
     }
 
     private String getMyFeeStatus() {
-        // Simplified - return placeholder
-        return "Paid";
+        try {
+            Student student = new StudentDAO().getStudentByUserId(userId);
+            if (student != null) {
+                List<com.college.models.StudentFee> fees = new EnhancedFeeDAO().getStudentFees(student.getId());
+                if (fees.isEmpty()) {
+                    return "N/A";
+                }
+                if (fees.stream().allMatch(f -> "PAID".equalsIgnoreCase(f.getStatus()))) {
+                    return "Paid";
+                }
+                if (fees.stream().anyMatch(f -> "PENDING".equalsIgnoreCase(f.getStatus()))) {
+                    return "Unpaid";
+                }
+                return "Partial";
+            }
+        } catch (Exception e) {
+        }
+        return "N/A";
     }
 
     private String getMyIssuedBooks() {

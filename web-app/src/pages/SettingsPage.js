@@ -14,8 +14,6 @@ const SettingsPage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState(null);
 
-    const userRole = SessionManager.getUserRole() || 'STUDENT';
-
     useEffect(() => {
         loadSettings();
     }, []);
@@ -29,11 +27,24 @@ const SettingsPage = () => {
                     college_logo_url: res.data.college_logo_url || '',
                     dropbox_api_key: res.data.dropbox_api_key || '',
                     timezone: res.data.timezone || 'UTC',
-                    default_theme: res.data.default_theme || 'light'
+                    default_theme: res.data.default_theme || 'light',
+                    accent_color: res.data.accent_color || ''
                 });
+                applyTheme(res.data);
             }
         } catch (err) {
             console.error('Failed to load settings', err);
+        }
+    };
+
+    const applyTheme = (s) => {
+        const root = document.documentElement;
+        if (s.accent_color) {
+            root.style.setProperty('--primary', s.accent_color);
+            root.style.setProperty('--primary-color', s.accent_color);
+        }
+        if (s.college_name) {
+            document.title = s.college_name + ' SMS';
         }
     };
 
@@ -48,11 +59,7 @@ const SettingsPage = () => {
         try {
             await updateSettings(settings);
             setMessage({ type: 'success', text: 'Settings updated successfully!' });
-
-            // Update CSS variables or layout if theme or logo changes
-            if (settings.college_name) {
-                document.title = settings.college_name + ' SMS';
-            }
+            applyTheme(settings);
         } catch (err) {
             setMessage({ type: 'error', text: 'Failed to update settings.' });
         } finally {
@@ -60,12 +67,12 @@ const SettingsPage = () => {
         }
     };
 
-    if (userRole !== 'ADMIN') {
+    if (!SessionManager.hasPermission('VIEW_SETTINGS')) {
         return (
             <div className="page-container">
                 <div className="stat-card" style={{ textAlign: 'center', padding: '40px', color: '#dc3545' }}>
                     <h2>Access Denied</h2>
-                    <p>You do not have administrative privileges to view or modify system settings.</p>
+                    <p>You do not have permission to view or modify system settings.</p>
                 </div>
             </div>
         );

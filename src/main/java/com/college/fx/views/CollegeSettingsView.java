@@ -180,35 +180,29 @@ public class CollegeSettingsView extends VBox {
 
         String logoPath = systemSettingsDAO.getSetting("COLLEGE_LOGO_PATH");
         if (logoPath != null && !logoPath.isEmpty()) {
-            // Load asynchronously
-            new Thread(() -> {
-                // String url = storageService.getTemporaryLink(logoPath);
-                // if (url != null) {
-                // javafx.application.Platform.runLater(() -> {
-                // logoPreview.setImage(new Image(url, true));
-                // });
-                // }
-            }).start();
+            // Logo rendering requires a storage/upload backend that is not
+            // implemented; the field value is preserved but not decompressed.
         }
     }
 
     private void saveSettings() {
+        if (!com.college.utils.SessionManager.getInstance().hasPermission("MANAGE_COLLEGE_INFO")) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "You do not have permission to change college settings.");
+            DialogUtils.styleDialog(alert);
+            alert.showAndWait();
+            return;
+        }
+
         String newName = collegeNameField.getText();
         if (newName != null && !newName.isEmpty()) {
             systemSettingsDAO.updateSetting("COLLEGE_NAME", newName);
         }
 
         if (selectedLogoFile != null) {
-            // TODO: Implement new file upload mechanism (local storage / backend API)
-            new Thread(() -> {
-                javafx.application.Platform.runLater(() -> {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, "Logo upload is not yet implemented.");
-                    DialogUtils.styleDialog(alert);
-                    alert.showAndWait();
-                });
-            }).start();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Logo upload is not yet implemented.");
+            DialogUtils.styleDialog(alert);
+            alert.showAndWait();
         } else {
-            // Just name saved
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Settings saved successfully!");
             DialogUtils.styleDialog(alert);
             alert.showAndWait();

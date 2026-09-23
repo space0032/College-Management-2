@@ -42,12 +42,24 @@ public class DashboardController extends BaseController implements HttpHandler {
         if (!requireAuth(t))
             return;
         try {
+            TokenStore.TokenInfo info = getTokenInfo(t);
+            if (info == null) return;
+
+            Map<String, Object> stats = new HashMap<>();
+
+            // Institution-wide aggregates are staff/admin-only (B-H2). Students
+            // get a safe minimal payload instead of college-wide counts.
+            if ("STUDENT".equalsIgnoreCase(info.role)) {
+                stats.put("role", "STUDENT");
+                sendResponse(t, 200, new Gson().toJson(stats));
+                return;
+            }
+
             StudentDAO studentDAO = new StudentDAO();
             FacultyDAO facultyDAO = new FacultyDAO();
             CourseDAO courseDAO = new CourseDAO();
             DepartmentDAO deptDAO = new DepartmentDAO();
 
-            Map<String, Object> stats = new HashMap<>();
             stats.put("totalStudents", studentDAO.getTotalCount());
             stats.put("totalFaculty", facultyDAO.getTotalCount());
             stats.put("activeCourses", courseDAO.getTotalCount());
@@ -59,8 +71,7 @@ public class DashboardController extends BaseController implements HttpHandler {
             stats.put("coursesThisWeek", courseDAO.getWeeklyCount());
 
             // Admin tier finance stats
-            TokenStore.TokenInfo info = getTokenInfo(t);
-            if (info != null && "ADMIN".equalsIgnoreCase(info.role)) {
+            if ("ADMIN".equalsIgnoreCase(info.role)) {
                 EnhancedFeeDAO feeDAO = new EnhancedFeeDAO();
                 double totalBilled = feeDAO.getTotalBilledAmount();
                 double totalPaid = totalBilled - feeDAO.getTotalPendingAmount();

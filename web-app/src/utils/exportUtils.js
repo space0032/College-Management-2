@@ -7,7 +7,12 @@
 export const exportToCSV = (columns, rows, filename = 'export') => {
     const escape = (val) => {
         if (val === null || val === undefined) return '';
-        const str = String(val);
+        let str = String(val);
+        // Prevent spreadsheet formula injection by neutralising cells that
+        // begin with spreadsheet operators (=, +, -, @, tab, CR).
+        if (/^[=+\-@\t\r]/.test(str)) {
+            str = "'" + str;
+        }
         // Wrap in quotes if it contains comma, quote, or newline
         if (/[",\n\r]/.test(str)) {
             return '"' + str.replace(/"/g, '""') + '"';

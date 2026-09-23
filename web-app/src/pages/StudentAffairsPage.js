@@ -30,6 +30,7 @@ const getBadgeStyle = (val) => {
 const DisciplinaryTab = () => {
     const [incidents, setIncidents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [modal, setModal] = useState(false);
     const [form, setForm] = useState({ student: '', enrollNo: '', date: '', type: '', severity: 'Low', action: '', status: 'Under Review' });
     const [detail, setDetail] = useState(null);
@@ -37,24 +38,22 @@ const DisciplinaryTab = () => {
 
     useEffect(() => {
         getDisciplinaryRecords()
-            .then(res => setIncidents(res.data || []))
-            .catch(() => setIncidents([
-                { id: 'DISC-104', student: 'John Doe', enrollNo: 'S2023-401', date: '2024-10-12', type: 'Plagiarism', severity: 'High', action: 'Verbal Warning + Deduction', status: 'Under Review' },
-                { id: 'DISC-103', student: 'Jane Smith', enrollNo: 'S2023-112', date: '2024-09-28', type: 'Hostel Curfew Violation', severity: 'Medium', action: 'Written Warning', status: 'Resolved' },
-            ]))
+            .then(res => setIncidents(Array.isArray(res.data) ? res.data : []))
+            .catch(() => setError('Could not load disciplinary records from the server.'))
             .finally(() => setLoading(false));
     }, []);
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
     const handleSave = async () => {
-        if (!form.student || !form.type) { alert('Student name and Violation Type are required.'); return; }
+        if (!form.enrollNo || !form.type) { alert('Enrollment No. and Violation Type are required.'); return; }
         try {
-            const res = await createDisciplinaryRecord({ ...form, date: form.date || new Date().toISOString().split('T')[0] });
+            const res = await createDisciplinaryRecord({ ...form, enrollmentId: form.enrollNo.trim(), date: form.date || new Date().toISOString().split('T')[0] });
             setIncidents(prev => [res.data, ...prev]);
-        } catch {
-            const newId = `DISC-${100 + incidents.length + 5}`;
-            setIncidents(prev => [{ ...form, id: newId, date: form.date || new Date().toISOString().split('T')[0] }, ...prev]);
+            setError('');
+        } catch (e) {
+            alert('Failed to save incident. Please check the enrollment number and try again.');
+            return;
         }
         setModal(false);
         setForm({ student: '', enrollNo: '', date: '', type: '', severity: 'Low', action: '', status: 'Under Review' });
@@ -62,9 +61,11 @@ const DisciplinaryTab = () => {
 
     const handleResolve = async (inc) => {
         try {
-            await updateDisciplinaryRecord(inc.id, { ...inc, status: 'Resolved' });
-        } catch { /* fallback to in-memory */ }
-        setIncidents(prev => prev.map(i => i.id === inc.id ? { ...i, status: 'Resolved' } : i));
+            await updateDisciplinaryRecord(inc.id, { status: 'Resolved' });
+            setIncidents(prev => prev.map(i => i.id === inc.id ? { ...i, status: 'Resolved' } : i));
+        } catch {
+            alert('Failed to update incident status.');
+        }
     };
 
     const filtered = filter ? incidents.filter(i => i.status === filter) : incidents;
@@ -72,6 +73,11 @@ const DisciplinaryTab = () => {
 
     return (
         <div className="stat-card" style={{ borderTop: '4px solid #ef4444' }}>
+            {error && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#b91c1c', fontWeight: '500' }}>
+                    ⚠️ {error}
+                </div>
+            )}
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
                 <div>
@@ -152,10 +158,10 @@ const DisciplinaryTab = () => {
                     <div style={{ background: 'white', borderRadius: '12px', padding: '30px', maxWidth: '520px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
                         <h3 style={{ margin: '0 0 20px' }}>⚖️ Log Disciplinary Incident</h3>
                         <div className="form-grid">
-                            {[{ name: 'student', label: 'Student Name *' }, { name: 'enrollNo', label: 'Enrollment No.' }, { name: 'date', label: 'Incident Date', type: 'date' }, { name: 'type', label: 'Violation Type *' }, { name: 'action', label: 'Action Taken' }].map(f => (
+                            {[{ name: 'enrollNo', label: 'Enrollment No. *', placeholder: 'e.g. S2023-401' }, { name: 'date', label: 'Incident Date', type: 'date' }, { name: 'type', label: 'Violation Type *' }, { name: 'action', label: 'Action Taken' }, { name: 'student', label: 'Student Name (optional)', placeholder: 'e.g. John Doe' }].map(f => (
                                 <div className="form-group" key={f.name}>
                                     <label className="form-label">{f.label}</label>
-                                    <input name={f.name} type={f.type || 'text'} className="form-control" value={form[f.name]} onChange={handleChange} />
+                                    <input name={f.name} type={f.type || 'text'} className="form-control" value={form[f.name]} placeholder={f.placeholder} onChange={handleChange} />
                                 </div>
                             ))}
                             <div className="form-group">
@@ -202,17 +208,15 @@ const DisciplinaryTab = () => {
 const GrievanceTab = () => {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [modal, setModal] = useState(false);
     const [form, setForm] = useState({ category: 'Infrastructure', title: '', description: '', reporter: '', priority: 'Medium', anonymous: false });
     const [filterStatus, setFilterStatus] = useState('');
 
     useEffect(() => {
         getGrievanceTickets()
-            .then(res => setTickets(res.data || []))
-            .catch(() => setTickets([
-                { id: 'TKT-8842', category: 'Infrastructure', title: 'Heating issue in Library Wing B', reporter: 'Anonymous', date: '2024-10-20', priority: 'High', status: 'Open' },
-                { id: 'TKT-8841', category: 'IT Services', title: 'WiFi disconnection in CS Lab 3', reporter: 'S2022-819', date: '2024-10-18', priority: 'Medium', status: 'Resolved' },
-            ]))
+            .then(res => setTickets(Array.isArray(res.data) ? res.data : []))
+            .catch(() => setError('Could not load grievance tickets from the server.'))
             .finally(() => setLoading(false));
     }, []);
 
@@ -226,23 +230,28 @@ const GrievanceTab = () => {
         const payload = {
             category: form.category, title: form.title, description: form.description,
             reporter: form.anonymous ? 'Anonymous' : (form.reporter || 'Unknown'),
-            date: new Date().toISOString().split('T')[0],
-            priority: form.priority, status: 'Open'
+            priority: form.priority
         };
+        payload.status = 'Open';
         try {
             const res = await createGrievanceTicket(payload);
             setTickets(prev => [res.data, ...prev]);
+            setError('');
         } catch {
-            const id = `TKT-${8800 + tickets.length + 43}`;
-            setTickets(prev => [{ id, ...payload }, ...prev]);
+            alert('Failed to file grievance. Please try again.');
+            return;
         }
         setModal(false);
         setForm({ category: 'Infrastructure', title: '', description: '', reporter: '', priority: 'Medium', anonymous: false });
     };
 
     const changeStatus = async (id, status) => {
-        try { await updateGrievanceTicket(id, { status }); } catch { /* fallback */ }
-        setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+        try {
+            await updateGrievanceTicket(id, status);
+            setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+        } catch {
+            alert('Failed to update grievance status.');
+        }
     };
 
     const filtered = filterStatus ? tickets.filter(t => t.status === filterStatus) : tickets;
@@ -250,6 +259,11 @@ const GrievanceTab = () => {
 
     return (
         <div className="stat-card" style={{ borderTop: '4px solid #3b82f6' }}>
+            {error && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#b91c1c', fontWeight: '500' }}>
+                    ⚠️ {error}
+                </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h3 style={{ margin: 0 }}>📢 Grievance System</h3>
@@ -371,14 +385,12 @@ const ParentCommTab = () => {
     const [form, setForm] = useState({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
+    const [sendError, setSendError] = useState('');
 
     useEffect(() => {
         getParentComms()
-            .then(res => setComms(res.data || []))
-            .catch(() => setComms([
-                { id: 1, subject: 'Campus Closure Notice - Diwali Holidays', recipient: 'All Parents', channel: 'Email', date: '2024-10-15', sentBy: 'Admin Office' },
-                { id: 2, subject: 'Mid-Term Grade Reports Available', recipient: 'All Parents', channel: 'SMS + Email', date: '2024-10-05', sentBy: 'Academic Office' },
-            ]));
+            .then(res => setComms(Array.isArray(res.data) ? res.data : []))
+            .catch(() => setComms([]));
     }, []);
 
     const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
@@ -386,22 +398,24 @@ const ParentCommTab = () => {
     const handleSend = async () => {
         if (!form.subject || !form.message) { alert('Subject and Message are required.'); return; }
         setSending(true);
+        setSendError('');
         const payload = {
             subject: form.subject,
             recipient: form.recipient === "Specific Student's Guardian" ? `${form.specific}'s Guardian` : form.recipient,
-            channel: form.channel, message: form.message,
-            date: new Date().toLocaleDateString('en-CA'), sentBy: 'Current Admin'
+            channel: form.channel,
+            message: form.message
         };
         try {
             const res = await sendParentComm(payload);
             setComms(prev => [res.data, ...prev]);
+            setSending(false);
+            setSent(true);
+            setForm({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
+            setTimeout(() => setSent(false), 3000);
         } catch {
-            setComms(prev => [{ id: Date.now(), ...payload }, ...prev]);
+            setSending(false);
+            setSendError('Failed to send the communication. Please try again.');
         }
-        setSending(false);
-        setSent(true);
-        setForm({ subject: '', recipient: 'All Parents', channel: 'Email', message: '', specific: '' });
-        setTimeout(() => setSent(false), 3000);
     };
 
     return (
@@ -416,6 +430,11 @@ const ParentCommTab = () => {
                     {sent && (
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#16a34a', fontWeight: '500' }}>
                             ✅ Message dispatched successfully!
+                        </div>
+                    )}
+                    {sendError && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#b91c1c', fontWeight: '500' }}>
+                            ⚠️ {sendError}
                         </div>
                     )}
                     <div className="form-group">

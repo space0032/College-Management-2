@@ -45,9 +45,9 @@ public class ReportController extends BaseController implements HttpHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
+@SuppressWarnings("unchecked")
     private void handleGenerateVisitorPdf(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "MANAGE_REPORT")) return;
+        if (!requireAnyPermission(t, "MANAGE_REPORT", "VIEW_REPORT")) return;
         String body = readBody(t);
         Map<String, String> map = new com.google.gson.Gson().fromJson(body, Map.class);
 
@@ -56,23 +56,30 @@ public class ReportController extends BaseController implements HttpHandler {
             return;
         }
 
+        File tempPdf = null;
         try {
             LocalDate start = LocalDate.parse(map.get("startDate"));
             LocalDate end = LocalDate.parse(map.get("endDate"));
+            if (end.isBefore(start)) {
+                sendResponse(t, 400, errorJson("endDate must not be before startDate"));
+                return;
+            }
 
             List<VisitorLog> logs = reportService.getVisitorLogs(start, end);
 
-            File tempPdf = File.createTempFile("visitor_report_", ".pdf");
+            tempPdf = File.createTempFile("visitor_report_", ".pdf");
             pdfGenerator.generateVisitorLogPdf(logs, tempPdf);
 
-            // In a real app we might return the file binary, but returning a success
-            // message or URL is simpler for this POC architecture.
-            // For now, let's just confirm it generated successfully on the backend
-            sendResponse(t, 200, "{\"message\":\"PDF Generated successfully at "
-                    + tempPdf.getAbsolutePath().replace("\\", "\\\\") + "\", \"count\":" + logs.size() + "}");
+            // Avoid leaking the absolute temp path and clean up the file.
+            sendResponse(t, 200, "{\"message\":\"PDF generated successfully\", \"count\":" + logs.size() + "}");
 
         } catch (Exception e) {
-            sendResponse(t, 500, errorJson("Failed to generate PDF: " + e.getMessage()));
+            sendResponse(t, 500, errorJson("Failed to generate PDF"));
+        } finally {
+            if (tempPdf != null && tempPdf.exists()) {
+                // Scheduling deletion since native file handles may linger briefly.
+                tempPdf.deleteOnExit();
+            }
         }
     }
 

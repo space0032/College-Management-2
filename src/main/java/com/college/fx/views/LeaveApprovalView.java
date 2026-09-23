@@ -26,6 +26,16 @@ public class LeaveApprovalView {
 
         // Header
         Label title = new Label("Leave Approvals");
+
+        SessionManager session = SessionManager.getInstance();
+        // RBAC gate: approvals require the update-leave permission (J-C2).
+        if (!session.hasPermission("UPDATE_LEAVE")) {
+            title.getStyleClass().add("section-title");
+            Label denied = new Label("You do not have permission to approve leave requests.");
+            denied.setStyle("-fx-text-fill: #ef4444;");
+            mainLayout.getChildren().addAll(title, denied);
+            return mainLayout;
+        }
         title.getStyleClass().add("section-title");
 
         TabPane tabPane = new TabPane();
@@ -34,13 +44,12 @@ public class LeaveApprovalView {
         Tab studentTab = new Tab("Student Leaves");
         studentTab.setContent(createStudentTable());
 
-        Tab staffTab = new Tab("Staff Leaves");
-        staffTab.setContent(createStaffTable());
-
         tabPane.getTabs().add(studentTab);
 
-        // Only Admin can see Staff Leaves (or maybe HOD later)
-        if (SessionManager.getInstance().isAdmin()) {
+        // Staff Leaves tab gated on the leave permission via RBAC (J-M6).
+        if (session.hasPermission("UPDATE_LEAVE")) {
+            Tab staffTab = new Tab("Staff Leaves");
+            staffTab.setContent(createStaffTable());
             tabPane.getTabs().add(staffTab);
         }
 
@@ -82,8 +91,12 @@ public class LeaveApprovalView {
             private void handleStudentAction(String status) {
                 StudentLeave leave = getTableView().getItems().get(getIndex());
                 SessionManager session = SessionManager.getInstance();
-                if (session.isLoggedIn()
-                        && studentLeaveDAO.updateLeaveStatus(leave.getId(), status, session.getUserId())) {
+                if (!session.hasPermission("UPDATE_LEAVE")) {
+                    showAlert(Alert.AlertType.ERROR, "Access Denied", "You do not have permission to approve leave requests.");
+                    return;
+                }
+                if (!confirmAction(status, leave.getStudentName(), leave.getStartDate() + " to " + leave.getEndDate())) return;
+                if (studentLeaveDAO.updateLeaveStatus(leave.getId(), status, session.getUserId())) {
                     getTableView().getItems().remove(leave);
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Request " + status);
                 } else {
@@ -140,9 +153,12 @@ public class LeaveApprovalView {
             private void handleStaffAction(String status) {
                 StaffLeave leave = getTableView().getItems().get(getIndex());
                 SessionManager session = SessionManager.getInstance();
-                // Simple comment dialog for rejection if needed, but keeping it simple for now
-                if (session.isLoggedIn()
-                        && staffLeaveDAO.updateLeaveStatus(leave.getId(), status, session.getUserId(), "")) {
+                if (!session.hasPermission("UPDATE_LEAVE")) {
+                    showAlert(Alert.AlertType.ERROR, "Access Denied", "You do not have permission to approve leave requests.");
+                    return;
+                }
+                if (!confirmAction(status, leave.getStaffName(), leave.getStartDate() + " to " + leave.getEndDate())) return;
+                if (staffLeaveDAO.updateLeaveStatus(leave.getId(), status, session.getUserId(), "")) {
                     getTableView().getItems().remove(leave);
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Request " + status);
                 } else {
@@ -180,5 +196,14 @@ public class LeaveApprovalView {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+
+    private boolean confirmAction(String status, String subject, String dates) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        DialogUtils.styleDialog(alert);
+        alert.setTitle("Confirm " + status.toLowerCase());
+        alert.setHeaderText("Are you sure you want to mark this request as " + status + "?");
+        alert.setContentText(subject + " — " + dates);
+        return alert.showAndWait().map(b -> b == ButtonType.OK).orElse(false);
     }
 }

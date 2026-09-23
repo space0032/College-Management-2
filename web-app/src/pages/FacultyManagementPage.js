@@ -61,6 +61,7 @@ const FacultyManagementPage = () => {
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const firstRender = useRef(true);
+  const searchSeq = useRef(0);
   const { faculty, loading, error, search, page, hasMore, pageSize, totalCount, modalOpen, form, editId, formError, saving, filterDept, createdCredentials, importOpen } = state;
 
   const fetchFaculty = React.useCallback(async (pageNum = 1, append = false) => {
@@ -95,15 +96,22 @@ const FacultyManagementPage = () => {
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
     const query = debouncedSearch.trim();
+    const seq = ++searchSeq.current;
     if (!query) {
       fetchFaculty(1, false);
     } else {
       dispatch({ type: 'FETCH_START' });
       searchFaculty(query)
-        .then(res => dispatch({ type: 'FETCH_SUCCESS', payload: res.data || [], total: (res.data || []).length, page: 1, append: false }))
-        .catch(() => dispatch({ type: 'FETCH_ERROR', payload: 'Search failed.' }));
+        .then(res => {
+          if (seq !== searchSeq.current) return;
+          dispatch({ type: 'FETCH_SUCCESS', payload: res.data || [], total: (res.data || []).length, page: 1, append: false });
+        })
+        .catch(() => {
+          if (seq !== searchSeq.current) return;
+          dispatch({ type: 'FETCH_ERROR', payload: 'Search failed.' });
+        });
     }
-  }, [debouncedSearch, search, fetchFaculty]);
+  }, [debouncedSearch, fetchFaculty]);
 
   const handleLoadMore = () => {
     if (!loading && hasMore) {
@@ -223,13 +231,43 @@ const FacultyManagementPage = () => {
     if (years.length === 0) return 'N/A';
     return `${(years.reduce((a, b) => a + b, 0) / years.length).toFixed(1)} yrs`;
   }, [faculty]);
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
+    // Exports cover the full result set, not just currently-fetched rows.
+    const currentSearch = debouncedSearch.trim();
+    let rowsForExport;
+    if (currentSearch) {
+      try {
+        const res = await searchFaculty(currentSearch);
+        rowsForExport = res.data || [];
+      } catch {
+        alert('Failed to load matching faculty for export.');
+        return;
+      }
+    } else {
+      const all = [];
+      let pageNum = 1;
+      const size = 1000; // matches the backend MAX_PAGE_SIZE cap
+      try {
+        while (true) {
+          const res = await getAllFaculty(pageNum, size);
+          const rows = res.data || [];
+          all.push(...rows);
+          const total = parseInt(res.headers['x-total-count'] || '0', 10) || all.length;
+          if (all.length >= total || rows.length === 0) break;
+          pageNum++;
+        }
+      } catch {
+        alert('Failed to load all faculty for export.');
+        return;
+      }
+      rowsForExport = all;
+    }
     exportToCSV(
       ['Faculty ID', 'Name', 'Email', 'Phone', 'Department', 'Qualification'],
-      faculty.map(f => [f.username || `FAC${String(f.id).padStart(3, '0')}`, f.name, f.email, f.phone, f.department, f.qualification]),
+      rowsForExport.map(f => [f.username || `FAC${String(f.id).padStart(3, '0')}`, f.name, f.email, f.phone, f.department, f.qualification]),
       'faculty_export'
     );
-  }, [faculty]);
+  }, [debouncedSearch]);
 
   const filteredFaculty = useMemo(() => {
     return faculty.filter(f => !filterDept || f.department === filterDept);
@@ -390,7 +428,7 @@ const FacultyManagementPage = () => {
         isOpen={importOpen}
         onClose={() => dispatch({ type: 'CLOSE_IMPORT' })}
         onImported={() => {
-          dispatch({ type: 'CLOSE_IMPORT' });
+          // Keep the modal open so the result panel is visible; just refresh the table.
           fetchFaculty(1, false);
         }}
       />

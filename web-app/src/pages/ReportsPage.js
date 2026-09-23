@@ -16,6 +16,7 @@ const ReportsPage = () => {
     const [pdfMessage, setPdfMessage] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [placementStats, setPlacementStats] = useState(null);
+    const [placementError, setPlacementError] = useState('');
 
     const [attendanceStats, setAttendanceStats] = useState(null);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -45,8 +46,9 @@ const ReportsPage = () => {
     }, [activeTab, subjectOptions.length]);
 
     const loadPlacementStats = async () => {
+        setPlacementError('');
         try { const res = await getPlacementStats(); setPlacementStats(res.data); }
-        catch (err) { console.error(err); }
+        catch (err) { setPlacementError(err?.response?.data?.error || 'Failed to load placement data.'); }
     };
 
     const loadFeesSummary = async () => {
@@ -76,7 +78,21 @@ const ReportsPage = () => {
         setGradesLoading(true);
         try {
             const res = await getAllGrades();
-            const dist = (res.data || []).reduce((acc, g) => { const l = g.grade || 'N/A'; acc[l] = (acc[l] || 0) + 1; return acc; }, {});
+            const rows = res.data || [];
+            // Count each student exactly once using their best grade, so
+            // students enrolled in multiple courses are not double-counted.
+            const RANK = { A: 5, B: 4, C: 3, D: 2, E: 1, F: 0 };
+            const bestByStudent = {};
+            rows.forEach(g => {
+                const sid = g.studentId ?? g.student_id;
+                if (sid == null || !g.grade) return;
+                const rank = RANK[g.grade] != null ? RANK[g.grade] : -1;
+                if (!bestByStudent[sid] || bestByStudent[sid].rank < rank) {
+                    bestByStudent[sid] = { grade: g.grade, rank };
+                }
+            });
+            const dist = {};
+            Object.values(bestByStudent).forEach(b => { dist[b.grade] = (dist[b.grade] || 0) + 1; });
             const sorted = ['A', 'B', 'C', 'D', 'E', 'F'].map(g => ({ grade: g, students: dist[g] || 0 })).filter(x => x.students > 0);
             setGradeData(sorted);
         } catch (err) { console.error(err); }
@@ -149,7 +165,11 @@ const ReportsPage = () => {
                             {attendanceStats && Array.isArray(attendanceStats) && (
                                 <button className="btn btn-secondary" onClick={() => exportToCSV(
                                     ['Enrollment No.', 'Present', 'Absent', 'Percentage'],
-                                    attendanceStats.map(s => [s.enrollmentId || s.enrollmentNumber || s.username || s.studentId || 'N/A', s.presentCount, s.absentCount, (s.percentage || 0) + '%']),
+                                    attendanceStats.map(s => {
+                                        const total = Number(s.total) || 0;
+                                        const present = Number(s.present) || 0;
+                                        return [s.enrollmentId || s.enrollmentNumber || s.username || s.studentId || 'N/A', present, Math.max(total - present, 0), (Number(s.percentage) || 0) + '%'];
+                                    }),
                                     `attendance_report_${courseIdInput}`
                                 )}>⬇ Export CSV</button>
                             )}
@@ -325,8 +345,15 @@ const ReportsPage = () => {
             )}
 
             {/* PLACEMENTS — no Math.random() */}
-            {activeTab === 'placements' && !placementStats && (
+            {activeTab === 'placements' && !placementStats && !placementError && (
                 <div className="loading-container"><div className="spinner" /><span>Loading placement data...</span></div>
+            )}
+            {activeTab === 'placements' && placementError && (
+                <div className="stat-card" style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 12 }}>⚠️</div>
+                    <p style={{ color: '#dc2626', margin: '0 0 12px' }}>{placementError}</p>
+                    <button className="btn btn-secondary" onClick={loadPlacementStats}>Retry</button>
+                </div>
             )}
             {activeTab === 'placements' && placementStats && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
@@ -349,7 +376,7 @@ const ReportsPage = () => {
                                 {placementStats.companySummary.map(co => (
                                     <div key={co.company} style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', textAlign: 'center', border: '1px solid #f1f5f9' }}>
                                         <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#475569' }}>{co.company}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '5px' }}>{co.offers || co.applications} Offers</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '5px' }}>{co.applications ?? 0} Applications</div>
                                     </div>
                                 ))}
                             </div>

@@ -149,7 +149,7 @@ const FacultyImportModal = ({ isOpen, onClose, onImported }) => {
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".csv,.xlsx,.xls"
+                        accept=".csv,text/csv"
                         onChange={handleFileChange}
                         style={{ display: 'none' }}
                     />
@@ -162,8 +162,8 @@ const FacultyImportModal = ({ isOpen, onClose, onImported }) => {
                         </div>
                     ) : (
                         <div>
-                            <p style={{ fontSize: '1.05rem', fontWeight: '500' }}>Drop CSV or Excel file here, or click to browse</p>
-                            <p style={{ color: '#666', fontSize: '0.85rem' }}>Supported formats: .csv, .xlsx, .xls</p>
+                            <p style={{ fontSize: '1.05rem', fontWeight: '500' }}>Drop CSV file here, or click to browse</p>
+                            <p style={{ color: '#666', fontSize: '0.85rem' }}>Supported format: .csv</p>
                         </div>
                     )}
                 </div>

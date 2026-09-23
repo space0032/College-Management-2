@@ -9,7 +9,7 @@ export const deleteDisciplinaryRecord = (id) => API.delete(`/affairs/disciplinar
 // Grievance Tickets
 export const getGrievanceTickets = () => API.get('/affairs/grievances');
 export const createGrievanceTicket = (data) => API.post('/affairs/grievances', data);
-export const updateGrievanceTicket = (id, data) => API.put(`/affairs/grievances/${id}`, data);
+export const updateGrievanceTicket = (id, status) => API.put(`/affairs/grievances/${id}/status`, { status });
 
 // Parent Communications
 export const getParentComms = () => API.get('/affairs/communications');

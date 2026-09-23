@@ -210,11 +210,17 @@ public class EmployeeManagementView extends VBox {
 
         List<Employee> filtered = allEmployees.stream()
                 .filter(emp -> {
+                    String empId = emp.getEmployeeId() != null ? emp.getEmployeeId() : "";
+                    String fullName = ((emp.getFirstName() != null ? emp.getFirstName() : "") + " "
+                            + (emp.getLastName() != null ? emp.getLastName() : "")).trim();
+                    String email = emp.getEmail() != null ? emp.getEmail() : "";
+                    String designation = emp.getDesignation() != null ? emp.getDesignation() : "";
+
                     boolean matchesSearch = searchText.isEmpty() ||
-                            emp.getEmployeeId().toLowerCase().contains(searchText) ||
-                            (emp.getFirstName() + " " + emp.getLastName()).toLowerCase().contains(searchText) ||
-                            emp.getEmail().toLowerCase().contains(searchText) ||
-                            emp.getDesignation().toLowerCase().contains(searchText);
+                            empId.toLowerCase().contains(searchText) ||
+                            fullName.toLowerCase().contains(searchText) ||
+                            email.toLowerCase().contains(searchText) ||
+                            designation.toLowerCase().contains(searchText);
 
                     boolean matchesStatus = statusValue.equals("All") ||
                             emp.getStatus().name().equals(statusValue);

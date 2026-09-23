@@ -147,7 +147,7 @@ public class StudentDAO {
      */
     public boolean updateStudentChecked(Student student) {
         try {
-            String sql = "UPDATE students SET name=?, email=?, phone=?, course=?, batch=?, " +
+String sql = "UPDATE students SET name=?, email=?, phone=?, course=COALESCE(NULLIF(?, ''), course), batch=?, " +
                     "enrollment_date=?, address=?, department=?, semester=?, is_hostelite=?, " +
                     "dob=?, gender=?, blood_group=?, category=?, nationality=?, father_name=?, mother_name=?, guardian_contact=?, previous_school=?, tenth_percentage=?, twelfth_percentage=?, extracurricular_activities=?, profile_photo_path=?, specialization=? "
                     +

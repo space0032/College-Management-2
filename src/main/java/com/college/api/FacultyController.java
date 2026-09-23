@@ -103,7 +103,10 @@ public class FacultyController extends BaseController implements HttpHandler {
         try {
             java.util.Map<String, String> params = getQueryMap(t);
             int page = getIntParam(params, "page", 1);
-            int size = getIntParam(params, "size", Integer.MAX_VALUE);
+            int size = getIntParam(params, "size", 100);
+            if (page < 1) page = 1;
+            if (size < 1) size = 100;
+            if (size > 1000) size = 1000;
 
             List<Faculty> list;
             if (params.containsKey("page")) {
@@ -147,7 +150,7 @@ public class FacultyController extends BaseController implements HttpHandler {
                 return;
             }
             // Extract password via JSON parsing instead of fragile regex
-            String password = "123";
+            String password = generateDefaultPassword();
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> bodyMap = JSON.fromJson(body, Map.class);
@@ -360,7 +363,7 @@ public class FacultyController extends BaseController implements HttpHandler {
             @SuppressWarnings("unchecked")
             Map<String, Object> updates = JSON.fromJson(body, Map.class);
 
-            if (updates.containsKey("phone")) f.setPhone((String) updates.get("phone"));
+            if (updates.containsKey("phone")) f.setPhone(String.valueOf(updates.get("phone")));
             if (updates.containsKey("specialization")) f.setSpecialization((String) updates.get("specialization"));
             if (updates.containsKey("qualification")) f.setQualification((String) updates.get("qualification"));
 
@@ -486,7 +489,7 @@ public class FacultyController extends BaseController implements HttpHandler {
                     f.setSpecialization(getField(fields, headerIndex, "specialization"));
 
                     String password = getField(fields, headerIndex, "password");
-                    if (password == null || password.isEmpty()) password = "123";
+                    if (password == null || password.isEmpty()) password = generateDefaultPassword();
 
                     int userId = createFacultyUser(f, password);
                     if (userId <= 0) {
@@ -580,5 +583,19 @@ public class FacultyController extends BaseController implements HttpHandler {
     private int extractId(String path) {
         String[] parts = path.split("/");
         return Integer.parseInt(parts[parts.length - 1]);
+    }
+
+    /**
+     * Random single-use default password for newly created faculty accounts.
+     * Avoids the previous insecure hardcoded "123" (B-H5).
+     */
+    private String generateDefaultPassword() {
+        String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            sb.append(alphabet.charAt(random.nextInt(alphabet.length())));
+        }
+        return sb.toString();
     }
 }

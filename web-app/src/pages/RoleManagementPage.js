@@ -37,16 +37,24 @@ export default function RoleManagementPage() {
   const discard = () => !dirty || window.confirm('Discard unsaved permission changes?');
   const changeTab = next => { if (!discard()) return; action.clear(); setSearch(''); setParams({ tab: next }); };
   const choose = id => { if (!discard()) return; action.clear(); setSelectedId(id); };
-  const create = () => action.run(async () => {
+const create = () => {
+    if (!form) { action.clear(); action.run(async () => { throw new Error('Role form state was lost. Reopen the form and retry.'); }); return; }
+    action.run(async () => {
     const payload = { ...form, code: form.code.trim().toUpperCase(), name: form.name.trim(), description: form.description.trim() };
     if (!/^[A-Z][A-Z0-9_]{0,49}$/.test(payload.code) || !payload.name) throw new Error('Enter a valid role code and name.');
     await addRole(payload); setForm(null); await roles.reload();
   }, 'Role created.');
+  };
   const remove = role => { if (window.confirm('Delete role "' + role.name + '"? Assigned roles must be reassigned first.')) action.run(async () => { await deleteRole(role.id); if (selectedId === String(role.id)) setSelectedId(''); await roles.reload(); }, 'Role deleted.'); };
-  const assign = (user, roleId) => {
+const assign = (user, roleId) => {
     if (!roleId || Number(roleId) === user.roleId) return;
     const role = roles.data.find(r => r.id === Number(roleId));
-    if (!window.confirm('Assign ' + role.name + ' to ' + user.username + '?')) return;
+    if (!role) { action.clear(); action.run(async () => { throw new Error('The selected role no longer exists. Reload the page and retry.'); }); return; }
+    const demotingSelf = user.id === SessionManager.getUserId();
+    const message = demotingSelf && Number(roleId) !== SessionManager.getUser()?.roleId
+      ? 'You are changing your OWN role to ' + role.name + '. You may lose access to parts of this system. Continue anyway?'
+      : 'Assign ' + role.name + ' to ' + user.username + '?';
+    if (!window.confirm(message)) return;
     action.run(async () => { await updateUserRole(user.id, Number(roleId)); await SessionManager.refreshPermissions(); await users.reload(); }, 'User role updated.');
   };
   const savePermissions = () => action.run(async () => {
@@ -69,6 +77,6 @@ export default function RoleManagementPage() {
         {!selected ? <Empty title="Choose a role">Review its permissions before making changes.</Empty> : selected.code === 'ADMIN' ? <Empty title="Administrator access is built in">Administrators have full access. This permission set is read-only.</Empty> : permissions.loading || catalog.loading ? <Loading /> : permissions.error || catalog.error ? <Feedback error={permissions.error || catalog.error} onRetry={() => { permissions.reload(); catalog.reload(); }} /> : Object.entries(grouped).map(([category, perms]) => <fieldset key={category} className="permission-category" disabled={!editable}><legend>{category}</legend><label><input type="checkbox" aria-label={'Select all ' + category + ' permissions'} checked={perms.every(p => draft.ids.includes(p.id))} ref={el => { if (el) el.indeterminate = perms.some(p => draft.ids.includes(p.id)) && !perms.every(p => draft.ids.includes(p.id)); }} onChange={() => toggle(perms.map(p => p.id))} /> Select all in {category}</label><div className="permission-options">{perms.map(permission => <label key={permission.id} className="permission-option"><input type="checkbox" checked={draft.ids.includes(permission.id)} onChange={() => toggle([permission.id])} /><span>{permission.name}<small className="management-muted" style={{ display: 'block' }}>{permission.description || permission.code}</small></span></label>)}</div></fieldset>)}
       </>}
     </>}
-    <Modal isOpen={Boolean(form)} title="Create role" onClose={() => setForm(null)} onSubmit={create} submitting={action.busy} submitLabel="Create role" isDirty={Boolean(form && (form.code || form.name || form.description))}>{form && <form className="management-form" onSubmit={e => { e.preventDefault(); create(); }}><Feedback error={action.error} /><fieldset disabled={action.busy}>{[['name', 'Role name'], ['code', 'Role code'], ['description', 'Description']].map(([key, label]) => <div className="form-group" key={key}><label className="form-label" htmlFor={'role-' + key}>{label}{key !== 'description' ? ' *' : ''}</label><input id={'role-' + key} className="form-control" required={key !== 'description'} pattern={key === 'code' ? '[A-Z][A-Z0-9_]{0,49}' : undefined} maxLength={key === 'code' ? 50 : key === 'name' ? 100 : 1000} value={form[key]} onChange={e => setForm({ ...form, [key]: key === 'code' ? e.target.value.toUpperCase().replace(/\s/g, '_') : e.target.value })} /></div>)}<div className="form-group"><label htmlFor="role-portal" className="form-label">Portal</label><select id="role-portal" className="form-control" value={form.portalType} onChange={e => setForm({ ...form, portalType: e.target.value })}>{['ADMIN', 'FACULTY', 'STUDENT', 'WARDEN', 'FINANCE'].map(portal => <option key={portal}>{portal}</option>)}</select></div></fieldset></form>}</Modal>
+    <Modal isOpen={Boolean(form)} title="Create role" onClose={() => setForm(null)} onSubmit={create} submitting={action.busy} submitLabel="Create role" isDirty={Boolean(form && (form.code || form.name || form.description || form.portalType !== EMPTY.portalType))}>{form && <form className="management-form" onSubmit={e => { e.preventDefault(); create(); }}><Feedback error={action.error} /><fieldset disabled={action.busy}>{[['name', 'Role name'], ['code', 'Role code'], ['description', 'Description']].map(([key, label]) => <div className="form-group" key={key}><label className="form-label" htmlFor={'role-' + key}>{label}{key !== 'description' ? ' *' : ''}</label><input id={'role-' + key} className="form-control" required={key !== 'description'} pattern={key === 'code' ? '[A-Z][A-Z0-9_]{0,49}' : undefined} maxLength={key === 'code' ? 50 : key === 'name' ? 100 : 1000} value={form[key]} onChange={e => setForm({ ...form, [key]: key === 'code' ? e.target.value.toUpperCase().replace(/\s/g, '_') : e.target.value })} /></div>)}<div className="form-group"><label htmlFor="role-portal" className="form-label">Portal</label><select id="role-portal" className="form-control" value={form.portalType} onChange={e => setForm({ ...form, portalType: e.target.value })}>{['ADMIN', 'FACULTY', 'STUDENT', 'WARDEN', 'FINANCE'].map(portal => <option key={portal}>{portal}</option>)}</select></div></fieldset></form>}</Modal>
   </div>;
 }

@@ -61,7 +61,12 @@ public class PayrollManagementView {
 
     private void loadEmployees() {
         List<Employee> employees = employeeDAO.getAllEmployees(); // Ensure this method exists
-        employeeMap = employees.stream().collect(Collectors.toMap(Employee::getId, e -> e));
+        // EmployeeDAO may emit synthetic placeholder rows that share id 0, which
+        // made a plain toMap throw IllegalStateException (J-C5). Keep the first
+        // real record for a key and tolerate duplicates.
+        employeeMap = employees.stream()
+                .filter(e -> e.getId() > 0)
+                .collect(Collectors.toMap(Employee::getId, e -> e, (first, second) -> first));
     }
 
     private HBox createControls() {
@@ -225,8 +230,11 @@ public class PayrollManagementView {
         });
 
         dialog.showAndWait().ifPresent(e -> {
-            payrollDAO.updatePayrollEntry(e);
-            refreshData();
+            if (payrollDAO.updatePayrollEntry(e)) {
+                refreshData();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to save payroll changes.");
+            }
         });
     }
 
@@ -284,6 +292,17 @@ public class PayrollManagementView {
     }
 
     public VBox getView() {
+        if (!com.college.utils.SessionManager.getInstance().hasPermission("MANAGE_PAYROLL")) {
+            VBox denied = new VBox(20);
+            denied.setPadding(new Insets(25));
+            denied.setAlignment(Pos.CENTER);
+            Label title = new Label("Access Denied");
+            title.getStyleClass().add("section-title");
+            Label message = new Label("You do not have permission to manage payroll.");
+            message.setStyle("-fx-text-fill: #ef4444;");
+            denied.getChildren().addAll(title, message);
+            return denied;
+        }
         return root;
     }
 }

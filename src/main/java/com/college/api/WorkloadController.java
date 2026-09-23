@@ -47,12 +47,12 @@ public class WorkloadController extends BaseController implements HttpHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(t, 500, errorJson(e.getMessage() != null ? e.getMessage() : "Internal server error"));
+            sendResponse(t, 500, errorJson("Internal server error"));
         }
     }
 
     private void handleGetWorkloadAnalytics(HttpExchange t) throws IOException {
-        if (!requirePermission(t, "VIEW_WORKLOAD")) return;
+        if (!requireAnyPermission(t, "VIEW_WORKLOAD", "MANAGE_OWN_COURSES")) return;
         List<Faculty> allFaculty = facultyDAO.getAllFaculty();
         List<Map<String, Object>> analytics = new ArrayList<>();
 
@@ -64,7 +64,7 @@ public class WorkloadController extends BaseController implements HttpHandler {
             map.put("facultyName", f.getName());
             map.put("department", f.getDepartment());
             map.put("totalClasses", stats.count);
-            map.put("uniqueSubjects", stats.count);
+            map.put("uniqueSubjects", courseDAO.getDistinctSubjectCount(f.getId()));
             map.put("totalCredits", stats.credits);
             map.put("totalStudents", stats.totalStudents);
 

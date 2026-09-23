@@ -101,6 +101,8 @@ public class UserController extends BaseController implements HttpHandler {
 
         boolean ok = userDAO.updatePassword(userId, newPassword);
         if (ok) {
+            // Security: invalidate all existing sessions for this user (B-H6).
+            TokenStore.removeTokensForUser(userId);
             sendResponse(t, 200, "{\"message\":\"Password updated successfully\"}");
         } else {
             sendResponse(t, 400, errorJson("Failed to update password"));

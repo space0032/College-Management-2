@@ -117,6 +117,34 @@ public class AuditLogDAO {
     }
 
     /**
+     * Get logs matching a free-text query on username / action / entity_type.
+     */
+    public static List<AuditLog> searchLogs(String query, int limit) {
+        List<AuditLog> logs = new ArrayList<>();
+        String sql = "SELECT * FROM audit_logs WHERE LOWER(username) LIKE ? OR LOWER(action) LIKE ? "
+                + "OR LOWER(entity_type) LIKE ? ORDER BY timestamp DESC LIMIT ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            String pattern = "%" + (query == null ? "" : query.toLowerCase()) + "%";
+            pstmt.setString(1, pattern);
+            pstmt.setString(2, pattern);
+            pstmt.setString(3, pattern);
+            pstmt.setInt(4, limit);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                logs.add(mapResultSetToAuditLog(rs));
+            }
+
+        } catch (SQLException e) {
+            Logger.error("Database operation failed", e);
+        }
+
+        return logs;
+    }
+
+    /**
      * Get logs by date range
      */
     public static List<AuditLog> getLogsByDateRange(LocalDate startDate, LocalDate endDate) {

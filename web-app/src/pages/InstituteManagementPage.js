@@ -19,8 +19,9 @@ export default function InstituteManagementPage() {
   const loader = useCallback(async () => (await (tab === 'departments' ? getDepartments() : getUsers())).data || [], [tab]);
   const list = useManagementData(loader, tab === 'departments' ? canDepartments : canUsers);
   const records = list.data.filter(row => [row.name, row.code, row.description, row.username, row.roleName, row.role].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim())));
-  const save = async () => {
+const save = async () => {
     if (!form.name.trim() || !/^[A-Z0-9_-]{1,10}$/.test(form.code.trim())) { setFormError('Enter a name and a code of 1-10 letters, digits, underscores or hyphens.'); return; }
+    setFormError('');
     const payload = { ...form, name: form.name.trim(), code: form.code.trim(), description: form.description.trim() };
     await action.run(async () => { await (form.id ? updateDepartment(form.id, payload) : addDepartment(payload)); setForm(null); await list.reload(); }, 'Department saved.');
   };

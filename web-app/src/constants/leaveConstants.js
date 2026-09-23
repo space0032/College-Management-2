@@ -5,6 +5,14 @@ export const LEAVE_LIMITS = {
     DUTY: 999 // Effectively unlimited for on-duty
 };
 
+// Backend whitelist (LeaveController.VALID_STATUSES)
+export const LEAVE_STATUSES = {
+    PENDING: { label: 'Pending', color: '#d97706', bg: '#fffbeb' },
+    APPROVED: { label: 'Approved', color: '#059669', bg: '#ecfdf5' },
+    REJECTED: { label: 'Rejected', color: '#dc2626', bg: '#fef2f2' },
+    CANCELLED: { label: 'Cancelled', color: '#64748b', bg: '#f1f5f9' }
+};
+
 export const LEAVE_TYPES = {
     'SICK': { label: 'Sick Leave', icon: '🤒', color: '#ef4444', bg: '#fef2f2' },
     'CASUAL': { label: 'Casual Leave', icon: '🏖️', color: '#3b82f6', bg: '#eff6ff' },
@@ -14,9 +22,9 @@ export const LEAVE_TYPES = {
 
 export const calculateDays = (start, end) => {
     if (!start || !end) return 0;
-    const s = new Date(start);
-    const e = new Date(end);
+    const s = new Date(String(start).slice(0, 10));
+    const e = new Date(String(end).slice(0, 10));
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
     const diffTime = Math.abs(e - s);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 };

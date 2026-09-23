@@ -28,7 +28,10 @@ export function useManagementData(loader, enabled = true) {
   }, [loader, enabled]);
 
   useEffect(() => {
-    if (enabled) { setData([]); setLoading(true); }
+    // Clear data whenever the loader/tab changes so a stale table never
+    // renders even for a single frame after switching datasets.
+    setData([]);
+    setLoading(true);
     reload();
     return invalidate;
   }, [enabled, reload, invalidate]);

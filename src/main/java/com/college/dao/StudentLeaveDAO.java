@@ -48,8 +48,10 @@ public class StudentLeaveDAO {
 
     public List<StudentLeave> getPendingLeaves() {
         List<StudentLeave> leaves = new ArrayList<>();
+        // student_leaves.student_id stores users.id (FK to users), so the join
+        // goes through students.user_id, not students.id.
         String sql = "SELECT sl.*, s.name as student_name, u.username AS enrollment_id FROM student_leaves sl " +
-                "JOIN students s ON sl.student_id = s.id " +
+                "JOIN students s ON s.user_id = sl.student_id " +
                 "LEFT JOIN users u ON s.user_id = u.id " +
                 "WHERE sl.status = 'PENDING' ORDER BY sl.created_at ASC";
 
@@ -83,6 +85,22 @@ public class StudentLeaveDAO {
             Logger.error("Failed to update leave status", e);
             return false;
         }
+    }
+
+    /** Returns the users.id of the student who owns the leave (0 if not found). */
+    public int getLeaveOwnerUserId(int leaveId) {
+        String sql = "SELECT student_id FROM student_leaves WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, leaveId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("student_id");
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to fetch leave owner", e);
+        }
+        return 0;
     }
 
     private StudentLeave mapResultSetToLeave(ResultSet rs) throws SQLException {

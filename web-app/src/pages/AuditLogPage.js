@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getAuditLogs } from '../services/auditService';
 import { exportToCSV } from '../utils/exportUtils';
 
@@ -18,31 +18,42 @@ const AuditLogPage = () => {
     const [searchUser, setSearchUser] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const seqRef = useRef(0);
 
     useEffect(() => { fetchLogs(); }, []);
 
-    const fetchLogs = async (params = {}) => {
+    const fetchLogs = useCallback(async (params = {}) => {
+        // Serialize requests so a slow older response can't clobber a newer one.
+        const seq = ++seqRef.current;
         setLoading(true);
         setError(null);
         try {
-            const res = await getAuditLogs({ limit: 200, ...params });
-            setLogs(Array.isArray(res.data) ? res.data : []);
+            const res = await getAuditLogs({ limit: 1000, ...params });
+            if (seq === seqRef.current) {
+                setLogs(Array.isArray(res.data) ? res.data : []);
+            }
         } catch {
-            setError('Failed to load audit logs. Ensure backend is running.');
+            if (seq === seqRef.current) {
+                setError('Failed to load audit logs. Ensure backend is running.');
+            }
         } finally {
-            setLoading(false);
+            if (seq === seqRef.current) {
+                setLoading(false);
+            }
         }
-    };
+    }, []);
 
     const handleSearch = (e) => {
         e.preventDefault();
         const params = {};
+        if (searchUser.trim()) params.q = searchUser.trim();
         if (dateFrom) params.from = dateFrom;
         if (dateTo) params.to = dateTo;
         fetchLogs(params);
     };
 
     const handleReset = () => {
+        seqRef.current++;
         setSearchUser(''); setDateFrom(''); setDateTo('');
         fetchLogs();
     };
@@ -101,8 +112,8 @@ const AuditLogPage = () => {
                         <label>To Date</label>
                         <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>🔍 Filter</button>
-                    <button type="button" className="btn btn-secondary" style={{ height: '42px' }} onClick={handleReset}>Reset</button>
+                    <button type="submit" className="btn btn-primary" style={{ height: '42px' }} disabled={loading}>{loading ? '⏳ Loading...' : '🔍 Filter'}</button>
+                    <button type="button" className="btn btn-secondary" style={{ height: '42px' }} onClick={handleReset} disabled={loading}>Reset</button>
                 </form>
             </div>
 

@@ -4,6 +4,7 @@ import com.college.dao.FacultyDAO;
 import com.college.models.Faculty;
 import com.college.utils.SessionManager;
 import com.college.utils.EnrollmentGenerator;
+import java.security.SecureRandom;
 import com.college.utils.DialogUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -44,6 +45,9 @@ public class FacultyManagementView {
     private TextField searchField;
     private ComboBox<String> deptFilter;
     private Label statsLabel;
+
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     public FacultyManagementView(String role, int userId) {
         this.facultyDAO = new FacultyDAO();
@@ -277,6 +281,15 @@ public class FacultyManagementView {
 
         dialog.setResultConverter(btn -> {
             if (btn == saveBtn) {
+                // J-M2: capture the pre-edit state so a failed DB write can be
+                // reverted instead of leaving a ghost (mutated in-memory but not
+                // persisted) row.
+                String origName = selected.getName();
+                String origEmail = selected.getEmail();
+                String origPhone = selected.getPhone();
+                String origDept = selected.getDepartment();
+                String origQual = selected.getQualification();
+
                 selected.setName(nameField.getText());
                 selected.setEmail(emailField.getText());
                 selected.setPhone(phoneField.getText());
@@ -286,6 +299,12 @@ public class FacultyManagementView {
                 if (facultyDAO.updateFaculty(selected)) {
                     return selected;
                 }
+                // Restore the originals so the table doesn't keep stale values.
+                selected.setName(origName);
+                selected.setEmail(origEmail);
+                selected.setPhone(origPhone);
+                selected.setDepartment(origDept);
+                selected.setQualification(origQual);
             }
             return null;
         });
@@ -347,13 +366,13 @@ public class FacultyManagementView {
         });
 
         dialog.showAndWait().ifPresent(role -> {
-            // Update RBAC role (role_id)
+            // Update RBAC role (role_id) only. J-H3: previously also overwrote the
+            // legacy `users.role` column with the role *display name* (e.g. "Head
+            // of Department"), which broke legacy role-code fallbacks. The RBAC
+            // role_id is now the single source of truth for authorization.
             boolean rbacSuccess = roleDAO.assignRoleToUser(selected.getUserId(), role.getId());
-            // Update Legacy role (string) for fallback/display
-            boolean legacySuccess = userDAO.updateUserRole(selected.getUserId(), role.getName());
-
-            if (rbacSuccess || legacySuccess) { // At least one succeeded
-                showAlert("Success", "Role assigned successfully (RBAC + Legacy)!");
+            if (rbacSuccess) {
+                showAlert("Success", "Role assigned successfully (RBAC)!");
                 loadFaculty();
             } else {
                 showAlert("Error", "Failed to update role.");
@@ -449,7 +468,7 @@ public class FacultyManagementView {
 
         DialogUtils.addFormRow(grid, "Password:", passwordField, 9);
 
-        Label passHint = new Label("(Leave empty for default: 123)");
+        Label passHint = new Label("(Leave empty to auto-generate a strong password)");
         passHint.setStyle("-fx-text-fill: #e2e8f0; -fx-font-size: 10px;");
         grid.add(passHint, 1, 10);
 
@@ -487,11 +506,20 @@ public class FacultyManagementView {
 
                     // Auto-generate faculty ID
                     String facultyId = EnrollmentGenerator.generateFacultyId();
-                    String password = passwordField.getText().trim().isEmpty() ? "123" : passwordField.getText();
+                    // J-H4: no more weak default "123" — the prompt text was also
+                    // updated to match.
+                    String password = passwordField.getText().trim().isEmpty() ? generateStrongPassword() : passwordField.getText();
 
-                    // Create user account with faculty ID as username
-                    UserDAO userDAO = new UserDAO();
-                    int newUserId = userDAO.addUser(facultyId, password, "FACULTY");
+                    // Create user account with faculty ID as username (RBAC role_id
+                    // binding)
+                    com.college.models.Role facultyRole = roleDAO.getRoleByCode("FACULTY");
+                    int roleId = (facultyRole != null) ? facultyRole.getId() : 0;
+                    int newUserId;
+                    if (roleId > 0) {
+                        newUserId = userDAO.addUser(facultyId, password, "FACULTY", roleId);
+                    } else {
+                        newUserId = userDAO.addUser(facultyId, password, "FACULTY");
+                    }
 
                     if (newUserId != -1) {
                         Faculty f = new Faculty();
@@ -503,7 +531,17 @@ public class FacultyManagementView {
                         f.setJoinDate(Date.from(joinDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
                         f.setUserId(newUserId);
 
-                        facultyDAO.addFaculty(f, newUserId);
+                        int facultyRecordId = facultyDAO.addFaculty(f, newUserId);
+                        if (facultyRecordId <= 0) {
+                            // J-H2: the user account was already committed, so a failed
+                            // faculty insert used to leave an orphaned login AND report
+                            // false success. Roll back the user now and surface the real
+                            // error.
+                            userDAO.deleteUser(newUserId);
+                            showAlert("Error", "Faculty record could not be created. The " +
+                                    "user account was rolled back.");
+                            return null;
+                        }
 
                         // Show success with credentials
                         Platform.runLater(() -> {
@@ -556,6 +594,15 @@ public class FacultyManagementView {
             return;
         }
         com.college.utils.FxTableExporter.exportWithDialog(tableView, root.getScene().getWindow());
+    }
+
+    // J-H4: strong randomly generated password (no more weak "123" defaults).
+    private static String generateStrongPassword() {
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     public VBox getView() {

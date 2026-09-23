@@ -19,6 +19,7 @@ const ConfirmDialog = ({
     onSubmit={onConfirm}
     submitLabel={loading ? 'Working…' : confirmLabel}
     submitting={loading}
+    destructive={destructive}
     size="sm"
   >
     <p className="confirm-message">{message}</p>
@@ -29,4 +30,3 @@ const ConfirmDialog = ({
 );
 
 export default ConfirmDialog;
-// Cancel button is rendered by Modal footer; destructive styling via .modal-sm .btn-primary.danger override in CSS.
