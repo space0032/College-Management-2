@@ -65,6 +65,7 @@ const LibraryPage = () => {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [editingBookId, setEditingBookId] = useState(null);
   // Pagination state
   const [bookPage, setBookPage] = useState(0);
@@ -87,14 +88,14 @@ const LibraryPage = () => {
 
   const fetchBooks = React.useCallback(() => {
     setLoading(true);
-    getAllBooks(bookPage, PAGE_SIZE)
+    getAllBooks(bookPage, PAGE_SIZE, debouncedSearch)
       .then((res) => {
         setBooks(res.data?.content || res.data || []);
         setBookTotalPages(res.data?.totalPages || 0);
       })
       .catch(() => setError('Failed to load books.'))
       .finally(() => setLoading(false));
-  }, [bookPage]);
+  }, [bookPage, debouncedSearch]);
 
   const fetchIssues = React.useCallback(() => {
     setLoading(true);
@@ -168,10 +169,16 @@ useEffect(() => {
     getAllStudents().then(res => setStudents(res.data || [])).catch(() => {});
   }, []);
 
-  // Reset pagination when search changes
+// Reset pagination when search changes
   useEffect(() => {
     setBookPage(0);
-}, [searchQuery]);
+  }, [debouncedSearch]);
+
+  // Debounce catalog search to avoid a fetch per keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const showConfirm = (title, message, onConfirm) => {
     setConfirmDialog({ open: true, title, message, onConfirm });
@@ -326,13 +333,7 @@ const handleFormChange = (e) => {
     } finally { setSaving(false); }
   };
 
-  const filteredBooks = searchQuery
-    ? books.filter(b =>
-      (b.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.author || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.isbn || '').toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    : books;
+  const filteredBooks = books;
 
   const extendedBooksColumns = [
     ...COLUMNS,
@@ -594,7 +595,7 @@ const handleFormChange = (e) => {
       )}
 
 {/* Modals */}
-      <Modal isOpen={modalOpen} title={editingBookId ? 'Edit Book' : 'Add Book'} onClose={() => { setModalOpen(false); setEditingBookId(null); setForm(EMPTY_FORM); }} onSubmit={handleFormSubmit} submitLabel={saving ? 'Saving…' : 'Save'}>
+      <Modal isOpen={modalOpen} title={editingBookId ? 'Edit Book' : 'Add Book'} onClose={() => { setModalOpen(false); setEditingBookId(null); setForm(EMPTY_FORM); }} onSubmit={handleFormSubmit} submitting={saving} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         {[{ name: 'title', label: 'Title' }, { name: 'author', label: 'Author' }, { name: 'isbn', label: 'ISBN' }].map(({ name, label }) => (
           <div className="form-group" key={name}>
@@ -612,7 +613,7 @@ const handleFormChange = (e) => {
         </div>
       </Modal>
 
-      <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => { setIssueModalOpen(false); setIssueForm({ enrollmentId: '', bookId: null }); setStudentSearch(''); setFilteredStudents([]); }} onSubmit={handleIssue} submitLabel={saving ? 'Issuing…' : 'Issue'}>
+      <Modal isOpen={issueModalOpen} title="Issue Book to Student" onClose={() => { setIssueModalOpen(false); setIssueForm({ enrollmentId: '', bookId: null }); setStudentSearch(''); setFilteredStudents([]); }} onSubmit={handleIssue} submitting={saving} submitLabel={saving ? 'Issuing…' : 'Issue'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
           <label className="form-label">Search Student</label>
@@ -633,7 +634,7 @@ const handleFormChange = (e) => {
         </div>
       </Modal>
 
-      <Modal isOpen={requestModalOpen} title="Request a Book" onClose={() => { setRequestModalOpen(false); setRequestForm({ bookId: '', reason: '', returnDate: '' }); }} onSubmit={handleBookRequest} submitLabel="Submit Request">
+      <Modal isOpen={requestModalOpen} title="Request a Book" onClose={() => { setRequestModalOpen(false); setRequestForm({ bookId: '', reason: '', returnDate: '' }); }} onSubmit={handleBookRequest} submitting={saving} submitLabel={saving ? 'Submitting…' : 'Submit Request'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-group">
           <label className="form-label">Book *</label>
@@ -654,7 +655,7 @@ const handleFormChange = (e) => {
         </div>
       </Modal>
 
-      <Modal isOpen={rejectModalOpen} title="Reject Book Request" onClose={() => { setRejectModalOpen(false); setRejectForm({ requestId: null, remarks: '' }); }} onSubmit={handleRejectRequest} submitLabel={saving ? 'Rejecting…' : 'Reject'}>
+      <Modal isOpen={rejectModalOpen} title="Reject Book Request" onClose={() => { setRejectModalOpen(false); setRejectForm({ requestId: null, remarks: '' }); }} onSubmit={handleRejectRequest} submitting={saving} submitLabel={saving ? 'Rejecting…' : 'Reject'}>
         <div className="form-group">
           <label className="form-label">Reason for Rejection (optional)</label>
           <textarea className="form-control" rows="3" value={rejectForm.remarks} onChange={e => setRejectForm(p => ({ ...p, remarks: e.target.value }))} placeholder="Enter reason for rejecting this request…" />

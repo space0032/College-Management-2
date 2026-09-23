@@ -4,6 +4,7 @@ import {
     requestGatePass, approveGatePass, rejectGatePass
 } from '../services/gatePassService';
 import SessionManager from '../utils/SessionManager';
+import { toast } from '../components/Toast';
 
 const GatePassPage = () => {
     const [activeTab, setActiveTab] = useState('my_passes');
@@ -70,16 +71,16 @@ const GatePassPage = () => {
         e.preventDefault();
         // Date validation — no past dates
         const today = todayStr();
-        if (formData.fromDate < today) { alert('From date cannot be in the past.'); return; }
-        if (formData.toDate && formData.toDate < formData.fromDate) { alert('Return date must be after departure date.'); return; }
+        if (formData.fromDate < today) { toast.error('From date cannot be in the past.'); return; }
+        if (formData.toDate && formData.toDate < formData.fromDate) { toast.error('Return date must be after departure date.'); return; }
         setIsSubmitting(true);
         try {
             await requestGatePass({ ...formData, enrollmentId: user.username });
-            alert('Gate pass request broadcasted to warden.');
+            toast.success('Gate pass request broadcasted to warden.');
             setFormData({ fromDate: '', toDate: '', reason: '', destination: '', parentContact: '' });
             setActiveTab('my_passes');
         } catch (err) {
-            alert(err.response?.data?.error || 'Hostel assignment required for gate pass.');
+            toast.error(err.response?.data?.error || 'Hostel assignment required for gate pass.', { refId: err.response?.data?.refId, details: err.response?.status ? { status: err.response.status } : undefined });
         } finally {
             setIsSubmitting(false);
         }
@@ -90,7 +91,7 @@ const GatePassPage = () => {
             await approveGatePass(passId, user.id, actionComment || 'Approved by Warden');
             setActionComment('');
             loadPendingPasses();
-        } catch (err) { alert('Approval failed'); }
+        } catch (err) { toast.error('Approval failed.', { refId: err.response?.data?.refId, details: err.response?.status ? { status: err.response.status } : undefined }); }
     };
 
     const handleReject = async (passId) => {
@@ -98,7 +99,7 @@ const GatePassPage = () => {
             await rejectGatePass(passId, user.id, actionComment || 'Rejected (Check remarks)');
             setActionComment('');
             loadPendingPasses();
-        } catch (err) { alert('Rejection failed'); }
+        } catch (err) { toast.error('Rejection failed.', { refId: err.response?.data?.refId, details: err.response?.status ? { status: err.response.status } : undefined }); }
     };
 
     // Stats
@@ -117,13 +118,13 @@ const GatePassPage = () => {
                 <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '4px', borderRadius: '8px' }}>
                     {user.role === 'STUDENT' ? (
                         <>
-                            <button className={`btn btn-sm ${activeTab === 'my_passes' ? 'btn-primary' : ''}`} style={activeTab !== 'my_passes' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('my_passes')}>Existing Passes</button>
-                            <button className={`btn btn-sm ${activeTab === 'request' ? 'btn-primary' : ''}`} style={activeTab !== 'request' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('request')}>+ New Request</button>
+                            <button type="button" className={`btn btn-sm ${activeTab === 'my_passes' ? 'btn-primary' : ''}`} style={activeTab !== 'my_passes' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('my_passes')}>Existing Passes</button>
+                            <button type="button" className={`btn btn-sm ${activeTab === 'request' ? 'btn-primary' : ''}`} style={activeTab !== 'request' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('request')}>+ New Request</button>
                         </>
                     ) : (
                         <>
-                            <button className={`btn btn-sm ${activeTab === 'pending' ? 'btn-primary' : ''}`} style={activeTab !== 'pending' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('pending')}>Pending Approval</button>
-                            <button className={`btn btn-sm ${activeTab === 'history' ? 'btn-primary' : ''}`} style={activeTab !== 'history' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('history')}>Audit Logs</button>
+                            <button type="button" className={`btn btn-sm ${activeTab === 'pending' ? 'btn-primary' : ''}`} style={activeTab !== 'pending' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('pending')}>Pending Approval</button>
+                            <button type="button" className={`btn btn-sm ${activeTab === 'history' ? 'btn-primary' : ''}`} style={activeTab !== 'history' ? { background: 'transparent', border: 'none', color: '#64748b' } : {}} onClick={() => setActiveTab('history')}>Audit Logs</button>
                         </>
                     )}
                 </div>

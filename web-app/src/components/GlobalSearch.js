@@ -59,15 +59,31 @@ const isVisible = (route) => !route.perm || SessionManager.hasPermission(route.p
 const GlobalSearch = ({ onClose }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
+    const [activeIndex, setActiveIndex] = useState(-1);
     const inputRef = useRef(null);
+    const listRef = useRef(null);
+    const panelRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         inputRef.current?.focus();
+        document.body.style.overflow = 'hidden';
+        const handleKey = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                onClose();
+            }
+        };
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('keydown', handleKey);
+            document.body.style.overflow = '';
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
-        if (!query.trim()) { setResults([]); return; }
+        if (!query.trim()) { setResults([]); setActiveIndex(-1); return; }
         const q = query.toLowerCase();
         const matches = ROUTES.filter(r =>
             isVisible(r) &&
@@ -75,6 +91,7 @@ const GlobalSearch = ({ onClose }) => {
             r.keywords.some(k => k.includes(q) || q.includes(k)))
         ).slice(0, 8);
         setResults(matches);
+        setActiveIndex(matches.length ? 0 : -1);
     }, [query]);
 
     const handleSelect = (path) => {
@@ -82,12 +99,32 @@ const GlobalSearch = ({ onClose }) => {
         navigate(path);
     };
 
+    const activeResult = results[activeIndex];
+
     const handleKeyDown = (e) => {
-        if (e.key === 'Escape') onClose();
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex(prev => (results.length ? (prev + 1) % results.length : -1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex(prev => (results.length ? (prev - 1 + results.length) % results.length : -1));
+        } else if (e.key === 'Enter' && activeResult) {
+            e.preventDefault();
+            handleSelect(activeResult.path);
+        }
     };
+
+    useEffect(() => {
+        if (activeIndex >= 0 && listRef.current) {
+            listRef.current.children[activeIndex]?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [activeIndex]);
 
     return (
         <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search"
             style={{
                 position: 'fixed', inset: 0, zIndex: 9999,
                 background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
@@ -97,6 +134,8 @@ const GlobalSearch = ({ onClose }) => {
             onClick={onClose}
         >
             <div
+                ref={panelRef}
+                role="search"
                 style={{
                     background: 'white', borderRadius: '14px', width: '100%', maxWidth: '560px',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden'
@@ -105,42 +144,50 @@ const GlobalSearch = ({ onClose }) => {
             >
                 {/* Search Input */}
                 <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: '1.2rem', marginRight: '12px', color: '#a0aec0' }}>🔍</span>
+                    <span style={{ fontSize: '1.2rem', marginRight: '12px', color: '#a0aec0' }} aria-hidden="true">🔍</span>
                     <input
                         ref={inputRef}
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        role="combobox"
+                        aria-expanded={results.length > 0}
+                        aria-controls="global-search-list"
+                        aria-activedescendant={activeIndex >= 0 ? `global-search-${activeIndex}` : undefined}
+                        aria-label="Search pages, features, modules"
                         placeholder="Search pages, features, modules…"
                         style={{
                             flex: 1, border: 'none', outline: 'none',
                             fontSize: '1rem', background: 'transparent', color: '#2d3748'
                         }}
                     />
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a0aec0', fontSize: '1.3rem' }}>×</button>
+                    <button type="button" onClick={onClose} aria-label="Close search" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a0aec0', fontSize: '1.3rem' }}>×</button>
                 </div>
 
                 {/* Results */}
                 {results.length > 0 ? (
-                    <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                    <div id="global-search-list" role="listbox" aria-label="Search results" ref={listRef} style={{ maxHeight: '380px', overflowY: 'auto' }}>
                         {results.map((r, i) => (
                             <button
                                 key={r.path}
+                                type="button"
+                                id={`global-search-${i}`}
+                                role="option"
+                                aria-selected={i === activeIndex}
                                 onClick={() => handleSelect(r.path)}
+                                onMouseEnter={() => setActiveIndex(i)}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '12px',
                                     width: '100%', padding: '12px 18px', textAlign: 'left',
                                     border: 'none', borderBottom: i < results.length - 1 ? '1px solid #f7fafc' : 'none',
-                                    background: 'white', cursor: 'pointer', transition: 'background 0.1s'
+                                    background: i === activeIndex ? '#f7fafc' : 'white', cursor: 'pointer', transition: 'background 0.1s'
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#f7fafc'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'white'}
                             >
                                 <span style={{
                                     width: '32px', height: '32px', borderRadius: '8px',
                                     background: '#ebf8ff', display: 'flex', alignItems: 'center',
                                     justifyContent: 'center', fontSize: '1rem', flexShrink: 0
-                                }}>→</span>
+                                }} aria-hidden="true">→</span>
                                 <div>
                                     <div style={{ fontWeight: '600', color: '#2d3748', fontSize: '0.9rem' }}>{r.label}</div>
                                     <div style={{ fontSize: '0.75rem', color: '#a0aec0' }}>{r.path}</div>
@@ -150,7 +197,7 @@ const GlobalSearch = ({ onClose }) => {
                     </div>
                 ) : query.trim() ? (
                     <div style={{ padding: '28px', textAlign: 'center', color: '#a0aec0' }}>
-                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🔍</div>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }} aria-hidden="true">🔍</div>
                         No pages found for "<strong>{query}</strong>"
                     </div>
                 ) : (
@@ -168,7 +215,7 @@ const GlobalSearch = ({ onClose }) => {
                             const match = ROUTES.find(r => r.path === qa.path);
                             if (!match || !isVisible(match)) return null;
                             return (
-                                <button key={qa.path} onClick={() => handleSelect(match.path)} style={{
+                                <button type="button" key={qa.path} onClick={() => handleSelect(match.path)} style={{
                                     display: 'inline-block', margin: '4px', padding: '6px 14px',
                                     border: '1px solid #e2e8f0', borderRadius: '20px', background: 'white',
                                     cursor: 'pointer', fontSize: '0.85rem', color: '#4a5568'
@@ -181,8 +228,9 @@ const GlobalSearch = ({ onClose }) => {
                 )}
 
                 {/* Footer hint */}
-                <div style={{ padding: '8px 18px', borderTop: '1px solid #f0f0f0', display: 'flex', gap: '16px', fontSize: '0.75rem', color: '#a0aec0' }}>
-                    <span>↩ to navigate</span>
+                <div style={{ padding: '8px 18px', borderTop: '1px solid #f0f0f0', display: 'flex', gap: '16px', fontSize: '0.75rem', color: '#5b6472' }}>
+                    <span>↑↓ to navigate</span>
+                    <span>↵ to open</span>
                     <span>Esc to close</span>
                 </div>
             </div>

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { updatePassword } from '../services/authService';
 import api from '../services/api';
 import SessionManager from '../utils/SessionManager';
+import { getStudentMe } from '../services/studentService';
+import { getMyProfile } from '../services/facultyService';
+import { toast } from '../components/Toast';
 
 const AVATAR_COLORS = [
   'linear-gradient(135deg, #667eea, #764ba2)',
@@ -56,22 +59,25 @@ const ProfilePage = () => {
   const [editForm, setEditForm] = useState({ phone: '', address: '' });
   const [infoMessage, setInfoMessage] = useState(null);
   const [infoError, setInfoError] = useState(false);
+  const [savingInfo, setSavingInfo] = useState(false);
 
   useEffect(() => {
+    const abort = new AbortController();
     if (isStudent) {
-      api.get('/students').then(res => {
-        const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-        const found = list.find(s => s.userId === user.id || s.email === user.email);
-        if (found) setProfileData(found);
-      }).catch(() => { });
+      getStudentMe().then(res => {
+        setProfileData(res.data || null);
+      }).catch(() => {
+        setProfileData(null);
+      });
     } else if (isFaculty) {
-      api.get('/faculty').then(res => {
-        const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-        const found = list.find(f => f.userId === user.id || f.email === user.email || f.name === user.name);
-        if (found) setProfileData(found);
-      }).catch(() => { });
+      getMyProfile().then(res => {
+        setProfileData(res.data || null);
+      }).catch(() => {
+        setProfileData(null);
+      });
     }
-  }, [isFaculty, isStudent, user.email, user.id, user.name]);
+    return () => abort.abort();
+  }, [isFaculty, isStudent]);
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -91,9 +97,11 @@ const ProfilePage = () => {
       await updatePassword(user.id, oldPassword, newPassword);
       setPwMessage('Password updated successfully!');
       setOldPassword(''); setNewPassword(''); setConfirmPassword('');
+      toast.success('Password updated successfully.');
     } catch (err) {
       setPwMessage(err.response?.data?.error || 'Failed to update password.');
       setIsError(true);
+      toast.error(err.response?.data?.error || 'Failed to update password.', { refId: err.response?.data?.refId, details: err.response?.status ? { status: err.response.status } : undefined });
     }
   };
 
@@ -164,15 +172,20 @@ const ProfilePage = () => {
                 className="btn btn-secondary btn-sm"
                 onClick={async () => {
                   if (isEditingInfo) {
+                    if (savingInfo) return;
+                    setSavingInfo(true);
                     try {
                       await api.put('/profile/contact', { phone: editForm.phone, address: editForm.address });
                       setProfileData({ ...profileData, phone: editForm.phone, address: editForm.address });
                       setInfoMessage('Profile info updated successfully!');
                       setInfoError(false);
+                      toast.success('Profile info updated.');
                     } catch (err) {
                       setInfoError(true);
                       setInfoMessage(err.response?.data?.error || 'Failed to update contact info.');
+                      toast.error(err.response?.data?.error || 'Failed to update contact info.', { refId: err.response?.data?.refId, details: err.response?.status ? { status: err.response.status } : undefined });
                     }
+                    setSavingInfo(false);
                     setIsEditingInfo(false);
                     setTimeout(() => setInfoMessage(null), 3000);
                   } else {
@@ -182,7 +195,7 @@ const ProfilePage = () => {
                   }
                 }}
               >
-                {isEditingInfo ? '💾 Save Changes' : '✏️ Edit Contact Info'}
+                {isEditingInfo ? (savingInfo ? 'Saving…' : '💾 Save Changes') : '✏️ Edit Contact Info'}
               </button>
             )}
           </div>
@@ -277,11 +290,11 @@ const ProfilePage = () => {
           <form onSubmit={handlePasswordChange} style={{ maxWidth: '380px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">
               <label>Current Password</label>
-              <input required type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
+              <input required type="password" className="form-control" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
             </div>
             <div className="form-group">
               <label>New Password</label>
-              <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              <input required type="password" className="form-control" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
               {pwStrength && (
                 <div style={{ marginTop: '6px' }}>
                   <div style={{ height: '5px', borderRadius: '4px', background: '#e2e8f0', overflow: 'hidden' }}>
@@ -295,7 +308,7 @@ const ProfilePage = () => {
             </div>
             <div className="form-group">
               <label>Confirm New Password</label>
-              <input required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              <input required type="password" className="form-control" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
             </div>
             <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '4px' }}>
               Update Password

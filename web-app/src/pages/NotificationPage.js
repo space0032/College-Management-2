@@ -124,8 +124,10 @@ const NotificationPage = () => {
           { label: 'Unread', value: unreadCount, color: '#c53030', bg: '#fff5f5' },
           { label: 'Read', value: notifications.length - unreadCount, color: '#276749', bg: '#f0fff4' },
         ].map(s => (
-          <div key={s.label} style={{ padding: '8px 16px', background: s.bg, borderRadius: '8px', minWidth: '90px', textAlign: 'center', cursor: 'pointer' }}
-            onClick={() => setFilterRead(s.label === 'Total' ? 'all' : s.label.toLowerCase())}>
+          <div key={s.label} role="button" tabIndex={0} aria-label={`Filter by ${s.label}`}
+            style={{ padding: '8px 16px', background: s.bg, borderRadius: '8px', minWidth: '90px', textAlign: 'center', cursor: 'pointer' }}
+            onClick={() => setFilterRead(s.label === 'Total' ? 'all' : s.label.toLowerCase())}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFilterRead(s.label === 'Total' ? 'all' : s.label.toLowerCase()); } }}>
             <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: s.color }}>{s.value}</div>
             <div style={{ fontSize: '0.73rem', color: '#718096' }}>{s.label}</div>
           </div>
@@ -136,7 +138,7 @@ const NotificationPage = () => {
       <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
           {[{ id: 'all', label: 'All' }, { id: 'unread', label: '🔴 Unread' }, { id: 'read', label: '✓ Read' }].map(f => (
-            <button key={f.id} onClick={() => setFilterRead(f.id)} style={{
+            <button key={f.id} type="button" aria-pressed={filterRead === f.id} onClick={() => setFilterRead(f.id)} style={{
               padding: '6px 14px', border: 'none', cursor: 'pointer', fontSize: '0.82rem',
               background: filterRead === f.id ? '#3b82f6' : 'white',
               color: filterRead === f.id ? 'white' : '#4a5568', fontWeight: filterRead === f.id ? '600' : '400'

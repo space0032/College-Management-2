@@ -1,6 +1,9 @@
 import API from './api';
 
-export const getAllBooks = (page = 0, size = 20) => API.get(`/library/books?page=${page}&size=${size}`);
+export const getAllBooks = (page = 0, size = 20, search = '') => {
+  const params = `page=${page}&size=${size}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+  return API.get(`/library/books?${params}`);
+};
 export const addBook = (bookData) => API.post('/library/books', bookData);
 export const updateBook = (id, book) => API.put(`/library/books/${id}`, book);
 export const deleteBook = (id) => API.delete(`/library/books/${id}`);

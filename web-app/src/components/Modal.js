@@ -12,6 +12,10 @@ const SIZE_CLASS = {
   fullscreen: 'modal-fullscreen',
 };
 
+// Module-level stack so stacked modals only let the top-most one
+// respond to Escape and report ownership of the body scroll lock.
+const openModals = [];
+
 const Modal = ({
   isOpen,
   title,
@@ -27,6 +31,7 @@ const Modal = ({
   hideFooter = false,
   destructive = false,
 }) => {
+  const idRef = useRef(`modal-title-${Math.random().toString(36).slice(2, 9)}`);
   const modalRef = useRef(null);
   const onCloseRef = useRef(onClose);
   const submittingRef = useRef(submitting);
@@ -36,38 +41,17 @@ const Modal = ({
   onCloseRef.current = onClose;
   submittingRef.current = submitting;
 
+  const isTopMost = () => openModals[openModals.length - 1] === modalRef.current;
+
   useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === 'Escape' && !submittingRef.current) {
-        if (modalRef.current?.dataset?.dirty === 'true') {
-          // eslint-disable-next-line no-alert
-          if (!window.confirm(modalRef.current.dataset.confirmMsg || 'Discard unsaved changes?')) return;
-        }
-        onCloseRef.current?.();
-      }
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
     if (!isOpen) {
       wasOpenRef.current = false;
       return undefined;
     }
+    openModals.push(modalRef.current);
     prevFocusRef.current = document.activeElement;
     document.addEventListener('keydown', handleKey);
-    document.body.style.overflow = 'hidden';
+    if (openModals.length === 1) document.body.style.overflow = 'hidden';
     let t;
     if (!wasOpenRef.current) {
       t = setTimeout(() => {
@@ -76,13 +60,43 @@ const Modal = ({
       }, 30);
     }
     wasOpenRef.current = true;
+    const currentModal = modalRef.current;
     return () => {
       clearTimeout(t);
+      const idx = openModals.indexOf(currentModal);
+      if (idx >= 0) openModals.splice(idx, 1);
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
-      prevFocusRef.current?.focus?.({ preventScroll: true });
+      if (openModals.length === 0) document.body.style.overflow = '';
+      if (idx >= 0) prevFocusRef.current?.focus?.({ preventScroll: true });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  const handleKey = (e) => {
+    if (!isTopMost()) return;
+    if (e.key === 'Escape' && !submittingRef.current) {
+      if (modalRef.current?.dataset?.dirty === 'true') {
+        // eslint-disable-next-line no-alert
+        if (!window.confirm(modalRef.current.dataset.confirmMsg || 'Discard unsaved changes?')) return;
+      }
+      onCloseRef.current?.();
+    }
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusable = modalRef.current.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -116,20 +130,21 @@ const Modal = ({
         className={`modal${sizeClass ? ` ${sizeClass}` : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={idRef.current}
         ref={modalRef}
         data-dirty={isDirty ? 'true' : 'false'}
         data-confirm-msg={confirmCloseMessage}
       >
         <div className="modal-header">
-          <h2 className="modal-title" id="modal-title" tabIndex={-1}>{title}</h2>
-          <button className="modal-close" onClick={requestClose} aria-label="Close" disabled={submitting}>✕</button>
+          <h2 className="modal-title" id={idRef.current} tabIndex={-1}>{title}</h2>
+          <button type="button" className="modal-close" onClick={requestClose} aria-label="Close" disabled={submitting}>✕</button>
         </div>
         <div className="modal-body">{children}</div>
         {onSubmit && !hideFooter && (
           <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={requestClose} disabled={submitting}>Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={requestClose} disabled={submitting}>Cancel</button>
             <button
+              type="button"
               className={`btn ${destructive ? 'btn-danger' : 'btn-primary'}`}
               disabled={submitting || submitDisabled}
               onClick={handleFooterSubmit}

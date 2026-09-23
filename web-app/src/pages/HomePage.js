@@ -143,7 +143,10 @@ const HomePage = () => {
           return (
             <div
               key={stat.label}
+              role="button"
+              tabIndex={0}
               onClick={() => navigate(stat.route)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(stat.route); } }}
               style={{
                 background: 'white', borderRadius: '12px', padding: '20px',
                 border: '1px solid #e2e8f0', cursor: 'pointer', overflow: 'hidden',
@@ -151,6 +154,8 @@ const HomePage = () => {
               }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              onFocus={e => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.25)'; }}
+              onBlur={e => { e.currentTarget.style.boxShadow = ''; }}
             >
               {/* Accent bar */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: stat.gradient }} />

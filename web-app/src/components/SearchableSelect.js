@@ -5,12 +5,14 @@ import React, { useState, useRef, useEffect } from 'react';
  * Filters by label (case-insensitive, substring), keyboard friendly
  * (Enter/ArrowUp/ArrowDown/Escape), and closes on outside click.
  */
-const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search…', disabled = false }) => {
+const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search…', disabled = false, ariaLabel = 'Search…' }) => {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [active, setActive] = useState(0);
     const wrapRef = useRef(null);
     const inputRef = useRef(null);
+    const listRef = useRef(null);
+    const idRef = useRef(`searchable-select-list-${Math.random().toString(36).slice(2, 9)}`);
 
     const selected = options.find(o => o.value === value);
 
@@ -34,6 +36,12 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
         setActive((a) => Math.min(Math.max(a, 0), Math.max(filtered.length - 1, 0)));
     }, [filtered]);
 
+    useEffect(() => {
+        if (open && active >= 0 && listRef.current) {
+            listRef.current.children[active]?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [active, open]);
+
     const pick = (opt) => {
         if (!opt) return;
         onChange?.(opt.value);
@@ -41,6 +49,13 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
     };
 
     const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(false);
+            inputRef.current?.focus();
+            return;
+        }
         if (!open && e.key !== 'Enter') return;
         if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(Math.max(a + 1, 0), Math.max(filtered.length - 1, 0))); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(Math.min(a - 1, Math.max(filtered.length - 1, 0)), 0)); }
@@ -50,7 +65,6 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
             else if (open) { setQuery(''); setActive(0); setOpen(false); }
             else setOpen(true);
         }
-        else if (e.key === 'Escape') { setOpen(false); }
         else if (e.key === 'Tab') { setOpen(false); }
     };
 
@@ -67,15 +81,19 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
                 onChange={e => { setQuery(e.target.value); setActive(0); if (!open) setOpen(true); }}
                 onKeyDown={handleKeyDown}
                 role="combobox"
+                aria-label={ariaLabel}
                 aria-expanded={open}
-                aria-controls={open ? 'searchable-select-list' : undefined}
+                aria-controls={open ? idRef.current : undefined}
+                aria-activedescendant={open && active >= 0 && filtered[active] ? `${idRef.current}-${String(filtered[active].value)}` : undefined}
                 aria-autocomplete="list"
                 autoComplete="off"
             />
             {open && (
                 <div
-                    id="searchable-select-list"
+                    id={idRef.current}
                     role="listbox"
+                    ref={listRef}
+                    aria-label={ariaLabel}
                     style={{
                         position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
                         background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
@@ -84,7 +102,7 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
                     }}
                 >
                     {filtered.length === 0 && (
-                        <div style={{ padding: '10px 12px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                        <div style={{ padding: '10px 12px', color: '#5b6472', fontSize: '0.85rem' }}>
                             No matches.
                         </div>
                     )}
@@ -92,6 +110,9 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Search
                         <button
                             key={opt.value}
                             type="button"
+                            id={`${idRef.current}-${String(opt.value)}`}
+                            role="option"
+                            aria-selected={idx === active}
                             onClick={() => pick(opt)}
                             onMouseEnter={() => setActive(idx)}
                             style={{

@@ -265,7 +265,7 @@ const CourseManagementPage = () => {
         </div>
       )}
 
-      <Modal isOpen={modalOpen} title={editId ? 'Edit Course' : 'Add Course'} onClose={() => dispatch({ type: 'CLOSE_MODAL' })} onSubmit={handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
+      <Modal isOpen={modalOpen} title={editId ? 'Edit Course' : 'Add Course'} onClose={() => dispatch({ type: 'CLOSE_MODAL' })} onSubmit={handleSave} submitting={saving} submitLabel={saving ? 'Saving…' : 'Save'}>
         {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
         <div className="form-grid">
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>

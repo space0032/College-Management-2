@@ -322,6 +322,7 @@ const FacultyManagementPage = () => {
         title={editId ? 'Edit Faculty Member' : 'Add New Faculty Member'}
         onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
         onSubmit={handleSave}
+        submitting={saving}
         submitLabel={saving ? 'Saving...' : 'Save Faculty'}
       >
         {formError && <div className="alert alert-danger" style={{ marginBottom: '15px' }}>{formError}</div>}

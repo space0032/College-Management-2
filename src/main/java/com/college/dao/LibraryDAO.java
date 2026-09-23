@@ -57,14 +57,30 @@ public class LibraryDAO {
     }
 
     public List<Book> getAllBooks(int page, int size) {
+        return getAllBooks(page, size, null);
+    }
+
+    public List<Book> getAllBooks(int page, int size, String search) {
         List<Book> books = new ArrayList<>();
-        String sql = "SELECT * FROM books ORDER BY title LIMIT ? OFFSET ?";
+        String sql;
+        if (search != null && !search.trim().isEmpty()) {
+            sql = "SELECT * FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? OR isbn LIKE ? ORDER BY title LIMIT ? OFFSET ?";
+        } else {
+            sql = "SELECT * FROM books ORDER BY title LIMIT ? OFFSET ?";
+        }
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, size);
-            pstmt.setInt(2, page * size);
+            int idx = 1;
+            if (search != null && !search.trim().isEmpty()) {
+                String like = "%" + search.trim().toLowerCase() + "%";
+                pstmt.setString(idx++, like);
+                pstmt.setString(idx++, like);
+                pstmt.setString(idx++, like);
+            }
+            pstmt.setInt(idx++, size);
+            pstmt.setInt(idx, page * size);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -77,11 +93,27 @@ public class LibraryDAO {
     }
 
     public int getTotalBookCount() {
-        String sql = "SELECT COUNT(*) FROM books";
+        return getTotalBookCount(null);
+    }
+
+    public int getTotalBookCount(String search) {
+        String sql;
+        if (search != null && !search.trim().isEmpty()) {
+            sql = "SELECT COUNT(*) FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? OR isbn LIKE ?";
+        } else {
+            sql = "SELECT COUNT(*) FROM books";
+        }
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
-            if (rs.next()) return rs.getInt(1);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            if (search != null && !search.trim().isEmpty()) {
+                String like = "%" + search.trim().toLowerCase() + "%";
+                pstmt.setString(1, like);
+                pstmt.setString(2, like);
+                pstmt.setString(3, like);
+            }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
         } catch (SQLException e) {
             Logger.error("Database operation failed", e);
         }

@@ -77,13 +77,15 @@ private void handleGetAll(HttpExchange t) throws IOException {
         if (!requirePermission(t, "VIEW_LIBRARY")) return;
         String query = t.getRequestURI().getQuery();
         int page = 0, size = 20;
+        String search = null;
         if (query != null) {
             java.util.Map<String, String> params = parseQuery(query);
             if (params.containsKey("page")) page = Integer.parseInt(params.get("page"));
             if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
+            if (params.containsKey("search")) search = params.get("search");
         }
-        List<Book> books = libraryDAO.getAllBooks(page, size);
-        int total = libraryDAO.getTotalBookCount();
+        List<Book> books = libraryDAO.getAllBooks(page, size, search);
+        int total = libraryDAO.getTotalBookCount(search);
         sendResponse(t, 200, String.format("{\"content\":%s,\"totalElements\":%d,\"totalPages\":%d,\"number\":%d,\"size\":%d}",
                 JsonHelper.toJson(books), total, (int) Math.ceil((double) total / size), page, size));
     }

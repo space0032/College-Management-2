@@ -206,7 +206,7 @@ const HostelPage = () => {
         )}
       </div>}
 
-      <Modal isOpen={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)} onSubmit={saving ? undefined : handleSave} submitLabel={saving ? 'Saving…' : 'Save'}>
+      <Modal isOpen={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)} onSubmit={handleSave} submitting={saving} submitLabel={saving ? 'Saving…' : 'Save'}>
         {tab === 'hostels' ? (
           <div className="form-grid">
             <div className="form-group"><label>Hostel Name *</label><input type="text" required value={hostelForm.name} onChange={e => setHostelForm({ ...hostelForm, name: e.target.value })} /></div>

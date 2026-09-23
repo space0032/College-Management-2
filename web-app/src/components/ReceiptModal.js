@@ -223,9 +223,9 @@ const ReceiptModal = ({ fee, onClose }) => {
                 {pdfError && <div className="alert alert-error" style={{ margin: '0 24px 12px' }}>{pdfError}</div>}
                 {printError && <div className="alert alert-error" style={{ margin: '0 24px 12px' }}>{printError}</div>}
                 <div id="receipt-actions" style={{ display: 'flex', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
-                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
-                    <button className="btn btn-primary" style={{ flex: 2 }} onClick={downloadReceiptPDF}>📥 Download PDF</button>
-                    <button className="btn btn-secondary" style={{ flex: 1.5 }} onClick={handlePrint}>🖨 Print</button>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
+                    <button type="button" className="btn btn-primary" style={{ flex: 2 }} onClick={downloadReceiptPDF}>📥 Download PDF</button>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1.5 }} onClick={handlePrint}>🖨 Print</button>
                 </div>
             </div>
         </Modal>

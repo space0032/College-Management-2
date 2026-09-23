@@ -24,6 +24,7 @@ const EventsPage = () => {
     const [listError, setListError] = useState('');
     const [createOpen, setCreateOpen] = useState(false);
     const [pendingUnregister, setPendingUnregister] = useState(null);
+    const [pendingDelete, setPendingDelete] = useState(null);
     const [activeTab, setActiveTab] = useState('browse');
     const [events, setEvents] = useState([]);
     const [myEvents, setMyEvents] = useState([]);
@@ -218,6 +219,13 @@ const EventsPage = () => {
         } catch (err) { fail(err, 'Could not add this collaborator.'); }
     };
 
+    const handleDeleteBudget = async (id) => {
+        try {
+            await deleteEventBudget(id);
+            loadEventDetails(selectedEventId);
+        } catch (err) { fail(err, 'Could not remove this budget line.'); }
+    };
+
     const handleDeleteCollaborator = async (id) => {
         try {
             await deleteEventCollaborator(id);
@@ -250,6 +258,15 @@ const EventsPage = () => {
             await deleteEventResource(id);
             loadEventDetails(selectedEventId);
         } catch (err) { fail(err, 'Could not remove this resource.'); }
+    };
+
+    const confirmPendingDelete = async () => {
+        if (!pendingDelete) return;
+        const { id, kind } = pendingDelete;
+        setPendingDelete(null);
+        if (kind === 'budget') await handleDeleteBudget(id);
+        else if (kind === 'collaborator') await handleDeleteCollaborator(id);
+        else await handleDeleteResource(id);
     };
 
     const handleSaveVolunteer = async () => {
@@ -287,10 +304,10 @@ const EventsPage = () => {
                     <p style={{ color: '#718096', margin: 0 }}>Discover, manage, and participate in campus life milestones.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className={`btn ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>Browse</button>
-                    <button className={`btn ${activeTab === 'my_events' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('my_events')}>My Events</button>
-                    {isAdmin && <button className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('manage')}>Control Center</button>}
-                    {isAdmin && <button className="btn btn-primary" onClick={() => setCreateOpen(true)}>+ New Event</button>}
+                    <button type="button" className={`btn ${activeTab === 'browse' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('browse')}>Browse</button>
+                    <button type="button" className={`btn ${activeTab === 'my_events' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('my_events')}>My Events</button>
+                    {isAdmin && <button type="button" className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('manage')}>Control Center</button>}
+                    {isAdmin && <button type="button" className="btn btn-primary" onClick={() => setCreateOpen(true)}>+ New Event</button>}
                 </div>
             </div>
 
@@ -445,7 +462,7 @@ const EventsPage = () => {
                                                 </select>
                                             )
                                         },
-                                        { label: 'Action', key: 'id', render: (v) => <button className="btn btn-sm btn-danger" onClick={() => deleteEventBudget(v).then(() => loadEventDetails(selectedEventId))}>Remove</button> }
+                                        { label: 'Action', key: 'id', render: (v) => <button type="button" className="btn btn-sm btn-danger" onClick={() => setPendingDelete({ id: v, kind: 'budget' })}>Remove</button> }
                                     ]}
                                     data={budgets}
                                 />
@@ -516,7 +533,7 @@ const EventsPage = () => {
                                         columns={[
                                             { label: 'Department', key: 'departmentName' },
                                             { label: 'Status', key: 'status', render: (v) => <span className={`badge ${v === 'ACCEPTED' ? 'badge-success' : v === 'DECLINED' ? 'badge-danger' : 'badge-secondary'}`}>{v}</span> },
-                                            { label: 'Action', key: 'id', render: (v) => <button className="btn btn-sm btn-danger" onClick={() => handleDeleteCollaborator(v)}>Remove</button> }
+                                            { label: 'Action', key: 'id', render: (v) => <button type="button" className="btn btn-sm btn-danger" onClick={() => setPendingDelete({ id: v, kind: 'collaborator' })}>Remove</button> }
                                         ]}
                                         data={collaborators}
                                     />
@@ -545,7 +562,7 @@ const EventsPage = () => {
                                                     </select>
                                                 )
                                             },
-                                            { label: 'Action', key: 'id', render: (v) => <button className="btn btn-sm btn-danger" onClick={() => handleDeleteResource(v)}>Remove</button> }
+                                            { label: 'Action', key: 'id', render: (v) => <button type="button" className="btn btn-sm btn-danger" onClick={() => setPendingDelete({ id: v, kind: 'resource' })}>Remove</button> }
                                         ]}
                                         data={resources}
                                     />
@@ -635,6 +652,15 @@ const EventsPage = () => {
                 destructive={false}
                 onConfirm={confirmUnregister}
                 onCancel={() => setPendingUnregister(null)}
+            />
+            <ConfirmDialog
+                isOpen={Boolean(pendingDelete)}
+                title={pendingDelete?.kind === 'budget' ? 'Remove budget line?' : pendingDelete?.kind === 'collaborator' ? 'Remove collaborator?' : 'Remove resource?'}
+                message={pendingDelete?.kind === 'budget' ? 'This budget line will be permanently removed from the event.' : pendingDelete?.kind === 'collaborator' ? 'This department will no longer co-host the event.' : 'This resource will be permanently removed from the event.'}
+                confirmLabel="Remove"
+                destructive
+                onConfirm={confirmPendingDelete}
+                onCancel={() => setPendingDelete(null)}
             />
 
             {/* Support Modals */}
