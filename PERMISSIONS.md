@@ -48,6 +48,21 @@ The College Management System uses a robust Role-Based Access Control (RBAC) sys
 
 ---
 
+## ➕ Secondary Roles
+
+Every user keeps one **primary role**, which drives what's displayed (portal selection, dashboard, role labels). A user may also be assigned zero or more **secondary roles**, which contribute **permission perks only** — the effective permission set is the union of the primary and secondary roles.
+
+*   **Perks**: A student granted a secondary `WARDEN` role can access hostel-management permissions while still appearing as a *Student* in the UI.
+*   **No display change**: Secondary roles never change the primary role label, portal, or dashboard.
+*   **Guardrails**:
+    *   `ADMIN` cannot be assigned as a secondary role.
+    *   A user cannot be assigned their own primary role as a secondary role.
+    *   Assigning secondary roles requires `UPDATE_USER`, and a user can only grant secondary roles whose permissions they already hold.
+*   **Where managed**: Admin users with `VIEW_USER`/`UPDATE_USER` manage secondary roles from **Roles → Users** (the "Secondary roles" column). Users can view their secondary roles on their profile page.
+*   **Evaluation**: Permission checks evaluate the effective union automatically across the web app and desktop client; no extra login step is needed.
+
+---
+
 ## 📝 Activity & Club Workflows
 
 ### Club Membership

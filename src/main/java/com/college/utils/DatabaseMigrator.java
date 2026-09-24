@@ -66,7 +66,8 @@ public class DatabaseMigrator {
             "V75__Add_Faculty_Address.sql",
             "V76__Course_Registration_Integrity.sql",
             "V77__Placement_Status_Constraint.sql",
-            "V78__Scholarship_Application_Unique.sql"
+            "V78__Scholarship_Application_Unique.sql",
+            "V80__Add_Secondary_Roles.sql"
         };
 
         try (Connection conn = DatabaseConnection.getConnection();

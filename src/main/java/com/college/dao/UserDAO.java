@@ -1,12 +1,15 @@
 package com.college.dao;
 
+import com.college.models.SecondaryRole;
 import com.college.models.User;
 import com.college.utils.DatabaseConnection;
 import com.college.utils.Logger;
 import com.college.utils.PasswordUtils;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserDAO {
 
@@ -106,7 +109,7 @@ public class UserDAO {
         }
     }
 
-    public List<User> getAllUsers() {
+public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT u.*, r.code as role_name FROM users u " +
                 "LEFT JOIN roles r ON u.role_id = r.id " +
@@ -130,6 +133,11 @@ public class UserDAO {
                 }
 
                 users.add(user);
+            }
+
+            Map<Integer, List<SecondaryRole>> secondary = loadSecondaryRoles(conn);
+            for (User u : users) {
+                u.setSecondaryRoles(secondary.getOrDefault(u.getId(), new ArrayList<>()));
             }
         } catch (SQLException e) {
             throw com.college.utils.ManagementException.database(e);
@@ -165,6 +173,11 @@ public class UserDAO {
                 }
 
                 users.add(user);
+            }
+
+            Map<Integer, List<SecondaryRole>> secondary = loadSecondaryRoles(conn);
+            for (User u : users) {
+                u.setSecondaryRoles(secondary.getOrDefault(u.getId(), new ArrayList<>()));
             }
         } catch (SQLException e) {
             Logger.error("Error fetching special users", e);
@@ -221,6 +234,8 @@ public class UserDAO {
                     if (user.getRoleName() == null) {
                         user.setRoleName(user.getRole());
                     }
+                    Map<Integer, List<SecondaryRole>> secondary = loadSecondaryRoles(conn);
+                    user.setSecondaryRoles(secondary.getOrDefault(userId, new ArrayList<>()));
                     return user;
                 }
             }
@@ -228,5 +243,26 @@ public class UserDAO {
             Logger.error("Error fetching user by id", e);
         }
         return null;
+    }
+
+    /**
+     * Secondary roles for all users, keyed by user id. Defensively catches
+     * "table not found" from databases that predate the V80 migration.
+     */
+    private Map<Integer, List<SecondaryRole>> loadSecondaryRoles(Connection conn) {
+        Map<Integer, List<SecondaryRole>> result = new HashMap<>();
+        String sql = "SELECT ur.user_id, r.id, r.code, r.name FROM user_secondary_roles ur " +
+                "INNER JOIN roles r ON r.id = ur.role_id " +
+                "INNER JOIN users u ON u.id = ur.user_id AND ur.role_id <> u.role_id";
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                result.computeIfAbsent(rs.getInt("user_id"), k -> new ArrayList<>())
+                        .add(new SecondaryRole(rs.getInt("id"), rs.getString("code"), rs.getString("name")));
+            }
+        } catch (SQLException e) {
+            // user_secondary_roles may not exist on pre-V80 databases.
+        }
+        return result;
     }
 }

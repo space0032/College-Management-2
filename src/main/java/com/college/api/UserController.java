@@ -23,6 +23,9 @@ public class UserController extends BaseController implements HttpHandler {
             if (path.matches(".*/users/\\d+/password")) {
                 if ("PUT".equals(method)) handleUpdatePassword(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
+            } else if (path.matches(".*/users/\\d+/secondary-roles")) {
+                if ("PUT".equals(method)) handleUpdateSecondaryRoles(t, path);
+                else sendResponse(t, 405, errorJson("Method not allowed"));
             } else if (path.matches(".*/users/\\d+/role")) {
                 if ("PUT".equals(method)) handleUpdateRole(t, path);
                 else sendResponse(t, 405, errorJson("Method not allowed"));
@@ -57,6 +60,50 @@ public class UserController extends BaseController implements HttpHandler {
         new com.college.dao.AccessManagementDAO().deleteUser(getTokenInfo(t).userId, id);
         TokenStore.removeTokensForUser(id);
         sendResponse(t, 200, JSON.toJson(java.util.Map.of("status", "Deleted")));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleUpdateSecondaryRoles(HttpExchange t, String path) throws IOException {
+        if (!requirePermission(t, "UPDATE_USER")) return;
+        String[] parts = path.split("/");
+        int userId = Integer.parseInt(parts[parts.length - 2]); // /users/{id}/secondary-roles
+        java.util.List<Integer> roleIds = parseRoleIds(readBody(t));
+        new com.college.dao.AccessManagementDAO().setSecondaryRoles(getTokenInfo(t).userId, userId, roleIds);
+        sendResponse(t, 200, JSON.toJson(java.util.Map.of("status", "Secondary roles updated")));
+    }
+
+    /**
+     * Parse the PUT body for secondary-roles into a deduplicated, positive list
+     * of role ids. Accepts an object-wrapped array ({"roleIds":[...]}, the format
+     * sent by the web client). Throws ManagementException(400) on malformed input.
+     */
+    static java.util.List<Integer> parseRoleIds(String body) {
+        com.google.gson.JsonObject json = com.college.utils.ManagementValidation.object(body);
+        java.util.LinkedHashSet<Integer> ids = new java.util.LinkedHashSet<>();
+        if (json.has("roleIds") && !json.get("roleIds").isJsonNull()) {
+            if (!json.get("roleIds").isJsonArray()) {
+                throw new com.college.utils.ManagementException(400, "roleIds must be an array of role ids");
+            }
+            for (com.google.gson.JsonElement el : json.getAsJsonArray("roleIds")) {
+                if (el == null || el.isJsonNull() || !el.isJsonPrimitive()) {
+                    throw new com.college.utils.ManagementException(400, "roleIds must contain only role ids");
+                }
+                com.google.gson.JsonPrimitive prim = el.getAsJsonPrimitive();
+                if (prim.isBoolean()) {
+                    throw new com.college.utils.ManagementException(400, "roleIds must contain only role ids");
+                }
+                try {
+                    int rid = prim.isNumber()
+                            ? prim.getAsBigDecimal().intValueExact()
+                            : Integer.parseInt(prim.getAsString().trim());
+                    if (rid <= 0) throw new NumberFormatException();
+                    ids.add(rid);
+                } catch (RuntimeException e) {
+                    throw new com.college.utils.ManagementException(400, "roleIds must contain only role ids");
+                }
+            }
+        }
+        return new java.util.ArrayList<>(ids);
     }
 
     @SuppressWarnings("unchecked")

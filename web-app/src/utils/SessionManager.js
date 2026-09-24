@@ -117,6 +117,33 @@ class SessionManager {
   }
 
   /**
+   * Check if user holds a role as a SECONDARY (permission-perks only) role.
+   * Does not affect the primary role that is displayed everywhere.
+   * @param {string} roleCode - Role code to check
+   * @returns {boolean}
+   */
+  static hasSecondaryRole(roleCode) {
+    if (!roleCode) return false;
+    const user = this.getUser();
+    return Array.isArray(user?.secondaryRoles) && user.secondaryRoles.some(r => r.code === roleCode);
+  }
+
+  /**
+   * All role codes the user holds (primary first, then secondary roles).
+   * @returns {string[]}
+   */
+  static getAllRoleCodes() {
+    const user = this.getUser();
+    const codes = user?.role ? [user.role] : [];
+    if (Array.isArray(user?.secondaryRoles)) {
+      for (const r of user.secondaryRoles) {
+        if (r && r.code && !codes.includes(r.code)) codes.push(r.code);
+      }
+    }
+    return codes;
+  }
+
+  /**
    * Check if user has a specific permission
    * @param {string} permissionCode - Permission code to check (e.g. 'VIEW_STUDENTS')
    * @returns {boolean}
@@ -160,13 +187,16 @@ class SessionManager {
   static async refreshPermissions() {
     try {
       const { getSession } = await import('../services/authService');
-      const res = await getSession();
+const res = await getSession();
       const permissions = res?.data?.permissions;
       if (Array.isArray(permissions)) {
         const user = this.getUser();
         if (user && res.data.role) {
           user.role = res.data.role;
           user.roleId = res.data.roleId;
+        }
+        if (user && Array.isArray(res.data.secondaryRoles)) {
+          user.secondaryRoles = res.data.secondaryRoles;
         }
         this.updatePermissions(permissions);
         return permissions;

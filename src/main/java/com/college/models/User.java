@@ -1,6 +1,8 @@
 package com.college.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class User {
     private int id;
@@ -8,6 +10,7 @@ public class User {
     private String role; // Legacy role
     private int roleId;
     private String roleName; // From RBAC roles table
+    private List<SecondaryRole> secondaryRoles = new ArrayList<>();
     private LocalDateTime lastLogin;
 
     public User() {
@@ -57,6 +60,14 @@ public class User {
 
     public void setRoleName(String roleName) {
         this.roleName = roleName;
+    }
+
+    public List<SecondaryRole> getSecondaryRoles() {
+        return secondaryRoles;
+    }
+
+    public void setSecondaryRoles(List<SecondaryRole> secondaryRoles) {
+        this.secondaryRoles = secondaryRoles == null ? new ArrayList<>() : secondaryRoles;
     }
 
     public LocalDateTime getLastLogin() {

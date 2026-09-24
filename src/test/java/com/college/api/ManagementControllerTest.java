@@ -35,6 +35,13 @@ class ManagementControllerTest {
             @Override protected boolean requirePermission(HttpExchange exchange, String permission) { return true; }
         };
     }
+    @Test void secondaryRoleIdsAcceptNumbersAndNumericStringsAndRejectAnythingElse() {
+        assertEquals(List.of(2, 4), UserController.parseRoleIds("{\"roleIds\":[2,\"4\"]}"));
+        assertEquals(List.of(), UserController.parseRoleIds("{}"));
+        assertEquals(List.of(), UserController.parseRoleIds("{\"roleIds\":[]}"));
+        for (String bad : List.of("{\"roleIds\":1.5}", "{\"roleIds\":[0]}", "{\"roleIds\":[-1]}", "{\"roleIds\":[null]}", "{\"roleIds\":[true]}", "{\"roleIds\":[2147483648]}", "{\"roleIds\":[\"abc\"]}", "not json"))
+            assertThrows(ManagementException.class, () -> UserController.parseRoleIds(bad));
+    }
     @Test void validatesPayrollPeriodsWithoutTruncatingFractions() {
         for (String input : List.of("{\"month\":0}", "{\"month\":13}", "{\"month\":1.5}", "{\"year\":0}", "{\"year\":10000}", "{\"month\":null}"))
             assertThrows(ManagementException.class, () -> PayrollController.period(ManagementValidation.object(input)));

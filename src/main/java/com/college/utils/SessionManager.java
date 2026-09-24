@@ -4,6 +4,8 @@ import com.college.dao.RoleDAO;
 import com.college.models.Role;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Session Manager - Singleton pattern
@@ -16,7 +18,8 @@ public class SessionManager {
     private int userId;
     private String username;
     private String role; // Legacy role string
-    private Role userRole; // New RBAC Role object
+    private Role userRole; // New RBAC primary Role object
+    private List<Role> secondaryRoles = Collections.emptyList(); // Additional RBAC roles (permission perks)
     private LocalDateTime loginTime;
     private RoleDAO roleDAO;
 
@@ -53,10 +56,22 @@ public class SessionManager {
      */
     private void loadUserRole() {
         try {
-            this.userRole = roleDAO.getRoleForUser(userId);
+            List<Role> allRoles = roleDAO.getRolesForUser(userId);
+            this.userRole = null;
+            this.secondaryRoles = new java.util.ArrayList<>();
+            for (Role r : allRoles) {
+                // The primary role is the first one returned (joined from users.role_id).
+                if (this.userRole == null) {
+                    this.userRole = r;
+                } else {
+                    this.secondaryRoles.add(r);
+                }
+            }
+            if (this.secondaryRoles.isEmpty()) this.secondaryRoles = Collections.emptyList();
         } catch (Exception e) {
             // RBAC tables may not exist yet or connection error
             this.userRole = null;
+            this.secondaryRoles = Collections.emptyList();
         }
 
         // Fallback for legacy users who have 'role' string but no 'role_id'
@@ -81,6 +96,7 @@ public class SessionManager {
         this.username = null;
         this.role = null;
         this.userRole = null;
+        this.secondaryRoles = Collections.emptyList();
         this.loginTime = null;
     }
 
@@ -92,8 +108,10 @@ public class SessionManager {
     }
 
     /**
-     * Check if user has a specific permission
-     * Falls back to legacy role check if RBAC not set up
+     * Check if user has a specific permission.
+     * Effective permissions are the union of the primary role and every
+     * secondary role, so a secondary role contributes its "perks" without
+     * changing the primary role used for display and portal selection.
      */
     public boolean hasPermission(String permissionCode) {
         // Null safety check
@@ -101,11 +119,26 @@ public class SessionManager {
             return false;
         }
 
-        if (userRole != null && userRole.getPermissions() != null && !userRole.getPermissions().isEmpty()) {
-            return userRole.hasPermission(permissionCode);
+        for (Role r : allSessionRoles()) {
+            if (r != null && r.getPermissions() != null && !r.getPermissions().isEmpty()) {
+                if ("ADMIN".equalsIgnoreCase(r.getCode()) || r.hasPermission(permissionCode)) {
+                    return true;
+                }
+            }
         }
         // Fallback to legacy role-based checks
         return fallbackPermissionCheck(permissionCode);
+    }
+
+    /**
+     * Primary + secondary roles for the current session. The primary role is
+     * first. Returns an immutable defensive copy.
+     */
+    private java.util.List<Role> allSessionRoles() {
+        java.util.List<Role> roles = new java.util.ArrayList<>();
+        if (userRole != null) roles.add(userRole);
+        roles.addAll(secondaryRoles);
+        return roles;
     }
 
     /**
@@ -171,6 +204,13 @@ public class SessionManager {
 
     public Role getUserRole() {
         return userRole;
+    }
+
+    /**
+     * Additional roles for the current user (permission perks only).
+     */
+    public List<Role> getSecondaryRoles() {
+        return secondaryRoles;
     }
 
     public LocalDateTime getLoginTime() {

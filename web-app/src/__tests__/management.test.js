@@ -101,6 +101,19 @@ test('payroll viewers receive useful errors without payment or generate actions'
   expect(container.textContent).toContain('Ledger unavailable'); expect(button('Retry')).toBeDefined();
   expect(button('Generate payroll')).toBeUndefined(); expect(button('Mark all pending paid')).toBeUndefined();
 });
+test('secondary roles are saved through the user assignment tab', async () => {
+  user('VIEW_ROLE', 'VIEW_USER', 'UPDATE_USER');
+  institute.getRoles.mockResolvedValue({ data: [{ id: 1, code: 'HR', name: 'Human resources' }, { id: 2, code: 'FACULTY', name: 'Faculty' }, { id: 4, code: 'LIBRARIAN', name: 'Librarian' }] });
+  institute.getUsers.mockResolvedValue({ data: [{ id: 5, username: 'sara', roleId: 2, roleName: 'Faculty', secondaryRoles: [{ id: 4, code: 'LIBRARIAN', name: 'Librarian' }] }] });
+  await render(<RoleManagementPage />, '/dashboard/roles?tab=users');
+  await click(button('Manage'));
+  expect(document.querySelector('[role=dialog]')).not.toBeNull();
+  const checks = Array.from(document.querySelectorAll('.permission-option input')).map(input => input.checked);
+  expect(checks).toEqual([false, true]);
+  await click(button('Save secondary roles'));
+  expect(institute.updateUserSecondaryRoles).toHaveBeenCalledWith(5, [4]);
+  expect(document.querySelector('[role=dialog]')).toBeNull();
+});
 test('an old month response cannot replace the latest payroll period', async () => {
   user('VIEW_PAYROLL'); const old = deferred(); payroll.getPayroll.mockReturnValueOnce(old.promise).mockResolvedValue({ data: { data: [{ id: 2, employeeName: 'Current month', netSalary: 1, status: 'PAID' }] } });
   await render(<PayrollManagementPage />);

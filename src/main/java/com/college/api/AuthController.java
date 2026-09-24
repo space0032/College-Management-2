@@ -111,17 +111,13 @@ public class AuthController extends BaseController implements HttpHandler {
                 return;
             }
 
-            String token = TokenStore.createToken(userId, username,
+String token = TokenStore.createToken(userId, username,
                     user.getRoleName() != null ? user.getRoleName() : user.getRole());
 
-            Role role = new RoleDAO().getRoleById(user.getRoleId());
             Map<String, Object> userPayload = new LinkedHashMap<>();
             userPayload.put("id", user.getId());
             userPayload.put("username", user.getUsername());
-            userPayload.put("role", user.getRoleName() != null ? user.getRoleName() : user.getRole());
-            userPayload.put("roleId", user.getRoleId());
-            userPayload.put("permissions", role != null && role.getPermissions() != null
-                    ? role.getPermissions() : java.util.List.of());
+            userPayload.putAll(rolePayload(user));
             AuditLogDAO.logAction(userId, username, "LOGIN", "USER", userId, "Web login succeeded");
             sendResponse(t, 200, JSON.toJson(Map.of("token", token, "user", userPayload)));
         } catch (JsonParseException e) {
@@ -159,19 +155,48 @@ public class AuthController extends BaseController implements HttpHandler {
         // Include fresh role + permissions so the web client can refresh its
         // cached permission set without forcing a re-login after the
         // permission tree changes (see RoleController.handleSetRolePermissions).
-        try {
+try {
             User user = userDAO.getUserById(info.userId);
             if (user != null) {
                 session.put("roleId", user.getRoleId());
                 session.put("role", user.getRoleName() != null ? user.getRoleName() : user.getRole());
-                Role role = new RoleDAO().getRoleById(user.getRoleId());
-                session.put("permissions", role != null && role.getPermissions() != null
-                        ? role.getPermissions() : java.util.List.of());
+                // Include fresh role + permissions so the web client can refresh its
+                // cached permission set without forcing a re-login after the
+                // permission tree changes (see RoleController.handleSetRolePermissions).
+                session.putAll(rolePayload(user));
             }
         } catch (Exception e) {
             com.college.utils.Logger.error("Failed to load session permissions", e);
         }
         sendResponse(t, 200, JSON.toJson(session));
+    }
+
+    /**
+     * Primary role label/id plus the user's effective permission set (union of
+     * the primary role and all secondary roles) and the lightweight secondary
+     * role list used by the web client for display (profile page).
+     */
+    private java.util.Map<String, Object> rolePayload(User user) {
+        java.util.Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("role", user.getRoleName() != null ? user.getRoleName() : user.getRole());
+        payload.put("roleId", user.getRoleId());
+        java.util.LinkedHashSet<com.college.models.Permission> perms = new java.util.LinkedHashSet<>();
+        java.util.List<java.util.Map<String, Object>> secondaries = new java.util.ArrayList<>();
+        for (Role r : new RoleDAO().getRolesForUser(user.getId())) {
+            if (r != null) {
+                if (r.getPermissions() != null) perms.addAll(r.getPermissions());
+                if (r.getId() != user.getRoleId()) {
+                    java.util.Map<String, Object> sr = new LinkedHashMap<>();
+                    sr.put("id", r.getId());
+                    sr.put("code", r.getCode());
+                    sr.put("name", r.getName());
+                    secondaries.add(sr);
+                }
+            }
+        }
+        payload.put("permissions", new java.util.ArrayList<>(perms));
+        payload.put("secondaryRoles", secondaries);
+        return payload;
     }
 
     private int authenticateUser(String username, String password) {

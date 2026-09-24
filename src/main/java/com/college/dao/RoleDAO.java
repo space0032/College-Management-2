@@ -112,7 +112,7 @@ public class RoleDAO {
         return null;
     }
 
-    public Role getRoleForUser(int userId) {
+public Role getRoleForUser(int userId) {
         String sql = "SELECT r.* FROM roles r " +
                 "INNER JOIN users u ON u.role_id = r.id " +
                 "WHERE u.id = ?";
@@ -132,6 +132,65 @@ public class RoleDAO {
             throw com.college.utils.ManagementException.database(e);
         }
         return null;
+    }
+
+    /**
+     * All roles for a user: the primary role (users.role_id) plus every
+     * secondary role from user_secondary_roles. Each role has its permissions
+     * loaded. Defensively excludes a secondary row that duplicates the primary
+     * (role_id <> u.role_id) so the union never double counts.
+     */
+    public List<Role> getRolesForUser(int userId) {
+        List<Role> roles = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            Role primary = getRoleForUser(conn, userId);
+            if (primary != null) {
+                roles.add(primary);
+            }
+            try {
+                roles.addAll(getSecondaryRolesInternal(conn, userId));
+            } catch (SQLException e) {
+                // user_secondary_roles may not exist on pre-V80 databases — the
+                // user simply has no secondary roles in that case.
+            }
+        } catch (SQLException e) {
+            throw com.college.utils.ManagementException.database(e);
+        }
+        return roles;
+    }
+
+    private Role getRoleForUser(Connection conn, int userId) throws SQLException {
+        String sql = "SELECT r.* FROM roles r INNER JOIN users u ON u.role_id = r.id WHERE u.id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Role role = extractRoleFromResultSet(rs);
+                    loadPermissionsForRole(conn, role);
+                    return role;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<Role> getSecondaryRolesInternal(Connection conn, int userId) throws SQLException {
+        List<Role> roles = new ArrayList<>();
+        String sql = "SELECT r.* FROM roles r " +
+                "INNER JOIN user_secondary_roles ur ON ur.role_id = r.id " +
+                "INNER JOIN users u ON u.id = ur.user_id AND ur.role_id <> u.role_id " +
+                "WHERE ur.user_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Role role = extractRoleFromResultSet(rs);
+                    loadPermissionsForRole(conn, role);
+                    roles.add(role);
+                }
+            }
+        }
+        return roles;
     }
 
     public boolean createRole(Role role) {

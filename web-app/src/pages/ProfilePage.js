@@ -210,6 +210,14 @@ const ProfilePage = () => {
           <InfoRow label="Username" value={user.username} />
           <InfoRow label="Email" value={user.email} />
           <InfoRow label="Role" value={user.role} />
+          {Array.isArray(user.secondaryRoles) && user.secondaryRoles.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', padding: '12px 0', borderBottom: '1px solid #edf2f7', alignItems: 'center' }}>
+              <div style={{ color: '#718096', fontWeight: '500' }}>Secondary roles</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {user.secondaryRoles.map(r => <span key={r.id} style={{ background: '#edf2f7', padding: '2px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600', color: '#2d3748' }}>{r.name}</span>)}
+              </div>
+            </div>
+          )}
           <InfoRow label="Department" value={user.department} />
           <InfoRow label="User ID" value={user.id} />
           {profileData && (

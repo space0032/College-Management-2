@@ -28,4 +28,30 @@ class PermissionServiceTest {
         assertTrue(PermissionService.grantsPermission(faculty, "VIEW_STUDENT"));
         assertFalse(PermissionService.grantsPermission(faculty, "CREATE_STUDENT"));
     }
+
+    @Test
+    void secondaryRolePermissionsAreIncludedInTheEffectiveUnion() {
+        Role primary = new Role();
+        primary.setCode("STUDENT");
+        Role secondary = new Role();
+        secondary.setCode("WARDEN");
+
+        Permission wardenPerm = new Permission();
+        wardenPerm.setCode("MANAGE_HOSTEL");
+        secondary.addPermission(wardenPerm);
+        Permission studentPerm = new Permission();
+        studentPerm.setCode("VIEW_OWN_FEES");
+        primary.addPermission(studentPerm);
+
+        // Secondary role grants its perks...
+        assertTrue(PermissionService.grantsAnyPermission(java.util.List.of(primary, secondary), "MANAGE_HOSTEL"));
+        // ...while the primary role keeps gating its own portal permissions.
+        assertTrue(PermissionService.grantsAnyPermission(java.util.List.of(primary, secondary), "VIEW_OWN_FEES"));
+        assertFalse(PermissionService.grantsAnyPermission(java.util.List.of(primary, secondary), "CREATE_STUDENT"));
+    }
+
+    @Test
+    void emptyRoleSetNeverGrantsPermissions() {
+        assertFalse(PermissionService.grantsAnyPermission(java.util.List.of(), "MANAGE_HOSTEL"));
+    }
 }
