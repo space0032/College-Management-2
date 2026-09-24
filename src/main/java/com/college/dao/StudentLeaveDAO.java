@@ -72,6 +72,11 @@ public class StudentLeaveDAO {
     }
 
     public boolean updateLeaveStatus(int leaveId, String status, int approvedBy) {
+        int owner = getLeaveOwnerUserId(leaveId);
+        if (owner > 0 && owner == approvedBy) {
+            Logger.warn("Self-approval denied for leave " + leaveId + " (owner " + owner + ")");
+            return false;
+        }
         String sql = "UPDATE student_leaves SET status = ?, approved_by = ? WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
