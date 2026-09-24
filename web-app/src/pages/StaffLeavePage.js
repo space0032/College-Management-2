@@ -26,8 +26,7 @@ const StaffLeavePage = () => {
         fetchLeaves();
     }, [fetchLeaves]);
 
-    const handleApply = async (e) => {
-        e.preventDefault();
+    const handleApply = async () => {
         const today = new Date().toISOString().split('T')[0];
         if (!formData.startDate || !formData.endDate) { alert('Start date and end date are required.'); return; }
         if (formData.startDate < today) { alert('Start date cannot be in the past.'); return; }
