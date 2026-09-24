@@ -13,6 +13,7 @@ import javafx.scene.layout.*;
 import com.college.utils.SessionManager;
 import com.college.utils.DialogUtils;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -307,13 +308,18 @@ public class EmployeeManagementView extends VBox {
                 // Parse salary
                 try {
                     String salaryText = tfSalary.getText().trim();
-                    if (!salaryText.isEmpty()) {
-                        e.setSalary(new BigDecimal(salaryText));
-                    } else {
+                    if (salaryText.isEmpty()) {
                         e.setSalary(BigDecimal.ZERO);
+                    } else {
+                        BigDecimal salary = new BigDecimal(salaryText).setScale(2, RoundingMode.UNNECESSARY);
+                        if (salary.signum() < 0 || salary.compareTo(new BigDecimal("99999999.99")) > 0) {
+                            showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Salary must be between Rs.0.00 and Rs.99,999,999.99.");
+                            return null;
+                        }
+                        e.setSalary(salary);
                     }
-                } catch (NumberFormatException ex) {
-                    showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Please enter a valid salary amount.");
+                } catch (NumberFormatException | ArithmeticException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Please enter a valid non-negative salary with at most two decimal places.");
                     return null;
                 }
                 return e;
@@ -402,13 +408,18 @@ public class EmployeeManagementView extends VBox {
                 // Parse salary
                 try {
                     String salaryText = tfSalary.getText().trim();
-                    if (!salaryText.isEmpty()) {
-                        selected.setSalary(new BigDecimal(salaryText));
-                    } else {
+                    if (salaryText.isEmpty()) {
                         selected.setSalary(BigDecimal.ZERO);
+                    } else {
+                        BigDecimal salary = new BigDecimal(salaryText).setScale(2, RoundingMode.UNNECESSARY);
+                        if (salary.signum() < 0 || salary.compareTo(new BigDecimal("99999999.99")) > 0) {
+                            showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Salary must be between Rs.0.00 and Rs.99,999,999.99.");
+                            return null;
+                        }
+                        selected.setSalary(salary);
                     }
-                } catch (NumberFormatException ex) {
-                    showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Please enter a valid salary amount.");
+                } catch (NumberFormatException | ArithmeticException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Salary", "Please enter a valid non-negative salary with at most two decimal places.");
                     return null;
                 }
                 return selected;

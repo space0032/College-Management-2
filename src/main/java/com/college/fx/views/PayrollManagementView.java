@@ -17,6 +17,8 @@ import javafx.scene.layout.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -169,30 +171,45 @@ public class PayrollManagementView {
         int month = monthCombo.getValue().getValue();
         int year = yearSpinner.getValue();
 
-        List<Employee> activeEmployees = employeeDAO.getAllEmployees().stream()
-                .filter(e -> e.getStatus() == Employee.Status.ACTIVE)
-                .collect(Collectors.toList());
-
-        int count = 0;
-        for (Employee e : activeEmployees) {
-            // Check if exists
-            boolean exists = payrollData.stream()
-                    .anyMatch(p -> p.getEmployeeId() == e.getId());
-
-            if (!exists) {
-                PayrollEntry entry = new PayrollEntry(e.getId(), month, year, e.getSalary());
-                if (payrollDAO.createPayrollEntry(entry)) {
-                    count++;
-                }
+        List<PayrollEntry> entries = new ArrayList<>();
+        List<String> skipped = new ArrayList<>();
+        for (Employee e : employeeDAO.getAllEmployees()) {
+            String reason = eligibility(e, month, year);
+            if (reason != null) {
+                String label = e.getEmployeeId() != null ? e.getEmployeeId() : String.valueOf(e.getId());
+                skipped.add(label + ": " + reason);
+                continue;
             }
+            entries.add(new PayrollEntry(e.getId(), month, year, e.getSalary()));
         }
 
-        if (count > 0) {
-            showAlert(Alert.AlertType.INFORMATION, "Success", "Generated " + count + " payroll entries.");
+        try {
+            List<Integer> created = payrollDAO.generateBatch(entries);
+            StringBuilder message = new StringBuilder("Generated ")
+                    .append(created.size())
+                    .append(" payroll entr")
+                    .append(created.size() == 1 ? "y" : "ies")
+                    .append(".");
+            if (!skipped.isEmpty()) {
+                message.append("\n\nSkipped ").append(skipped.size()).append(" staff:\n")
+                        .append(String.join("\n", skipped));
+            }
+            showAlert(Alert.AlertType.INFORMATION, created.isEmpty() ? "Nothing generated" : "Payroll generated",
+                    message.toString());
             refreshData();
-        } else {
-            showAlert(Alert.AlertType.INFORMATION, "Info", "No new payroll entries generated.");
+        } catch (RuntimeException ex) {
+            showAlert(Alert.AlertType.ERROR, "Payroll generation failed",
+                    ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName());
         }
+    }
+
+    private String eligibility(Employee e, int month, int year) {
+        if (e.getStatus() != Employee.Status.ACTIVE) return "Not active";
+        if (e.getId() <= 0) return "Profile not saved";
+        if (e.getSalary() == null || e.getSalary().signum() <= 0) return "Set a positive monthly salary";
+        if (e.getJoinDate() == null) return "Set a joining date";
+        if (e.getJoinDate().isAfter(YearMonth.of(year, month).atEndOfMonth())) return "Joining date is after this period";
+        return null;
     }
 
     private void showEditDialog(PayrollEntry entry) {
@@ -273,11 +290,15 @@ public class PayrollManagementView {
 
         alert.showAndWait().ifPresent(resp -> {
             if (resp == ButtonType.YES) {
-                if (payrollDAO.markMonthAsPaid(month, year)) {
-                    showAlert(Alert.AlertType.INFORMATION, "Success", "All entries marked as PAID.");
+                try {
+                    int paid = payrollDAO.markMonthAsPaidCount(month, year);
+                    showAlert(Alert.AlertType.INFORMATION, "Success",
+                            paid + " pending entr" + (paid == 1 ? "y" : "ies") + " marked as PAID for "
+                                    + monthCombo.getValue() + " " + year + ".");
                     refreshData();
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to update statuses.");
+                } catch (RuntimeException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            ex.getMessage() != null ? ex.getMessage() : "Failed to update statuses.");
                 }
             }
         });
