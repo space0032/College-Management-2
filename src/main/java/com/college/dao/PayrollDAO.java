@@ -102,7 +102,7 @@ public class PayrollDAO {
         }
     }
 
-    public boolean markMonthAsPaid(int month, int year) {
+public int markMonthAsPaidCount(int month, int year) {
         String sql = "UPDATE payroll_entries SET status = 'PAID', payment_date = ? WHERE month = ? AND year = ? AND status = 'PENDING'";
         try (Connection conn = connections.open();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -110,10 +110,14 @@ public class PayrollDAO {
             pstmt.setDate(1, Date.valueOf(LocalDate.now()));
             pstmt.setInt(2, month);
             pstmt.setInt(3, year);
-            return pstmt.executeUpdate() >= 0; // Return true even if 0 rows updated (no error)
+            return pstmt.executeUpdate();
         } catch (SQLException e) {
             throw com.college.utils.ManagementException.database(e);
         }
+    }
+
+    public boolean markMonthAsPaid(int month, int year) {
+        return markMonthAsPaidCount(month, year) >= 0;
     }
 
     public List<PayrollEntry> getAllPayrollEntries() {

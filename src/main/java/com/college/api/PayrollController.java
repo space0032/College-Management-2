@@ -52,21 +52,24 @@ public class PayrollController extends BaseController implements HttpHandler {
                     if (reason != null) { skipped.add(Map.of("employeeId", Objects.toString(employee.getEmployeeId(), "Unknown"), "reason", reason)); continue; }
                     entries.add(new PayrollEntry(employee.getId(), period[0], period[1], employee.getSalary()));
                 }
-                List<Integer> inserted = payrollDAO.generateBatch(entries);
+List<Integer> inserted = payrollDAO.generateBatch(entries);
                 int existing = entries.size() - inserted.size();
-                for (PayrollEntry entry : entries) if (!inserted.contains(entry.getEmployeeId())) skipped.add(Map.of("employeeId", entry.getEmployeeId(), "reason", "Already generated"));
-                sendResponse(t, 200, JsonHelper.toJson(Map.of("generated", inserted.size(), "existing", existing, "skipped", skipped, "message", "Generated " + inserted.size() + " payroll entries; " + skipped.size() + " skipped.")));
+                // "skipped" lists only ineligible staff; employees whose period
+                // already had an entry are counted in "existing" and are NOT
+                // repeated in "skipped" to avoid double-counting in the summary.
+                sendResponse(t, 200, JsonHelper.toJson(Map.of("generated", inserted.size(), "existing", existing, "skipped", skipped, "message", "Generated " + inserted.size() + " payroll entries; " + existing + " already existed; " + skipped.size() + " skipped.")));
             } else if (path.equals("/api/payroll/mark-paid") && method.equals("POST")) {
                 if (!requirePermission(t, "MANAGE_PAYROLL")) return;
                 int id = ManagementValidation.integer(ManagementValidation.object(readBody(t)), "id", 1, Integer.MAX_VALUE);
-                PayrollEntry entry = entry(id);
-                if (entry.getStatus() != PayrollEntry.Status.PAID && !payrollDAO.markAsPaid(id)) throw new ManagementException(409, "Only pending entries can be marked paid. Refresh the payroll list.");
+PayrollEntry entry = entry(id);
+                if (entry.getStatus() != PayrollEntry.Status.PENDING) throw new ManagementException(409, "Only pending entries can be marked paid. Refresh the payroll list.");
+                if (!payrollDAO.markAsPaid(id)) throw new ManagementException(409, "Payroll changed while marking paid. Refresh and retry.");
                 sendResponse(t, 200, "{\"success\":true,\"message\":\"Marked as paid\"}");
-            } else if (path.equals("/api/payroll/mark-all-paid") && method.equals("POST")) {
+} else if (path.equals("/api/payroll/mark-all-paid") && method.equals("POST")) {
                 if (!requirePermission(t, "MANAGE_PAYROLL")) return;
                 int[] period = period(ManagementValidation.object(readBody(t)));
-                payrollDAO.markMonthAsPaid(period[0], period[1]);
-                sendResponse(t, 200, "{\"success\":true,\"message\":\"Pending entries marked as paid\"}");
+                int paid = payrollDAO.markMonthAsPaidCount(period[0], period[1]);
+                sendResponse(t, 200, JsonHelper.toJson(Map.of("success", true, "paid", paid, "message", paid + " pending payroll entr" + (paid == 1 ? "y" : "ies") + " marked as paid.")));
             } else if (path.matches("/api/payroll/[0-9]+") && (method.equals("PUT") || method.equals("DELETE"))) {
                 if (!requirePermission(t, method.equals("PUT") ? "UPDATE_PAYROLL" : "DELETE_PAYROLL")) return;
                 int id = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1)); PayrollEntry entry = entry(id);
